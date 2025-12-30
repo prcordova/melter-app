@@ -113,9 +113,13 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
       quality: 0.8,
     });
 
-    if (!result.canceled && result.assets[0]) {
-      setSelectedImage(result.assets[0]);
-      setImagePreview(result.assets[0].uri);
+    if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+      const asset = result.assets[0];
+      setSelectedImage(asset);
+      setImagePreview(asset.uri);
+      console.log('Imagem selecionada:', asset.uri);
+    } else {
+      console.log('Seleção de imagem cancelada ou inválida');
     }
   };
 
@@ -275,59 +279,60 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           </TouchableOpacity>
         </View>
 
-        <ScrollView 
-          style={styles.content} 
-          contentContainerStyle={styles.contentContainer}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={styles.content}>
           {/* Avatar e Username */}
           <View style={styles.userInfo}>
-            {getAvatarUrl(user?.avatar) ? (
+            {user?.avatar ? (
               <Image
-                source={{ uri: getAvatarUrl(user?.avatar) }}
+                source={{ uri: getAvatarUrl(user.avatar) }}
                 style={styles.avatarImage}
               />
             ) : (
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
-                  {getUserInitials(user?.username)}
+                  {getUserInitials(user?.username || 'U')}
                 </Text>
               </View>
             )}
             <View style={styles.userDetails}>
-              <Text style={styles.username}>@{user?.username}</Text>
-              <TouchableOpacity
-                onPress={() => setShowVisibilityPicker(true)}
-                style={styles.visibilityChip}
-              >
-                <Text style={styles.visibilityText}>{getVisibilityLabel()}</Text>
-              </TouchableOpacity>
+              <Text style={styles.username}>@{user?.username || 'usuário'}</Text>
             </View>
+            <TouchableOpacity
+              onPress={() => setShowVisibilityPicker(true)}
+              style={styles.visibilityChip}
+            >
+              <Text style={styles.visibilityText}>{getVisibilityLabel()}</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Textarea */}
-          <TextInput
-            style={styles.textarea}
-            placeholder={
-              isPro
-                ? 'No que você está pensando?'
-                : 'Compartilhe algo...'
-            }
-            placeholderTextColor={COLORS.text.tertiary}
-            multiline
-            value={content}
-            onChangeText={(text) => {
-              // Máximo 3 quebras de linha consecutivas
-              const sanitized = text
-                .replace(/\n{4,}/g, '\n\n\n')
-                .slice(0, 1000);
-              setContent(sanitized);
-            }}
-            maxLength={1000}
-            autoFocus
-            editable={!loading}
-          />
+          <ScrollView 
+            style={styles.textareaContainer}
+            nestedScrollEnabled={true}
+            showsVerticalScrollIndicator={true}
+          >
+            <TextInput
+              style={styles.textarea}
+              placeholder={
+                isPro
+                  ? 'No que você está pensando?'
+                  : 'Compartilhe algo...'
+              }
+              placeholderTextColor={COLORS.text.tertiary}
+              multiline
+              value={content}
+              onChangeText={(text) => {
+                // Máximo 3 quebras de linha consecutivas
+                const sanitized = text
+                  .replace(/\n{4,}/g, '\n\n\n')
+                  .slice(0, 1000);
+                setContent(sanitized);
+              }}
+              maxLength={1000}
+              autoFocus
+              editable={!loading}
+            />
+          </ScrollView>
 
           {/* Contador de caracteres */}
           <View style={styles.charCount}>
@@ -340,48 +345,62 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           </View>
 
           {/* Preview da Imagem */}
-          {imagePreview && (
+          {imagePreview ? (
             <View style={styles.imagePreviewContainer}>
-              <View style={styles.imagePreview}>
-                <Text style={styles.imagePreviewText}>📷 Imagem selecionada</Text>
-                <TouchableOpacity
-                  onPress={handleRemoveImage}
-                  style={styles.removeImageButton}
-                  disabled={loading}
-                >
-                  <Text style={styles.removeImageText}>✕</Text>
-                </TouchableOpacity>
-              </View>
+              <Image
+                source={{ uri: imagePreview }}
+                style={styles.imagePreviewImage}
+                resizeMode="cover"
+                onError={(error) => {
+                  console.error('Erro ao carregar preview:', error);
+                }}
+                onLoad={() => {
+                  console.log('Preview carregado:', imagePreview);
+                }}
+              />
+              <TouchableOpacity
+                onPress={handleRemoveImage}
+                style={styles.removeImageButton}
+                disabled={loading}
+              >
+                <Ionicons name="close-circle" size={24} color="#ffffff" />
+              </TouchableOpacity>
             </View>
-          )}
+          ) : null}
 
-          {/* Categoria */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Categoria</Text>
-            <TouchableOpacity
-              style={styles.picker}
-              onPress={() => setShowCategoryPicker(true)}
-              disabled={loading}
-            >
-              <Text style={styles.pickerText}>{getCategoryLabel()}</Text>
-              <Text style={styles.pickerArrow}>▼</Text>
-            </TouchableOpacity>
+          {/* Categoria e Upload Imagem - Lado a lado */}
+          <View style={styles.actionsRow}>
+            {/* Categoria */}
+            <View style={styles.sectionHalf}>
+              <Text style={styles.sectionTitle}>Categoria</Text>
+              <TouchableOpacity
+                style={styles.picker}
+                onPress={() => setShowCategoryPicker(true)}
+                disabled={loading}
+              >
+                <Text style={styles.pickerText} numberOfLines={1}>{getCategoryLabel()}</Text>
+                <Text style={styles.pickerArrow}>▼</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Botão Upload Imagem */}
+            <View style={styles.sectionHalf}>
+              <Text style={styles.sectionTitle}>Imagem</Text>
+              <PlanLocker
+                requiredPlan="STARTER"
+                currentPlan={user?.plan?.type as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS' || 'FREE'}
+              >
+                <TouchableOpacity
+                  style={styles.uploadButton}
+                  onPress={handlePickImage}
+                  disabled={loading || !canUploadImage}
+                >
+                  <Text style={styles.uploadButtonText} numberOfLines={1}>📷 Adicionar</Text>
+                </TouchableOpacity>
+              </PlanLocker>
+            </View>
           </View>
-
-          {/* Botão Upload Imagem */}
-          <PlanLocker
-            requiredPlan="STARTER"
-            currentPlan={user?.plan?.type as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS' || 'FREE'}
-          >
-            <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={handlePickImage}
-              disabled={loading || !canUploadImage}
-            >
-              <Text style={styles.uploadButtonText}>📷 Adicionar Imagem</Text>
-            </TouchableOpacity>
-          </PlanLocker>
-        </ScrollView>
+        </View>
 
         {/* Footer com botões */}
         <View style={styles.footer}>
@@ -409,8 +428,14 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
 
         {/* Category Picker */}
         {showCategoryPicker && (
-          <View style={styles.pickerModal}>
-            <View style={styles.pickerModalContent}>
+          <Pressable 
+            style={styles.pickerModal}
+            onPress={() => setShowCategoryPicker(false)}
+          >
+            <Pressable 
+              style={styles.pickerModalContent}
+              onPress={(e) => e.stopPropagation()}
+            >
               <Text style={styles.pickerModalTitle}>Selecione a Categoria</Text>
               <ScrollView>
                 {CATEGORIES.map((cat) => (
@@ -435,14 +460,20 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
               >
                 Fechar
               </Button>
-            </View>
-          </View>
+            </Pressable>
+          </Pressable>
         )}
 
         {/* Visibility Picker */}
         {showVisibilityPicker && (
-          <View style={styles.pickerModal}>
-            <View style={styles.pickerModalContent}>
+          <Pressable 
+            style={styles.pickerModal}
+            onPress={() => setShowVisibilityPicker(false)}
+          >
+            <Pressable 
+              style={styles.pickerModalContent}
+              onPress={(e) => e.stopPropagation()}
+            >
               <Text style={styles.pickerModalTitle}>Visibilidade</Text>
               <TouchableOpacity
                 style={[
@@ -486,8 +517,8 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
               >
                 Fechar
               </Button>
-            </View>
-          </View>
+            </Pressable>
+          </Pressable>
         )}
           </Pressable>
         </KeyboardAvoidingView>
@@ -512,7 +543,8 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     maxWidth: 600,
-    maxHeight: '85%',
+    maxHeight: '95%',
+    minHeight: 650,
     backgroundColor: COLORS.background.paper,
     borderRadius: 20,
     overflow: 'hidden',
@@ -541,11 +573,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.border.light,
     backgroundColor: COLORS.background.paper,
-    gap: 12,
+    gap: 8,
+    marginTop: 'auto',
   },
   cancelButtonContainer: {
     flex: 1,
@@ -583,14 +616,15 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  contentContainer: {
     padding: 16,
+    paddingBottom: 12,
+    minHeight: 0,
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+    gap: 12,
   },
   avatar: {
     width: 50,
@@ -615,6 +649,7 @@ const styles = StyleSheet.create({
   },
   userDetails: {
     flex: 1,
+    marginRight: 'auto',
   },
   username: {
     fontSize: 16,
@@ -623,21 +658,31 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   visibilityChip: {
-    alignSelf: 'flex-start',
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 16,
     backgroundColor: `${COLORS.secondary.main}20`,
+    marginLeft: 'auto',
   },
   visibilityText: {
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.secondary.main,
   },
+  textareaContainer: {
+    minHeight: 150,
+    maxHeight: 200,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   textarea: {
     fontSize: 16,
     color: COLORS.text.primary,
-    minHeight: 150,
+    minHeight: 130,
     textAlignVertical: 'top',
   },
   charCount: {
@@ -658,6 +703,15 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 16,
   },
+  sectionHalf: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
@@ -670,9 +724,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.background.paper,
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 1,
     borderColor: COLORS.border.medium,
+    minHeight: 48,
   },
   pickerText: {
     fontSize: 15,
@@ -685,11 +740,12 @@ const styles = StyleSheet.create({
   uploadButton: {
     backgroundColor: COLORS.background.paper,
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.border.medium,
-    marginBottom: 16,
+    minHeight: 48,
   },
   uploadButtonText: {
     fontSize: 15,
@@ -709,6 +765,16 @@ const styles = StyleSheet.create({
   },
   imagePreviewContainer: {
     marginBottom: 16,
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+  },
+  imagePreviewImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
   },
   imagePreview: {
     flexDirection: 'row',
@@ -725,10 +791,13 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
   removeImageButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.states.error,
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },
