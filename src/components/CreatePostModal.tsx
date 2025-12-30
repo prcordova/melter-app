@@ -269,7 +269,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           style={styles.keyboardAvoid}
         >
           <Pressable
-            style={[styles.container, { paddingTop: 20, paddingBottom: Math.max(insets.bottom, 20) }]}
+            style={[styles.container, { paddingBottom: Math.max(insets.bottom, 0) }]}
             onPress={(e) => e.stopPropagation()}
           >
         <View style={styles.header}>
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 600,
     maxHeight: '95%',
-    minHeight: 650,
+    minHeight: 700,
     backgroundColor: COLORS.background.paper,
     borderRadius: 20,
     overflow: 'hidden',
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: COLORS.border.light,
     backgroundColor: COLORS.background.paper,
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
-    paddingBottom: 12,
+    paddingBottom: 8,
     minHeight: 0,
   },
   userInfo: {
