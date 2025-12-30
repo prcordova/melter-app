@@ -48,7 +48,12 @@ export function PostCard({
   const [showReportModal, setShowReportModal] = useState(false);
 
   // Verificação de segurança
-  if (!post || !post.userId) {
+  if (!post || !post.userId || typeof post.userId !== 'object') {
+    return null;
+  }
+
+  // Verificar se userId tem _id
+  if (!post.userId._id) {
     return null;
   }
 
@@ -238,7 +243,10 @@ export function PostCard({
       {/* Header */}
       <View style={styles.header}>
         <Avatar 
-          user={{ username: post.userId?.username || '', avatar: post.userId?.avatar }} 
+          user={{ 
+            username: (post.userId?.username && typeof post.userId.username === 'string') ? post.userId.username : '', 
+            avatar: post.userId?.avatar 
+          }} 
           size={40}
           style={styles.avatar}
         />
@@ -248,11 +256,13 @@ export function PostCard({
             activeOpacity={0.7}
             style={styles.headerTitleRow}
           >
-            <Text style={styles.username}>{post.userId?.username || 'Usuário'}</Text>
+            <Text style={styles.username}>
+              {(post.userId?.username && typeof post.userId.username === 'string') ? post.userId.username : 'Usuário'}
+            </Text>
             {post.userId?.verifiedBadge?.isVerified && (
               <Text style={styles.verifiedBadge}>✓</Text>
             )}
-            {post.userId?.plan?.type && post.userId.plan.type !== 'FREE' && (
+            {post.userId?.plan?.type && typeof post.userId.plan.type === 'string' && post.userId.plan.type !== 'FREE' && (
               <View style={[
                 styles.planBadge,
                 post.userId.plan.type === 'STARTER' && styles.planSTARTER,
@@ -265,7 +275,9 @@ export function PostCard({
               </View>
             )}
           </TouchableOpacity>
-          <Text style={styles.timestamp}>{getTimeAgo(post.createdAt || new Date())}</Text>
+          <Text style={styles.timestamp}>
+            {post.createdAt ? getTimeAgo(post.createdAt) : ''}
+          </Text>
         </View>
         <TouchableOpacity 
           onPress={(e) => {
@@ -286,16 +298,16 @@ export function PostCard({
       )}
 
       {/* Renderizar Post Original se existir */}
-      {post.originalPostId && renderOriginalPost(post.originalPostId as Post)}
+      {post.originalPostId && typeof post.originalPostId === 'object' && renderOriginalPost(post.originalPostId as Post)}
 
       {/* Link Preview (apenas para posts normais) */}
-      {!post.originalPostId && post.linkId && (
+      {!post.originalPostId && post.linkId && typeof post.linkId === 'object' && (
         <TouchableOpacity
           style={styles.linkPreview}
           onPress={handleLinkPress}
           activeOpacity={0.7}
         >
-          {post.linkId.imageUrl && (
+          {post.linkId?.imageUrl && (
             <Image
               source={{ uri: post.linkId.imageUrl }}
               style={styles.linkImage}
@@ -304,15 +316,15 @@ export function PostCard({
           )}
           <View style={styles.linkInfo}>
             <Text style={styles.linkTitle} numberOfLines={2}>
-              {post.linkId.title}
+              {post.linkId?.title || ''}
             </Text>
-            {post.linkId.description && (
+            {post.linkId?.description && (
               <Text style={styles.linkDescription} numberOfLines={2}>
                 {post.linkId.description}
               </Text>
             )}
             <Text style={styles.linkUrl} numberOfLines={1}>
-              {post.linkId.url}
+              {post.linkId?.url || ''}
             </Text>
           </View>
         </TouchableOpacity>
@@ -346,7 +358,9 @@ export function PostCard({
               styles.actionText,
               post.userReaction && styles.actionTextActive
             ]}>
-              {post.reactionsCount?.total || 0}
+              {(post.reactionsCount && typeof post.reactionsCount === 'object' && typeof post.reactionsCount.total === 'number') 
+                ? post.reactionsCount.total 
+                : 0}
             </Text>
           </TouchableOpacity>
 
@@ -390,7 +404,10 @@ export function PostCard({
       </View>
 
       {/* Reactions Summary */}
-      {post.reactionsCount?.total && post.reactionsCount.total > 0 && (
+      {post.reactionsCount && 
+       typeof post.reactionsCount === 'object' && 
+       typeof post.reactionsCount.total === 'number' && 
+       post.reactionsCount.total > 0 && (
         <View style={styles.reactionsSummary}>
           {topReaction && (
             <Text style={styles.topReactionEmoji}>{REACTIONS[topReaction]}</Text>
@@ -403,28 +420,34 @@ export function PostCard({
 
       {/* Modais */}
       {/* Modais */}
-      <CommentsModal
-        visible={showCommentsModal}
-        onClose={() => setShowCommentsModal(false)}
-        postId={post._id}
-      />
+      {post._id && (
+        <>
+          <CommentsModal
+            visible={showCommentsModal}
+            onClose={() => setShowCommentsModal(false)}
+            postId={post._id}
+          />
 
-      <ShareModal
-        visible={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        postId={post._id}
-        onShared={() => {
-          setShowShareModal(false);
-          onShare(post._id);
-        }}
-      />
+          <ShareModal
+            visible={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            postId={post._id}
+            onShared={() => {
+              setShowShareModal(false);
+              if (post._id) {
+                onShare(post._id);
+              }
+            }}
+          />
 
-      <ReportPostModal
-        visible={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        postId={post._id}
-        postAuthorUsername={post.userId.username}
-      />
+          <ReportPostModal
+            visible={showReportModal}
+            onClose={() => setShowReportModal(false)}
+            postId={post._id}
+            postAuthorUsername={(post.userId?.username && typeof post.userId.username === 'string') ? post.userId.username : ''}
+          />
+        </>
+      )}
 
       {/* Menu Modal */}
       <Modal

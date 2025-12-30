@@ -71,15 +71,25 @@ export function FeedScreen() {
       const response = await postsApi.getPosts(pageNum, 20);
 
       if (response.success) {
-        const newPosts = response.data.posts;
+        const newPosts = response.data.posts || [];
+
+        // Filtrar posts inválidos
+        const validPosts = newPosts.filter((p: Post) => {
+          return p && 
+                 p._id && 
+                 p.userId && 
+                 typeof p.userId === 'object' && 
+                 p.userId._id &&
+                 (p.userId.username || typeof p.userId.username === 'string');
+        });
 
         if (pageNum === 1) {
-          setPosts(newPosts);
+          setPosts(validPosts);
         } else {
           // Evitar duplicatas
           setPosts((prev) => {
             const existingIds = new Set(prev.map((p) => p._id));
-            const uniqueNewPosts = newPosts.filter(
+            const uniqueNewPosts = validPosts.filter(
               (p: Post) => !existingIds.has(p._id)
             );
             return [...prev, ...uniqueNewPosts];
@@ -286,6 +296,11 @@ export function FeedScreen() {
 
   // Render Item
   const renderItem = ({ item, index }: { item: Post; index: number }) => {
+    // Validação adicional antes de renderizar
+    if (!item || !item._id || !item.userId || typeof item.userId !== 'object' || !item.userId._id) {
+      return null;
+    }
+
     return (
       <View>
         <PostCard

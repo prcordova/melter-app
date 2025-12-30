@@ -9,7 +9,8 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Header } from '../components/Header';
 import { MenuCard } from '../components/MenuCard';
@@ -37,24 +38,37 @@ export function ProfileScreen() {
   const [userStories, setUserStories] = useState<StoriesGroup | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
 
-  // Carregar status do usuário
-  useEffect(() => {
-    const loadStatus = async () => {
-      try {
-        setLoadingStatus(true);
-        const response = await userApi.getStatus();
-        if (response.success && response.data) {
-          setStatus(response.data.visibility || 'online');
-          setStatusMessage(response.data.customMessage || '');
-        }
-      } catch (error) {
-        console.error('Erro ao carregar status:', error);
-      } finally {
-        setLoadingStatus(false);
+  // Função para carregar status
+  const loadStatus = useCallback(async () => {
+    try {
+      setLoadingStatus(true);
+      const response = await userApi.getStatus();
+      if (response.success && response.data) {
+        setStatus(response.data.visibility || 'online');
+        setStatusMessage(response.data.customMessage || '');
       }
-    };
-    loadStatus();
+    } catch (error) {
+      console.error('Erro ao carregar status:', error);
+    } finally {
+      setLoadingStatus(false);
+    }
   }, []);
+
+  // Carregar status do usuário ao montar e ao focar na tela
+  useEffect(() => {
+    loadStatus();
+  }, [loadStatus]);
+
+  // Recarregar status quando a tela receber foco (mas não imediatamente após salvar)
+  useFocusEffect(
+    useCallback(() => {
+      // Pequeno delay para evitar recarregar imediatamente após salvar
+      const timer = setTimeout(() => {
+        loadStatus();
+      }, 500);
+      return () => clearTimeout(timer);
+    }, [loadStatus])
+  );
 
   React.useEffect(() => {
     const fetchMyStories = async () => {
@@ -125,12 +139,14 @@ export function ProfileScreen() {
 
   const handleStatusChange = async (newStatus: UserStatus) => {
     const previousStatus = status;
-    setStatus(newStatus);
     setSavingStatus(true);
 
     try {
       const response = await userApi.updateStatus({ visibility: newStatus });
-      if (response.success) {
+      if (response.success && response.data) {
+        // Atualizar estado com o valor retornado pela API para garantir sincronização
+        const updatedVisibility = response.data.visibility || newStatus;
+        setStatus(updatedVisibility as UserStatus);
         showToast.success('Sucesso', 'Status atualizado');
       } else {
         // Reverter se falhar

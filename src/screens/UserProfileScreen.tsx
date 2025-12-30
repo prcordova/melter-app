@@ -59,11 +59,78 @@ export function UserProfileScreen() {
       const response = await userApi.getUserProfile(username);
 
       if (response.success) {
-        setUser(response.data);
-        setLinks(response.data.links || []);
-        setIsFollowing(response.data.isFollowing);
-        setFriendshipStatus(response.data.friendshipStatus || 'NONE');
-        setFriendshipId(response.data.friendshipId || null);
+        // Validar e normalizar dados do perfil antes de definir o estado
+        const userData = response.data;
+        if (userData.profile) {
+          // Função auxiliar para validar cor hexadecimal, RGB, RGBA ou nome de cor
+          const isValidColor = (color: any): boolean => {
+            if (!color || typeof color !== 'string') return false;
+            const trimmed = color.trim();
+            // Hex color (#fff, #ffffff)
+            if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(trimmed)) return true;
+            // RGB/RGBA (rgb(255,255,255) ou rgba(255,255,255,0.5))
+            if (/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\)$/.test(trimmed)) return true;
+            // Nomes de cores CSS básicos (opcional, mas pode ser útil)
+            const cssColorNames = ['transparent', 'black', 'white', 'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'gray', 'grey'];
+            if (cssColorNames.includes(trimmed.toLowerCase())) return true;
+            return false;
+          };
+
+          // Validar cores
+          if (userData.profile.backgroundColor && !isValidColor(userData.profile.backgroundColor)) {
+            userData.profile.backgroundColor = null;
+          }
+          if (userData.profile.textColor && !isValidColor(userData.profile.textColor)) {
+            userData.profile.textColor = null;
+          }
+          if (userData.profile.cardColor && !isValidColor(userData.profile.cardColor)) {
+            userData.profile.cardColor = null;
+          }
+          if (userData.profile.cardTextColor && !isValidColor(userData.profile.cardTextColor)) {
+            userData.profile.cardTextColor = null;
+          }
+          if (userData.profile.buttonBackgroundColor && !isValidColor(userData.profile.buttonBackgroundColor)) {
+            userData.profile.buttonBackgroundColor = null;
+          }
+          if (userData.profile.buttonTextColor && !isValidColor(userData.profile.buttonTextColor)) {
+            userData.profile.buttonTextColor = null;
+          }
+          if (userData.profile.likesColor && !isValidColor(userData.profile.likesColor)) {
+            userData.profile.likesColor = null;
+          }
+
+          // Garantir que backgroundOverlayOpacity seja um número válido
+          if (userData.profile.backgroundOverlayOpacity !== undefined && userData.profile.backgroundOverlayOpacity !== null) {
+            userData.profile.backgroundOverlayOpacity = Math.max(0, Math.min(100, Number(userData.profile.backgroundOverlayOpacity) || 50));
+          }
+          // Garantir que backgroundOverlay seja um booleano
+          if (userData.profile.backgroundOverlay !== undefined && userData.profile.backgroundOverlay !== null) {
+            userData.profile.backgroundOverlay = userData.profile.backgroundOverlay === true || userData.profile.backgroundOverlay === 'true';
+          }
+          // Garantir que backgroundImage seja uma string válida ou null
+          if (userData.profile.backgroundImage !== undefined && userData.profile.backgroundImage !== null) {
+            if (typeof userData.profile.backgroundImage !== 'string' || userData.profile.backgroundImage.trim() === '') {
+              userData.profile.backgroundImage = null;
+            }
+          }
+          // Garantir que cardStyle seja um valor válido
+          if (userData.profile.cardStyle && !['rounded', 'square', 'pill'].includes(userData.profile.cardStyle)) {
+            userData.profile.cardStyle = 'rounded';
+          }
+          // Garantir que displayMode seja um valor válido
+          if (userData.profile.displayMode && !['list', 'grid'].includes(userData.profile.displayMode)) {
+            userData.profile.displayMode = 'list';
+          }
+          // Garantir que gridAlignment seja um valor válido
+          if (userData.profile.gridAlignment && !['left', 'center', 'right'].includes(userData.profile.gridAlignment)) {
+            userData.profile.gridAlignment = 'center';
+          }
+        }
+        setUser(userData);
+        setLinks(userData.links || []);
+        setIsFollowing(userData.isFollowing);
+        setFriendshipStatus(userData.friendshipStatus || 'NONE');
+        setFriendshipId(userData.friendshipId || null);
         
         // Buscar stories do usuário
         try {
@@ -217,28 +284,65 @@ export function UserProfileScreen() {
 
   const profile = user.profile || {};
   const avatarSource = getAvatarUrl(user.avatar);
-  const bgImageSource = profile.backgroundImage ? { uri: profile.backgroundImage } : null;
+  
+  // Função auxiliar para validar cor hexadecimal, RGB, RGBA ou nome de cor
+  const isValidColor = (color: any): boolean => {
+    if (!color || typeof color !== 'string') return false;
+    const trimmed = color.trim();
+    // Hex color (#fff, #ffffff)
+    if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(trimmed)) return true;
+    // RGB/RGBA (rgb(255,255,255) ou rgba(255,255,255,0.5))
+    if (/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\)$/.test(trimmed)) return true;
+    // Nomes de cores CSS básicos (opcional, mas pode ser útil)
+    const cssColorNames = ['transparent', 'black', 'white', 'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'gray', 'grey'];
+    if (cssColorNames.includes(trimmed.toLowerCase())) return true;
+    return false;
+  };
 
-  // Estilos Dinâmicos baseados no perfil do usuário
+  // Função auxiliar para obter cor segura
+  const getSafeColor = (color: any, fallback: string): string => {
+    if (isValidColor(color)) return color;
+    return fallback;
+  };
+
+  // Validar backgroundImage para garantir que seja uma string válida
+  const bgImageSource = profile.backgroundImage && typeof profile.backgroundImage === 'string' && profile.backgroundImage.trim() !== ''
+    ? { uri: profile.backgroundImage }
+    : null;
+
+  // Validar backgroundOverlayOpacity para garantir que seja um número válido entre 0 e 100
+  const safeOverlayOpacity = profile.backgroundOverlayOpacity !== undefined && profile.backgroundOverlayOpacity !== null
+    ? Math.max(0, Math.min(100, Number(profile.backgroundOverlayOpacity) || 50))
+    : 50;
+  
+  // Validar backgroundOverlay para garantir que seja um booleano
+  const hasOverlay = profile.backgroundOverlay === true || profile.backgroundOverlay === 'true';
+
+  // Validar cardStyle para garantir que seja um valor válido
+  const safeCardStyle = profile.cardStyle === 'rounded' || profile.cardStyle === 'square' || profile.cardStyle === 'pill'
+    ? profile.cardStyle
+    : 'rounded';
+
+  // Estilos Dinâmicos baseados no perfil do usuário (com validações robustas)
   const dynamicStyles = {
     container: {
-      backgroundColor: profile.backgroundColor || COLORS.background.default,
+      backgroundColor: getSafeColor(profile.backgroundColor, COLORS.background.default),
     },
     text: {
-      color: profile.textColor || COLORS.text.primary,
+      color: getSafeColor(profile.textColor, COLORS.text.primary),
     },
     card: {
-      backgroundColor: profile.cardColor || COLORS.background.paper,
-      borderRadius: profile.cardStyle === 'rounded' ? 16 : 4,
+      backgroundColor: getSafeColor(profile.cardColor, COLORS.background.paper),
+      borderRadius: safeCardStyle === 'rounded' ? 16 : safeCardStyle === 'pill' ? 999 : 4,
     },
     cardText: {
-      color: profile.cardTextColor || COLORS.text.primary,
+      color: getSafeColor(profile.cardTextColor, COLORS.text.primary),
     },
     button: {
-      backgroundColor: profile.buttonBackgroundColor || COLORS.secondary.main,
+      backgroundColor: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main),
     },
     buttonText: {
-      color: profile.buttonTextColor || '#ffffff',
+      color: getSafeColor(profile.buttonTextColor, '#ffffff'),
     },
   };
 
@@ -262,7 +366,7 @@ export function UserProfileScreen() {
       
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={profile.buttonBackgroundColor || COLORS.secondary.main} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main)} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -271,10 +375,10 @@ export function UserProfileScreen() {
           {bgImageSource ? (
             <Image source={bgImageSource} style={styles.coverImage} resizeMode="cover" />
           ) : (
-            <View style={[styles.coverPlaceholder, { backgroundColor: profile.backgroundColor || COLORS.primary.main }]} />
+            <View style={[styles.coverPlaceholder, { backgroundColor: getSafeColor(profile.backgroundColor, COLORS.primary.main) }]} />
           )}
-          {profile.backgroundOverlay && (
-            <View style={[styles.overlay, { opacity: (profile.backgroundOverlayOpacity || 50) / 100 }]} />
+          {hasOverlay && (
+            <View style={[styles.overlay, { opacity: safeOverlayOpacity / 100 }]} />
           )}
         </View>
 
@@ -302,7 +406,7 @@ export function UserProfileScreen() {
                 <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
               )}
             </View>
-            <Text style={[styles.planType, { color: profile.buttonBackgroundColor || COLORS.secondary.main }]}>
+            <Text style={[styles.planType, { color: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) }]}>
               {user.plan?.type || 'FREE'}
             </Text>
             {user.bio ? <Text style={[styles.bio, dynamicStyles.text]}>{user.bio}</Text> : null}
@@ -315,7 +419,7 @@ export function UserProfileScreen() {
                 style={[styles.quickActionButton, dynamicStyles.card]} 
                 onPress={handleShopPress}
               >
-                <Ionicons name="storefront-outline" size={20} color={profile.cardTextColor || COLORS.text.primary} />
+                <Ionicons name="storefront-outline" size={20} color={getSafeColor(profile.cardTextColor, COLORS.text.primary)} />
                 <Text style={[styles.quickActionText, dynamicStyles.cardText]}>Loja</Text>
               </TouchableOpacity>
             )}
@@ -324,7 +428,7 @@ export function UserProfileScreen() {
                 style={[styles.quickActionButton, dynamicStyles.card]} 
                 onPress={handleDonatePress}
               >
-                <Ionicons name="heart-outline" size={20} color={profile.cardTextColor || COLORS.text.primary} />
+                <Ionicons name="heart-outline" size={20} color={getSafeColor(profile.cardTextColor, COLORS.text.primary)} />
                 <Text style={[styles.quickActionText, dynamicStyles.cardText]}>Doar</Text>
               </TouchableOpacity>
             )}
@@ -442,7 +546,7 @@ export function UserProfileScreen() {
                   </View>
                 )}
                 <Text style={[styles.linkTitle, dynamicStyles.cardText]}>{link.title}</Text>
-                <Ionicons name="chevron-forward" size={18} color={profile.cardTextColor || COLORS.text.tertiary} />
+                <Ionicons name="chevron-forward" size={18} color={getSafeColor(profile.cardTextColor, COLORS.text.tertiary)} />
               </TouchableOpacity>
             ))}
           </View>
@@ -464,7 +568,7 @@ export function UserProfileScreen() {
               ))
             ) : (
               <View style={styles.emptyPosts}>
-                <Ionicons name="images-outline" size={48} color={profile.textColor || COLORS.text.tertiary} style={{ opacity: 0.5 }} />
+                <Ionicons name="images-outline" size={48} color={getSafeColor(profile.textColor, COLORS.text.tertiary)} style={{ opacity: 0.5 }} />
                 <Text style={[styles.emptyText, dynamicStyles.text, { opacity: 0.6 }]}>Nenhum post publicado ainda.</Text>
               </View>
             )}

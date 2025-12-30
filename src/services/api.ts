@@ -550,3 +550,19 @@ export const profileApi = {
     return response.data;
   },
 };
+
+// API de Anúncios
+export const adsApi = {
+  getAds: async (multiple: boolean = false, limit: number = 10) => {
+    const response = await api.get<ApiResponse<any>>(`/api/ads?multiple=${multiple}&limit=${limit}`);
+    return response.data;
+  },
+  viewAd: async (adId: string) => {
+    const response = await api.post<ApiResponse<any>>(`/api/ads/${adId}/view`);
+    return response.data;
+  },
+  clickAd: async (adId: string) => {
+    const response = await api.post<ApiResponse<any>>(`/api/ads/${adId}/click`);
+    return response.data;
+  },
+};

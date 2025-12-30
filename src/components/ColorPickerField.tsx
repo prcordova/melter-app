@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
-  ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../theme/colors';
 
@@ -46,11 +46,14 @@ const PRESET_COLORS = [
 ];
 
 export function ColorPickerField({ label, value, onChange, compact = false }: ColorPickerFieldProps) {
+  const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
-  const [hexInput, setHexInput] = useState(value);
+  // Garantir que value sempre seja uma string válida
+  const safeValue = value || '#000000';
+  const [hexInput, setHexInput] = useState(safeValue);
   const [rgbInput, setRgbInput] = useState(() => {
-    const rgb = hexToRgb(value);
-    return rgb ? `${rgb.r}, ${rgb.g}, ${rgb.b}` : '';
+    const rgb = hexToRgb(safeValue);
+    return rgb ? `${rgb.r}, ${rgb.g}, ${rgb.b}` : '0, 0, 0';
   });
 
   const handleHexChange = (text: string) => {
@@ -93,10 +96,23 @@ export function ColorPickerField({ label, value, onChange, compact = false }: Co
     }
   };
 
+  // Sincronizar valores quando value mudar externamente
+  useEffect(() => {
+    const currentValue = value || '#000000';
+    if (currentValue !== hexInput) {
+      setHexInput(currentValue);
+      const rgb = hexToRgb(currentValue);
+      if (rgb) {
+        setRgbInput(`${rgb.r}, ${rgb.g}, ${rgb.b}`);
+      }
+    }
+  }, [value, hexInput]);
+
   const openModal = () => {
-    setHexInput(value);
-    const rgb = hexToRgb(value);
-    setRgbInput(rgb ? `${rgb.r}, ${rgb.g}, ${rgb.b}` : '');
+    const currentValue = value || '#000000';
+    setHexInput(currentValue);
+    const rgb = hexToRgb(currentValue);
+    setRgbInput(rgb ? `${rgb.r}, ${rgb.g}, ${rgb.b}` : '0, 0, 0');
     setModalVisible(true);
   };
 
@@ -109,8 +125,8 @@ export function ColorPickerField({ label, value, onChange, compact = false }: Co
           onPress={openModal}
           activeOpacity={0.7}
         >
-          <View style={[styles.colorPreview, { backgroundColor: value }]} />
-          <Text style={styles.colorValue}>{value.toUpperCase()}</Text>
+          <View style={[styles.colorPreview, { backgroundColor: safeValue }]} />
+          <Text style={styles.colorValue}>{safeValue.toUpperCase()}</Text>
           <Ionicons name="chevron-forward" size={18} color={COLORS.text.secondary} />
         </TouchableOpacity>
       </View>
@@ -120,76 +136,87 @@ export function ColorPickerField({ label, value, onChange, compact = false }: Co
         animationType="slide"
         transparent
         onRequestClose={() => setModalVisible(false)}
+        statusBarTranslucent
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{label}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={COLORS.text.primary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody}>
-              {/* Preview da cor */}
-              <View style={[styles.colorPreviewLarge, { backgroundColor: value }]} />
-
-              {/* Input HEX */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>HEX</Text>
-                <TextInput
-                  style={styles.input}
-                  value={hexInput}
-                  onChangeText={handleHexChange}
-                  placeholder="#000000"
-                  placeholderTextColor={COLORS.text.tertiary}
-                  autoCapitalize="characters"
-                  maxLength={7}
-                />
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{label}</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                </TouchableOpacity>
               </View>
 
-              {/* Input RGB */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>RGB</Text>
-                <TextInput
-                  style={styles.input}
-                  value={rgbInput}
-                  onChangeText={handleRgbChange}
-                  placeholder="0, 0, 0"
-                  placeholderTextColor={COLORS.text.tertiary}
-                  keyboardType="numeric"
-                />
-              </View>
+              <View style={styles.modalBody}>
+                {/* Preview da cor */}
+                <View style={[styles.colorPreviewLarge, { backgroundColor: safeValue }]} />
 
-              {/* Cores predefinidas */}
-              <View style={styles.presetSection}>
-                <Text style={styles.presetLabel}>Cores Predefinidas</Text>
-                <View style={styles.presetGrid}>
-                  {PRESET_COLORS.map((color) => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.presetColor,
-                        { backgroundColor: color },
-                        value === color && styles.presetColorSelected,
-                      ]}
-                      onPress={() => handlePresetColorPress(color)}
+                {/* Inputs lado a lado */}
+                <View style={styles.inputsRow}>
+                  <View style={[styles.inputGroup, styles.inputGroupHalf]}>
+                    <Text style={styles.inputLabel}>HEX</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={hexInput}
+                      onChangeText={handleHexChange}
+                      placeholder="#000000"
+                      placeholderTextColor={COLORS.text.tertiary}
+                      autoCapitalize="characters"
+                      maxLength={7}
                     />
-                  ))}
+                  </View>
+
+                  <View style={[styles.inputGroup, styles.inputGroupHalf]}>
+                    <Text style={styles.inputLabel}>RGB</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={rgbInput}
+                      onChangeText={handleRgbChange}
+                      placeholder="0, 0, 0"
+                      placeholderTextColor={COLORS.text.tertiary}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+
+                {/* Cores predefinidas */}
+                <View style={styles.presetSection}>
+                  <Text style={styles.presetLabel}>Cores Predefinidas</Text>
+                  <View style={styles.presetGrid}>
+                    {PRESET_COLORS.map((color) => (
+                      <TouchableOpacity
+                        key={color}
+                        style={[
+                          styles.presetColor,
+                          { backgroundColor: color },
+                          safeValue === color && styles.presetColorSelected,
+                        ]}
+                        onPress={() => handlePresetColorPress(color)}
+                      />
+                    ))}
+                  </View>
                 </View>
               </View>
-            </ScrollView>
 
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.saveButtonText}>Confirmar</Text>
-              </TouchableOpacity>
+              <View style={[styles.modalFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.saveButtonText}>Confirmar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </>
   );
@@ -237,7 +264,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    width: '100%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -257,11 +284,19 @@ const styles = StyleSheet.create({
   },
   colorPreviewLarge: {
     width: '100%',
-    height: 120,
+    height: 80,
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border.light,
+  },
+  inputsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  inputGroupHalf: {
+    flex: 1,
   },
   inputGroup: {
     marginBottom: 16,
@@ -282,22 +317,23 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
   presetSection: {
-    marginTop: 8,
+    marginTop: 0,
   },
   presetLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   presetGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
+    justifyContent: 'center',
   },
   presetColor: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: 'transparent',

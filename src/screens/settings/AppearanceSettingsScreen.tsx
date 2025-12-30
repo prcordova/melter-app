@@ -133,7 +133,9 @@ export function AppearanceSettingsScreen() {
           backgroundImage: profile.backgroundImage || null,
           backgroundMode: profile.backgroundMode || prev.backgroundMode,
           backgroundOverlay: profile.backgroundOverlay !== undefined ? profile.backgroundOverlay : prev.backgroundOverlay,
-          backgroundOverlayOpacity: profile.backgroundOverlayOpacity !== undefined ? profile.backgroundOverlayOpacity : prev.backgroundOverlayOpacity,
+          backgroundOverlayOpacity: profile.backgroundOverlayOpacity !== undefined 
+            ? Math.max(0, Math.min(100, Number(profile.backgroundOverlayOpacity) || 90))
+            : prev.backgroundOverlayOpacity,
           showLikes: profile.showLikes !== undefined ? profile.showLikes : prev.showLikes,
           showViews: profile.showViews !== undefined ? profile.showViews : prev.showViews,
           showPosts: profile.showPosts !== undefined ? profile.showPosts : prev.showPosts,
@@ -158,7 +160,14 @@ export function AppearanceSettingsScreen() {
   };
 
   const handleSettingsChange = (updates: Partial<ProfileSettings>) => {
-    setSettings((prev) => ({ ...prev, ...updates }));
+    setSettings((prev) => {
+      const newSettings = { ...prev, ...updates };
+      // Garantir que backgroundOverlayOpacity sempre seja um número válido entre 0 e 100
+      if (newSettings.backgroundOverlayOpacity !== undefined) {
+        newSettings.backgroundOverlayOpacity = Math.max(0, Math.min(100, Number(newSettings.backgroundOverlayOpacity) || 90));
+      }
+      return newSettings;
+    });
     setHasChanges(true);
   };
 
@@ -197,10 +206,15 @@ export function AppearanceSettingsScreen() {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        setPendingBackground(result.assets[0].uri);
-        setBackgroundPreview(result.assets[0].uri);
-        handleSettingsChange({ backgroundImage: result.assets[0].uri });
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        if (imageUri) {
+          setPendingBackground(imageUri);
+          setBackgroundPreview(imageUri);
+          handleSettingsChange({ backgroundImage: imageUri });
+        } else {
+          showToast.error('Erro', 'Não foi possível obter a URI da imagem');
+        }
       }
     } catch (error) {
       console.error('Erro ao selecionar background:', error);
@@ -379,7 +393,9 @@ export function AppearanceSettingsScreen() {
               {(backgroundPreview || settings.backgroundImage) ? (
                 <View style={styles.imagePreviewContainer}>
                   <Image
-                    source={{ uri: backgroundPreview || getImageUrl(settings.backgroundImage || '') || '' }}
+                    source={{ 
+                      uri: backgroundPreview || (settings.backgroundImage ? getImageUrl(settings.backgroundImage) || '' : '')
+                    }}
                     style={styles.backgroundPreview}
                     resizeMode="cover"
                   />
@@ -405,13 +421,14 @@ export function AppearanceSettingsScreen() {
           <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>
-                Opacidade do Overlay: {Math.round(settings.backgroundOverlayOpacity)}%
+                Opacidade do Overlay: {Math.round(settings.backgroundOverlayOpacity ?? 90)}%
               </Text>
               <View style={styles.sliderContainer}>
                 <TouchableOpacity
                   style={styles.sliderButton}
                   onPress={() => {
-                    const newValue = Math.max(0, settings.backgroundOverlayOpacity - 5);
+                    const currentValue = settings.backgroundOverlayOpacity ?? 90;
+                    const newValue = Math.max(0, currentValue - 5);
                     handleSettingsChange({ backgroundOverlayOpacity: newValue });
                   }}
                 >
@@ -423,7 +440,7 @@ export function AppearanceSettingsScreen() {
                     style={[
                       styles.sliderTrackFill,
                       {
-                        width: `${settings.backgroundOverlayOpacity}%`,
+                        width: `${Math.max(0, Math.min(100, settings.backgroundOverlayOpacity ?? 90))}%`,
                         backgroundColor: COLORS.primary.main,
                       },
                     ]}
@@ -432,7 +449,8 @@ export function AppearanceSettingsScreen() {
                 <TouchableOpacity
                   style={styles.sliderButton}
                   onPress={() => {
-                    const newValue = Math.min(100, settings.backgroundOverlayOpacity + 5);
+                    const currentValue = settings.backgroundOverlayOpacity ?? 90;
+                    const newValue = Math.min(100, currentValue + 5);
                     handleSettingsChange({ backgroundOverlayOpacity: newValue });
                   }}
                 >
