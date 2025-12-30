@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Image,
   ActivityIndicator,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -39,7 +40,6 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
   // Recarregar notificações quando o modal abrir
   React.useEffect(() => {
     if (visible) {
-      console.log('[NotificationModal] Modal aberto, buscando notificações...');
       fetchNotifications();
     }
   }, [visible, fetchNotifications]);
@@ -47,12 +47,21 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
   // Mostrar apenas as 10 mais recentes
   const recentNotifications = notifications.slice(0, 10);
   
-  console.log('[NotificationModal] Notificações no modal:', {
-    total: notifications.length,
-    recent: recentNotifications.length,
-    unreadCount,
-    loading,
-  });
+  // Debug temporário
+  React.useEffect(() => {
+    if (visible) {
+      const unreadNotifications = notifications.filter(n => !n.isRead);
+      console.log('[NotificationModal] Estado quando modal está visível:', {
+        notificationsCount: notifications.length,
+        recentCount: recentNotifications.length,
+        loading,
+        unreadCount,
+        unreadNotificationsCount: unreadNotifications.length,
+        shouldShowMarkButton: unreadCount > 0,
+        notifications: notifications.map(n => ({ id: n._id, title: n.title, isRead: n.isRead }))
+      });
+    }
+  }, [visible, notifications, recentNotifications, loading, unreadCount]);
 
   const getTimeAgo = (date: string) => {
     try {
@@ -81,8 +90,14 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+      <Pressable 
+        style={styles.overlay}
+        onPress={onClose}
+      >
+        <Pressable 
+          style={[styles.container, { paddingTop: insets.top + 12 }]}
+          onPress={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Notificações</Text>
@@ -94,15 +109,15 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
           {/* Ações */}
           {notifications.length > 0 && (
             <View style={styles.actions}>
-              {unreadCount > 0 && (
+              {unreadCount > 0 ? (
                 <TouchableOpacity
                   onPress={markAllAsRead}
                   style={styles.actionButton}
                 >
                   <Ionicons name="checkmark-done" size={18} color={COLORS.secondary.main} />
-                  <Text style={styles.actionButtonText}>Marcar</Text>
+                  <Text style={styles.actionButtonText}>Marcar todas como lidas</Text>
                 </TouchableOpacity>
-              )}
+              ) : null}
               <TouchableOpacity
                 onPress={deleteAllNotifications}
                 style={[styles.actionButton, styles.actionButtonDanger]}
@@ -119,12 +134,13 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
           <ScrollView
             style={styles.content}
             contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={true}
           >
             {loading && notifications.length === 0 ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={COLORS.secondary.main} animating={true} />
               </View>
-            ) : recentNotifications.length === 0 ? (
+            ) : notifications.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Ionicons
                   name="notifications-outline"
@@ -135,104 +151,113 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
               </View>
             ) : (
               <>
-                {recentNotifications.map((notification) => (
-                  <TouchableOpacity
-                    key={notification._id}
-                    style={[
-                      styles.notificationItem,
-                      !notification.isRead && styles.notificationItemUnread,
-                    ]}
-                    onPress={() => handleNotificationPress(notification)}
-                  >
-                    {/* Avatar */}
-                    <View style={styles.avatarContainer}>
-                      {notification.groupedActors && notification.groupedActors.length > 1 ? (
-                        // Múltiplos avatares (notificação agrupada)
-                        <View style={styles.groupedAvatars}>
-                          {notification.groupedActors.slice(0, 2).map((actor, index) => (
-                            <View
-                              key={actor.actorId || index}
-                              style={[
-                                styles.groupedAvatar,
-                                { left: index * 12, top: index * 12, zIndex: 2 - index },
-                              ]}
-                            >
-                              {getAvatarUrl(actor.actorAvatar) ? (
-                                <Image
-                                  source={{ uri: getAvatarUrl(actor.actorAvatar) }}
-                                  style={styles.groupedAvatarImage}
-                                />
-                              ) : (
-                                <View style={[styles.groupedAvatarImage, styles.avatarPlaceholder]}>
-                                  <Text style={styles.avatarPlaceholderText}>
-                                    {getUserInitials(actor.actorUsername)}
-                                  </Text>
+                {recentNotifications.length > 0 ? (
+                  recentNotifications.map((notification) => {
+                    console.log('[NotificationModal] Renderizando notificação:', notification._id, notification.title);
+                    return (
+                      <TouchableOpacity
+                        key={notification._id}
+                        style={[
+                          styles.notificationItem,
+                          !notification.isRead && styles.notificationItemUnread,
+                        ]}
+                        onPress={() => handleNotificationPress(notification)}
+                      >
+                        {/* Avatar */}
+                        <View style={styles.avatarContainer}>
+                          {notification.groupedActors && notification.groupedActors.length > 1 ? (
+                            // Múltiplos avatares (notificação agrupada)
+                            <View style={styles.groupedAvatars}>
+                              {notification.groupedActors.slice(0, 2).map((actor, index) => (
+                                <View
+                                  key={actor.actorId || index}
+                                  style={[
+                                    styles.groupedAvatar,
+                                    { left: index * 12, top: index * 12, zIndex: 2 - index },
+                                  ]}
+                                >
+                                  {getAvatarUrl(actor.actorAvatar) ? (
+                                    <Image
+                                      source={{ uri: getAvatarUrl(actor.actorAvatar) }}
+                                      style={styles.groupedAvatarImage}
+                                    />
+                                  ) : (
+                                    <View style={[styles.groupedAvatarImage, styles.avatarPlaceholder]}>
+                                      <Text style={styles.avatarPlaceholderText}>
+                                        {getUserInitials(actor.actorUsername)}
+                                      </Text>
+                                    </View>
+                                  )}
                                 </View>
+                              ))}
+                            </View>
+                          ) : getAvatarUrl(notification.actorAvatar) ? (
+                            <Image
+                              source={{ uri: getAvatarUrl(notification.actorAvatar) }}
+                              style={styles.avatar}
+                            />
+                          ) : (
+                            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                              {notification.actorUsername ? (
+                                <Text style={styles.avatarPlaceholderText}>
+                                  {getUserInitials(notification.actorUsername)}
+                                </Text>
+                              ) : (
+                                <Ionicons
+                                  name="notifications"
+                                  size={20}
+                                  color="#ffffff"
+                                />
                               )}
                             </View>
-                          ))}
-                        </View>
-                      ) : getAvatarUrl(notification.actorAvatar) ? (
-                        <Image
-                          source={{ uri: getAvatarUrl(notification.actorAvatar) }}
-                          style={styles.avatar}
-                        />
-                      ) : (
-                        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                          {notification.actorUsername ? (
-                            <Text style={styles.avatarPlaceholderText}>
-                              {getUserInitials(notification.actorUsername)}
-                            </Text>
-                          ) : (
-                            <Ionicons
-                              name="notifications"
-                              size={20}
-                              color="#ffffff"
-                            />
                           )}
                         </View>
-                      )}
-                    </View>
 
-                    {/* Conteúdo */}
-                    <View style={styles.notificationContent}>
-                      <Text
-                        style={[
-                          styles.notificationTitle,
-                          !notification.isRead && styles.notificationTitleUnread,
-                        ]}
-                      >
-                        {notification.title}
-                      </Text>
-                      <Text style={styles.notificationMessage}>
-                        {notification.message}
-                      </Text>
-                      <Text style={styles.notificationTime}>
-                        {getTimeAgo(notification.createdAt)}
-                      </Text>
-                    </View>
+                        {/* Conteúdo */}
+                        <View style={styles.notificationContent}>
+                          <Text
+                            style={[
+                              styles.notificationTitle,
+                              !notification.isRead && styles.notificationTitleUnread,
+                            ]}
+                          >
+                            {notification.title}
+                          </Text>
+                          <Text style={styles.notificationMessage}>
+                            {notification.message}
+                          </Text>
+                          <Text style={styles.notificationTime}>
+                            {getTimeAgo(notification.createdAt)}
+                          </Text>
+                        </View>
 
-                    {/* Botão deletar */}
-                    <TouchableOpacity
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        deleteNotification(notification._id);
-                      }}
-                      style={styles.deleteButton}
-                      disabled={deletingIds.has(notification._id)}
-                    >
-                      {deletingIds.has(notification._id) ? (
-                        <ActivityIndicator size="small" color={COLORS.text.secondary} animating={true} />
-                      ) : (
-                        <Ionicons
-                          name="close-circle-outline"
-                          size={20}
-                          color={COLORS.text.secondary}
-                        />
-                      )}
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                ))}
+                        {/* Botão deletar */}
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            deleteNotification(notification._id);
+                          }}
+                          style={styles.deleteButton}
+                          disabled={deletingIds.has(notification._id)}
+                        >
+                          {deletingIds.has(notification._id) ? (
+                            <ActivityIndicator size="small" color={COLORS.text.secondary} animating={true} />
+                          ) : (
+                            <Ionicons
+                              name="close-circle-outline"
+                              size={20}
+                              color={COLORS.text.secondary}
+                            />
+                          )}
+                        </TouchableOpacity>
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Nenhuma notificação recente</Text>
+                  </View>
+                )}
 
                 {notifications.length > 10 && (
                   <View style={styles.moreContainer}>
@@ -244,8 +269,8 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
               </>
             )}
           </ScrollView>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -261,6 +286,8 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
     maxHeight: '80%',
+    minHeight: 300,
+    flex: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

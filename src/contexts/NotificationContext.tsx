@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { api } from '../services/api';
 
@@ -60,35 +60,36 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!user) return;
 
     try {
       setLoading(true);
       const response = await api.get('/api/notifications?limit=50');
-      console.log('[NotificationContext] Resposta da API:', JSON.stringify(response.data, null, 2));
 
       if (response.data.success && response.data.data) {
         // A API retorna { notifications, pagination } dentro de data
         const notificationsData = response.data.data.notifications || [];
-        console.log('[NotificationContext] Notificações recebidas:', notificationsData.length);
         
         // Filtrar notificações de mensagem (aparecem em outro lugar)
         const filteredNotifications = notificationsData.filter(
           (n: Notification) => n.type !== 'MESSAGE'
         );
-        console.log('[NotificationContext] Notificações após filtro:', filteredNotifications.length);
+        
+        console.log('[NotificationContext] Definindo notificações:', {
+          total: filteredNotifications.length,
+          unread: filteredNotifications.filter((n: Notification) => !n.isRead).length,
+          sample: filteredNotifications.slice(0, 2).map((n: Notification) => ({ id: n._id, title: n.title }))
+        });
         
         setNotifications(filteredNotifications);
         
         // Atualizar unreadCount baseado nas notificações filtradas (sem mensagens)
         const unreadCountFromNotifications = filteredNotifications.filter((n: Notification) => !n.isRead).length;
-        console.log('[NotificationContext] Unread count calculado:', unreadCountFromNotifications);
         
         // Sempre usar o contador calculado das notificações filtradas
         setUnreadCount(unreadCountFromNotifications);
       } else {
-        console.warn('[NotificationContext] Resposta da API sem dados:', response.data);
         setNotifications([]);
       }
     } catch (error) {
@@ -97,7 +98,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const fetchUnreadCount = async () => {
     if (!user) return;
@@ -105,8 +106,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.get('/api/notifications/unread-count');
 
-      if (response.data.success) {
-        setUnreadCount(response.data.data.count);
+      if (response.data.success && response.data.data) {
+        const count = response.data.data.count || 0;
+        setUnreadCount(count);
       }
     } catch (error) {
       console.error('[NotificationContext] Erro ao buscar contagem:', error);
@@ -187,7 +189,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     markAsRead(notification._id);
 
     // TODO: Implementar navegação baseada em actionUrl/actionType
-    console.log('[NotificationContext] Notificação clicada:', notification);
   };
 
   return (

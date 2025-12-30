@@ -371,19 +371,15 @@ export const storiesApi = {
 export const paymentApi = {
   createCheckoutSession: async (planName: string, gateway?: 'STRIPE' | 'MERCADOPAGO') => {
     try {
-      console.log('[paymentApi] Criando checkout session:', { planName, gateway });
       const response = await api.post<any>('/api/payments/create-checkout', {
         plano: planName.toUpperCase(), // STARTER, PRO, PRO_PLUS
         ...(gateway && { gateway }),
       });
       
-      console.log('[paymentApi] Resposta bruta:', response.data);
-      
       // A API retorna { url, gateway } diretamente (sem success ou data)
       // Vamos normalizar para o formato esperado pelo componente
       if (response.data.url) {
         // Formato direto: { url, gateway }
-        console.log('[paymentApi] Normalizando resposta direta:', { url: response.data.url, gateway: response.data.gateway });
         return {
           success: true,
           data: {
@@ -393,11 +389,9 @@ export const paymentApi = {
         };
       } else if (response.data.success && response.data.data?.url) {
         // Formato ApiResponse: { success: true, data: { url, gateway } }
-        console.log('[paymentApi] Resposta já no formato ApiResponse');
         return response.data;
       } else if (response.data.success && response.data.url) {
         // Formato alternativo: { success: true, url, gateway }
-        console.log('[paymentApi] Normalizando formato alternativo');
         return {
           success: true,
           data: {
@@ -407,7 +401,6 @@ export const paymentApi = {
         };
       }
       
-      console.error('[paymentApi] Formato de resposta não reconhecido:', response.data);
       // Retornar a resposta como está, mas garantir que tenha a estrutura esperada
       return {
         success: false,

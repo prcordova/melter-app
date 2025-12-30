@@ -25,6 +25,8 @@ export interface CustomModalProps {
   onClose?: () => void;
   icon?: string;
   iconColor?: string;
+  top?: boolean; // Se true, anima de cima para baixo. Se false, anima de baixo para cima (padrão)
+  closeOnBackdropPress?: boolean; // Se true, fecha ao clicar fora (padrão: true quando não tem botões customizados)
 }
 
 export function CustomModal({
@@ -35,15 +37,21 @@ export function CustomModal({
   onClose,
   icon,
   iconColor = COLORS.primary.main,
+  top = false,
+  closeOnBackdropPress,
 }: CustomModalProps) {
   // Se não tiver botões, criar um botão padrão "OK"
   const modalButtons = buttons.length > 0 
     ? buttons 
     : [{ text: 'OK', onPress: onClose || (() => {}), style: 'default' as const }];
 
+  // Por padrão, fecha ao clicar fora se não tiver botões customizados
+  const shouldCloseOnBackdrop = closeOnBackdropPress !== undefined 
+    ? closeOnBackdropPress 
+    : buttons.length === 0;
+
   const handleBackdropPress = () => {
-    // Só fechar se tiver onClose e não tiver botões customizados
-    if (onClose && buttons.length === 0) {
+    if (onClose && shouldCloseOnBackdrop) {
       onClose();
     }
   };
@@ -52,15 +60,15 @@ export function CustomModal({
     <Modal
       visible={visible}
       transparent={true}
-      animationType="fade"
+      animationType={top ? "slide" : "fade"}
       onRequestClose={onClose}
     >
       <Pressable 
-        style={styles.overlay}
+        style={[styles.overlay, top && styles.overlayTop]}
         onPress={handleBackdropPress}
       >
         <Pressable 
-          style={styles.container}
+          style={[styles.container, top && styles.containerTop]}
           onPress={(e) => e.stopPropagation()}
         >
           {/* Ícone (opcional) */}
@@ -210,6 +218,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  overlayTop: {
+    justifyContent: 'flex-start',
+    paddingTop: 60,
+  },
   container: {
     backgroundColor: COLORS.background.paper,
     borderRadius: 16,
@@ -225,6 +237,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  containerTop: {
+    marginTop: 0,
   },
   iconContainer: {
     marginBottom: 16,
