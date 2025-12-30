@@ -22,11 +22,19 @@ import { Button } from './Button';
 import { COLORS } from '../theme/colors';
 import { postsApi } from '../services/api';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
+import { showToast } from './CustomToast';
 
 interface CreatePostModalProps {
   visible: boolean;
   onClose: () => void;
   onPostCreated: () => void;
+  editingPost?: {
+    _id: string;
+    content: string;
+    category: string;
+    visibility: 'PUBLIC' | 'FOLLOWERS' | 'FRIENDS';
+    imageUrl?: string | null;
+  } | null;
 }
 
 type VisibilityType = 'PUBLIC' | 'FOLLOWERS' | 'FRIENDS';
@@ -47,7 +55,7 @@ const CATEGORIES = [
   { value: 'outros', label: '📌 Outros' },
 ];
 
-export function CreatePostModal({ visible, onClose, onPostCreated }: CreatePostModalProps) {
+export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }: CreatePostModalProps) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
@@ -62,12 +70,22 @@ export function CreatePostModal({ visible, onClose, onPostCreated }: CreatePostM
 
   const isPro = user?.plan?.type === 'PRO' || user?.plan?.type === 'PRO_PLUS';
   const canUploadImage = isPro;
+  const isEditing = !!editingPost;
 
   useEffect(() => {
     if (visible) {
-      resetForm();
+      if (editingPost) {
+        // Preencher formulário com dados do post
+        setContent(editingPost.content);
+        setCategory(editingPost.category || 'outros');
+        setVisibility(editingPost.visibility || 'PUBLIC');
+        setImagePreview(editingPost.imageUrl || null);
+        setSelectedImage(null); // Não precisamos do objeto de imagem, só a URL
+      } else {
+        resetForm();
+      }
     }
-  }, [visible]);
+  }, [visible, editingPost]);
 
   const resetForm = () => {
     setContent('');
@@ -128,9 +146,20 @@ export function CreatePostModal({ visible, onClose, onPostCreated }: CreatePostM
     try {
       setLoading(true);
 
-      let imageUrl = null;
+      let imageUrl: string | null = null;
 
-      // Upload de imagem se necessário
+      // Se estiver editando e não houver nova imagem selecionada, manter a imagem atual ou remover se imagePreview for null
+      if (isEditing && editingPost) {
+        if (!selectedImage && imagePreview === null) {
+          // Usuário removeu a imagem
+          imageUrl = null;
+        } else if (!selectedImage && imagePreview) {
+          // Manter a imagem atual (já é uma URL)
+          imageUrl = editingPost.imageUrl || null;
+        }
+      }
+
+      // Upload de nova imagem se necessário
       if (selectedImage && canUploadImage) {
         const formData = new FormData();
         
@@ -159,29 +188,48 @@ export function CreatePostModal({ visible, onClose, onPostCreated }: CreatePostM
           }
         } catch (uploadError) {
           console.error('Erro ao fazer upload da imagem:', uploadError);
-          Alert.alert('Aviso', 'Não foi possível fazer upload da imagem, mas o post será criado sem ela.');
+          Alert.alert('Aviso', 'Não foi possível fazer upload da imagem, mas o post será atualizado sem ela.');
         }
       }
 
-      // Criar post
-      const response = await postsApi.createPost({
-        content,
-        imageUrl,
-        visibility,
-        category,
-        linkId: null,
-        hideAutoPreview: false,
-      });
+      // Criar ou atualizar post
+      let response;
+      if (isEditing && editingPost) {
+        // Atualizar post existente
+        response = await postsApi.updatePost(editingPost._id, {
+          content,
+          imageUrl,
+          visibility,
+          category,
+        });
 
-      if (response.success) {
-        Alert.alert('Sucesso!', 'Post criado com sucesso! 🎉');
-        onPostCreated();
-        onClose();
-        resetForm();
+        if (response.success) {
+          showToast.success('Post atualizado com sucesso! 🎉');
+          onPostCreated();
+          onClose();
+          resetForm();
+        }
+      } else {
+        // Criar novo post
+        response = await postsApi.createPost({
+          content,
+          imageUrl,
+          visibility,
+          category,
+          linkId: null,
+          hideAutoPreview: false,
+        });
+
+        if (response.success) {
+          showToast.success('Post criado com sucesso! 🎉');
+          onPostCreated();
+          onClose();
+          resetForm();
+        }
       }
     } catch (error: any) {
-      console.error('Erro ao criar post:', error);
-      Alert.alert('Erro', error.response?.data?.message || 'Não foi possível criar o post');
+      console.error(`Erro ao ${isEditing ? 'atualizar' : 'criar'} post:`, error);
+      Alert.alert('Erro', error.response?.data?.message || `Não foi possível ${isEditing ? 'atualizar' : 'criar'} o post`);
     } finally {
       setLoading(false);
     }
@@ -219,7 +267,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated }: CreatePostM
             onPress={(e) => e.stopPropagation()}
           >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Criar Post</Text>
+          <Text style={styles.headerTitle}>{isEditing ? 'Editar Post' : 'Criar Post'}</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
@@ -352,7 +400,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated }: CreatePostM
                 (!content.trim() || loading) && styles.postButtonTextDisabled,
               ]}
             >
-              {loading ? 'Postando...' : 'Postar'}
+              {loading ? (isEditing ? 'Atualizando...' : 'Postando...') : (isEditing ? 'Atualizar' : 'Postar')}
             </Text>
           </TouchableOpacity>
         </View>

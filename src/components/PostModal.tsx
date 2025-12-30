@@ -24,6 +24,7 @@ import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { useAuth } from '../contexts/AuthContext';
 import { CommentsModal } from './CommentsModal';
 import { ShareModal } from './ShareModal';
+import { CreatePostModal } from './CreatePostModal';
 import { COLORS } from '../theme/colors';
 import { showToast } from './CustomToast';
 import { Avatar } from './Avatar';
@@ -53,6 +54,7 @@ export function PostModal({
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     if (visible && postId) {
@@ -148,7 +150,7 @@ export function PostModal({
 
   const handleEditPress = () => {
     setShowMenu(false);
-    showToast.info('Funcionalidade de edição será implementada');
+    setShowEditModal(true);
   };
 
   const handleDeletePress = () => {
@@ -457,6 +459,28 @@ export function PostModal({
           </View>
         </Pressable>
       </Modal>
+
+      {/* Edit Post Modal */}
+      {post && (
+        <CreatePostModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onPostCreated={() => {
+            setShowEditModal(false);
+            fetchPost(); // Recarregar post atualizado
+            if (onPostShared) {
+              onPostShared(); // Notificar que o post foi atualizado
+            }
+          }}
+          editingPost={{
+            _id: post._id,
+            content: post.content,
+            category: post.category || 'outros',
+            visibility: (post.visibility as 'PUBLIC' | 'FOLLOWERS' | 'FRIENDS') || 'PUBLIC',
+            imageUrl: post.imageUrl || null,
+          }}
+        />
+      )}
     </>
   );
 }

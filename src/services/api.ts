@@ -275,6 +275,16 @@ export const postsApi = {
     return response.data;
   },
 
+  updatePost: async (postId: string, data: {
+    content?: string;
+    imageUrl?: string | null;
+    visibility?: string;
+    category?: string;
+  }) => {
+    const response = await api.put<ApiResponse<any>>(`/api/posts/${postId}`, data);
+    return response.data;
+  },
+
   reactToPost: async (postId: string, reactionType: string) => {
     const response = await api.post<ApiResponse<any>>(`/api/posts/${postId}/react`, {
       reactionType,
