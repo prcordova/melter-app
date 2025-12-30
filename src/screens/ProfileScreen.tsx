@@ -55,6 +55,10 @@ export function ProfileScreen() {
       if (user?.username) {
         (navigation as any).navigate('UserProfile', { username: user.username });
       }
+    } else if (screen === 'plans') {
+      (navigation as any).navigate('Plans');
+    } else if (screen === 'terms') {
+      (navigation as any).navigate('Terms');
     } else {
       showToast.info('Em breve', `Tela de ${screen} será implementada`);
     }

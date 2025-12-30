@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           accountType: response.data.accountType,
           twoFactor: response.data.twoFactor,
           wallet: response.data.wallet,
+          termsAndPrivacy: response.data.termsAndPrivacy,
         };
         setUser(userData);
       }

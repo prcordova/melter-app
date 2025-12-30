@@ -9,6 +9,9 @@ export interface User {
   plan?: {
     type: 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
     status: string;
+    expirationDate?: string;
+    gateway?: 'STRIPE' | 'MERCADOPAGO' | null;
+    pendingPlan?: string | null;
   };
   accountType?: 'user' | 'admin';
   twoFactor?: {
@@ -18,6 +21,13 @@ export interface User {
     balance: number;
     totalEarned: number;
     totalSpent: number;
+  };
+  termsAndPrivacy?: {
+    terms?: {
+      accepted: boolean;
+      acceptedAt: string | null;
+      version: string;
+    };
   };
   isFollowing?: boolean;
 }

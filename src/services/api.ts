@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
+import { Linking } from 'react-native';
 
 // Criar instância do axios
 export const api = axios.create({
@@ -64,11 +65,11 @@ api.interceptors.response.use(
 // Interface para resposta da API
 interface ApiResponse<T> {
   success: boolean;
-  data: T;
+  data?: T;
   message?: string;
+  error?: string;
 }
 
-// Interface para resposta de login
 interface AuthResponse {
   token: string;
   user: {
@@ -76,21 +77,32 @@ interface AuthResponse {
     username: string;
     email: string;
     avatar?: string;
-    following: string[];
     plan?: {
-      type: 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
-      status: string;
+      type: string;
+      expirationDate?: string;
+      status?: string;
+      gateway?: string;
+      pendingPlan?: string;
     };
-    accountType?: 'user' | 'admin';
+    verifiedBadge?: {
+      isVerified: boolean;
+      verifiedAt: string | null;
+      source: 'plan' | 'manual' | 'partner' | null;
+    };
+    sellerVerificationStatus?: {
+      status: 'pending' | 'approved' | 'rejected' | null;
+      submittedAt?: string | null;
+      rejectionReason?: string | null;
+    };
     twoFactor?: {
       enabled: boolean;
     };
+    phone?: string;
   };
 }
 
-// Interface para resultado de login com 2FA
 interface LoginResult {
-  requires2FA?: boolean;
+  token?: string;
   tempToken?: string;
   success?: boolean;
   data?: AuthResponse;
@@ -214,6 +226,10 @@ export const userApi = {
     const response = await api.get<ApiResponse<any>>(`/api/blocks/${username}`);
     return response.data;
   },
+  acceptTerms: async (version: string) => {
+    const response = await api.post<ApiResponse<any>>('/api/users/accept-terms', { version });
+    return response.data;
+  },
 };
 
 // API de Posts (Feed)
@@ -274,127 +290,8 @@ export const postsApi = {
     return response.data;
   },
 
-  sharePost: async (postId: string, shareComment?: string, visibility?: string) => {
-    const response = await api.post<ApiResponse<any>>(`/api/posts/${postId}/share`, {
-      shareComment,
-      visibility,
-    });
-    return response.data;
-  },
-
-  reportPost: async (
-    postId: string,
-    data: {
-      category: string;
-      description: string;
-      targetUsername: string;
-    }
-  ) => {
-    const formData = new FormData();
-    formData.append('targetUsername', data.targetUsername);
-    formData.append('targetType', 'POST');
-    formData.append('targetId', postId);
-    formData.append('category', data.category);
-    formData.append('description', data.description);
-
-    const response = await api.post<ApiResponse<any>>('/api/reports', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  },
-};
-
-// API de Stories
-export const storiesApi = {
-  getStories: async (clearCache = false) => {
-    const params = clearCache ? { clearCache: 'true' } : {};
-    const response = await api.get<ApiResponse<any>>('/api/stories/feed', { params });
-    return response.data;
-  },
-
-  createStory: async (data: {
-    type: 'image' | 'video' | 'gif';
-    mediaUrl: string;
-    text?: string;
-    duration?: number;
-  }) => {
-    const response = await api.post<ApiResponse<any>>('/api/stories', data);
-    return response.data;
-  },
-
-  viewStory: async (storyId: string) => {
-    const response = await api.post<ApiResponse<any>>(`/api/stories/${storyId}/view`);
-    return response.data;
-  },
-
-  reactToStory: async (storyId: string, reactionType = 'LIKE') => {
-    const response = await api.post<ApiResponse<any>>(`/api/stories/${storyId}/react`, {
-      reactionType,
-    });
-    return response.data;
-  },
-
-  reportStory: async (storyId: string, data: { category: string; description: string }) => {
-    const response = await api.post<ApiResponse<any>>(`/api/stories/${storyId}/report`, data);
-    return response.data;
-  },
-
-  deleteStory: async (storyId: string) => {
-    // Usamos POST como fallback para garantir compatibilidade em mobile
-    const response = await api.post<ApiResponse<any>>(`/api/stories/${storyId}`);
-    return response.data;
-  },
-};
-
-// API de Anúncios
-export const adsApi = {
-  getAds: async (multiple = true, limit = 10) => {
-    const response = await api.get<ApiResponse<any>>(`/api/ads?multiple=${multiple}&limit=${limit}`);
-    return response.data;
-  },
-
-  viewAd: async (adId: string) => {
-    const response = await api.post<ApiResponse<any>>(`/api/ads/${adId}/view`);
-    return response.data;
-  },
-
-  clickAd: async (adId: string) => {
-    const response = await api.post<ApiResponse<any>>(`/api/ads/${adId}/click`);
-    return response.data;
-  },
-};
-
-// API de Shops (Lojas/Produtos)
-export const shopsApi = {
-  getProducts: async (params: {
-    page?: number;
-    limit?: number;
-    categoryId?: string;
-    sellerUsername?: string;
-    search?: string;
-    onlyPurchased?: boolean;
-    sortBy?: 'createdAt' | 'price' | 'salesCount';
-    sortOrder?: 'asc' | 'desc';
-    showAdultContent?: boolean;
-  }) => {
-    const queryParams = new URLSearchParams();
-    if (params.page) queryParams.append('page', params.page.toString());
-    if (params.limit) queryParams.append('limit', params.limit.toString());
-    if (params.categoryId) queryParams.append('categoryId', params.categoryId);
-    if (params.sellerUsername) queryParams.append('sellerUsername', params.sellerUsername);
-    if (params.search) queryParams.append('search', params.search);
-    if (params.onlyPurchased) queryParams.append('onlyPurchased', 'true');
-    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
-    if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
-    if (params.showAdultContent !== undefined) queryParams.append('showAdultContent', params.showAdultContent.toString());
-
-    const response = await api.get<ApiResponse<any>>(`/api/shops/products?${queryParams.toString()}`);
-    return response.data;
-  },
-  getSellers: async () => {
-    const response = await api.get<ApiResponse<any>>('/api/shops/sellers');
+  sharePost: async (postId: string) => {
+    const response = await api.post<ApiResponse<any>>(`/api/posts/${postId}/share`);
     return response.data;
   },
 };
@@ -405,36 +302,238 @@ export const messageApi = {
     const response = await api.get<ApiResponse<any>>('/api/messages/conversations');
     return response.data;
   },
-  getMessages: async (userId: string, otherUserId: string, beforeDate?: string) => {
-    const query = beforeDate ? `?beforeDate=${beforeDate}` : '';
-    const response = await api.get<ApiResponse<any>>(`/api/messages/${userId}/${otherUserId}${query}`);
+
+  getMessages: async (userId: string, otherUserId: string, date?: string) => {
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    const response = await api.get<ApiResponse<any>>(`/api/messages/${userId}/${otherUserId}?${params.toString()}`);
     return response.data;
   },
-  sendMessage: async (data: {
-    recipientId: string;
-    content: string;
-    type?: 'text' | 'image' | 'document';
-    imageUrl?: string | null;
-    documentUrl?: string | null;
-    documentName?: string | null;
-    documentSize?: number | null;
-  }) => {
-    const response = await api.post<ApiResponse<any>>('/api/messages', data);
+
+  sendMessage: async (data: { recipientId: string; content: string; type?: 'text' | 'image' | 'document' }) => {
+    const response = await api.post<ApiResponse<any>>('/api/messages', {
+      recipientId: data.recipientId,
+      content: data.content,
+      type: data.type || 'text',
+    });
     return response.data;
   },
-  markAsRead: async (otherUserId: string) => {
-    const response = await api.post<ApiResponse<any>>('/api/messages/mark-read', { senderId: otherUserId });
+
+  markAsRead: async (senderId: string) => {
+    const response = await api.post<ApiResponse<any>>('/api/messages/mark-read', { senderId });
     return response.data;
   },
+
   archiveConversation: async (conversationId: string) => {
-    const response = await api.put<ApiResponse<any>>(`/api/messages/conversations/${conversationId}/archive`);
+    const response = await api.put<ApiResponse<any>>(`/api/messages/conversations/${conversationId}/archive`, {});
     return response.data;
   },
+
   deleteConversation: async (conversationId: string) => {
     const response = await api.delete<ApiResponse<any>>(`/api/messages/conversations/${conversationId}`);
     return response.data;
   },
 };
 
-export default api;
+// API de Stories
+export const storiesApi = {
+  getStories: async (myStoriesOnly = false) => {
+    const response = await api.get<ApiResponse<any>>(`/api/stories?myStoriesOnly=${myStoriesOnly}`);
+    return response.data;
+  },
 
+  createStory: async (data: FormData) => {
+    const token = await AsyncStorage.getItem('token');
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/stories`, data, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  deleteStory: async (storyId: string) => {
+    const response = await api.delete<ApiResponse<any>>(`/api/stories/${storyId}`);
+    return response.data;
+  },
+};
+
+// API de Pagamentos
+export const paymentApi = {
+  createCheckoutSession: async (planName: string, gateway?: 'STRIPE' | 'MERCADOPAGO') => {
+    try {
+      const response = await api.post<ApiResponse<{ url: string; gateway?: string }>>('/api/payments/create-checkout', {
+        plano: planName.toUpperCase(), // STARTER, PRO, PRO_PLUS
+        ...(gateway && { gateway }),
+      });
+      
+      if (response.data.success && response.data.data?.url) {
+        // Abrir URL no navegador
+        const canOpen = await Linking.canOpenURL(response.data.data.url);
+        if (canOpen) {
+          await Linking.openURL(response.data.data.url);
+        } else {
+          throw new Error('Não foi possível abrir o link de pagamento');
+        }
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao criar sessão de checkout:', error);
+      throw error;
+    }
+  },
+
+  cancelSubscription: async (newPlan?: string) => {
+    try {
+      const response = await api.post<ApiResponse<any>>('/api/payments/cancel-subscription', { newPlan });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao cancelar assinatura:', error);
+      throw error;
+    }
+  },
+};
+
+// API de Links
+export const linksApi = {
+  getLinks: async () => {
+    const response = await api.get<ApiResponse<any>>('/api/links');
+    return response.data;
+  },
+
+  createLink: async (linkData: { title: string; url: string; visible: boolean; description?: string }) => {
+    const response = await api.post<ApiResponse<any>>('/api/links', linkData);
+    return response.data;
+  },
+
+  updateLink: async (id: string, linkData: { title?: string; url?: string; visible?: boolean; description?: string; imageUrl?: string | null }) => {
+    const response = await api.put<ApiResponse<any>>(`/api/links/${id}`, linkData);
+    return response.data;
+  },
+
+  deleteLink: async (id: string) => {
+    const response = await api.delete<ApiResponse<any>>(`/api/links/${id}`);
+    return response.data;
+  },
+
+  reorderLinks: async (links: string[]) => {
+    const response = await api.post<ApiResponse<any>>('/api/links/reorder', { links });
+    return response.data;
+  },
+
+  uploadLinkImage: async (linkId: string, imageUri: string) => {
+    const token = await AsyncStorage.getItem('token');
+    
+    // Criar FormData
+    const formData = new FormData();
+    
+    // Converter URI para File/Blob
+    const filename = imageUri.split('/').pop() || 'image.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    
+    formData.append('image', {
+      uri: imageUri,
+      type,
+      name: filename,
+    } as any);
+    formData.append('linkId', linkId);
+
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/links/upload-image`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response.data;
+  },
+};
+
+// API de Perfil
+export const profileApi = {
+  updateProfile: async (profileData: {
+    bio?: string;
+    profile?: {
+      backgroundColor?: string;
+      cardColor?: string;
+      textColor?: string;
+      cardTextColor?: string;
+      displayMode?: 'list' | 'grid';
+      gridAlignment?: 'flex-start' | 'center' | 'flex-end';
+      cardStyle?: 'rounded' | 'square' | 'pill';
+      animation?: 'none' | 'fade' | 'slide' | 'bounce';
+      font?: 'default' | 'serif' | 'mono';
+      spacing?: number;
+      sortMode?: 'custom' | 'date' | 'name' | 'likes';
+      likesColor?: string;
+      backgroundImage?: string | null;
+      backgroundMode?: 'full' | 'top';
+      backgroundOverlay?: boolean;
+      backgroundOverlayOpacity?: number;
+      showLikes?: boolean;
+      showViews?: boolean;
+      showPosts?: boolean;
+      postsLimit?: number;
+      buttonBackgroundColor?: string | null;
+      buttonTextColor?: string | null;
+    };
+    status?: {
+      visibility?: 'online' | 'busy' | 'offline';
+      customMessage?: string;
+    };
+  }) => {
+    const response = await api.put<ApiResponse<any>>('/api/users/profile', profileData);
+    return response.data;
+  },
+
+  uploadAvatar: async (imageUri: string) => {
+    const token = await AsyncStorage.getItem('token');
+    
+    const formData = new FormData();
+    const filename = imageUri.split('/').pop() || 'avatar.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    
+    formData.append('avatar', {
+      uri: imageUri,
+      type,
+      name: filename,
+    } as any);
+
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/users/upload-avatar`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response.data;
+  },
+
+  uploadBackground: async (imageUri: string) => {
+    const token = await AsyncStorage.getItem('token');
+    
+    const formData = new FormData();
+    const filename = imageUri.split('/').pop() || 'background.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    
+    formData.append('background', {
+      uri: imageUri,
+      type,
+      name: filename,
+    } as any);
+
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/users/upload-background`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response.data;
+  },
+};

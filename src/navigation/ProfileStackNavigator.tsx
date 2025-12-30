@@ -3,6 +3,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { LinksSettingsScreen } from '../screens/settings/LinksSettingsScreen';
+import { PlansScreen } from '../screens/PlansScreen';
+import { TermsScreen } from '../screens/TermsScreen';
 import { SettingsScreenTemplate } from '../components/SettingsScreenTemplate';
 import { Text } from 'react-native';
 
@@ -76,6 +78,8 @@ export function ProfileStackNavigator() {
       <Stack.Screen name="ProfileMain" component={ProfileScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="LinksSettings" component={LinksSettingsScreen} />
+      <Stack.Screen name="Plans" component={PlansScreen} />
+      <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="AppearanceSettings" component={AppearanceSettingsScreen} />
       <Stack.Screen name="WalletSettings" component={WalletSettingsScreen} />
       <Stack.Screen name="PreferencesSettings" component={PreferencesSettingsScreen} />
