@@ -169,12 +169,24 @@ export function ChatScreen() {
 
       if (response && response.success) {
         const newMessages = response.data || [];
-        const hasMore = (response as any).hasMore;
-        const previousDayDate = (response as any).previousDayDate;
+        // hasMore e previousDayDate vêm no nível superior da resposta
+        const hasMore = (response as any).hasMore ?? false;
+        const previousDayDate = (response as any).previousDayDate ?? null;
+        
+        console.log('[ChatScreen] Carregando mensagens:', {
+          date,
+          newMessagesCount: newMessages.length,
+          hasMore,
+          previousDayDate
+        });
         
         if (date) {
           // Se carregando mensagens antigas, adicionar ao início
-          setMessages((prev) => [...newMessages, ...prev]);
+          setMessages((prev) => {
+            const combined = [...newMessages, ...prev];
+            console.log('[ChatScreen] Mensagens antigas adicionadas. Total:', combined.length);
+            return combined;
+          });
         } else {
           setMessages(newMessages);
           // Marcar como lido apenas no primeiro carregamento

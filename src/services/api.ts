@@ -313,7 +313,7 @@ export const messageApi = {
 
   getMessages: async (userId: string, otherUserId: string, date?: string) => {
     const params = new URLSearchParams();
-    if (date) params.append('date', date);
+    if (date) params.append('beforeDate', date);
     const response = await api.get<ApiResponse<any>>(`/api/messages/${userId}/${otherUserId}?${params.toString()}`);
     return response.data;
   },
