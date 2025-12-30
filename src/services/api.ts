@@ -230,6 +230,14 @@ export const userApi = {
     const response = await api.post<ApiResponse<any>>('/api/users/accept-terms', { version });
     return response.data;
   },
+  getStatus: async () => {
+    const response = await api.get<ApiResponse<any>>('/api/users/status');
+    return response.data;
+  },
+  updateStatus: async (statusData: { visibility?: 'online' | 'busy' | 'offline'; customMessage?: string }) => {
+    const response = await api.put<ApiResponse<any>>('/api/users/status', statusData);
+    return response.data;
+  },
 };
 
 // API de Posts (Feed)
@@ -489,6 +497,11 @@ export const profileApi = {
     return response.data;
   },
 
+  deleteBackground: async () => {
+    const response = await api.delete<ApiResponse<any>>('/api/users/background');
+    return response.data;
+  },
+
   uploadAvatar: async (imageUri: string) => {
     const token = await AsyncStorage.getItem('token');
     
@@ -503,7 +516,7 @@ export const profileApi = {
       name: filename,
     } as any);
 
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/users/upload-avatar`, formData, {
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/users/avatar`, formData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
@@ -527,7 +540,7 @@ export const profileApi = {
       name: filename,
     } as any);
 
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/users/upload-background`, formData, {
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/users/background`, formData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',

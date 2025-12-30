@@ -3,21 +3,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { LinksSettingsScreen } from '../screens/settings/LinksSettingsScreen';
+import { AppearanceSettingsScreen } from '../screens/settings/AppearanceSettingsScreen';
 import { PlansScreen } from '../screens/PlansScreen';
 import { TermsScreen } from '../screens/TermsScreen';
 import { SettingsScreenTemplate } from '../components/SettingsScreenTemplate';
 import { Text } from 'react-native';
 
 const Stack = createNativeStackNavigator();
-
-// Telas placeholder usando o template
-function AppearanceSettingsScreen() {
-  return (
-    <SettingsScreenTemplate title="Aparência" emoji="🎨">
-      <Text>Configurações de tema, cores, etc.</Text>
-    </SettingsScreenTemplate>
-  );
-}
 
 function WalletSettingsScreen() {
   return (

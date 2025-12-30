@@ -79,7 +79,16 @@ export function UserProfileScreen() {
         if (response.data.profile?.showPosts) {
           const postsRes = await postsApi.getUserPosts(username, 1, 10);
           if (postsRes.success) {
-            setPosts(postsRes.data.posts || postsRes.data || []);
+            const postsData = postsRes.data.posts || postsRes.data || [];
+            // Filtrar posts inválidos (sem userId ou sem estrutura básica)
+            const validPosts = postsData.filter((post: any) => 
+              post && 
+              post._id && 
+              post.userId && 
+              typeof post.userId === 'object' &&
+              post.userId.username
+            );
+            setPosts(validPosts);
           }
         }
       }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import api from '../services/api';
+import { api } from '../services/api';
 
 export interface Notification {
   _id: string;

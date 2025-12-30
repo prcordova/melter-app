@@ -47,11 +47,18 @@ export function PostCard({
   const [showMenu, setShowMenu] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
 
+  // Verificação de segurança
+  if (!post || !post.userId) {
+    return null;
+  }
+
   const isOwnPost = user?.id === post.userId._id;
 
   const handleReactionPress = (reactionType: ReactionType) => {
-    onReact(post._id, reactionType);
-    setShowReactions(false);
+    if (post?._id) {
+      onReact(post._id, reactionType);
+      setShowReactions(false);
+    }
   };
 
   const handleCommentPress = () => {
@@ -97,7 +104,9 @@ export function PostCard({
   };
 
   const handleUserPress = () => {
-    navigation.navigate('UserProfile', { username: post.userId.username });
+    if (post?.userId?.username) {
+      navigation.navigate('UserProfile', { username: post.userId.username });
+    }
   };
 
   const getTimeAgo = (date: string | Date) => {
@@ -124,6 +133,7 @@ export function PostCard({
 
   // Encontrar a reação mais comum
   const getTopReaction = (): ReactionType | null => {
+    if (!post?.reactionsCount || typeof post.reactionsCount !== 'object') return null;
     const counts = post.reactionsCount;
     let maxCount = 0;
     let topReaction: ReactionType | null = null;
@@ -142,19 +152,19 @@ export function PostCard({
   const topReaction = getTopReaction();
 
   const renderOriginalPost = (originalPost: Post) => {
-    if (!originalPost || !originalPost.userId) return null;
+    if (!originalPost || !originalPost.userId || typeof originalPost.userId !== 'object') return null;
 
     return (
       <View style={styles.originalPostContainer}>
         <View style={styles.originalHeader}>
           <Avatar 
-            user={{ username: originalPost.userId.username, avatar: originalPost.userId.avatar }} 
+            user={{ username: originalPost.userId?.username || '', avatar: originalPost.userId?.avatar }} 
             size={32}
             style={styles.originalAvatar}
           />
           <View style={styles.headerInfo}>
             <View style={styles.headerTitleRow}>
-              <Text style={styles.originalUsername}>{originalPost.userId.username}</Text>
+              <Text style={styles.originalUsername}>{originalPost.userId?.username || 'Usuário'}</Text>
               {originalPost.userId.verifiedBadge?.isVerified && (
                 <Text style={[styles.verifiedBadge, { fontSize: 12 }]}>✓</Text>
               )}
@@ -172,11 +182,13 @@ export function PostCard({
                 </View>
               )}
             </View>
-            <Text style={styles.timestamp}>{getTimeAgo(originalPost.createdAt)}</Text>
+            <Text style={styles.timestamp}>{getTimeAgo(originalPost.createdAt || new Date())}</Text>
           </View>
         </View>
 
-        <Text style={styles.originalContent}>{originalPost.content}</Text>
+        {originalPost.content && (
+          <Text style={styles.originalContent}>{originalPost.content}</Text>
+        )}
 
         {/* Link no Post Original */}
         {originalPost.linkId && (
@@ -226,7 +238,7 @@ export function PostCard({
       {/* Header */}
       <View style={styles.header}>
         <Avatar 
-          user={{ username: post.userId.username, avatar: post.userId.avatar }} 
+          user={{ username: post.userId?.username || '', avatar: post.userId?.avatar }} 
           size={40}
           style={styles.avatar}
         />
@@ -236,11 +248,11 @@ export function PostCard({
             activeOpacity={0.7}
             style={styles.headerTitleRow}
           >
-            <Text style={styles.username}>{post.userId.username}</Text>
-            {post.userId.verifiedBadge?.isVerified && (
+            <Text style={styles.username}>{post.userId?.username || 'Usuário'}</Text>
+            {post.userId?.verifiedBadge?.isVerified && (
               <Text style={styles.verifiedBadge}>✓</Text>
             )}
-            {post.userId.plan?.type && post.userId.plan.type !== 'FREE' && (
+            {post.userId?.plan?.type && post.userId.plan.type !== 'FREE' && (
               <View style={[
                 styles.planBadge,
                 post.userId.plan.type === 'STARTER' && styles.planSTARTER,
@@ -253,7 +265,7 @@ export function PostCard({
               </View>
             )}
           </TouchableOpacity>
-          <Text style={styles.timestamp}>{getTimeAgo(post.createdAt)}</Text>
+          <Text style={styles.timestamp}>{getTimeAgo(post.createdAt || new Date())}</Text>
         </View>
         <TouchableOpacity 
           onPress={(e) => {
@@ -267,9 +279,11 @@ export function PostCard({
       </View>
 
       {/* Content (Comentário do compartilhamento ou conteúdo do post normal) */}
-      <Text style={styles.content}>
-        {post.originalPostId ? post.shareComment : post.content}
-      </Text>
+      {(post.originalPostId ? post.shareComment : post.content) && (
+        <Text style={styles.content}>
+          {post.originalPostId ? post.shareComment : post.content}
+        </Text>
+      )}
 
       {/* Renderizar Post Original se existir */}
       {post.originalPostId && renderOriginalPost(post.originalPostId as Post)}
@@ -324,7 +338,7 @@ export function PostCard({
             onPress={() => setShowReactions(!showReactions)}
           >
             <Text style={styles.actionIcon}>
-              {post.userReaction
+              {post.userReaction && REACTIONS[post.userReaction]
                 ? REACTIONS[post.userReaction]
                 : '👍'}
             </Text>
@@ -332,7 +346,7 @@ export function PostCard({
               styles.actionText,
               post.userReaction && styles.actionTextActive
             ]}>
-              {post.reactionsCount.total || 'Reagir'}
+              {post.reactionsCount?.total || 0}
             </Text>
           </TouchableOpacity>
 
@@ -359,7 +373,7 @@ export function PostCard({
         >
           <Text style={styles.actionIcon}>💬</Text>
           <Text style={styles.actionText}>
-            {post.commentsCount || 'Comentar'}
+            {post.commentsCount || 0}
           </Text>
         </TouchableOpacity>
 
@@ -370,13 +384,13 @@ export function PostCard({
         >
           <Text style={styles.actionIcon}>🔄</Text>
           <Text style={styles.actionText}>
-            {post.sharesCount || 'Compartilhar'}
+            {post.sharesCount || 0}
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Reactions Summary */}
-      {post.reactionsCount.total > 0 && (
+      {post.reactionsCount?.total && post.reactionsCount.total > 0 && (
         <View style={styles.reactionsSummary}>
           {topReaction && (
             <Text style={styles.topReactionEmoji}>{REACTIONS[topReaction]}</Text>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,10 +15,10 @@ import { Header } from '../components/Header';
 import { MenuCard } from '../components/MenuCard';
 import { StoryViewerModal } from '../components/StoryViewerModal';
 import { COLORS } from '../theme/colors';
-import { getAvatarUrl, getUserInitials } from '../utils/image';
-import { storiesApi } from '../services/api';
+import { storiesApi, userApi } from '../services/api';
 import { StoriesGroup } from '../types/feed';
 import { showToast } from '../components/CustomToast';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 type UserStatus = 'online' | 'busy' | 'offline';
 
@@ -30,8 +30,31 @@ export function ProfileScreen() {
 
   const [status, setStatus] = useState<UserStatus>('online');
   const [statusMessage, setStatusMessage] = useState('');
+  const [statusMessageHasChanges, setStatusMessageHasChanges] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [savingMessage, setSavingMessage] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState(true);
   const [userStories, setUserStories] = useState<StoriesGroup | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
+
+  // Carregar status do usuário
+  useEffect(() => {
+    const loadStatus = async () => {
+      try {
+        setLoadingStatus(true);
+        const response = await userApi.getStatus();
+        if (response.success && response.data) {
+          setStatus(response.data.visibility || 'online');
+          setStatusMessage(response.data.customMessage || '');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar status:', error);
+      } finally {
+        setLoadingStatus(false);
+      }
+    };
+    loadStatus();
+  }, []);
 
   React.useEffect(() => {
     const fetchMyStories = async () => {
@@ -59,6 +82,8 @@ export function ProfileScreen() {
       (navigation as any).navigate('Plans');
     } else if (screen === 'terms') {
       (navigation as any).navigate('Terms');
+    } else if (screen === 'appearance') {
+      (navigation as any).navigate('AppearanceSettings');
     } else {
       showToast.info('Em breve', `Tela de ${screen} será implementada`);
     }
@@ -98,15 +123,51 @@ export function ProfileScreen() {
     });
   }
 
-  const handleStatusChange = (newStatus: UserStatus) => {
+  const handleStatusChange = async (newStatus: UserStatus) => {
+    const previousStatus = status;
     setStatus(newStatus);
-    // TODO: Enviar para API
-    console.log('Status alterado para:', newStatus);
+    setSavingStatus(true);
+
+    try {
+      const response = await userApi.updateStatus({ visibility: newStatus });
+      if (response.success) {
+        showToast.success('Sucesso', 'Status atualizado');
+      } else {
+        // Reverter se falhar
+        setStatus(previousStatus);
+        showToast.error('Erro', 'Não foi possível atualizar o status');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+      // Reverter se falhar
+      setStatus(previousStatus);
+      showToast.error('Erro', 'Não foi possível atualizar o status');
+    } finally {
+      setSavingStatus(false);
+    }
   };
 
   const handleStatusMessageChange = (message: string) => {
     setStatusMessage(message);
-    // TODO: Debounce e enviar para API
+    setStatusMessageHasChanges(true);
+  };
+
+  const handleSaveStatusMessage = async () => {
+    setSavingMessage(true);
+    try {
+      const response = await userApi.updateStatus({ customMessage: statusMessage });
+      if (response.success) {
+        setStatusMessageHasChanges(false);
+        showToast.success('Sucesso', 'Mensagem de status salva');
+      } else {
+        showToast.error('Erro', 'Não foi possível salvar a mensagem');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar mensagem de status:', error);
+      showToast.error('Erro', 'Não foi possível salvar a mensagem');
+    } finally {
+      setSavingMessage(false);
+    }
   };
 
   return (
@@ -127,80 +188,115 @@ export function ProfileScreen() {
       >
         {/* Avatar e Info do Usuário */}
         <View style={styles.userSection}>
-          <View style={[
-            styles.avatarContainer,
-            userStories && styles.avatarContainerWithStory
-          ]}>
-            <Avatar 
-              user={{ username: user?.username, avatar: user?.avatar }} 
-              size={80}
+          <View style={styles.avatarWrapper}>
+            <View style={[
+              styles.avatarContainer,
+              userStories && styles.avatarContainerWithStory
+            ]}>
+              <Avatar 
+                user={{ username: user?.username, avatar: user?.avatar }} 
+                size={80}
+                onPress={() => {
+                  if (userStories) {
+                    setShowStoryViewer(true);
+                  } else {
+                    handleMenuPress('profile');
+                  }
+                }}
+              />
+            </View>
+            {/* Botão de editar status (estilo balão de fala) */}
+            <TouchableOpacity
+              style={styles.editStatusButton}
               onPress={() => {
-                if (userStories) {
-                  setShowStoryViewer(true);
-                } else {
-                  handleMenuPress('profile');
-                }
+                // Scroll para a seção de status
+                // Por enquanto, apenas mostra um toast
+                showToast.info('Status', 'Use os botões abaixo para alterar seu status');
               }}
-            />
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chatbubble-ellipses" size={18} color={COLORS.primary.main} />
+            </TouchableOpacity>
           </View>
           <TouchableOpacity onPress={() => handleMenuPress('profile')}>
             <Text style={styles.username}>@{user?.username}</Text>
           </TouchableOpacity>
-          <Text style={styles.planType}>{user?.plan?.type || 'FREE'}</Text>
+          <View style={styles.planAndEditRow}>
+            <Text style={styles.planType}>{user?.plan?.type || 'FREE'}</Text>
+            <TouchableOpacity
+              style={styles.editProfileButton}
+              onPress={() => handleMenuPress('appearance')}
+            >
+              <Ionicons name="create-outline" size={16} color={COLORS.primary.main} />
+              <Text style={styles.editProfileText}>Editar Perfil</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Status Selector */}
         <View style={styles.statusSection}>
           <Text style={styles.sectionTitle}>Status Atual</Text>
-          <View style={styles.statusButtons}>
-            <TouchableOpacity
-              style={[
-                styles.statusButton,
-                status === 'online' && styles.statusButtonActive,
-              ]}
-              onPress={() => handleStatusChange('online')}
-            >
-              <Text style={styles.statusIcon}>🟢</Text>
-              <Text style={[
-                styles.statusButtonText,
-                status === 'online' && styles.statusButtonTextActive,
-              ]}>
-                Online
-              </Text>
-            </TouchableOpacity>
+          {loadingStatus ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={COLORS.primary.main} />
+            </View>
+          ) : (
+            <View style={styles.statusButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.statusButton,
+                  status === 'online' && styles.statusButtonActive,
+                  savingStatus && styles.statusButtonDisabled,
+                ]}
+                onPress={() => handleStatusChange('online')}
+                disabled={savingStatus}
+              >
+                <Text style={styles.statusIcon}>🟢</Text>
+                <Text style={[
+                  styles.statusButtonText,
+                  status === 'online' && styles.statusButtonTextActive,
+                ]}>
+                  Online
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.statusButton,
-                status === 'busy' && styles.statusButtonActive,
-              ]}
-              onPress={() => handleStatusChange('busy')}
-            >
-              <Text style={styles.statusIcon}>🟡</Text>
-              <Text style={[
-                styles.statusButtonText,
-                status === 'busy' && styles.statusButtonTextActive,
-              ]}>
-                Ausente
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.statusButton,
+                  status === 'busy' && styles.statusButtonActive,
+                  savingStatus && styles.statusButtonDisabled,
+                ]}
+                onPress={() => handleStatusChange('busy')}
+                disabled={savingStatus}
+              >
+                <Text style={styles.statusIcon}>🟡</Text>
+                <Text style={[
+                  styles.statusButtonText,
+                  status === 'busy' && styles.statusButtonTextActive,
+                ]}>
+                  Ausente
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.statusButton,
-                status === 'offline' && styles.statusButtonActive,
-              ]}
-              onPress={() => handleStatusChange('offline')}
-            >
-              <Text style={styles.statusIcon}>⚪</Text>
-              <Text style={[
-                styles.statusButtonText,
-                status === 'offline' && styles.statusButtonTextActive,
-              ]}>
-                Offline
-              </Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={[
+                  styles.statusButton,
+                  status === 'offline' && styles.statusButtonActive,
+                  savingStatus && styles.statusButtonDisabled,
+                ]}
+                onPress={() => handleStatusChange('offline')}
+                disabled={savingStatus}
+              >
+                <Text style={styles.statusIcon}>⚪</Text>
+                <Text style={[
+                  styles.statusButtonText,
+                  status === 'offline' && styles.statusButtonTextActive,
+                ]}>
+                  Offline
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Mensagem de Status */}
@@ -214,10 +310,29 @@ export function ProfileScreen() {
             onChangeText={handleStatusMessageChange}
             maxLength={100}
             multiline
+            editable={!savingMessage}
           />
-          <Text style={styles.statusMessageCount}>
-            {statusMessage.length}/100
-          </Text>
+          <View style={styles.statusMessageFooter}>
+            <Text style={styles.statusMessageCount}>
+              {statusMessage.length}/100
+            </Text>
+            {statusMessageHasChanges && (
+              <TouchableOpacity
+                style={[styles.saveMessageButton, savingMessage && styles.saveMessageButtonDisabled]}
+                onPress={handleSaveStatusMessage}
+                disabled={savingMessage}
+              >
+                {savingMessage ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark" size={16} color="#ffffff" />
+                    <Text style={styles.saveMessageButtonText}>Salvar</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Grid de Cards */}
@@ -271,8 +386,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  avatarContainer: {
+  avatarWrapper: {
+    position: 'relative',
     marginBottom: 12,
+  },
+  avatarContainer: {
+    marginBottom: 0,
   },
   avatarContainerWithStory: {
     borderWidth: 3,
@@ -280,24 +399,23 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     padding: 2,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.secondary.main,
-    alignItems: 'center',
+  editStatusButton: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.background.paper,
+    borderWidth: 2,
+    borderColor: COLORS.primary.main,
     justifyContent: 'center',
-  },
-  avatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.background.tertiary,
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   username: {
     fontSize: 24,
@@ -305,11 +423,32 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     marginBottom: 4,
   },
+  planAndEditRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   planType: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.text.secondary,
     textTransform: 'uppercase',
+  },
+  editProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: COLORS.background.default,
+    borderWidth: 1,
+    borderColor: COLORS.primary.main,
+  },
+  editProfileText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary.main,
   },
   statusSection: {
     backgroundColor: COLORS.background.paper,
@@ -327,6 +466,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.primary,
     marginBottom: 12,
+  },
+  loadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
   statusButtons: {
     flexDirection: 'row',
@@ -346,6 +489,9 @@ const styles = StyleSheet.create({
   statusButtonActive: {
     borderColor: COLORS.secondary.main,
     backgroundColor: `${COLORS.secondary.main}10`, // 10% opacity
+  },
+  statusButtonDisabled: {
+    opacity: 0.5,
   },
   statusIcon: {
     fontSize: 16,
@@ -380,11 +526,32 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
+  statusMessageFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
   statusMessageCount: {
     fontSize: 12,
     color: COLORS.text.tertiary,
-    textAlign: 'right',
-    marginTop: 4,
+  },
+  saveMessageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary.main,
+  },
+  saveMessageButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveMessageButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
   },
   menuGrid: {
     flexDirection: 'row',
@@ -395,4 +562,3 @@ const styles = StyleSheet.create({
     width: '50%', // 2 cards por linha
   },
 });
-
