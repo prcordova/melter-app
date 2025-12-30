@@ -23,6 +23,7 @@ import { COLORS } from '../theme/colors';
 import { postsApi } from '../services/api';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { showToast } from './CustomToast';
+import { PlanLocker } from './PlanLocker';
 
 interface CreatePostModalProps {
   visible: boolean;
@@ -69,7 +70,8 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
   const [showVisibilityPicker, setShowVisibilityPicker] = useState(false);
 
   const isPro = user?.plan?.type === 'PRO' || user?.plan?.type === 'PRO_PLUS';
-  const canUploadImage = isPro;
+  const isStarter = user?.plan?.type === 'STARTER';
+  const canUploadImage = isStarter || isPro; // STARTER para cima pode fazer upload
   const isEditing = !!editingPost;
 
   useEffect(() => {
@@ -99,7 +101,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
     if (!canUploadImage) {
       Alert.alert(
         'Upgrade Necessário',
-        'Apenas usuários PRO podem fazer upload de imagens. Faça upgrade do seu plano!'
+        'Apenas usuários STARTER ou superior podem fazer upload de imagens. Faça upgrade do seu plano!'
       );
       return;
     }
@@ -273,7 +275,12 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView 
+          style={styles.content} 
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Avatar e Username */}
           <View style={styles.userInfo}>
             {getAvatarUrl(user?.avatar) ? (
@@ -362,23 +369,18 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           </View>
 
           {/* Botão Upload Imagem */}
-          {canUploadImage && (
+          <PlanLocker
+            requiredPlan="STARTER"
+            currentPlan={user?.plan?.type as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS' || 'FREE'}
+          >
             <TouchableOpacity
               style={styles.uploadButton}
               onPress={handlePickImage}
-              disabled={loading}
+              disabled={loading || !canUploadImage}
             >
               <Text style={styles.uploadButtonText}>📷 Adicionar Imagem</Text>
             </TouchableOpacity>
-          )}
-
-          {!canUploadImage && (
-            <View style={styles.upgradeNotice}>
-              <Text style={styles.upgradeNoticeText}>
-                ⭐ Faça upgrade para PRO para enviar imagens!
-              </Text>
-            </View>
-          )}
+          </PlanLocker>
         </ScrollView>
 
         {/* Footer com botões */}
@@ -511,7 +513,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 600,
     maxHeight: '85%',
-    minHeight: 400,
     backgroundColor: COLORS.background.paper,
     borderRadius: 20,
     overflow: 'hidden',
@@ -581,7 +582,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   content: {
-    flexGrow: 1,
+    flex: 1,
+  },
+  contentContainer: {
     padding: 16,
   },
   userInfo: {
