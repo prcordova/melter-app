@@ -4,20 +4,13 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { LinksSettingsScreen } from '../screens/settings/LinksSettingsScreen';
 import { AppearanceSettingsScreen } from '../screens/settings/AppearanceSettingsScreen';
+import { WalletSettingsScreen } from '../screens/settings/WalletSettingsScreen';
 import { PlansScreen } from '../screens/PlansScreen';
 import { TermsScreen } from '../screens/TermsScreen';
 import { SettingsScreenTemplate } from '../components/SettingsScreenTemplate';
 import { Text } from 'react-native';
 
 const Stack = createNativeStackNavigator();
-
-function WalletSettingsScreen() {
-  return (
-    <SettingsScreenTemplate title="Carteira" emoji="💰">
-      <Text>Gerenciar saldo, transações, etc.</Text>
-    </SettingsScreenTemplate>
-  );
-}
 
 function PreferencesSettingsScreen() {
   return (

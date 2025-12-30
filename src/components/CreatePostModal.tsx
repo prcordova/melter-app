@@ -12,9 +12,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './Button';
 import { COLORS } from '../theme/colors';
@@ -203,28 +205,23 @@ export function CreatePostModal({ visible, onClose, onPostCreated }: CreatePostM
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType="fade"
+      transparent={true}
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity onPress={onClose} disabled={loading}>
-            <Text style={styles.cancelButton}>Cancelar</Text>
-          </TouchableOpacity>
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoid}
+        >
+          <Pressable
+            style={[styles.container, { paddingTop: 20, paddingBottom: Math.max(insets.bottom, 20) }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+        <View style={styles.header}>
           <Text style={styles.headerTitle}>Criar Post</Text>
-          <TouchableOpacity onPress={handleSubmit} disabled={loading || !content.trim()}>
-            <Text
-              style={[
-                styles.postButton,
-                (!content.trim() || loading) && styles.postButtonDisabled,
-              ]}
-            >
-              {loading ? 'Postando...' : 'Postar'}
-            </Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Ionicons name="close" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
         </View>
 
@@ -336,6 +333,30 @@ export function CreatePostModal({ visible, onClose, onPostCreated }: CreatePostM
           )}
         </ScrollView>
 
+        {/* Footer com botões */}
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={onClose} disabled={loading} style={styles.cancelButtonContainer}>
+            <Text style={styles.cancelButtonText}>Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={loading || !content.trim()}
+            style={[
+              styles.postButtonContainer,
+              (!content.trim() || loading) && styles.postButtonContainerDisabled,
+            ]}
+          >
+            <Text
+              style={[
+                styles.postButtonText,
+                (!content.trim() || loading) && styles.postButtonTextDisabled,
+              ]}
+            >
+              {loading ? 'Postando...' : 'Postar'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Category Picker */}
         {showCategoryPicker && (
           <View style={styles.pickerModal}>
@@ -418,45 +439,101 @@ export function CreatePostModal({ visible, onClose, onPostCreated }: CreatePostM
             </View>
           </View>
         )}
-      </KeyboardAvoidingView>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Pressable>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  keyboardAvoid: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  container: {
+    width: '100%',
+    maxWidth: 600,
+    maxHeight: '85%',
+    minHeight: 400,
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 20,
+    overflow: 'hidden',
+    flexDirection: 'column',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingVertical: 12,
     backgroundColor: COLORS.background.paper,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border.light,
   },
-  cancelButton: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
+  closeButton: {
+    padding: 4,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.text.primary,
   },
-  postButton: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.secondary.main,
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border.light,
+    backgroundColor: COLORS.background.paper,
+    gap: 12,
   },
-  postButtonDisabled: {
+  cancelButtonContainer: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.background.tertiary,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
+  postButtonContainer: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.secondary.main,
+  },
+  postButtonContainerDisabled: {
     opacity: 0.5,
   },
+  postButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  postButtonTextDisabled: {
+    opacity: 0.7,
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: 16,
   },
   userInfo: {

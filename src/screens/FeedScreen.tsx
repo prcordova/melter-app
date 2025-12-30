@@ -8,10 +8,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { Header } from '../components/Header';
 import { CreatePostModal } from '../components/CreatePostModal';
+import { PostModal } from '../components/PostModal';
 import { StoriesCarousel } from '../components/StoriesCarousel';
 import { StoryViewerModal } from '../components/StoryViewerModal';
 import { StoryCreateModal } from '../components/StoryCreateModal';
@@ -24,6 +25,7 @@ import { showToast } from '../components/CustomToast';
 export function FeedScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
 
   // Estados
   const [posts, setPosts] = useState<Post[]>([]);
@@ -36,6 +38,8 @@ export function FeedScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [adIndices, setAdIndices] = useState<{ [key: number]: number }>({});
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [showStoryCreate, setShowStoryCreate] = useState(false);
   const [selectedStoryGroupIndex, setSelectedStoryGroupIndex] = useState(0);
@@ -44,6 +48,17 @@ export function FeedScreen() {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  // Detectar postId dos parâmetros da rota (vindo de notificações)
+  useEffect(() => {
+    const postId = route.params?.postId;
+    if (postId) {
+      setSelectedPostId(postId);
+      setShowPostModal(true);
+      // Limpar parâmetro para não abrir novamente
+      navigation.setParams({ postId: undefined });
+    }
+  }, [route.params?.postId]);
 
   const loadInitialData = async () => {
     try {
@@ -430,6 +445,22 @@ export function FeedScreen() {
         visible={showCreatePostModal}
         onClose={() => setShowCreatePostModal(false)}
         onPostCreated={handlePostCreated}
+      />
+
+      {/* Modal Post Referência */}
+      <PostModal
+        postId={selectedPostId}
+        visible={showPostModal}
+        onClose={() => {
+          setShowPostModal(false);
+          setSelectedPostId(null);
+        }}
+        onPostDeleted={() => {
+          fetchPosts(1);
+        }}
+        onPostShared={() => {
+          fetchPosts(1);
+        }}
       />
 
       <StoryViewerModal

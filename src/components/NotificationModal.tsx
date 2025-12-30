@@ -11,8 +11,10 @@ import {
   Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNotifications, Notification } from '../contexts/NotificationContext';
+import { userApi } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
@@ -25,6 +27,7 @@ interface NotificationModalProps {
 
 export function NotificationModal({ visible, onClose }: NotificationModalProps) {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const {
     notifications,
     unreadCount,
@@ -78,9 +81,63 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
     }
   };
 
-  const handleNotificationPress = (notification: Notification) => {
+  const handleNotificationPress = async (notification: Notification) => {
+    // Marcar como lida
     handleNotificationClick(notification);
     onClose();
+
+    // Navegar baseado no tipo de ação
+    if (notification.actionType) {
+      switch (notification.actionType) {
+        case 'VIEW_POST':
+          // Navegar para o Feed e passar o postId
+          if (notification.actionData?.postId || notification.relatedPostId) {
+            const postId = notification.actionData?.postId || notification.relatedPostId;
+            navigation.navigate('FeedTab', { postId });
+          }
+          break;
+        case 'VIEW_PROFILE':
+          if (notification.actorUsername) {
+            navigation.navigate('UserProfile', { username: notification.actorUsername });
+          }
+          break;
+        case 'OPEN_CHAT':
+          if (notification.actionData?.username) {
+            try {
+              // Buscar dados do usuário pelo username
+              const userResponse = await userApi.getUserProfile(notification.actionData.username);
+              if (userResponse.success && userResponse.data) {
+                const user = userResponse.data;
+                navigation.navigate('MessagesStack', {
+                  screen: 'Chat',
+                  params: {
+                    userId: user._id || user.id,
+                    username: user.username,
+                    avatar: user.avatar,
+                  },
+                });
+              } else {
+                // Fallback: navegar para lista de mensagens
+                navigation.navigate('MessagesStack', {
+                  screen: 'MessagesList',
+                });
+              }
+            } catch (error) {
+              console.error('Erro ao buscar usuário:', error);
+              // Fallback: navegar para lista de mensagens
+              navigation.navigate('MessagesStack', {
+                screen: 'MessagesList',
+              });
+            }
+          }
+          break;
+        default:
+          break;
+      }
+    } else if (notification.relatedPostId) {
+      // Fallback: se tiver relatedPostId, abrir o post
+      navigation.navigate('FeedTab', { postId: notification.relatedPostId });
+    }
   };
 
   return (

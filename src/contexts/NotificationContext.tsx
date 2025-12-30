@@ -188,7 +188,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // Marcar como lida
     markAsRead(notification._id);
 
-    // TODO: Implementar navegação baseada em actionUrl/actionType
+    // A navegação é feita diretamente no NotificationModal
+    // que tem acesso ao navigation hook
   };
 
   return (

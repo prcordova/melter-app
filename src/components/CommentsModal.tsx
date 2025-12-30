@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { postsApi } from '../services/api';
+import { postsApi, userApi } from '../services/api';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
@@ -42,6 +42,13 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+  
+  // Estados para autocomplete de menções
+  const [userSuggestions, setUserSuggestions] = useState<Array<{ _id: string; username: string; avatar?: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [mentionSearchQuery, setMentionSearchQuery] = useState('');
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
 
   const fetchComments = useCallback(async () => {
     if (!postId) return;
@@ -66,6 +73,73 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
       fetchComments();
     }
   }, [visible, postId, fetchComments]);
+
+  // Buscar usuários para autocomplete de menções
+  const searchUsers = async (query: string) => {
+    if (!query || query.length < 1) {
+      setUserSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      setLoadingSuggestions(true);
+      const response = await userApi.searchMentions(query);
+      if (response.success && response.data) {
+        setUserSuggestions(response.data);
+        setShowSuggestions(response.data.length > 0);
+        setSelectedSuggestionIndex(0);
+      } else {
+        setUserSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error) {
+      console.error('[CommentsModal] Erro ao buscar usuários:', error);
+      setUserSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  // Detectar menções no texto
+  useEffect(() => {
+    const text = commentText;
+    const lastAtIndex = text.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      const textAfterAt = text.substring(lastAtIndex + 1);
+      
+      // Verificar se não há espaço após o @
+      if (!textAfterAt.includes(' ') && !textAfterAt.includes('\n')) {
+        setMentionSearchQuery(textAfterAt);
+        searchUsers(textAfterAt);
+        return;
+      }
+    }
+    
+    // Se não houver @ ou houver espaço, fechar sugestões
+    setShowSuggestions(false);
+    setMentionSearchQuery('');
+  }, [commentText]);
+
+  // Selecionar usuário das sugestões
+  const selectMention = (username: string) => {
+    const text = commentText;
+    const lastAtIndex = text.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      // Substituir @query por @username + espaço
+      const beforeAt = text.substring(0, lastAtIndex);
+      const afterQuery = text.substring(lastAtIndex).split(' ').slice(1).join(' ');
+      const newText = `${beforeAt}@${username} ${afterQuery}`;
+      
+      setCommentText(newText);
+      setShowSuggestions(false);
+      setMentionSearchQuery('');
+      setSelectedSuggestionIndex(0);
+    }
+  };
 
   const handleSendComment = async () => {
     if (!commentText.trim() || sending) return;
@@ -262,6 +336,34 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
             )}
 
             <View style={styles.inputArea}>
+              {/* Sugestões de menções */}
+              {showSuggestions && userSuggestions.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  <ScrollView 
+                    style={styles.suggestionsList}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    {userSuggestions.map((user, index) => (
+                      <TouchableOpacity
+                        key={user._id}
+                        style={[
+                          styles.suggestionItem,
+                          index === selectedSuggestionIndex && styles.suggestionItemSelected,
+                        ]}
+                        onPress={() => selectMention(user.username)}
+                      >
+                        <Avatar
+                          user={{ username: user.username, avatar: user.avatar }}
+                          size={32}
+                          disableNavigation={true}
+                        />
+                        <Text style={styles.suggestionText}>@{user.username}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
               <View style={styles.inputWrapper}>
                 <TextInput
                   style={styles.input}
@@ -486,5 +588,32 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.5,
+  },
+  suggestionsContainer: {
+    maxHeight: 150,
+    backgroundColor: COLORS.background.paper,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border.light,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border.light,
+  },
+  suggestionsList: {
+    maxHeight: 150,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.background.paper,
+  },
+  suggestionItemSelected: {
+    backgroundColor: COLORS.background.tertiary,
+  },
+  suggestionText: {
+    fontSize: 15,
+    color: COLORS.text.primary,
+    marginLeft: 12,
+    fontWeight: '500',
   },
 });
