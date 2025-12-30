@@ -109,15 +109,25 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
           {/* Ações */}
           {notifications.length > 0 && (
             <View style={styles.actions}>
-              {unreadCount > 0 ? (
-                <TouchableOpacity
-                  onPress={markAllAsRead}
-                  style={styles.actionButton}
-                >
-                  <Ionicons name="checkmark-done" size={18} color={COLORS.secondary.main} />
-                  <Text style={styles.actionButtonText}>Marcar todas como lidas</Text>
-                </TouchableOpacity>
-              ) : null}
+              {(() => {
+                // Calcular unreadCount localmente para garantir que está correto
+                const localUnreadCount = notifications.filter(n => !n.isRead).length;
+                console.log('[NotificationModal] Renderizando ações:', {
+                  unreadCount,
+                  localUnreadCount,
+                  shouldShow: localUnreadCount > 0
+                });
+                
+                return localUnreadCount > 0 ? (
+                  <TouchableOpacity
+                    onPress={markAllAsRead}
+                    style={styles.actionButton}
+                  >
+                    <Ionicons name="checkmark-done" size={18} color={COLORS.secondary.main} />
+                    <Text style={styles.actionButtonText}>Marcar todas como lidas</Text>
+                  </TouchableOpacity>
+                ) : null;
+              })()}
               <TouchableOpacity
                 onPress={deleteAllNotifications}
                 style={[styles.actionButton, styles.actionButtonDanger]}
