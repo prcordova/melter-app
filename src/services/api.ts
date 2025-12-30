@@ -371,24 +371,50 @@ export const storiesApi = {
 export const paymentApi = {
   createCheckoutSession: async (planName: string, gateway?: 'STRIPE' | 'MERCADOPAGO') => {
     try {
-      const response = await api.post<ApiResponse<{ url: string; gateway?: string }>>('/api/payments/create-checkout', {
+      console.log('[paymentApi] Criando checkout session:', { planName, gateway });
+      const response = await api.post<any>('/api/payments/create-checkout', {
         plano: planName.toUpperCase(), // STARTER, PRO, PRO_PLUS
         ...(gateway && { gateway }),
       });
       
-      if (response.data.success && response.data.data?.url) {
-        // Abrir URL no navegador
-        const canOpen = await Linking.canOpenURL(response.data.data.url);
-        if (canOpen) {
-          await Linking.openURL(response.data.data.url);
-        } else {
-          throw new Error('Não foi possível abrir o link de pagamento');
-        }
+      console.log('[paymentApi] Resposta bruta:', response.data);
+      
+      // A API retorna { url, gateway } diretamente (sem success ou data)
+      // Vamos normalizar para o formato esperado pelo componente
+      if (response.data.url) {
+        // Formato direto: { url, gateway }
+        console.log('[paymentApi] Normalizando resposta direta:', { url: response.data.url, gateway: response.data.gateway });
+        return {
+          success: true,
+          data: {
+            url: response.data.url,
+            gateway: response.data.gateway
+          }
+        };
+      } else if (response.data.success && response.data.data?.url) {
+        // Formato ApiResponse: { success: true, data: { url, gateway } }
+        console.log('[paymentApi] Resposta já no formato ApiResponse');
+        return response.data;
+      } else if (response.data.success && response.data.url) {
+        // Formato alternativo: { success: true, url, gateway }
+        console.log('[paymentApi] Normalizando formato alternativo');
+        return {
+          success: true,
+          data: {
+            url: response.data.url,
+            gateway: response.data.gateway
+          }
+        };
       }
       
-      return response.data;
+      console.error('[paymentApi] Formato de resposta não reconhecido:', response.data);
+      // Retornar a resposta como está, mas garantir que tenha a estrutura esperada
+      return {
+        success: false,
+        data: response.data
+      };
     } catch (error) {
-      console.error('Erro ao criar sessão de checkout:', error);
+      console.error('[paymentApi] Erro ao criar sessão de checkout:', error);
       throw error;
     }
   },

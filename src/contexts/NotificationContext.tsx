@@ -50,11 +50,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user) {
+      // Buscar notificações (que já atualiza o unreadCount baseado nas filtradas)
       fetchNotifications();
-      fetchUnreadCount();
       // Atualizar a cada 30 segundos
       const interval = setInterval(() => {
-        fetchUnreadCount();
+        fetchNotifications();
       }, 30000);
       return () => clearInterval(interval);
     }
@@ -66,17 +66,34 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const response = await api.get('/api/notifications?limit=50');
+      console.log('[NotificationContext] Resposta da API:', JSON.stringify(response.data, null, 2));
 
-      if (response.data.success) {
+      if (response.data.success && response.data.data) {
+        // A API retorna { notifications, pagination } dentro de data
+        const notificationsData = response.data.data.notifications || [];
+        console.log('[NotificationContext] Notificações recebidas:', notificationsData.length);
+        
         // Filtrar notificações de mensagem (aparecem em outro lugar)
-        const filteredNotifications = response.data.data.notifications.filter(
+        const filteredNotifications = notificationsData.filter(
           (n: Notification) => n.type !== 'MESSAGE'
         );
+        console.log('[NotificationContext] Notificações após filtro:', filteredNotifications.length);
+        
         setNotifications(filteredNotifications);
-        setUnreadCount(filteredNotifications.filter((n: Notification) => !n.isRead).length);
+        
+        // Atualizar unreadCount baseado nas notificações filtradas (sem mensagens)
+        const unreadCountFromNotifications = filteredNotifications.filter((n: Notification) => !n.isRead).length;
+        console.log('[NotificationContext] Unread count calculado:', unreadCountFromNotifications);
+        
+        // Sempre usar o contador calculado das notificações filtradas
+        setUnreadCount(unreadCountFromNotifications);
+      } else {
+        console.warn('[NotificationContext] Resposta da API sem dados:', response.data);
+        setNotifications([]);
       }
     } catch (error) {
       console.error('[NotificationContext] Erro ao buscar notificações:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }

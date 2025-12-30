@@ -33,10 +33,26 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
     deleteNotification,
     deleteAllNotifications,
     handleNotificationClick,
+    fetchNotifications,
   } = useNotifications();
+
+  // Recarregar notificações quando o modal abrir
+  React.useEffect(() => {
+    if (visible) {
+      console.log('[NotificationModal] Modal aberto, buscando notificações...');
+      fetchNotifications();
+    }
+  }, [visible, fetchNotifications]);
 
   // Mostrar apenas as 10 mais recentes
   const recentNotifications = notifications.slice(0, 10);
+  
+  console.log('[NotificationModal] Notificações no modal:', {
+    total: notifications.length,
+    recent: recentNotifications.length,
+    unreadCount,
+    loading,
+  });
 
   const getTimeAgo = (date: string) => {
     try {

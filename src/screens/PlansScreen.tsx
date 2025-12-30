@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,7 +16,7 @@ import { COLORS } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi, paymentApi } from '../services/api';
 import { showToast } from '../components/CustomToast';
-import { useCustomModal } from '../components/CustomModal';
+import { useCustomModal, CustomModal } from '../components/CustomModal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -33,7 +34,7 @@ export function PlansScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user, refreshUser } = useAuth();
-  const { showConfirm } = useCustomModal();
+  const { modalProps, showConfirm } = useCustomModal();
 
   const [currentPlan, setCurrentPlan] = useState<string>('FREE');
   const [expirationDate, setExpirationDate] = useState<string | null>(null);
@@ -129,9 +130,15 @@ export function PlansScreen() {
       const userData = await userApi.getMyProfile();
       if (userData.success && userData.data) {
         const mappedPlan = userData.data.plan?.type || 'FREE';
+        const status = userData.data.plan?.status || 'INACTIVE';
+        console.log('[PlansScreen] Plano do usuário carregado:', { 
+          plan: mappedPlan, 
+          status,
+          expirationDate: userData.data.plan?.expirationDate 
+        });
         setCurrentPlan(mappedPlan);
         setExpirationDate(userData.data.plan?.expirationDate || null);
-        setPlanStatus(userData.data.plan?.status || 'INACTIVE');
+        setPlanStatus(status);
         setGateway(userData.data.plan?.gateway || null);
         setPendingPlan(userData.data.plan?.pendingPlan || null);
       }
@@ -163,7 +170,24 @@ export function PlansScreen() {
   };
 
   const handleSubscribe = async (planName: string) => {
-    if (currentPlan !== 'FREE') {
+    console.log('[PlansScreen] handleSubscribe chamado:', { planName, currentPlan, planStatus });
+    
+    // Se o plano selecionado é o mesmo do atual, não fazer nada
+    if (planName === currentPlan) {
+      console.log('[PlansScreen] Plano selecionado é o mesmo do atual');
+      return;
+    }
+
+    // Se o plano está cancelado e o usuário quer renovar o mesmo plano, ir direto para checkout
+    if (planStatus === 'CANCELLED' && planName === currentPlan) {
+      console.log('[PlansScreen] Renovando plano cancelado');
+      await proceedWithCheckout(planName);
+      return;
+    }
+
+    // Se já tem plano ativo (não FREE) e quer trocar
+    if (currentPlan !== 'FREE' && planStatus === 'ACTIVE') {
+      console.log('[PlansScreen] Usuário tem plano ativo, mostrando confirmação');
       // Se já tem plano, mostrar diálogo de confirmação
       const isUpgrade = getPlanHierarchy(planName) > getPlanHierarchy(currentPlan);
       
@@ -173,6 +197,7 @@ export function PlansScreen() {
           ? `Você está subindo de plano. Após confirmar, você será redirecionado para o checkout do novo plano ${planName === 'PRO_PLUS' ? 'PRO+' : planName}.`
           : `Você está descendo de plano. Você continuará com o plano ${currentPlan === 'PRO_PLUS' ? 'PRO+' : currentPlan} até ${expirationDate ? formatDate(expirationDate) : 'o final do período atual'}. Após essa data, seu plano será alterado automaticamente para ${planName === 'PRO_PLUS' ? 'PRO+' : planName}.`,
         async () => {
+          console.log('[PlansScreen] Confirmação aceita, isUpgrade:', isUpgrade);
           if (isUpgrade) {
             await proceedWithCheckout(planName);
           } else {
@@ -187,17 +212,61 @@ export function PlansScreen() {
       return;
     }
 
+    // Se não tem plano (FREE) ou está cancelado/inativo e quer um plano diferente, ir direto para checkout
+    console.log('[PlansScreen] Indo direto para checkout (FREE ou cancelado/inativo)');
     await proceedWithCheckout(planName);
   };
 
   const proceedWithCheckout = async (planName: string) => {
     try {
+      console.log('[PlansScreen] proceedWithCheckout chamado:', { planName, selectedPaymentGateway });
       setLoading(true);
-      await paymentApi.createCheckoutSession(planName, selectedPaymentGateway);
-      showToast.success('Redirecionando para o pagamento...');
+      
+      const response = await paymentApi.createCheckoutSession(planName, selectedPaymentGateway);
+      console.log('[PlansScreen] Resposta completa do checkout:', JSON.stringify(response, null, 2));
+      
+      // Verificar diferentes formatos de resposta
+      let checkoutUrl: string | null = null;
+      
+      // Formato 1: response.success && response.data.url (ApiResponse normalizado)
+      if (response.success && response.data?.url) {
+        checkoutUrl = response.data.url;
+        console.log('[PlansScreen] URL encontrada no formato ApiResponse:', checkoutUrl);
+      }
+      // Formato 2: response.url (caso a normalização não tenha funcionado)
+      else if ((response as any).url) {
+        checkoutUrl = (response as any).url;
+        console.log('[PlansScreen] URL encontrada diretamente no response:', checkoutUrl);
+      }
+      // Formato 3: response.data.url (sem success)
+      else if (response.data?.url) {
+        checkoutUrl = response.data.url;
+        console.log('[PlansScreen] URL encontrada em response.data:', checkoutUrl);
+      }
+      // Formato 4: response.data é uma string (URL direta)
+      else if (typeof response.data === 'string' && response.data.startsWith('http')) {
+        checkoutUrl = response.data;
+        console.log('[PlansScreen] URL encontrada como string:', checkoutUrl);
+      }
+      
+      if (checkoutUrl) {
+        console.log('[PlansScreen] URL de checkout encontrada:', checkoutUrl);
+        const canOpen = await Linking.canOpenURL(checkoutUrl);
+        if (canOpen) {
+          await Linking.openURL(checkoutUrl);
+          showToast.success('Redirecionando para o pagamento...');
+        } else {
+          console.error('[PlansScreen] Não foi possível abrir a URL');
+          showToast.error('Erro', 'Não foi possível abrir o link de pagamento');
+        }
+      } else {
+        console.error('[PlansScreen] URL de checkout não encontrada na resposta:', response);
+        showToast.error('Erro', 'URL de checkout não retornada pelo servidor');
+      }
     } catch (error: any) {
-      console.error('Erro ao iniciar checkout:', error);
-      showToast.error(error?.response?.data?.error || 'Erro ao iniciar checkout');
+      console.error('[PlansScreen] Erro ao iniciar checkout:', error);
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Erro ao iniciar checkout';
+      showToast.error('Erro', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -441,6 +510,7 @@ export function PlansScreen() {
           })}
         </View>
       </ScrollView>
+      <CustomModal {...modalProps} />
     </View>
   );
 }
