@@ -83,7 +83,7 @@ export function FriendsScreen() {
   const renderItem = ({ item }: { item: any }) => {
     // Ajustar o objeto para o UserCard
     // O backend retorna formatos diferentes dependendo da rota:
-    // Aba Amigos: { _id, username, ..., friendshipId }
+    // Aba Amigos: { _id, username, ..., friendshipId, isFollowing }
     // Abas Pedidos: { id: requestId, user: { _id, username, ... }, createdAt }
     
     const isFriendsTab = activeTab === 'friends';
@@ -95,6 +95,8 @@ export function FriendsScreen() {
       friendshipId: isFriendsTab ? item.friendshipId : item.id,
       friendRequestId: isFriendsTab ? null : item.id,
       friendsSince: item.friendsSince || item.createdAt || item.updatedAt,
+      // Preservar isFollowing se vier da API (aba amigos)
+      isFollowing: isFriendsTab ? (item.isFollowing ?? false) : (baseUser?.isFollowing ?? false),
     };
 
     return (

@@ -273,7 +273,7 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
 
             {showFriendsSince && user.friendsSince && (
               <Text style={styles.friendsSince}>
-                🗓️ Amigos desde: {formatDate(user.friendsSince)}
+                Amigos desde: {formatDate(user.friendsSince)}
               </Text>
             )}
           </View>
