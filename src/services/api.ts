@@ -681,6 +681,24 @@ export const walletApi = {
     }>>('/api/settings/fees/custom-deposit-fee');
     return response.data;
   },
+  getFees: async () => {
+    const response = await api.get<ApiResponse<{
+      fees: {
+        customDepositFeePercentage: number;
+        depositFeePercentage: number;
+        donationFeePercentage: number;
+        productSaleFeePercentage: number;
+        planPurchaseFeePercentage: number;
+        minimumWithdrawal: number;
+        maximumWithdrawal: number;
+        maximumDailyWithdrawals: number;
+        withdrawalFeeType: 'percentage' | 'fixed';
+        withdrawalFee: number;
+      };
+      lastUpdated?: string | Date;
+    }>>('/api/public/fees');
+    return response.data;
+  },
   getWithdrawalFees: async () => {
     const response = await api.get<ApiResponse<{
       fees: {

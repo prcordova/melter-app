@@ -86,8 +86,10 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
   const [loading, setLoading] = useState(false);
   const [loadingFee, setLoadingFee] = useState(true);
   const [customDepositFee, setCustomDepositFee] = useState<number>(8);
-  const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('STRIPE');
+  const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('MERCADOPAGO'); // Padrão: Mercado Pago para Brasil
   const [detectingCountry, setDetectingCountry] = useState(true);
+  const [showInfo, setShowInfo] = useState(false);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
 
   const MIN_AMOUNT = 10;
   const MAX_AMOUNT = 50000;
@@ -97,14 +99,14 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
       navigatingRef.current = false;
       if (!hasInitializedRef.current) {
         hasInitializedRef.current = true;
-        fetchPackages();
-        fetchCustomDepositFee();
+        fetchData();
         if (detectingCountry) {
           detectPaymentProvider().then(provider => {
             setPaymentProvider(provider);
             setDetectingCountry(false);
           }).catch(() => {
-            setPaymentProvider('STRIPE');
+            // Padrão: Mercado Pago para Brasil
+            setPaymentProvider('MERCADOPAGO');
             setDetectingCountry(false);
           });
         }
@@ -115,30 +117,47 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
     }
   }, [visible, detectingCountry]);
 
-  const fetchPackages = async () => {
+  const fetchData = async () => {
+    setLoadingFee(true);
     try {
-      const response = await walletApi.getBalancePackages();
-      if (response.success && response.data && response.data.length > 0) {
-        setPackages(response.data);
+      console.log('[ADD_BALANCE] Iniciando busca de pacotes e taxas...');
+      // Buscar pacotes e taxas em paralelo
+      const [packagesResponse, feesResponse] = await Promise.all([
+        walletApi.getBalancePackages(),
+        walletApi.getFees(),
+      ]);
+
+      console.log('[ADD_BALANCE] Resposta pacotes:', packagesResponse);
+      console.log('[ADD_BALANCE] Resposta taxas:', feesResponse);
+
+      // Processar pacotes
+      if (packagesResponse.success && packagesResponse.data && packagesResponse.data.length > 0) {
+        console.log('[ADD_BALANCE] Pacotes encontrados:', packagesResponse.data.length);
+        setPackages(packagesResponse.data);
         if (!selectedPackageId) {
-          setSelectedPackageId(response.data[0]._id);
+          setSelectedPackageId(packagesResponse.data[0]._id);
         }
+      } else {
+        console.warn('[ADD_BALANCE] Nenhum pacote encontrado. Resposta:', packagesResponse);
+        setPackages([]);
+      }
+
+      // Processar taxas
+      if (feesResponse.success && feesResponse.data?.fees) {
+        const fee = feesResponse.data.fees.customDepositFeePercentage || 8;
+        console.log('[ADD_BALANCE] Taxa customizada:', fee);
+        setCustomDepositFee(fee);
+      } else {
+        console.warn('[ADD_BALANCE] Erro ao buscar taxas, usando padrão. Resposta:', feesResponse);
+        setCustomDepositFee(8);
       }
     } catch (error) {
-      console.error('[ADD_BALANCE] Erro ao buscar pacotes:', error);
+      console.error('[ADD_BALANCE] Erro ao buscar dados:', error);
+      setPackages([]);
+      setCustomDepositFee(8);
     } finally {
       setLoadingFee(false);
-    }
-  };
-
-  const fetchCustomDepositFee = async () => {
-    try {
-      const response = await walletApi.getCustomDepositFee();
-      if (response.success && response.data) {
-        setCustomDepositFee(response.data.customDepositFeePercentage || 8);
-      }
-    } catch (error) {
-      console.error('[ADD_BALANCE] Erro ao buscar taxa:', error);
+      console.log('[ADD_BALANCE] Busca concluída. Pacotes:', packages.length, 'Taxa:', customDepositFee);
     }
   };
 
@@ -236,25 +255,56 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>💰 Adicionar Saldo</Text>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerTitle}>💰 Adicionar Saldo</Text>
+              {!loadingFee && packages.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setShowInfo(!showInfo)}
+                  style={styles.infoIconButton}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name="information-circle-outline" 
+                    size={22} 
+                    color={COLORS.text.secondary} 
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={COLORS.text.primary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={styles.content} 
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+          >
+
             {loadingFee ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                <Text style={styles.loadingText}>Carregando pacotes e taxas...</Text>
               </View>
             ) : packages.length === 0 ? (
               <View style={styles.emptyContainer}>
+                <Ionicons name="wallet-outline" size={48} color={COLORS.text.tertiary} />
                 <Text style={styles.emptyText}>Nenhum pacote disponível</Text>
+                <Text style={styles.emptySubtext}>
+                  Entre em contato com o suporte ou tente novamente mais tarde.
+                </Text>
               </View>
             ) : (
               <>
-                {/* Pacotes */}
-                <View style={styles.packagesGrid}>
+                {/* Pacotes - Scroll Horizontal */}
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={true}
+                  contentContainerStyle={styles.packagesScrollContent}
+                  style={styles.packagesScroll}
+                >
                   {packages.map((pkg) => {
                     const netAmount = calculateNetAmount(pkg.amount, pkg.feePercentage);
                     const isSelected = !useCustomAmount && selectedPackageId === pkg._id;
@@ -267,12 +317,8 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                           setSelectedPackageId(pkg._id);
                           setUseCustomAmount(false);
                         }}
+                        activeOpacity={0.7}
                       >
-                        {isSelected && (
-                          <View style={styles.selectedBadge}>
-                            <Ionicons name="checkmark-circle" size={20} color={COLORS.secondary.main} />
-                          </View>
-                        )}
                         {pkg.popular && (
                           <View style={styles.popularBadge}>
                             <Text style={styles.popularBadgeText}>Mais Vendido</Text>
@@ -289,6 +335,11 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                               Taxa: {pkg.feePercentage}% (R$ {(pkg.amount - netAmount).toFixed(2)})
                             </Text>
                           )}
+                          {pkg.feePercentage === 0 && (
+                            <Text style={[styles.packageFee, { color: COLORS.states.success }]}>
+                              Sem taxas
+                            </Text>
+                          )}
                         </View>
                       </TouchableOpacity>
                     );
@@ -299,12 +350,8 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                     <TouchableOpacity
                       style={[styles.packageCard, styles.customCard, useCustomAmount && styles.packageCardSelected]}
                       onPress={() => setUseCustomAmount(true)}
+                      activeOpacity={0.7}
                     >
-                      {useCustomAmount && (
-                        <View style={styles.selectedBadge}>
-                          <Ionicons name="checkmark-circle" size={20} color={COLORS.secondary.main} />
-                        </View>
-                      )}
                       <Text style={styles.packageName}>✏️ Valor Customizado</Text>
                       {useCustomAmount ? (
                         <>
@@ -324,6 +371,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                                 }
                               }}
                               placeholder="0,00"
+                              placeholderTextColor={COLORS.text.tertiary}
                               keyboardType="numeric"
                               autoFocus
                             />
@@ -331,6 +379,20 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                           {customAmount && (() => {
                             const amount = parseFloat(customAmount.replace(',', '.'));
                             if (!isNaN(amount)) {
+                              if (amount < MIN_AMOUNT) {
+                                return (
+                                  <Text style={[styles.packageFee, { color: COLORS.states.error }]}>
+                                    Valor mínimo: R$ {MIN_AMOUNT.toFixed(2)}
+                                  </Text>
+                                );
+                              }
+                              if (amount > MAX_AMOUNT) {
+                                return (
+                                  <Text style={[styles.packageFee, { color: COLORS.states.error }]}>
+                                    Valor máximo: R$ {MAX_AMOUNT.toFixed(2)}
+                                  </Text>
+                                );
+                              }
                               const netAmount = calculateNetAmount(amount, customDepositFee);
                               return (
                                 <View style={styles.packageFooter}>
@@ -353,31 +415,73 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                       )}
                     </TouchableOpacity>
                   )}
+                </ScrollView>
+
+                {/* Seleção de Gateway - Botão Compacto */}
+                <View style={styles.gatewaySection}>
+                  <TouchableOpacity
+                    style={styles.gatewayButton}
+                    onPress={() => setShowPaymentOptions(!showPaymentOptions)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.gatewayButtonText}>
+                      {paymentProvider === 'STRIPE' ? '💳 Stripe' : '🇧🇷 Mercado Pago'}
+                    </Text>
+                    <Ionicons 
+                      name={showPaymentOptions ? "chevron-up" : "chevron-down"} 
+                      size={18} 
+                      color={COLORS.text.secondary} 
+                    />
+                  </TouchableOpacity>
+                  
+                  {showPaymentOptions && (
+                    <View style={styles.gatewayOptions}>
+                      <TouchableOpacity
+                        style={[styles.gatewayOption, paymentProvider === 'STRIPE' && styles.gatewayOptionSelected]}
+                        onPress={() => {
+                          setPaymentProvider('STRIPE');
+                          setUseCustomAmount(false);
+                          setShowPaymentOptions(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.gatewayOptionTitle}>💳 Stripe</Text>
+                        <Text style={styles.gatewayOptionDesc}>Cartões internacionais</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.gatewayOption, paymentProvider === 'MERCADOPAGO' && styles.gatewayOptionSelected]}
+                        onPress={() => {
+                          setPaymentProvider('MERCADOPAGO');
+                          setShowPaymentOptions(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.gatewayOptionTitle}>🇧🇷 Mercado Pago</Text>
+                        <Text style={styles.gatewayOptionDesc}>Brasil e América Latina</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
 
-                {/* Seleção de Gateway */}
-                <View style={styles.gatewaySection}>
-                  <Text style={styles.gatewayTitle}>💳 Método de Pagamento</Text>
-                  <View style={styles.gatewayOptions}>
-                    <TouchableOpacity
-                      style={[styles.gatewayOption, paymentProvider === 'STRIPE' && styles.gatewayOptionSelected]}
-                      onPress={() => setPaymentProvider('STRIPE')}
-                    >
-                      <Text style={styles.gatewayOptionTitle}>💳 Stripe</Text>
-                      <Text style={styles.gatewayOptionDesc}>Cartões internacionais</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.gatewayOption, paymentProvider === 'MERCADOPAGO' && styles.gatewayOptionSelected]}
-                      onPress={() => setPaymentProvider('MERCADOPAGO')}
-                    >
-                      <Text style={styles.gatewayOptionTitle}>🇧🇷 Mercado Pago</Text>
-                      <Text style={styles.gatewayOptionDesc}>Brasil e América Latina</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
               </>
             )}
           </ScrollView>
+
+          {/* Conteúdo expansível de informações */}
+          {showInfo && !loadingFee && packages.length > 0 && (
+            <View style={styles.infoContent}>
+              <Text style={styles.infoContentTitle}>Como funciona:</Text>
+              <Text style={styles.infoContentText}>
+                • Pague com {paymentProvider === 'STRIPE' ? 'Stripe' : 'Mercado Pago'}{'\n'}
+                • Saldo adicionado instantaneamente{'\n'}
+                • Use para compras e doações
+              </Text>
+              <Text style={[styles.infoContentTitle, { marginTop: 12 }]}>Sobre as taxas:</Text>
+              <Text style={styles.infoContentText}>
+                Valores customizados têm taxa de {customDepositFee}%. Os pacotes têm taxas individuais mostradas em cada card.
+              </Text>
+            </View>
+          )}
 
           {/* Actions */}
           <View style={styles.actions}>
@@ -396,9 +500,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
               {loading ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text style={styles.purchaseButtonText}>
-                  {paymentProvider === 'STRIPE' ? 'Pagar com Stripe' : 'Pagar com Mercado Pago'}
-                </Text>
+                <Text style={styles.purchaseButtonText}>Pagar</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -418,7 +520,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '90%',
+    maxHeight: '95%',
+    minHeight: '70%',
+    flexDirection: 'column',
   },
   header: {
     flexDirection: 'row',
@@ -429,10 +533,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border.light,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+  },
+  infoIconButton: {
+    padding: 4,
   },
   closeButton: {
     padding: 4,
@@ -441,9 +553,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
+  contentContainer: {
+    paddingVertical: 8,
+    paddingBottom: 16,
+    flexGrow: 1,
+  },
   loadingContainer: {
     paddingVertical: 40,
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: COLORS.text.secondary,
   },
   emptyContainer: {
     paddingVertical: 40,
@@ -451,10 +573,24 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginTop: 12,
   },
-  packagesGrid: {
-    marginTop: 16,
+  emptySubtext: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  packagesScroll: {
+    marginTop: 8,
+    marginHorizontal: -20, // Compensar padding do content
+  },
+  packagesScrollContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 4,
     gap: 12,
   },
   packageCard: {
@@ -464,18 +600,15 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.border.medium,
     position: 'relative',
+    width: 150, // Largura menor para mostrar parte do terceiro card
+    minHeight: 180,
   },
   packageCardSelected: {
     borderColor: COLORS.secondary.main,
     backgroundColor: COLORS.secondary.light + '20',
   },
   customCard: {
-    // Custom card takes full width
-  },
-  selectedBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
+    width: 150, // Mesma largura dos outros cards
   },
   popularBadge: {
     position: 'absolute',
@@ -546,16 +679,46 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   gatewaySection: {
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  gatewayTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+    marginTop: 16,
     marginBottom: 12,
   },
+  infoContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: COLORS.background.tertiary,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border.light,
+  },
+  infoContentTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  infoContentText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  gatewayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.background.tertiary,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+  },
+  gatewayButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
   gatewayOptions: {
+    marginTop: 8,
     flexDirection: 'row',
     gap: 12,
   },

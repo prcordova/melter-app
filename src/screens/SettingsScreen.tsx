@@ -31,13 +31,6 @@ export function SettingsScreen() {
       screen: 'AppearanceSettings' 
     },
     { 
-      id: 'wallet', 
-      title: 'Carteira', 
-      subtitle: 'Saldo e histórico',
-      icon: '💰', 
-      screen: 'WalletSettings' 
-    },
-    { 
       id: 'analytics', 
       title: 'Analytics', 
       subtitle: 'Métricas dos posts',

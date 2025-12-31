@@ -98,6 +98,8 @@ export function ProfileScreen() {
       (navigation as any).navigate('Terms');
     } else if (screen === 'appearance') {
       (navigation as any).navigate('AppearanceSettings');
+    } else if (screen === 'wallet') {
+      (navigation as any).navigate('WalletSettings');
     } else {
       showToast.info('Em breve', `Tela de ${screen} será implementada`);
     }
