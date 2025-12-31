@@ -27,7 +27,6 @@ interface WithdrawModalProps {
 
 const PIX_KEY_TYPES = [
   { value: 'CPF', label: 'CPF' },
-  { value: 'CNPJ', label: 'CNPJ' },
   { value: 'EMAIL', label: 'E-mail' },
   { value: 'PHONE', label: 'Telefone' },
   { value: 'RANDOM', label: 'Chave Aleatória' },
@@ -36,13 +35,65 @@ const PIX_KEY_TYPES = [
 function getPixPlaceholder(type: string): string {
   const placeholders: { [key: string]: string } = {
     CPF: '000.000.000-00',
-    CNPJ: '00.000.000/0000-00',
     EMAIL: 'seu@email.com',
     PHONE: '(11) 99999-9999',
     RANDOM: 'chave-aleatoria-pix',
   };
   return placeholders[type] || '';
 }
+
+// Funções de máscara
+function maskCPF(value: string): string {
+  const numbers = value.replace(/\D/g, '');
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+  if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+  return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9, 11)}`;
+}
+
+function maskPhone(value: string): string {
+  const numbers = value.replace(/\D/g, '');
+  if (numbers.length <= 2) return numbers.length > 0 ? `(${numbers}` : numbers;
+  if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+  return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+}
+
+function maskCEP(value: string): string {
+  const numbers = value.replace(/\D/g, '');
+  if (numbers.length <= 5) return numbers;
+  return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`;
+}
+
+// Estados brasileiros com autocomplete
+const BRAZILIAN_STATES = [
+  { uf: 'AC', name: 'Acre' },
+  { uf: 'AL', name: 'Alagoas' },
+  { uf: 'AP', name: 'Amapá' },
+  { uf: 'AM', name: 'Amazonas' },
+  { uf: 'BA', name: 'Bahia' },
+  { uf: 'CE', name: 'Ceará' },
+  { uf: 'DF', name: 'Distrito Federal' },
+  { uf: 'ES', name: 'Espírito Santo' },
+  { uf: 'GO', name: 'Goiás' },
+  { uf: 'MA', name: 'Maranhão' },
+  { uf: 'MT', name: 'Mato Grosso' },
+  { uf: 'MS', name: 'Mato Grosso do Sul' },
+  { uf: 'MG', name: 'Minas Gerais' },
+  { uf: 'PA', name: 'Pará' },
+  { uf: 'PB', name: 'Paraíba' },
+  { uf: 'PR', name: 'Paraná' },
+  { uf: 'PE', name: 'Pernambuco' },
+  { uf: 'PI', name: 'Piauí' },
+  { uf: 'RJ', name: 'Rio de Janeiro' },
+  { uf: 'RN', name: 'Rio Grande do Norte' },
+  { uf: 'RS', name: 'Rio Grande do Sul' },
+  { uf: 'RO', name: 'Rondônia' },
+  { uf: 'RR', name: 'Roraima' },
+  { uf: 'SC', name: 'Santa Catarina' },
+  { uf: 'SP', name: 'São Paulo' },
+  { uf: 'SE', name: 'Sergipe' },
+  { uf: 'TO', name: 'Tocantins' },
+];
 
 export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: WithdrawModalProps) {
   const insets = useSafeAreaInsets();
@@ -72,6 +123,9 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
     phone: '',
     email: '',
   });
+
+  const [stateSuggestions, setStateSuggestions] = useState<Array<{ uf: string; name: string }>>([]);
+  const [showStateSuggestions, setShowStateSuggestions] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -154,21 +208,58 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
   };
 
   const handlePersonalDataChange = (field: string, value: string) => {
+    let processedValue = value;
+
+    // Aplicar máscaras
+    if (field === 'cpf') {
+      processedValue = maskCPF(value);
+    } else if (field === 'phone') {
+      processedValue = maskPhone(value);
+    } else if (field === 'address.zipCode') {
+      processedValue = maskCEP(value);
+    } else if (field === 'address.state') {
+      processedValue = value.toUpperCase();
+      // Autocomplete de estados
+      if (value.length >= 2) {
+        const filtered = BRAZILIAN_STATES.filter(state => 
+          state.uf.startsWith(value.toUpperCase()) || 
+          state.name.toLowerCase().includes(value.toLowerCase())
+        );
+        setStateSuggestions(filtered);
+        setShowStateSuggestions(filtered.length > 0);
+      } else {
+        setStateSuggestions([]);
+        setShowStateSuggestions(false);
+      }
+    }
+
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
       setPersonalData(prev => ({
         ...prev,
         [parent]: {
           ...(prev[parent as keyof typeof prev] as any),
-          [child]: value,
+          [child]: processedValue,
         },
       }));
     } else {
       setPersonalData(prev => ({
         ...prev,
-        [field]: value,
+        [field]: processedValue,
       }));
     }
+    setTimeout(saveFormData, 100);
+  };
+
+  const handleStateSelect = (state: { uf: string; name: string }) => {
+    setPersonalData(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        state: state.uf,
+      },
+    }));
+    setShowStateSuggestions(false);
     setTimeout(saveFormData, 100);
   };
 
@@ -180,7 +271,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
   const handleSubmit = async () => {
     const amountNum = parseFloat(amount);
 
-    if (!amount || isNaN(amountNum)) {
+    if (!amount || isNaN(amountNum) || amountNum <= 0) {
       showToast.error('Informe um valor válido');
       return;
     }
@@ -205,24 +296,63 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
       return;
     }
 
+    // Validar pixKeyType
+    if (!['CPF', 'EMAIL', 'PHONE', 'RANDOM'].includes(pixKeyType)) {
+      showToast.error('Tipo de chave Pix inválido');
+      return;
+    }
+
     if (!personalData.fullName.trim()) {
       showToast.error('Nome completo é obrigatório');
       return;
     }
 
-    if (!personalData.cpf.trim()) {
-      showToast.error('CPF é obrigatório');
+    // Validar CPF (mínimo 11 caracteres, máximo 14)
+    const cpfCleaned = personalData.cpf.replace(/[^\d]/g, '');
+    if (!cpfCleaned || cpfCleaned.length < 11 || cpfCleaned.length > 14) {
+      showToast.error('CPF inválido');
       return;
+    }
+
+    // Validar email se fornecido
+    if (personalData.email && personalData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(personalData.email.trim())) {
+        showToast.error('E-mail inválido');
+        return;
+      }
     }
 
     try {
       setLoading(true);
-      const response = await walletApi.requestWithdrawal({
+      
+      // Preparar dados para envio (sanitizar e validar)
+      // Remover máscaras antes de enviar
+      const phoneCleaned = personalData.phone?.replace(/\D/g, '') || undefined;
+      const zipCodeCleaned = personalData.address.zipCode?.replace(/\D/g, '') || undefined;
+      
+      const withdrawalData = {
         amount: amountNum,
         pixKey: pixKey.trim(),
-        pixKeyType,
-        personalData,
-      });
+        pixKeyType: pixKeyType as 'CPF' | 'EMAIL' | 'PHONE' | 'RANDOM',
+        personalData: {
+          fullName: personalData.fullName.trim(),
+          cpf: cpfCleaned,
+          address: {
+            street: personalData.address.street?.trim() || undefined,
+            number: personalData.address.number?.trim() || undefined,
+            complement: personalData.address.complement?.trim() || undefined,
+            neighborhood: personalData.address.neighborhood?.trim() || undefined,
+            city: personalData.address.city?.trim() || undefined,
+            state: personalData.address.state?.trim().toUpperCase() || undefined,
+            zipCode: zipCodeCleaned,
+          },
+          phone: phoneCleaned,
+          email: personalData.email?.trim() || undefined,
+        },
+      };
+
+      const response = await walletApi.requestWithdrawal(withdrawalData);
 
       if (response.success) {
         showToast.success(response.message || 'Solicitação de saque enviada com sucesso!');
@@ -236,7 +366,8 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
       }
     } catch (error: any) {
       console.error('Erro ao solicitar saque:', error);
-      showToast.error(error.response?.data?.message || 'Erro ao solicitar saque');
+      const errorMessage = error.response?.data?.message || error.message || 'Erro ao solicitar saque';
+      showToast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -259,14 +390,15 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="fade"
       transparent={true}
       onRequestClose={onClose}
     >
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable
-          style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 16) }]}
-          onPress={(e) => e.stopPropagation()}
+        <View
+          style={[styles.container, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 16) }]}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => false}
         >
           {/* Header */}
           <View style={styles.header}>
@@ -279,7 +411,13 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={styles.content} 
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={true}
+          >
             {/* Saldo Disponível */}
             <View style={styles.balanceCard}>
               <Text style={styles.balanceLabel}>Saldo Disponível</Text>
@@ -353,6 +491,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                 onChangeText={setPixKey}
                 placeholder={getPixPlaceholder(pixKeyType)}
                 autoCapitalize="none"
+                keyboardType={pixKeyType === 'PHONE' ? 'phone-pad' : 'default'}
               />
             </View>
 
@@ -374,6 +513,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                   value={personalData.cpf}
                   onChangeText={(value) => handlePersonalDataChange('cpf', value)}
                   placeholder="CPF"
+                  keyboardType="numeric"
                 />
                 <TextInput
                   style={[styles.input, styles.inputHalf]}
@@ -383,6 +523,16 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                   keyboardType="phone-pad"
                 />
               </View>
+
+              <TextInput
+                style={styles.input}
+                value={personalData.email}
+                onChangeText={(value) => handlePersonalDataChange('email', value)}
+                placeholder="E-mail (opcional)"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
             </View>
 
             {/* Endereço */}
@@ -391,13 +541,13 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
 
               <View style={styles.row}>
                 <TextInput
-                  style={[styles.input, { flex: 2 }]}
+                  style={[styles.input, styles.inputHalf]}
                   value={personalData.address.street}
                   onChangeText={(value) => handlePersonalDataChange('address.street', value)}
                   placeholder="Rua"
                 />
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                  style={[styles.input, styles.inputHalf]}
                   value={personalData.address.number}
                   onChangeText={(value) => handlePersonalDataChange('address.number', value)}
                   placeholder="Número"
@@ -420,17 +570,37 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
 
               <View style={styles.row}>
                 <TextInput
-                  style={[styles.input, { flex: 2 }]}
+                  style={[styles.input, styles.inputHalf]}
                   value={personalData.address.city}
                   onChangeText={(value) => handlePersonalDataChange('address.city', value)}
                   placeholder="Cidade"
                 />
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  value={personalData.address.state}
-                  onChangeText={(value) => handlePersonalDataChange('address.state', value)}
-                  placeholder="Estado"
-                />
+                <View style={[styles.inputHalf, { position: 'relative' }]}>
+                  <TextInput
+                    style={styles.input}
+                    value={personalData.address.state}
+                    onChangeText={(value) => handlePersonalDataChange('address.state', value)}
+                    placeholder="Estado (UF)"
+                    maxLength={2}
+                    autoCapitalize="characters"
+                    onBlur={() => setTimeout(() => setShowStateSuggestions(false), 200)}
+                  />
+                  {showStateSuggestions && stateSuggestions.length > 0 && (
+                    <View style={styles.suggestionsContainer}>
+                      {stateSuggestions.map((state) => (
+                        <TouchableOpacity
+                          key={state.uf}
+                          style={styles.suggestionItem}
+                          onPress={() => handleStateSelect(state)}
+                        >
+                          <Text style={styles.suggestionText}>
+                            {state.uf} - {state.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
               </View>
 
               <TextInput
@@ -439,6 +609,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                 onChangeText={(value) => handlePersonalDataChange('address.zipCode', value)}
                 placeholder="CEP"
                 keyboardType="numeric"
+                maxLength={9}
               />
             </View>
 
@@ -476,7 +647,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
               )}
             </TouchableOpacity>
           </View>
-        </Pressable>
+        </View>
       </Pressable>
     </Modal>
   );
@@ -486,13 +657,18 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   container: {
     backgroundColor: COLORS.background.paper,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 600,
+    maxHeight: '95%',
+    minHeight: 700,
+    flexDirection: 'column',
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -519,6 +695,12 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  contentContainer: {
+    paddingVertical: 16,
+    paddingBottom: 20,
+    flexGrow: 1,
+    minHeight: '100%',
   },
   balanceCard: {
     backgroundColor: COLORS.primary.main,
@@ -590,6 +772,20 @@ const styles = StyleSheet.create({
   inputHalf: {
     flex: 1,
     marginHorizontal: 4,
+  },
+  stateInputContainer: {
+    position: 'relative',
+    marginHorizontal: 4,
+  },
+  stateInput: {
+    backgroundColor: COLORS.background.tertiary,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: COLORS.text.primary,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    minWidth: 120,
   },
   row: {
     flexDirection: 'row',
@@ -696,6 +892,34 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: '100%',
+    marginLeft: 8,
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+    minWidth: 200,
+    maxWidth: 250,
+    maxHeight: 200,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  suggestionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border.light,
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: COLORS.text.primary,
   },
 });
 
