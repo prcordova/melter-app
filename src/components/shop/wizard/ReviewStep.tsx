@@ -16,12 +16,26 @@ interface ReviewStepProps {
 }
 
 export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewStepProps) {
-  const handleValidationChange = (field: string, checked: boolean) => {
+  // Garantir que contentValidations existe
+  const contentValidations = formData.contentValidations || {
+    readTerms: false,
+    noViolence: false,
+    noThirdParty: false,
+    ownContent: false,
+    noHateSpeech: false,
+    noSpam: false,
+  };
+
+  const handleAcceptAll = (checked: boolean) => {
     setFormData({
       ...formData,
       contentValidations: {
-        ...formData.contentValidations,
-        [field]: checked,
+        readTerms: checked,
+        noViolence: checked,
+        noThirdParty: checked,
+        ownContent: checked,
+        noHateSpeech: checked,
+        noSpam: checked,
       },
     });
   };
@@ -34,19 +48,10 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const allValidationsChecked = Object.values(formData.contentValidations).every(Boolean);
+  const allValidationsChecked = Object.values(contentValidations).every(Boolean);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <Ionicons name="search-outline" size={24} color={COLORS.secondary.main} />
-        <Text style={styles.title}>Revisão Final</Text>
-      </View>
-      <Text style={styles.subtitle}>
-        Revise todas as informações e confirme que o conteúdo está em conformidade com nossos
-        termos.
-      </Text>
-
       {/* Resumo do Produto */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -207,65 +212,25 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
           </View>
         )}
 
-        <View style={styles.validationsList}>
-          {[
-            {
-              key: 'readTerms',
-              title: 'Li e aceito os Termos de Uso',
-              description: 'Confirme que leu e aceita nossos termos de uso',
-            },
-            {
-              key: 'ownContent',
-              title: 'Sou o proprietário legítimo deste conteúdo',
-              description: 'Confirma que é o autor ou detentor dos direitos do conteúdo',
-            },
-            {
-              key: 'noThirdParty',
-              title: 'O conteúdo não é de terceiros',
-              description: 'Todo o conteúdo é de sua autoria ou você tem os direitos necessários',
-            },
-            {
-              key: 'noViolence',
-              title: 'Conteúdo sem Violência',
-              description: 'O conteúdo não contém violência, gore ou material perturbador',
-            },
-            {
-              key: 'noHateSpeech',
-              title: 'Sem Discurso de Ódio',
-              description: 'O conteúdo não contém discurso de ódio ou discriminação',
-            },
-            {
-              key: 'noSpam',
-              title: 'Conteúdo não é Spam',
-              description: 'O conteúdo não é spam ou material promocional não autorizado',
-            },
-          ].map((validation) => (
-            <View
-              key={validation.key}
-              style={[
-                styles.validationItem,
-                !formData.contentValidations[validation.key] &&
-                  !allValidationsChecked &&
-                  styles.validationItemError,
-              ]}
-            >
-              <View style={styles.validationContent}>
-                <Text style={styles.validationTitle}>{validation.title}</Text>
-                <Text style={styles.validationDescription}>{validation.description}</Text>
-              </View>
-              <Switch
-                value={formData.contentValidations[validation.key]}
-                onValueChange={(checked) => handleValidationChange(validation.key, checked)}
-                trackColor={{
-                  false: COLORS.border.medium,
-                  true: COLORS.secondary.main,
-                }}
-                thumbColor={
-                  formData.contentValidations[validation.key] ? '#ffffff' : COLORS.text.tertiary
-                }
-              />
-            </View>
-          ))}
+        {/* Toggle único para aceitar todas as regras */}
+        <View style={[styles.validationItem, !allValidationsChecked && styles.validationItemError]}>
+          <View style={styles.validationContent}>
+            <Text style={styles.validationTitle}>
+              Concordo com todas as regras e diretrizes
+            </Text>
+            <Text style={styles.validationDescription}>
+              Li e aceito os Termos de Uso. Sou o proprietário legítimo deste conteúdo. O conteúdo não é de terceiros, não contém violência, discurso de ódio ou spam.
+            </Text>
+          </View>
+          <Switch
+            value={allValidationsChecked}
+            onValueChange={handleAcceptAll}
+            trackColor={{
+              false: COLORS.border.medium,
+              true: COLORS.secondary.main,
+            }}
+            thumbColor={allValidationsChecked ? '#ffffff' : COLORS.text.tertiary}
+          />
         </View>
 
         {/* Aviso Final */}
@@ -284,22 +249,6 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 24,
   },
   section: {
     marginBottom: 24,
