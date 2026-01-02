@@ -161,8 +161,11 @@ export function ProductCreationWizard({
 
   const canProceedToNext = (step: number): boolean => {
     switch (step) {
-      case 0: // Conteúdo - sempre pode avançar (conteúdo é opcional)
-        return true;
+      case 0: // Conteúdo - precisa ter pelo menos um link ou arquivo
+        return (
+          (formData.links && formData.links.length > 0) ||
+          (formData.files && formData.files.length > 0)
+        );
       case 1: // Detalhes
         const hasTitle = formData.title.trim() !== '';
         const hasCategory = formData.categoryId.trim() !== '';
@@ -282,15 +285,6 @@ export function ProductCreationWizard({
               <TouchableOpacity onPress={handleClose} disabled={saving}>
                 <Ionicons name="close" size={24} color={COLORS.text.primary} />
               </TouchableOpacity>
-            </View>
-
-            {/* Info Box */}
-            <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>📦 Produto Digital</Text>
-              <Text style={styles.infoText}>
-                Crie pacotes digitais com links externos, arquivos ou ambos. Você pode criar o produto
-                vazio e adicionar conteúdo depois.
-              </Text>
             </View>
 
             {/* Stepper */}
@@ -431,25 +425,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.primary,
     flex: 1,
-  },
-  infoBox: {
-    backgroundColor: COLORS.states.info + '20',
-    borderRadius: 8,
-    padding: 12,
-    margin: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.states.info,
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.states.info,
-    marginBottom: 4,
-  },
-  infoText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
   },
   stepperContainer: {
     flexDirection: 'row',

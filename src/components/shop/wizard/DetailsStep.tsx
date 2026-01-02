@@ -15,11 +15,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../../theme/colors';
 import { showToast } from '../../CustomToast';
 import { useAuth } from '../../../contexts/AuthContext';
-import { categoriesApi, subscriptionPlansApi } from '../../../services/api';
+import { subscriptionPlansApi } from '../../../services/api';
 import { getImageUrl } from '../../../utils/image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../../../config/api.config';
 import axios from 'axios';
+import { PlanLocker } from '../../PlanLocker';
+import { FIXED_CATEGORIES } from '../../../constants/categories';
 
 interface DetailsStepProps {
   formData: any;
@@ -29,7 +31,7 @@ interface DetailsStepProps {
 export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
   const { user } = useAuth();
   const [categories, setCategories] = useState<Array<{ _id: string; name: string }>>([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = useState<
     Array<{ _id: string; name: string; price: number; isActive: boolean }>
   >([]);
@@ -37,7 +39,9 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
-    fetchCategories();
+    // Categorias fixas - não busca da API
+    setCategories(FIXED_CATEGORIES);
+    setLoadingCategories(false);
   }, []);
 
   useEffect(() => {
@@ -62,20 +66,6 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
       }
     }
   }, [formData.paymentMode, subscriptionPlans]);
-
-  const fetchCategories = async () => {
-    try {
-      setLoadingCategories(true);
-      const response = await categoriesApi.getCategories(user?.username);
-      if (response.success) {
-        setCategories(response.data || []);
-      }
-    } catch (error) {
-      console.error('[DetailsStep] Erro ao carregar categorias:', error);
-    } finally {
-      setLoadingCategories(false);
-    }
-  };
 
   const fetchSubscriptionPlans = async () => {
     if (!user) return;
@@ -167,63 +157,6 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Ionicons name="document-text-outline" size={24} color={COLORS.secondary.main} />
-        <Text style={styles.title}>Detalhes do Produto</Text>
-      </View>
-      <Text style={styles.subtitle}>
-        Configure as informações básicas, preço e configurações do seu produto.
-      </Text>
-
-      {/* Imagem de Capa */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="image-outline" size={20} color={COLORS.text.secondary} />
-          <Text style={styles.sectionTitle}>Imagem de Capa</Text>
-        </View>
-
-        {formData.coverImage && (
-          <View style={styles.imagePreviewContainer}>
-            <Image
-              source={{ uri: getImageUrl(formData.coverImage) }}
-              style={styles.imagePreview}
-              resizeMode="cover"
-            />
-            <TouchableOpacity
-              style={styles.removeImageButton}
-              onPress={() => setFormData({ ...formData, coverImage: null })}
-            >
-              <Ionicons name="close-circle" size={24} color={COLORS.states.error} />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!formData.coverImage && (
-          <View style={styles.emptyImageBox}>
-            <Text style={styles.emptyImageText}>Nenhuma imagem de capa selecionada</Text>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={styles.imageUploadButton}
-          onPress={handleImageUpload}
-          disabled={uploadingImage}
-          activeOpacity={0.7}
-        >
-          {uploadingImage ? (
-            <ActivityIndicator size="small" color={COLORS.secondary.main} />
-          ) : (
-            <>
-              <Ionicons name="cloud-upload-outline" size={18} color={COLORS.secondary.main} />
-              <Text style={styles.imageUploadText}>
-                {formData.coverImage ? 'Trocar Capa' : 'Adicionar Capa'}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-        <Text style={styles.helperText}>Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 5MB</Text>
-      </View>
-
       {/* Informações Básicas */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -269,20 +202,6 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Tags (Opcional)</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.tags || ''}
-            onChangeText={(text) => setFormData({ ...formData, tags: text })}
-            placeholder="Ex: marketing, curso, tutorial, dicas (separadas por vírgula)"
-            placeholderTextColor={COLORS.text.tertiary}
-          />
-          <Text style={styles.helperText}>
-            Adicione palavras-chave para facilitar a busca do seu produto
-          </Text>
-        </View>
-
-        <View style={styles.inputGroup}>
           <Text style={styles.label}>
             Categoria <Text style={styles.required}>*</Text>
           </Text>
@@ -303,6 +222,71 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
             </View>
           )}
         </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Tags (Opcional)</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.tags || ''}
+            onChangeText={(text) => setFormData({ ...formData, tags: text })}
+            placeholder="Ex: marketing, curso, tutorial, dicas (separadas por vírgula)"
+            placeholderTextColor={COLORS.text.tertiary}
+          />
+          <Text style={styles.helperText}>
+            Adicione palavras-chave para facilitar a busca do seu produto
+          </Text>
+        </View>
+      </View>
+
+      {/* Imagem de Capa */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="image-outline" size={20} color={COLORS.text.secondary} />
+          <Text style={styles.sectionTitle}>Imagem de Capa</Text>
+        </View>
+
+        <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
+          {formData.coverImage && (
+            <View style={styles.imagePreviewContainer}>
+              <Image
+                source={{ uri: getImageUrl(formData.coverImage) }}
+                style={styles.imagePreview}
+                resizeMode="cover"
+              />
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={() => setFormData({ ...formData, coverImage: null })}
+              >
+                <Ionicons name="close-circle" size={24} color={COLORS.states.error} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {!formData.coverImage && (
+            <View style={styles.emptyImageBox}>
+              <Text style={styles.emptyImageText}>Nenhuma imagem de capa selecionada</Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.imageUploadButton}
+            onPress={handleImageUpload}
+            disabled={uploadingImage}
+            activeOpacity={0.7}
+          >
+            {uploadingImage ? (
+              <ActivityIndicator size="small" color={COLORS.secondary.main} />
+            ) : (
+              <>
+                <Ionicons name="cloud-upload-outline" size={18} color={COLORS.secondary.main} />
+                <Text style={styles.imageUploadText}>
+                  {formData.coverImage ? 'Trocar Capa' : 'Adicionar Capa'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <Text style={styles.helperText}>Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 5MB</Text>
+        </PlanLocker>
       </View>
 
       {/* Tipo de Venda */}
@@ -500,22 +484,6 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
 const styles = StyleSheet.create({
   container: {
     gap: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 16,
   },
   section: {
     marginBottom: 24,

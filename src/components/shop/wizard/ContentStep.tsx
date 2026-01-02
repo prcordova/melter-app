@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,14 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../../theme/colors';
 import { showToast } from '../../CustomToast';
 import { useAuth } from '../../../contexts/AuthContext';
+import { PLAN_LIMITS, validateFileSize, PlanType } from '../../../config/plan-features';
 
 interface ContentStepProps {
   formData: any;
@@ -24,6 +26,36 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
   const { user } = useAuth();
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  const [fileSizeErrors, setFileSizeErrors] = useState<string[]>([]);
+
+  // Validar arquivos existentes sempre que o componente for renderizado
+  useEffect(() => {
+    if (formData.files && formData.files.length > 0) {
+      const userPlan = (user?.plan?.type || 'FREE') as PlanType;
+      const planLimits = PLAN_LIMITS[userPlan];
+      const maxFileSize = planLimits.maxFileSizePerFile * 1024 * 1024;
+      const maxTotalSize = planLimits.maxTotalFileSize * 1024 * 1024;
+
+      const errors: string[] = [];
+      const currentTotalSize = formData.files.reduce((total: number, file: any) => total + (file.size || 0), 0);
+
+      // Verificar se o tamanho total excede o limite
+      if (currentTotalSize > maxTotalSize) {
+        errors.push(`Limite total de tamanho atingido (máx ${planLimits.maxTotalFileSize}MB)`);
+      }
+
+      // Verificar cada arquivo individual
+      formData.files.forEach((file: any) => {
+        if (file.size > maxFileSize) {
+          errors.push(`${file.name}: Arquivo muito grande (máx ${planLimits.maxFileSizePerFile}MB)`);
+        }
+      });
+
+      setFileSizeErrors(errors);
+    } else {
+      setFileSizeErrors([]);
+    }
+  }, [formData.files, user?.plan?.type]);
 
   const handleAddLink = () => {
     const newLink = {
@@ -72,10 +104,54 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setUploadingFiles(true);
+        setFileSizeErrors([]);
 
-        const newFiles: any[] = [];
+        const errors: string[] = [];
+        const validFiles: any[] = [];
+
+        // Calcular tamanho total atual
+        const currentTotalSize = formData.files.reduce((total: number, file: any) => total + (file.size || 0), 0);
+
+        // Obter limites do plano do usuário
+        const userPlan = (user?.plan?.type || 'FREE') as PlanType;
+        const planLimits = PLAN_LIMITS[userPlan];
+        const maxFileSize = planLimits.maxFileSizePerFile * 1024 * 1024; // converter MB para bytes
+        const maxTotalSize = planLimits.maxTotalFileSize * 1024 * 1024; // converter MB para bytes
+
         for (let i = 0; i < result.assets.length; i++) {
           const asset = result.assets[i];
+          const fileSize = asset.fileSize || 0;
+
+          // Validar tamanho do arquivo
+          const validation = validateFileSize(userPlan, fileSize, currentTotalSize + validFiles.reduce((sum, f) => sum + f.size, 0));
+          
+          if (!validation.valid) {
+            errors.push(`${asset.fileName || `arquivo_${i}`}: ${validation.error}`);
+            continue;
+          }
+
+          if (fileSize > maxFileSize) {
+            errors.push(`${asset.fileName || `arquivo_${i}`}: Arquivo muito grande (máx ${planLimits.maxFileSizePerFile}MB)`);
+            continue;
+          }
+
+          const newTotalSize = currentTotalSize + validFiles.reduce((sum, f) => sum + f.size, 0) + fileSize;
+          if (newTotalSize > maxTotalSize) {
+            errors.push(`${asset.fileName || `arquivo_${i}`}: Limite total de tamanho atingido (máx ${planLimits.maxTotalFileSize}MB)`);
+            continue;
+          }
+
+          validFiles.push(asset);
+        }
+
+        if (errors.length > 0) {
+          setFileSizeErrors(errors);
+          showToast.error('Erro', 'Alguns arquivos excedem os limites do seu plano atual');
+        }
+
+        // Processar apenas arquivos válidos
+        for (let i = 0; i < validFiles.length; i++) {
+          const asset = validFiles[i];
           const fileId = Date.now().toString() + i;
 
           // Simular progresso
@@ -94,15 +170,15 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
             uri: asset.uri,
           };
 
-          newFiles.push(newFile);
+          setFormData({
+            ...formData,
+            files: [...formData.files, newFile],
+          });
         }
 
-        setFormData({
-          ...formData,
-          files: [...formData.files, ...newFiles],
-        });
-
-        showToast.success('Sucesso', `${newFiles.length} arquivo(s) adicionado(s)`);
+        if (validFiles.length > 0) {
+          showToast.success('Sucesso', `${validFiles.length} arquivo(s) adicionado(s)`);
+        }
         setUploadingFiles(false);
         setUploadProgress({});
       }
@@ -128,12 +204,42 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const getTotalFileSize = () => {
+    return formData.files.reduce((total: number, file: any) => total + (file.size || 0), 0);
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) {
+      return <Ionicons name="image-outline" size={24} color={COLORS.text.secondary} />;
+    } else if (mimeType.startsWith('video/')) {
+      return <Ionicons name="videocam-outline" size={24} color={COLORS.text.secondary} />;
+    } else if (mimeType.includes('pdf')) {
+      return <Ionicons name="document-text-outline" size={24} color={COLORS.text.secondary} />;
+    } else {
+      return <Ionicons name="document-outline" size={24} color={COLORS.text.secondary} />;
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Ionicons name="folder-outline" size={24} color={COLORS.secondary.main} />
         <Text style={styles.title}>Adicionar Conteúdo</Text>
       </View>
+
+      {fileSizeErrors.length > 0 && (
+        <View style={styles.alertWarning}>
+          <Text style={styles.alertWarningTitle}>🚀 Limite de tamanho atingido!</Text>
+          <Text style={styles.alertWarningText}>
+            Faça upgrade do seu plano para ter acesso a mais espaço de armazenamento.
+          </Text>
+          {fileSizeErrors.map((error, index) => (
+            <Text key={index} style={styles.alertWarningListItem}>
+              • {error}
+            </Text>
+          ))}
+        </View>
+      )}
 
       {/* Arquivos */}
       <View style={styles.section}>
@@ -161,38 +267,53 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
             <Text style={styles.emptyText}>Nenhum arquivo adicionado ainda</Text>
           </View>
         ) : (
-          <View style={styles.filesList}>
-            {formData.files.map((file: any) => (
-              <View key={file.id} style={styles.fileCard}>
-                <View style={styles.fileInfo}>
-                  <Ionicons name="document-outline" size={24} color={COLORS.text.secondary} />
-                  <View style={styles.fileDetails}>
-                    <Text style={styles.fileName} numberOfLines={1}>
-                      {file.name}
-                    </Text>
-                    <Text style={styles.fileSize}>{formatFileSize(file.size)}</Text>
-                  </View>
-                </View>
-                {uploadProgress[file.id] !== undefined ? (
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressBarContainer}>
-                      <View
-                        style={[styles.progressBar, { width: `${uploadProgress[file.id]}%` }]}
-                      />
+          <>
+            <View style={styles.filesList}>
+              {formData.files.map((file: any) => (
+                <View key={file.id} style={styles.fileCard}>
+                  {/* Preview para imagens e vídeos */}
+                  {file.uri && (file.type.startsWith('image/') || file.type.startsWith('video/')) ? (
+                    <Image source={{ uri: file.uri }} style={styles.fileThumbnail} />
+                  ) : (
+                    <View style={styles.fileIconContainer}>
+                      {getFileIcon(file.type)}
                     </View>
-                    <Text style={styles.progressText}>{uploadProgress[file.id]}%</Text>
+                  )}
+                  <View style={styles.fileInfo}>
+                    <View style={styles.fileDetails}>
+                      <Text style={styles.fileName} numberOfLines={1}>
+                        {file.name}
+                      </Text>
+                      <Text style={styles.fileSize}>{formatFileSize(file.size)}</Text>
+                    </View>
                   </View>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => handleRemoveFile(file.id)}
-                    style={styles.removeButton}
-                  >
-                    <Ionicons name="close-circle" size={20} color={COLORS.states.error} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-          </View>
+                  {uploadProgress[file.id] !== undefined ? (
+                    <View style={styles.progressContainer}>
+                      <View style={styles.progressBarContainer}>
+                        <View
+                          style={[styles.progressBar, { width: `${uploadProgress[file.id]}%` }]}
+                        />
+                      </View>
+                      <Text style={styles.progressText}>{uploadProgress[file.id]}%</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={() => handleRemoveFile(file.id)}
+                      style={styles.removeButton}
+                    >
+                      <Ionicons name="close-circle" size={20} color={COLORS.states.error} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+            </View>
+            {/* Resumo do tamanho total */}
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryText}>
+                📊 Total: {formatFileSize(getTotalFileSize())} / {PLAN_LIMITS[(user?.plan?.type || 'FREE') as PlanType].maxTotalFileSize}MB
+              </Text>
+            </View>
+          </>
         )}
       </View>
 
@@ -424,6 +545,59 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 10,
     color: COLORS.text.secondary,
+  },
+  alertWarning: {
+    backgroundColor: COLORS.states.warning + '20',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.states.warning,
+  },
+  alertWarningTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.states.warning,
+    marginBottom: 4,
+  },
+  alertWarningText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  alertWarningListItem: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginLeft: 8,
+    marginTop: 4,
+  },
+  fileThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  fileIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.paper,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  summaryBox: {
+    backgroundColor: COLORS.states.info + '20',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: COLORS.states.info,
+  },
+  summaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.states.info,
   },
 });
 
