@@ -13,8 +13,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Picker } from '@react-native-picker/picker';
 import { BackButton } from '../../components/BackButton';
+import { Select, SelectItem } from '../../components/ui/Select';
 import { postsApi } from '../../services/api';
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../../components/CustomToast';
@@ -105,6 +105,14 @@ export function AnalyticsScreen() {
     setSortBy(value);
     setPage(1); // Reset para primeira página
   };
+
+  const sortOptions: SelectItem[] = [
+    { label: 'Mais Recentes', value: 'recent' },
+    { label: 'Mais Visualizados', value: 'most-viewed' },
+    { label: 'Mais Engajamento', value: 'most-engagement' },
+    { label: 'Mais Comentários', value: 'most-comments' },
+    { label: 'Mais Reações', value: 'most-reactions' },
+  ];
 
   const handlePromotePost = (postId: string) => {
     // TODO: Abrir modal de promoção
@@ -235,20 +243,12 @@ export function AnalyticsScreen() {
         <View style={styles.filtersContainer}>
           <Text style={styles.postsTitle}>Posts</Text>
           
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={sortBy}
-              onValueChange={(value) => handleSortChange(value as SortFilter)}
-              style={styles.picker}
-              dropdownIconColor={COLORS.text.secondary}
-            >
-              <Picker.Item label="Mais Recentes" value="recent" />
-              <Picker.Item label="Mais Visualizados" value="most-viewed" />
-              <Picker.Item label="Mais Engajamento" value="most-engagement" />
-              <Picker.Item label="Mais Comentários" value="most-comments" />
-              <Picker.Item label="Mais Reações" value="most-reactions" />
-            </Picker>
-          </View>
+          <Select
+            selectedValue={sortBy}
+            onValueChange={(value) => handleSortChange(value as SortFilter)}
+            items={sortOptions}
+            wrapperStyle={styles.selectWrapper}
+          />
         </View>
 
         {/* Lista de Posts */}
@@ -344,23 +344,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text.primary,
   },
-  pickerWrapper: {
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border.light,
-    overflow: 'hidden',
-    minWidth: 180,
-    height: 48,
-    justifyContent: 'center',
-  },
-  picker: {
-    color: COLORS.text.primary,
-    height: 48,
-    paddingVertical: 0,
-    marginVertical: 0,
-    textAlignVertical: 'center',
-    includeFontPadding: false,
+  selectWrapper: {
+    minWidth: 220,
   },
   postsList: {
     gap: 16,

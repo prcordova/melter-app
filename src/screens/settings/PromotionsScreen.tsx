@@ -14,10 +14,10 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BackButton } from '../../components/BackButton';
+import { Select, SelectItem } from '../../components/ui/Select';
 import { adsApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS } from '../../theme/colors';
@@ -120,6 +120,19 @@ export function PromotionsScreen() {
   // Modal de limpar histórico
   const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const [clearingHistory, setClearingHistory] = useState(false);
+
+  // Opções para os selects
+  const categoryFilterOptions: SelectItem[] = [
+    { label: 'Todas as categorias', value: 'ALL' },
+    ...FIXED_CATEGORIES.map((cat) => ({ label: cat.name, value: cat._id })),
+  ];
+
+  const statusFilterOptions: SelectItem[] = [
+    { label: 'Todos os status', value: 'ALL' },
+    { label: 'Ativo', value: 'ACTIVE' },
+    { label: 'Inativo', value: 'INACTIVE' },
+    { label: 'Pendente', value: 'PENDING' },
+  ];
 
   // Funções auxiliares
   const getCurrentDate = () => {
@@ -275,33 +288,19 @@ export function PromotionsScreen() {
               />
               
               <View style={styles.filterRow}>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    selectedValue={categoryFilter}
-                    onValueChange={setCategoryFilter}
-                    style={styles.picker}
-                    dropdownIconColor={COLORS.text.secondary}
-                  >
-                    <Picker.Item label="Todas as categorias" value="ALL" />
-                    {FIXED_CATEGORIES.map((category) => (
-                      <Picker.Item key={category._id} label={category.name} value={category._id} />
-                    ))}
-                  </Picker>
-                </View>
+                <Select
+                  selectedValue={categoryFilter}
+                  onValueChange={(value) => setCategoryFilter(String(value))}
+                  items={categoryFilterOptions}
+                  wrapperStyle={styles.selectWrapper}
+                />
                 
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    selectedValue={statusFilter}
-                    onValueChange={(value) => setStatusFilter(value as any)}
-                    style={styles.picker}
-                    dropdownIconColor={COLORS.text.secondary}
-                  >
-                    <Picker.Item label="Todos os status" value="ALL" />
-                    <Picker.Item label="Ativo" value="ACTIVE" />
-                    <Picker.Item label="Inativo" value="INACTIVE" />
-                    <Picker.Item label="Pendente" value="PENDING" />
-                  </Picker>
-                </View>
+                <Select
+                  selectedValue={statusFilter}
+                  onValueChange={(value) => setStatusFilter(value as 'ALL' | AdStatus | 'PENDING')}
+                  items={statusFilterOptions}
+                  wrapperStyle={styles.selectWrapper}
+                />
               </View>
               
               {(searchTerm || categoryFilter !== 'ALL' || statusFilter !== 'ALL' || dateFilter) && (
@@ -620,23 +619,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  pickerWrapper: {
+  selectWrapper: {
     flex: 1,
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border.light,
-    overflow: 'hidden',
-    height: 48,
-    justifyContent: 'center',
-  },
-  picker: {
-    color: COLORS.text.primary,
-    height: 48,
-    paddingVertical: 0,
-    marginVertical: 0,
-    textAlignVertical: 'center',
-    includeFontPadding: false,
   },
   clearFiltersButton: {
     alignSelf: 'flex-start',
