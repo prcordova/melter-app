@@ -10,6 +10,8 @@ import { TermsScreen } from '../screens/TermsScreen';
 import { MyShopScreen } from '../screens/MyShopScreen';
 import { PurchasesScreen } from '../screens/PurchasesScreen';
 import { SettingsScreenTemplate } from '../components/SettingsScreenTemplate';
+import { AnalyticsScreen } from '../screens/settings/AnalyticsScreen';
+import { PromotionsScreen } from '../screens/settings/PromotionsScreen';
 import { Text } from 'react-native';
 
 const Stack = createNativeStackNavigator();
@@ -38,21 +40,6 @@ function PrivacitySettingsScreen() {
   );
 }
 
-function AnalyticsSettingsScreen() {
-  return (
-    <SettingsScreenTemplate title="Análises" emoji="📊">
-      <Text>Estatísticas de perfil, engajamento, etc.</Text>
-    </SettingsScreenTemplate>
-  );
-}
-
-function PromotionsSettingsScreen() {
-  return (
-    <SettingsScreenTemplate title="Promoções" emoji="🎁">
-      <Text>Criar e gerenciar promoções</Text>
-    </SettingsScreenTemplate>
-  );
-}
 
 export function ProfileStackNavigator() {
   return (
@@ -72,8 +59,8 @@ export function ProfileStackNavigator() {
       <Stack.Screen name="PreferencesSettings" component={PreferencesSettingsScreen} />
       <Stack.Screen name="SecuritySettings" component={SecuritySettingsScreen} />
       <Stack.Screen name="PrivacitySettings" component={PrivacitySettingsScreen} />
-      <Stack.Screen name="AnalyticsSettings" component={AnalyticsSettingsScreen} />
-      <Stack.Screen name="PromotionsSettings" component={PromotionsSettingsScreen} />
+      <Stack.Screen name="AnalyticsSettings" component={AnalyticsScreen} />
+      <Stack.Screen name="PromotionsSettings" component={PromotionsScreen} />
       <Stack.Screen 
         name="MyShop" 
         component={MyShopScreen}
