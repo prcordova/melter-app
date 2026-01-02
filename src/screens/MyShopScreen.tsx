@@ -14,9 +14,13 @@ import { Header } from '../components/Header';
 import { COLORS } from '../theme/colors';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { shopApi, sellerVerificationApi, userApi } from '../services/api';
+import { shopApi, sellerVerificationApi, userApi, productsApi } from '../services/api';
 import { SellerVerificationStatusCard } from '../components/shop/SellerVerificationStatusCard';
 import { AppealModal } from '../components/shop/AppealModal';
+import { ProductCreationWizard } from '../components/shop/ProductCreationWizard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_CONFIG } from '../config/api.config';
+import axios from 'axios';
 
 type ShopVisibility = 'public' | 'preview' | 'friends' | 'followers';
 type ActiveTab = 'products' | 'analytics' | 'community' | 'plans';
@@ -61,6 +65,10 @@ export function MyShopScreen() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [showVerificationForm, setShowVerificationForm] = useState(false);
   const [showAppealModal, setShowAppealModal] = useState(false);
+  const [showCreateProductModal, setShowCreateProductModal] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
 
   // Extrair parâmetros da rota
   const username = route.params?.username || user?.username || '';
@@ -101,12 +109,41 @@ export function MyShopScreen() {
 
       if (response.success && response.data) {
         setShopSettings(response.data);
+        // Se a loja está aprovada, buscar produtos
+        if (response.data.sellerVerification?.status === 'approved') {
+          fetchProducts();
+        }
       } else {
         setShopSettings(null);
       }
     } catch (error) {
       console.error('[MyShopScreen] Erro ao carregar configurações:', error);
       setShopSettings(null);
+    }
+  };
+
+  // Buscar produtos da loja
+  const fetchProducts = async () => {
+    if (!isOwner) return; // Apenas dono pode ver seus produtos na aba de produtos
+    
+    try {
+      setLoadingProducts(true);
+      const response = await productsApi.getProducts({
+        username: username,
+        isActive: undefined, // Buscar todos (ativos e inativos)
+      });
+
+      if (response.success) {
+        const productsData = Array.isArray(response.data) ? response.data : [];
+        setProducts(productsData);
+      } else {
+        setProducts([]);
+      }
+    } catch (error) {
+      console.error('[MyShopScreen] Erro ao buscar produtos:', error);
+      setProducts([]);
+    } finally {
+      setLoadingProducts(false);
     }
   };
 
@@ -268,8 +305,8 @@ export function MyShopScreen() {
   }
 
   const sellerVerification = shopSettings?.sellerVerification;
-  const showTabs =
-    (isOwner && sellerVerification?.status === 'approved') || isAdmin;
+  const isShopApproved = sellerVerification?.status === 'approved';
+  const showTabs = (isOwner && isShopApproved) || isAdmin;
 
   return (
     <View style={styles.container}>
@@ -434,11 +471,76 @@ export function MyShopScreen() {
                   />
                 )}
 
-                {/* Conteúdo dos produtos será implementado aqui */}
-                <View style={styles.placeholderContent}>
-                  <Text style={styles.placeholderText}>Lista de Produtos</Text>
-                  <Text style={styles.placeholderSubtext}>Em desenvolvimento...</Text>
-                </View>
+                {/* Conteúdo quando loja está aprovada */}
+                {isOwner && isShopApproved && (
+                  <>
+                    {loadingProducts ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                        <Text style={styles.loadingText}>Carregando produtos...</Text>
+                      </View>
+                    ) : products.length === 0 ? (
+                      // Sem produtos - mostrar botão "Criar Primeiro Produto"
+                      <View style={styles.emptyProductsContainer}>
+                        <View style={styles.emptyProductsIcon}>
+                          <Text style={styles.emptyProductsEmoji}>📦</Text>
+                        </View>
+                        <Text style={styles.emptyProductsTitle}>
+                          Esta loja ainda não tem produtos
+                        </Text>
+                        <Text style={styles.emptyProductsText}>
+                          Comece criando seu primeiro produto!
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.createProductButton}
+                          onPress={() => {
+                            setEditingProduct(null);
+                            setShowCreateProductModal(true);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
+                          <Text style={styles.createProductButtonText}>Criar Primeiro Produto</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      // Há produtos - mostrar botão "Novo Produto" e lista
+                      <>
+                        <View style={styles.productsHeader}>
+                          <Text style={styles.productsCount}>
+                            {products.length} {products.length === 1 ? 'produto' : 'produtos'}
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.newProductButton}
+                            onPress={() => {
+                              setEditingProduct(null);
+                              setShowCreateProductModal(true);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
+                            <Text style={styles.newProductButtonText}>Novo Produto</Text>
+                          </TouchableOpacity>
+                        </View>
+                        {/* TODO: Lista de produtos será implementada aqui */}
+                        <View style={styles.placeholderContent}>
+                          <Text style={styles.placeholderText}>Lista de Produtos</Text>
+                          <Text style={styles.placeholderSubtext}>
+                            {products.length} produto(s) encontrado(s)
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* Placeholder quando não está aprovado ou não é dono */}
+                {(!isOwner || !isShopApproved) && (
+                  <View style={styles.placeholderContent}>
+                    <Text style={styles.placeholderText}>Lista de Produtos</Text>
+                    <Text style={styles.placeholderSubtext}>Em desenvolvimento...</Text>
+                  </View>
+                )}
               </View>
             )}
 
@@ -496,6 +598,104 @@ export function MyShopScreen() {
 
       {/* Modal de Formulário de Verificação (será implementado) */}
       {/* TODO: Implementar SellerVerificationFormModal */}
+
+      {/* Wizard de Criação de Produto */}
+      <ProductCreationWizard
+        visible={showCreateProductModal}
+        onClose={() => {
+          setShowCreateProductModal(false);
+          setEditingProduct(null);
+        }}
+        onSave={async (wizardData) => {
+          try {
+            // Preparar dados para o backend
+            const productData = {
+              ...wizardData,
+              type: 'DIGITAL_PACK',
+              subscriptionPlanId:
+                wizardData.paymentMode === 'ASSINATURA' ? wizardData.subscriptionPlanId : undefined,
+              subscriptionScope: wizardData.paymentMode === 'ASSINATURA' ? 'LOJA' : undefined,
+              price: wizardData.paymentMode === 'ASSINATURA' ? 0 : wizardData.price,
+              digital: {
+                downloadUrl:
+                  wizardData.links && wizardData.links.length > 0 ? wizardData.links[0].url : '',
+                fileName:
+                  wizardData.links && wizardData.links.length > 0
+                    ? wizardData.links[0].title
+                    : '',
+                allowDownload: wizardData.allowDownload,
+                fileSize: 0,
+                files: wizardData.files || [],
+              },
+            };
+
+            // Se há arquivos, criar produto primeiro para obter ID
+            let productId = editingProduct?._id;
+
+            if (wizardData.files && wizardData.files.length > 0 && !productId) {
+              // Criar produto temporário
+              const tempPayload = {
+                ...productData,
+                digital: {
+                  ...productData.digital,
+                  files: [],
+                },
+              };
+
+              const createResponse = await productsApi.createProduct(tempPayload);
+              if (createResponse.success && createResponse.data) {
+                productId = createResponse.data._id;
+              } else {
+                throw new Error('Erro ao criar produto');
+              }
+
+              // Upload dos arquivos
+              const token = await AsyncStorage.getItem('token');
+              for (let i = 0; i < wizardData.files.length; i++) {
+                const fileData = wizardData.files[i];
+                if (fileData.file || fileData.uri) {
+                  const formData = new FormData();
+                  formData.append('file', {
+                    uri: fileData.uri || fileData.file.uri,
+                    type: fileData.type || fileData.file.mimeType || 'application/octet-stream',
+                    name: fileData.name || fileData.file.fileName || 'arquivo',
+                  } as any);
+                  formData.append('productId', productId);
+                  formData.append('order', i.toString());
+
+                  await axios.post(`${API_CONFIG.BASE_URL}/api/products/${productId}/files`, formData, {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      'Content-Type': 'multipart/form-data',
+                    },
+                    timeout: 60000,
+                    maxContentLength: Infinity,
+                    maxBodyLength: Infinity,
+                  });
+                }
+              }
+            } else if (!productId) {
+              // Criar produto sem arquivos
+              await productsApi.createProduct(productData);
+            } else {
+              // Editar produto existente
+              await productsApi.updateProduct(productId, productData);
+            }
+
+            showToast.success('Sucesso', 'Produto criado com sucesso!');
+            fetchProducts();
+            setShowCreateProductModal(false);
+            setEditingProduct(null);
+          } catch (error: any) {
+            console.error('[MyShopScreen] Erro ao salvar produto:', error);
+            showToast.error(
+              'Erro',
+              error.response?.data?.message || 'Erro ao salvar produto'
+            );
+          }
+        }}
+        product={editingProduct}
+      />
     </View>
   );
 }
@@ -617,6 +817,76 @@ const styles = StyleSheet.create({
   },
   productsContent: {
     gap: 16,
+  },
+  emptyProductsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyProductsIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.background.tertiary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  emptyProductsEmoji: {
+    fontSize: 40,
+  },
+  emptyProductsTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyProductsText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  createProductButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.secondary.main,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  createProductButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  productsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  productsCount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  newProductButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.secondary.main,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  newProductButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   placeholderContent: {
     paddingVertical: 60,

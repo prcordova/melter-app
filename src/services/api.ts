@@ -847,6 +847,29 @@ export const productsApi = {
     }>>(`/api/products/${productId}/purchase-status`);
     return response.data;
   },
+  uploadFile: async (productId: string, fileData: FormData, onUploadProgress?: (progress: number) => void) => {
+    const token = await AsyncStorage.getItem('token');
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/products/${productId}/files`, fileData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total && onUploadProgress) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onUploadProgress(progress);
+        }
+      },
+    });
+    return response.data;
+  },
+  deleteFile: async (productId: string, fileId: string) => {
+    const response = await api.delete<ApiResponse<any>>(`/api/products/${productId}/files/${fileId}`);
+    return response.data;
+  },
 };
 
 // API de Categorias
