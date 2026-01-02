@@ -22,9 +22,10 @@ import { formatDistanceToNow, format, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { messageApi, userApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { getAvatarUrl, getUserInitials } from '../utils/image';
+import { getAvatarUrl, getUserInitials, getImageUrl } from '../utils/image';
 import { COLORS } from '../theme/colors';
 import { showToast } from '../components/CustomToast';
+import { StoryReplyPreview } from '../components/stories/StoryReplyPreview';
 
 interface Message {
   _id: string;
@@ -37,6 +38,11 @@ interface Message {
   imageUrl?: string;
   documentUrl?: string;
   documentName?: string;
+  storyReply?: {
+    storyId: string;
+    mediaUrl: string;
+    mediaType: 'image' | 'video' | 'gif';
+  } | null;
 }
 
 type ChatRouteParams = {
@@ -343,14 +349,42 @@ export function ChatScreen() {
                 isSentByMe ? styles.myMessageBubble : styles.otherMessageBubble,
               ]}
             >
-              <Text
-                style={[
-                  styles.messageText,
-                  isSentByMe ? styles.myMessageText : styles.otherMessageText,
-                ]}
-              >
-                {item.content || ''}
-              </Text>
+              {/* Story Reply Preview */}
+              {item.storyReply && (
+                <StoryReplyPreview
+                  storyId={item.storyReply.storyId}
+                  mediaUrl={item.storyReply.mediaUrl}
+                  mediaType={item.storyReply.mediaType}
+                  compact={true}
+                  isSentByMe={isSentByMe}
+                  onPress={() => {
+                    // TODO: Navegar para o story quando clicado
+                    showToast.info('Story', 'Abrindo story...');
+                  }}
+                />
+              )}
+
+              {/* Imagem (se houver) */}
+              {item.type === 'image' && item.imageUrl && (
+                <Image
+                  source={{ uri: getImageUrl(item.imageUrl) }}
+                  style={styles.messageImage}
+                  resizeMode="cover"
+                />
+              )}
+
+              {/* Conteúdo da mensagem */}
+              {item.content && (
+                <Text
+                  style={[
+                    styles.messageText,
+                    isSentByMe ? styles.myMessageText : styles.otherMessageText,
+                  ]}
+                >
+                  {item.content}
+                </Text>
+              )}
+
               <View style={styles.messageFooter}>
                 <Text
                   style={[
@@ -675,6 +709,12 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.border.light,
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 8,
   },
   messageText: {
     fontSize: 15,

@@ -75,6 +75,17 @@ export interface Story {
     type: 'image' | 'video' | 'gif';
     mediaUrl: string;
     text?: string;
+    elements?: Array<{
+      type: 'text' | 'music';
+      content: string;
+      x: number;
+      y: number;
+      fontSize?: number;
+      color?: string;
+      backgroundColor?: string;
+      strokeColor?: string;
+      fontWeight?: 'normal' | 'bold';
+    }> | null;
   };
   duration: number;
   views: Array<{
@@ -84,6 +95,15 @@ export interface Story {
       avatar?: string;
     };
     viewedAt: string;
+  }>;
+  reactions?: Array<{
+    userId: {
+      _id: string;
+      username: string;
+      avatar?: string;
+    };
+    type: ReactionType;
+    createdAt: string;
   }>;
   createdAt: string;
 }

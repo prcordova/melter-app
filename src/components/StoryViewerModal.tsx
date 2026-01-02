@@ -17,11 +17,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StoriesGroup, Story } from '../types/feed';
-import { storiesApi } from '../services/api';
+import { storiesApi, userApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { COLORS } from '../theme/colors';
 import { showToast } from './CustomToast';
+import { StoryReactionButton } from './stories/StoryReactionButton';
+import { StoryMessageInput } from './stories/StoryMessageInput';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 segundos por story
@@ -49,6 +51,8 @@ export function StoryViewerModal({
   const [loading, setLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [showViewers, setShowViewers] = useState(false);
+  const [isFriend, setIsFriend] = useState(false);
+  const [loadingFriendship, setLoadingFriendship] = useState(false);
   
   const progress = useRef(new Animated.Value(0)).current;
   const currentGroup = storiesGroups[groupIndex];
@@ -115,6 +119,33 @@ export function StoryViewerModal({
     }
   }, [currentStory?._id, visible, loading]);
 
+  // Verificar status de amizade
+  useEffect(() => {
+    const checkFriendship = async () => {
+      if (!currentStory || !currentUser || currentStory.userId._id === currentUser.id) {
+        setIsFriend(false);
+        return;
+      }
+
+      setLoadingFriendship(true);
+      try {
+        const response = await userApi.checkFriendshipStatus(currentStory.userId._id);
+        if (response.success && response.data) {
+          setIsFriend(response.data.status === 'FRIENDLY' || response.data.status === 'FRIENDS');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar amizade:', error);
+        setIsFriend(false);
+      } finally {
+        setLoadingFriendship(false);
+      }
+    };
+
+    if (visible && currentStory) {
+      checkFriendship();
+    }
+  }, [visible, currentStory?._id, currentUser?.id]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -163,51 +194,54 @@ export function StoryViewerModal({
         </View>
 
         {/* Overlay do Story */}
-        <View style={[styles.overlay, { paddingTop: insets.top + 8 }]}>
-          {/* Progress Bars */}
-          <View style={styles.progressContainer}>
-            {currentGroup.stories.map((_, index) => (
-              <View key={index} style={styles.progressBarBg}>
-                <Animated.View
-                  style={[
-                    styles.progressBarFill,
-                    {
-                      width:
-                        index < storyIndex
-                          ? '100%'
-                          : index === storyIndex
-                          ? progress.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: ['0%', '100%'],
-                            })
-                          : '0%',
-                    },
-                  ]}
-                />
-              </View>
-            ))}
-          </View>
-
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.userInfo}>
-              <Image
-                source={{ uri: getAvatarUrl(currentGroup.user.avatar) }}
-                style={styles.avatar}
-              />
-              <View>
-                <Text style={styles.username}>{currentGroup.user.username}</Text>
-                <Text style={styles.time}>
-                  {formatDistanceToNow(new Date(currentStory.createdAt), {
-                    addSuffix: true,
-                    locale: ptBR,
-                  })}
-                </Text>
-              </View>
+        <View style={styles.overlay}>
+          {/* Top Section: Progress Bars + Header */}
+          <View style={[styles.topSection, { paddingTop: insets.top + 8 }]}>
+            {/* Progress Bars */}
+            <View style={styles.progressContainer}>
+              {currentGroup.stories.map((_, index) => (
+                <View key={index} style={styles.progressBarBg}>
+                  <Animated.View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        width:
+                          index < storyIndex
+                            ? '100%'
+                            : index === storyIndex
+                            ? progress.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0%', '100%'],
+                              })
+                            : '0%',
+                      },
+                    ]}
+                  />
+                </View>
+              ))}
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={30} color="#ffffff" />
-            </TouchableOpacity>
+
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.userInfo}>
+                <Image
+                  source={{ uri: getAvatarUrl(currentGroup.user.avatar) }}
+                  style={styles.avatar}
+                />
+                <View>
+                  <Text style={styles.username}>{currentGroup.user.username}</Text>
+                  <Text style={styles.time}>
+                    {formatDistanceToNow(new Date(currentStory.createdAt), {
+                      addSuffix: true,
+                      locale: ptBR,
+                    })}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={30} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Story Text (se houver) */}
@@ -230,22 +264,61 @@ export function StoryViewerModal({
                 </Text>
               </TouchableOpacity>
             ) : (
-              <View style={styles.viewerActions}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="heart-outline" size={28} color="#ffffff" />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={() => {
-                    Alert.alert('Denunciar Story', 'Deseja denunciar este conteúdo?', [
-                      { text: 'Cancelar', style: 'cancel' },
-                      { text: 'Denunciar', style: 'destructive', onPress: () => storiesApi.reportStory(currentStory._id, { category: 'other', description: 'Reported from mobile' }) }
-                    ]);
-                  }}
-                >
-                  <Ionicons name="flag-outline" size={24} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
+              <>
+                {/* Input de mensagem e reações (apenas para amigos) */}
+                {!loadingFriendship && isFriend && (
+                  <View style={styles.friendActions}>
+                    <View style={styles.messageInputWrapper}>
+                      <StoryMessageInput
+                        storyId={currentStory._id}
+                        storyMediaUrl={currentStory.content.mediaUrl}
+                        storyMediaType={currentStory.content.type}
+                        recipientId={currentStory.userId._id}
+                        currentUserId={currentUser?.id}
+                        onMessageSent={() => {
+                          showToast.success('Sucesso', 'Mensagem enviada!');
+                          setIsPaused(true); // Pausar story após enviar
+                        }}
+                        onFocus={() => setIsPaused(true)}
+                        onBlur={() => setIsPaused(false)}
+                      />
+                    </View>
+                    <StoryReactionButton
+                      storyId={currentStory._id}
+                      currentUserId={currentUser?.id}
+                      isFriend={true}
+                      onReactionAdded={() => {
+                        // Atualizar visualizações se necessário
+                      }}
+                    />
+                  </View>
+                )}
+
+                {/* Reações centralizadas (se não for amigo) */}
+                {!loadingFriendship && !isFriend && (
+                  <View style={styles.nonFriendActions}>
+                    <StoryReactionButton
+                      storyId={currentStory._id}
+                      currentUserId={currentUser?.id}
+                      isFriend={false}
+                      onReactionAdded={() => {
+                        // Atualizar visualizações se necessário
+                      }}
+                    />
+                    <TouchableOpacity 
+                      style={styles.reportButton}
+                      onPress={() => {
+                        Alert.alert('Denunciar Story', 'Deseja denunciar este conteúdo?', [
+                          { text: 'Cancelar', style: 'cancel' },
+                          { text: 'Denunciar', style: 'destructive', onPress: () => storiesApi.reportStory(currentStory._id, { category: 'other', description: 'Reported from mobile' }) }
+                        ]);
+                      }}
+                    >
+                      <Ionicons name="flag-outline" size={24} color="#ffffff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
             )}
           </View>
         </View>
@@ -313,6 +386,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
   },
+  topSection: {
+    width: '100%',
+  },
   progressContainer: {
     flexDirection: 'row',
     paddingHorizontal: 10,
@@ -334,7 +410,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginTop: 12,
+    marginTop: 8,
   },
   userInfo: {
     flexDirection: 'row',
@@ -393,6 +469,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     paddingHorizontal: 16,
     paddingVertical: 8,
+    borderRadius: 20,
+  },
+  friendActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    maxWidth: 400,
+  },
+  messageInputWrapper: {
+    flex: 1,
+  },
+  nonFriendActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  reportButton: {
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.3)',
     borderRadius: 20,
   },
   viewerActions: {

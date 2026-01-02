@@ -7,6 +7,7 @@ import {
   Image,
   StyleSheet,
 } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { StoriesGroup } from '../types/feed';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
@@ -47,6 +48,8 @@ export function StoriesCarousel({
 
     const isViewed = isGroupViewed(group);
     const isCurrentUser = group.user._id === user?.id;
+    const firstStory = group.stories?.[0];
+    const storyImageUrl = firstStory?.content?.mediaUrl;
 
     return (
       <TouchableOpacity
@@ -54,29 +57,52 @@ export function StoriesCarousel({
         style={styles.storyItem}
         onPress={() => onStoryClick(group)}
       >
-        <View
-          style={[
-            styles.storyBorder,
-            isViewed ? styles.storyBorderViewed : styles.storyBorderNew,
-            isCurrentUser && styles.storyBorderCurrent,
-          ]}
-        >
-          {getAvatarUrl(group.user.avatar) ? (
+        <View style={styles.storyCard}>
+          {/* Preview do story (imagem/vídeo) */}
+          {storyImageUrl ? (
             <Image
-              source={{ uri: getAvatarUrl(group.user.avatar) }}
-              style={styles.storyAvatar}
+              source={{ uri: storyImageUrl }}
+              style={styles.storyPreview}
+              resizeMode="cover"
             />
           ) : (
-            <View style={[styles.storyAvatar, styles.placeholderAvatar]}>
+            <View style={[styles.storyPreview, styles.storyPreviewPlaceholder]}>
               <Text style={styles.placeholderText}>
-                {getUserInitials(group.user.username)}
+                {getUserInitials(group.user.username || 'U')}
               </Text>
             </View>
           )}
+
+          {/* Overlay escuro no topo */}
+          <View style={styles.storyOverlay} />
+
+          {/* Avatar do usuário sobreposto */}
+          <View style={styles.avatarContainer}>
+            {getAvatarUrl(group.user.avatar) ? (
+              <Image
+                source={{ uri: getAvatarUrl(group.user.avatar) }}
+                style={[
+                  styles.storyAvatar,
+                  isViewed && styles.storyAvatarViewed,
+                  isCurrentUser && styles.storyAvatarCurrent,
+                ]}
+              />
+            ) : (
+              <View style={[styles.storyAvatar, styles.placeholderAvatar, isViewed && styles.storyAvatarViewed, isCurrentUser && styles.storyAvatarCurrent]}>
+                <Text style={styles.avatarPlaceholderText}>
+                  {getUserInitials(group.user.username || 'U')}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Nome do usuário no bottom */}
+          <View style={styles.usernameContainer}>
+            <Text style={styles.storyUsername} numberOfLines={1}>
+              {isCurrentUser ? 'Você' : group.user.username || 'Usuário'}
+            </Text>
+          </View>
         </View>
-        <Text style={styles.storyUsername} numberOfLines={1}>
-          {isCurrentUser ? 'Você' : group.user.username}
-        </Text>
       </TouchableOpacity>
     );
   };
@@ -87,28 +113,29 @@ export function StoriesCarousel({
         style={styles.storyItem}
         onPress={onCreateStory}
       >
-        <View style={[styles.storyBorder, styles.createStoryBorder]}>
-          <View style={styles.createStoryAvatar}>
-            {getAvatarUrl(user?.avatar) ? (
-              <Image
-                source={{ uri: getAvatarUrl(user?.avatar) }}
-                style={styles.storyAvatar}
-              />
-            ) : (
-              <View style={[styles.storyAvatar, styles.placeholderAvatar]}>
-                <Text style={styles.placeholderText}>
-                  {getUserInitials(user?.username)}
-                </Text>
-              </View>
-            )}
+        <View style={[styles.storyCard, styles.createStoryCard]}>
+          {getAvatarUrl(user?.avatar) ? (
+            <Image
+              source={{ uri: getAvatarUrl(user?.avatar) }}
+              style={styles.storyPreview}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.storyPreview, styles.storyPreviewPlaceholder]}>
+              <Text style={styles.placeholderText}>
+                {getUserInitials(user?.username || 'U')}
+              </Text>
+            </View>
+          )}
+          <View style={styles.createStoryOverlay}>
             <View style={styles.addIconContainer}>
-              <Text style={styles.addIcon}>+</Text>
+              <Ionicons name="add" size={24} color="#ffffff" />
+            </View>
+            <View style={styles.usernameContainer}>
+              <Text style={styles.storyUsername}>Criar Story</Text>
             </View>
           </View>
         </View>
-        <Text style={styles.storyUsername} numberOfLines={1}>
-          Criar Story
-        </Text>
       </TouchableOpacity>
     );
   };
@@ -144,41 +171,47 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   storyItem: {
-    alignItems: 'center',
-    width: 70,
+    width: 100, // Largura do card vertical
   },
-  storyBorder: {
-    width: 66,
-    height: 66,
-    borderRadius: 33,
-    padding: 2,
-    marginBottom: 4,
-  },
-  storyBorderNew: {
-    borderWidth: 2,
-    borderColor: '#d946ef',
-  },
-  storyBorderViewed: {
-    borderWidth: 2,
-    borderColor: '#cbd5e1',
-  },
-  storyBorderCurrent: {
-    borderWidth: 2,
-    borderColor: '#8b5cf6',
-  },
-  createStoryBorder: {
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    borderStyle: 'dashed',
-  },
-  storyAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  storyCard: {
+    width: 100,
+    height: 160, // Altura maior que largura (retangular vertical)
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
     backgroundColor: '#f1f5f9',
   },
-  createStoryAvatar: {
-    position: 'relative',
+  storyPreview: {
+    width: '100%',
+    height: '100%',
+  },
+  storyPreviewPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#d946ef',
+  },
+  storyOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  avatarContainer: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+  },
+  storyAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    backgroundColor: '#f1f5f9',
+  },
+  storyAvatarViewed: {
+    borderColor: '#cbd5e1',
+  },
+  storyAvatarCurrent: {
+    borderColor: '#8b5cf6',
   },
   placeholderAvatar: {
     justifyContent: 'center',
@@ -187,33 +220,47 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: '#ffffff',
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
   },
-  addIconContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#d946ef',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  addIcon: {
+  avatarPlaceholderText: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: 'bold',
-    marginTop: -2,
+  },
+  usernameContainer: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
   },
   storyUsername: {
     fontSize: 12,
-    color: '#64748b',
-    textAlign: 'center',
-    width: '100%',
+    color: '#ffffff',
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  createStoryCard: {
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderStyle: 'dashed',
+  },
+  createStoryOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  addIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#d946ef',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
 });
 

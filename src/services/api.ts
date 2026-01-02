@@ -198,6 +198,10 @@ export const userApi = {
     const response = await api.get<ApiResponse<any>>(`/api/friendships/friends?${query.toString()}`);
     return response.data;
   },
+  checkFriendshipStatus: async (userId: string) => {
+    const response = await api.get<ApiResponse<any>>(`/api/friendships/status/${userId}`);
+    return response.data;
+  },
   followUser: async (username: string) => {
     const response = await api.post<ApiResponse<any>>(`/api/users/${username}/follow`);
     return response.data;
@@ -353,11 +357,29 @@ export const messageApi = {
     return response.data;
   },
 
-  sendMessage: async (data: { recipientId: string; content: string; type?: 'text' | 'image' | 'document' }) => {
+  sendMessage: async (data: { 
+    recipientId: string; 
+    content: string; 
+    type?: 'text' | 'image' | 'document';
+    imageUrl?: string | null;
+    documentUrl?: string | null;
+    documentName?: string | null;
+    documentSize?: number | null;
+    storyReply?: {
+      storyId: string;
+      mediaUrl: string;
+      mediaType: 'image' | 'video' | 'gif';
+    } | null;
+  }) => {
     const response = await api.post<ApiResponse<any>>('/api/messages', {
       recipientId: data.recipientId,
       content: data.content,
       type: data.type || 'text',
+      imageUrl: data.imageUrl || null,
+      documentUrl: data.documentUrl || null,
+      documentName: data.documentName || null,
+      documentSize: data.documentSize || null,
+      storyReply: data.storyReply || null,
     });
     return response.data;
   },
@@ -392,6 +414,12 @@ export const storiesApi = {
       ? `/api/stories?userId=${userId}`
       : '/api/stories'; // Se não passar userId, retorna stories do usuário atual
     const response = await api.get<ApiResponse<any>>(url);
+    return response.data;
+  },
+
+  // Buscar um story específico por ID
+  getStory: async (storyId: string) => {
+    const response = await api.get<ApiResponse<any>>(`/api/stories/${storyId}`);
     return response.data;
   },
 
@@ -463,6 +491,20 @@ export const storiesApi = {
       reason: data.category || 'OTHER',
       description: data.description || 'Denúncia de story',
     });
+    return response.data;
+  },
+
+  // Reagir ao story
+  reactToStory: async (storyId: string, reactionType: string) => {
+    const response = await api.post<ApiResponse<any>>(`/api/stories/${storyId}/reactions`, {
+      type: reactionType,
+    });
+    return response.data;
+  },
+
+  // Buscar reações do story
+  getStoryReactions: async (storyId: string) => {
+    const response = await api.get<ApiResponse<any>>(`/api/stories/${storyId}/reactions`);
     return response.data;
   },
 };
