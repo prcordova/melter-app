@@ -21,21 +21,30 @@ interface Product {
   title: string;
   description: string;
   price: number;
-  type: 'DIGITAL_PRODUCT' | 'COURSE' | 'SERVICE' | 'PHYSICAL_PRODUCT';
-  imageUrl?: string;
-  sellerId: {
+  type: 'DIGITAL_PACK' | 'DIGITAL_PRODUCT' | 'COURSE' | 'SERVICE' | 'PHYSICAL_PRODUCT';
+  coverImage?: string | null;
+  userId: {
     _id: string;
     username: string;
     avatar?: string;
   };
   categoryId?: {
-    _id: string;
+    _id?: string;
     name: string;
+    color?: string;
     emoji?: string;
-  };
+  } | string;
   salesCount?: number;
   isActive?: boolean;
   isAdultContent?: boolean;
+  paymentMode?: 'UNICO' | 'ASSINATURA';
+  subscriptionPlan?: {
+    _id: string;
+    name: string;
+    price: number;
+    intervalDays: number;
+    isActive: boolean;
+  };
 }
 
 type SortByType = 'createdAt' | 'price' | 'salesCount';
@@ -86,7 +95,18 @@ export function ShopsSearchScreen() {
       });
 
       if (response.success) {
-        const newProducts = response.data || [];
+        // A API pode retornar { data: [...], pagination: {...} } ou apenas [...]
+        const productsData = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data?.data || []);
+        
+        const newProducts = productsData.map((p: any) => ({
+          ...p,
+          // Garantir que categoryId seja um objeto se for string
+          categoryId: typeof p.categoryId === 'string' 
+            ? { name: p.categoryId } 
+            : p.categoryId,
+        }));
 
         if (pageNum === 1) {
           setProducts(newProducts);
@@ -101,7 +121,13 @@ export function ShopsSearchScreen() {
           });
         }
 
-        setHasMore(newProducts.length >= 20);
+        // Verificar se há mais produtos baseado na paginação ou no tamanho da resposta
+        const pagination = response.data?.pagination;
+        if (pagination) {
+          setHasMore(pageNum < pagination.pages);
+        } else {
+          setHasMore(newProducts.length >= 20);
+        }
         setPage(pageNum);
       }
     } catch (error) {

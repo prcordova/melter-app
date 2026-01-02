@@ -100,6 +100,10 @@ export function ProfileScreen() {
       (navigation as any).navigate('AppearanceSettings');
     } else if (screen === 'wallet') {
       (navigation as any).navigate('WalletSettings');
+    } else if (screen === 'shop') {
+      if (user?.username) {
+        (navigation as any).navigate('MyShop', { username: user.username });
+      }
     } else {
       showToast.info('Em breve', `Tela de ${screen} será implementada`);
     }

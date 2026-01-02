@@ -7,6 +7,7 @@ import { AppearanceSettingsScreen } from '../screens/settings/AppearanceSettings
 import { WalletSettingsScreen } from '../screens/settings/WalletSettingsScreen';
 import { PlansScreen } from '../screens/PlansScreen';
 import { TermsScreen } from '../screens/TermsScreen';
+import { MyShopScreen } from '../screens/MyShopScreen';
 import { SettingsScreenTemplate } from '../components/SettingsScreenTemplate';
 import { Text } from 'react-native';
 
@@ -72,6 +73,13 @@ export function ProfileStackNavigator() {
       <Stack.Screen name="PrivacitySettings" component={PrivacitySettingsScreen} />
       <Stack.Screen name="AnalyticsSettings" component={AnalyticsSettingsScreen} />
       <Stack.Screen name="PromotionsSettings" component={PromotionsSettingsScreen} />
+      <Stack.Screen 
+        name="MyShop" 
+        component={MyShopScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack.Navigator>
   );
 }

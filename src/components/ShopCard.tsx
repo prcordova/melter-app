@@ -15,20 +15,30 @@ interface Product {
   title: string;
   description: string;
   price: number;
-  type: 'DIGITAL_PRODUCT' | 'COURSE' | 'SERVICE' | 'PHYSICAL_PRODUCT';
-  imageUrl?: string;
-  sellerId: {
+  type: 'DIGITAL_PACK' | 'DIGITAL_PRODUCT' | 'COURSE' | 'SERVICE' | 'PHYSICAL_PRODUCT';
+  coverImage?: string | null;
+  userId: {
     _id: string;
     username: string;
     avatar?: string;
   };
   categoryId?: {
+    _id?: string;
     name: string;
+    color?: string;
     emoji?: string;
-  };
+  } | string;
   salesCount?: number;
   isActive?: boolean;
   isAdultContent?: boolean;
+  paymentMode?: 'UNICO' | 'ASSINATURA';
+  subscriptionPlan?: {
+    _id: string;
+    name: string;
+    price: number;
+    intervalDays: number;
+    isActive: boolean;
+  };
 }
 
 interface ShopCardProps {
@@ -37,6 +47,7 @@ interface ShopCardProps {
 }
 
 const PRODUCT_TYPE_LABELS: Record<string, string> = {
+  DIGITAL_PACK: 'Pacote Digital',
   DIGITAL_PRODUCT: 'Produto Digital',
   COURSE: 'Curso',
   SERVICE: 'Serviço',
@@ -44,6 +55,7 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
 };
 
 const PRODUCT_TYPE_ICONS: Record<string, string> = {
+  DIGITAL_PACK: 'cube-outline',
   DIGITAL_PRODUCT: 'cloud-download-outline',
   COURSE: 'school-outline',
   SERVICE: 'hammer-outline',
@@ -51,9 +63,14 @@ const PRODUCT_TYPE_ICONS: Record<string, string> = {
 };
 
 export function ShopCard({ product, onPress }: ShopCardProps) {
-  const imageSource = product.imageUrl
-    ? { uri: getImageUrl(product.imageUrl) }
+  const imageSource = product.coverImage
+    ? { uri: getImageUrl(product.coverImage) }
     : null;
+  
+  // Normalizar categoryId (pode ser string ou objeto)
+  const category = typeof product.categoryId === 'string' 
+    ? { name: product.categoryId } 
+    : product.categoryId;
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -116,19 +133,19 @@ export function ShopCard({ product, onPress }: ShopCardProps) {
         )}
 
         {/* Categoria */}
-        {product.categoryId && (
+        {category && (
           <View style={styles.category}>
-            {product.categoryId.emoji && (
-              <Text style={styles.categoryEmoji}>{product.categoryId.emoji}</Text>
+            {category.emoji && (
+              <Text style={styles.categoryEmoji}>{category.emoji}</Text>
             )}
-            <Text style={styles.categoryText}>{product.categoryId.name}</Text>
+            <Text style={styles.categoryText}>{category.name}</Text>
           </View>
         )}
 
         {/* Vendedor */}
         <View style={styles.seller}>
           <Ionicons name="person-outline" size={14} color={COLORS.text.secondary} />
-          <Text style={styles.sellerText}>@{product.sellerId.username}</Text>
+          <Text style={styles.sellerText}>@{product.userId.username}</Text>
         </View>
 
         {/* Footer */}

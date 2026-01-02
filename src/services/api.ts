@@ -214,6 +214,10 @@ export const userApi = {
     const response = await api.get<ApiResponse<any>>(`/api/users/${username}`);
     return response.data;
   },
+  getFollowers: async (username: string) => {
+    const response = await api.get<ApiResponse<any[]>>(`/api/users/${username}/followers`);
+    return response.data;
+  },
   blockUser: async (username: string, reason?: string) => {
     const response = await api.post<ApiResponse<any>>('/api/blocks', { targetUsername: username, reason });
     return response.data;
@@ -708,6 +712,231 @@ export const walletApi = {
         withdrawalFee: number;
       };
     }>>('/api/public/fees');
+    return response.data;
+  },
+};
+
+// API de Lojas (Shops)
+export const shopsApi = {
+  getProducts: async (params: {
+    page?: number;
+    limit?: number;
+    categoryId?: string;
+    search?: string;
+    sortBy?: 'createdAt' | 'price' | 'salesCount';
+    sortOrder?: 'asc' | 'desc';
+    showAdultContent?: boolean;
+    sellerUsername?: string;
+    onlyPurchased?: boolean;
+  }) => {
+    const queryParams = new URLSearchParams();
+    
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.categoryId && params.categoryId !== 'all') {
+      queryParams.append('categoryId', params.categoryId);
+    }
+    if (params.search && params.search.trim()) {
+      queryParams.append('search', params.search.trim());
+    }
+    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+    if (params.showAdultContent !== undefined) {
+      queryParams.append('showAdultContent', String(params.showAdultContent));
+    }
+    if (params.sellerUsername && params.sellerUsername !== 'all') {
+      queryParams.append('sellerUsername', params.sellerUsername);
+    }
+    if (params.onlyPurchased) {
+      queryParams.append('onlyPurchased', 'true');
+    }
+
+    const response = await api.get<ApiResponse<any>>(`/api/shops/products?${queryParams.toString()}`);
+    return response.data;
+  },
+};
+
+// API de Configurações da Loja
+export const shopApi = {
+  getSettings: async () => {
+    const response = await api.get<ApiResponse<{
+      isEnabled: boolean;
+      visibility: 'public' | 'preview' | 'friends' | 'followers';
+      saleNotifications: boolean;
+      sellerVerification?: any;
+    }>>('/api/users/shop/settings');
+    return response.data;
+  },
+  updateSettings: async (data: {
+    isEnabled?: boolean;
+    visibility?: 'public' | 'preview' | 'friends' | 'followers';
+    saleNotifications?: boolean;
+  }) => {
+    const response = await api.put<ApiResponse<any>>('/api/users/shop/settings', data);
+    return response.data;
+  },
+  deleteShop: async () => {
+    const response = await api.delete<ApiResponse<any>>('/api/users/shop/settings');
+    return response.data;
+  },
+};
+
+// API de Verificação de Vendedor
+export const sellerVerificationApi = {
+  getVerification: async () => {
+    const response = await api.get<ApiResponse<any>>('/api/users/seller-verification');
+    return response.data;
+  },
+  createVerification: async (data: any) => {
+    const response = await api.post<ApiResponse<any>>('/api/users/seller-verification', data);
+    return response.data;
+  },
+  updateVerification: async (data: any) => {
+    const response = await api.put<ApiResponse<any>>('/api/users/seller-verification', data);
+    return response.data;
+  },
+  submitAppeal: async (appealReason: string) => {
+    const response = await api.post<ApiResponse<any>>('/api/users/seller-verification/appeal', {
+      appealReason,
+    });
+    return response.data;
+  },
+};
+
+// API de Produtos
+export const productsApi = {
+  getProducts: async (params?: {
+    username?: string;
+    isActive?: boolean;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.username) queryParams.append('username', params.username);
+    if (params?.isActive !== undefined) queryParams.append('isActive', String(params.isActive));
+    
+    const url = `/api/products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await api.get<ApiResponse<any[]>>(url);
+    return response.data;
+  },
+  getProduct: async (productId: string) => {
+    const response = await api.get<ApiResponse<any>>(`/api/products/${productId}`);
+    return response.data;
+  },
+  createProduct: async (data: any) => {
+    const response = await api.post<ApiResponse<any>>('/api/products', data);
+    return response.data;
+  },
+  updateProduct: async (productId: string, data: any) => {
+    const response = await api.put<ApiResponse<any>>(`/api/products/${productId}`, data);
+    return response.data;
+  },
+  deleteProduct: async (productId: string) => {
+    const response = await api.patch<ApiResponse<any>>(`/api/products/${productId}`, {
+      status: 'INACTIVE',
+    });
+    return response.data;
+  },
+  getPurchaseStatus: async (productId: string) => {
+    const response = await api.get<ApiResponse<{
+      hasPurchased: boolean;
+      canPurchase: boolean;
+      isActive?: boolean;
+      expiresAt?: string;
+      orderId?: string;
+      accessVia?: 'DIRECT_PURCHASE' | 'SUBSCRIPTION_PLAN';
+      subscriptionPlanId?: string;
+    }>>(`/api/products/${productId}/purchase-status`);
+    return response.data;
+  },
+};
+
+// API de Categorias
+export const categoriesApi = {
+  getCategories: async (username?: string) => {
+    const queryParams = new URLSearchParams();
+    if (username) queryParams.append('username', username);
+    
+    const url = `/api/categories${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await api.get<ApiResponse<any[]>>(url);
+    return response.data;
+  },
+};
+
+// API de Planos de Assinatura
+export const subscriptionPlansApi = {
+  getPlans: async () => {
+    const response = await api.get<ApiResponse<any[]>>('/api/subscription-plans');
+    return response.data;
+  },
+  getShopPlans: async (username: string) => {
+    const response = await api.get<ApiResponse<any[]>>(`/api/subscription-plans/shop/${username}`);
+    return response.data;
+  },
+  getPlan: async (planId: string) => {
+    const response = await api.get<ApiResponse<any>>(`/api/subscription-plans/${planId}`);
+    return response.data;
+  },
+  createPlan: async (data: any) => {
+    const response = await api.post<ApiResponse<any>>('/api/subscription-plans', data);
+    return response.data;
+  },
+  updatePlan: async (planId: string, data: any) => {
+    const response = await api.put<ApiResponse<any>>(`/api/subscription-plans/${planId}`, data);
+    return response.data;
+  },
+  deletePlan: async (planId: string) => {
+    const response = await api.delete<ApiResponse<any>>(`/api/subscription-plans/${planId}`);
+    return response.data;
+  },
+  getPlanProducts: async (planId: string) => {
+    const response = await api.get<ApiResponse<any[]>>(`/api/subscription-plans/${planId}/products`);
+    return response.data;
+  },
+  purchasePlan: async (planId: string, duration: 'oneMonth' | 'twoMonths' | 'threeMonths' | 'sixMonths' | 'oneYear') => {
+    const response = await api.post<ApiResponse<any>>(`/api/subscription-plans/${planId}/purchase`, {
+      duration,
+    });
+    return response.data;
+  },
+};
+
+// API de Analytics da Loja
+export const shopAnalyticsApi = {
+  getAnalytics: async (params?: {
+    startDate?: string;
+    endDate?: string;
+    productId?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.productId) queryParams.append('productId', params.productId);
+    
+    const url = `/api/shop/analytics${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await api.get<ApiResponse<any>>(url);
+    return response.data;
+  },
+};
+
+// API de Comunidade da Loja
+export const shopCommunityApi = {
+  getComments: async () => {
+    const response = await api.get<ApiResponse<{
+      comments: any[];
+    }>>('/api/shop/comments/moderation');
+    return response.data;
+  },
+  approveComment: async (commentId: string) => {
+    const response = await api.post<ApiResponse<any>>(`/api/shop/comments/${commentId}/approve`);
+    return response.data;
+  },
+  rejectComment: async (commentId: string) => {
+    const response = await api.post<ApiResponse<any>>(`/api/shop/comments/${commentId}/reject`);
+    return response.data;
+  },
+  getLikes: async () => {
+    const response = await api.get<ApiResponse<{
+      likesByProduct: any[];
+    }>>('/api/shop/products/likes');
     return response.data;
   },
 };
