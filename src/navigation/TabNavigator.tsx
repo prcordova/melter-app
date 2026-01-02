@@ -1,11 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { FeedScreen } from '../screens/FeedScreen';
-import { FriendsScreen } from '../screens/FriendsScreen';
 import { ProfileStackNavigator } from './ProfileStackNavigator';
-import { SearchStackNavigator } from './SearchStackNavigator';
 import { MessagesStackNavigator } from './MessagesStackNavigator';
 import { UserProfileScreen } from '../screens/UserProfileScreen';
+import { ShopsSearchScreen } from '../screens/ShopsSearchScreen';
+import { CommunityStackNavigator } from './CommunityStackNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../theme/colors';
@@ -45,21 +45,21 @@ export function TabNavigator() {
           ),
         }}
       />
+      <Tab.Screen
+        name="ShopsTab"
+        component={ShopsSearchScreen}
+        options={{
+          tabBarLabel: 'Lojas',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="storefront" size={size} color={color} />
+          ),
+        }}
+      />
              <Tab.Screen
-               name="SearchStack"
-               component={SearchStackNavigator}
+               name="CommunityStack"
+               component={CommunityStackNavigator}
                options={{
-                 tabBarLabel: 'Buscar',
-                 tabBarIcon: ({ color, size }) => (
-                   <Ionicons name="search" size={size} color={color} />
-                 ),
-               }}
-             />
-             <Tab.Screen
-               name="FriendsTab"
-               component={FriendsScreen}
-               options={{
-                 tabBarLabel: 'Amigos',
+                 tabBarLabel: 'Comunidade',
                  tabBarIcon: ({ color, size }) => (
                    <Ionicons name="people" size={size} color={color} />
                  ),

@@ -9,7 +9,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 type SearchStackParamList = {
   SearchHome: undefined;
   SearchUsers: undefined;
-  SearchShops: undefined;
 };
 
 type SearchHomeScreenNavigationProp = NativeStackNavigationProp<
@@ -41,53 +40,10 @@ type SearchHomeScreenNavigationProp = NativeStackNavigationProp<
         </Text>
 
         <View style={styles.optionsContainer}>
-          {/* Opção Buscar Pessoas */}
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={() => navigation.navigate('SearchUsers')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconContainer}>
-              <Ionicons name="people" size={48} color={COLORS.secondary.main} />
-            </View>
-            <Text style={styles.optionTitle}>Buscar Pessoas</Text>
-            <Text style={styles.optionDescription}>
-              Encontre e conecte-se com outros usuários
-            </Text>
-            <View style={styles.optionArrow}>
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={COLORS.text.tertiary}
-              />
-            </View>
-          </TouchableOpacity>
-
-          {/* Opção Buscar Lojas */}
-          <TouchableOpacity
-            style={styles.optionCard}
-            onPress={() => navigation.navigate('SearchShops')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconContainer}>
-              <Ionicons
-                name="storefront"
-                size={48}
-                color={COLORS.primary.main}
-              />
-            </View>
-            <Text style={styles.optionTitle}>Buscar Lojas</Text>
-            <Text style={styles.optionDescription}>
-              Explore produtos e serviços incríveis
-            </Text>
-            <View style={styles.optionArrow}>
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={COLORS.text.tertiary}
-              />
-            </View>
-          </TouchableOpacity>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="search-outline" size={64} color={COLORS.text.tertiary} />
+            <Text style={styles.emptyText}>Funcionalidades de busca em desenvolvimento</Text>
+          </View>
         </View>
       </View>
     </View>
@@ -155,6 +111,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 24,
     right: 24,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLORS.text.tertiary,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 

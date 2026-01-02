@@ -39,7 +39,12 @@ interface User {
 
 type FilterType = 'popular' | 'recent' | 'most-viewed' | 'most-liked';
 
-export function UsersSearchScreen() {
+interface UsersSearchScreenProps {
+  hideHeader?: boolean;
+  hideTitle?: boolean;
+}
+
+export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: UsersSearchScreenProps = {}) {
   const { user: currentUser } = useAuth();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -161,20 +166,22 @@ export function UsersSearchScreen() {
 
   return (
     <View style={styles.container}>
-      <Header 
-        onLogoPress={() => {
-          const parent = navigation.getParent();
-          if (parent) {
-            parent.navigate('FeedTab' as never);
-          } else {
-            navigation.navigate('FeedTab' as never);
-          }
-        }}
-      />
+      {!hideHeader && (
+        <Header 
+          onLogoPress={() => {
+            const parent = navigation.getParent();
+            if (parent) {
+              parent.navigate('FeedTab' as never);
+            } else {
+              navigation.navigate('FeedTab' as never);
+            }
+          }}
+        />
+      )}
 
       <View style={styles.content}>
         {/* Título */}
-        <Text style={styles.title}>Buscar Pessoas</Text>
+        {!hideTitle && <Text style={styles.title}>Buscar Pessoas</Text>}
 
         {/* Barra de Busca */}
         <View style={styles.searchContainer}>

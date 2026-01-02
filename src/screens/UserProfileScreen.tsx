@@ -353,7 +353,13 @@ export function UserProfileScreen() {
   };
 
   const handleShopPress = () => {
-    navigation.navigate('SearchStack', { screen: 'SearchShops', params: { sellerUsername: username } });
+    // Navegar para a tab ShopsTab diretamente
+    const tabNavigator = navigation.getParent()?.getParent();
+    if (tabNavigator) {
+      (tabNavigator as any).navigate('ShopsTab');
+    } else {
+      navigation.navigate('ShopsTab' as never);
+    }
   };
 
   const handleDonatePress = () => {

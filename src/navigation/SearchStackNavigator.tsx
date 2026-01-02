@@ -2,12 +2,10 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SearchHomeScreen } from '../screens/SearchHomeScreen';
 import { UsersSearchScreen } from '../screens/UsersSearchScreen';
-import { ShopsSearchScreen } from '../screens/ShopsSearchScreen';
 
 export type SearchStackParamList = {
   SearchHome: undefined;
   SearchUsers: undefined;
-  SearchShops: undefined;
 };
 
 const Stack = createNativeStackNavigator<SearchStackParamList>();
@@ -22,7 +20,6 @@ export function SearchStackNavigator() {
     >
       <Stack.Screen name="SearchHome" component={SearchHomeScreen} />
       <Stack.Screen name="SearchUsers" component={UsersSearchScreen} />
-      <Stack.Screen name="SearchShops" component={ShopsSearchScreen} />
     </Stack.Navigator>
   );
 }

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ShopCard } from '../components/ShopCard';
-import { shopsApi } from '../services/api';
+import { shopsApi, productsApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation, CommonActions } from '@react-navigation/native';
@@ -41,6 +41,7 @@ interface Product {
   isActive?: boolean;
   isAdultContent?: boolean;
   paymentMode?: 'UNICO' | 'ASSINATURA';
+  subscriptionPlanId?: string;
   subscriptionPlan?: {
     _id: string;
     name: string;
@@ -72,8 +73,8 @@ export function ShopsSearchScreen() {
       // Navegar para MyShopScreen no ProfileStackNavigator
       // Estrutura: TabNavigator > ProfileStack (tab) > ProfileStackNavigator > MyShop
       try {
-        // Obter o TabNavigator (2 níveis acima: SearchStack > TabNavigator)
-        const tabNavigator = navigation.getParent()?.getParent();
+        // Obter o TabNavigator (agora é parent direto, pois ShopsSearchScreen é uma tab)
+        const tabNavigator = navigation.getParent();
         
         if (tabNavigator) {
           // Navegar para a tab ProfileStack e especificar a tela MyShop dentro do stack
@@ -82,16 +83,7 @@ export function ShopsSearchScreen() {
             params: { username: user.username },
           });
         } else {
-          // Fallback: tentar com apenas um nível acima
-          const parent = navigation.getParent();
-          if (parent) {
-            (parent as any).navigate('ProfileStack', {
-              screen: 'MyShop',
-              params: { username: user.username },
-            });
-          } else {
-            showToast.error('Erro', 'Não foi possível acessar sua loja. Tente acessar pelo menu do perfil.');
-          }
+          showToast.error('Erro', 'Não foi possível acessar sua loja. Tente acessar pelo menu do perfil.');
         }
       } catch (error) {
         console.error('[ShopsSearchScreen] Erro ao navegar para MyShop:', error);
@@ -184,9 +176,68 @@ export function ShopsSearchScreen() {
     }
   };
 
-  const handleProductPress = (product: Product) => {
-    // TODO: Navegar para detalhes do produto
-    showToast.info('Produto', `Ver detalhes de ${product.title}`);
+  const handleProductPress = async (product: Product) => {
+    if (!product.userId?.username) {
+      showToast.error('Erro', 'Produto sem vendedor identificado');
+      return;
+    }
+
+    try {
+      // Verificar se o usuário já comprou o produto
+      let hasPurchased = false;
+      let hasAccessViaPlan = false;
+
+      if (user) {
+        try {
+          const purchaseStatusResponse = await productsApi.getPurchaseStatus(product._id);
+          if (purchaseStatusResponse.success && purchaseStatusResponse.data) {
+            hasPurchased = purchaseStatusResponse.data.hasPurchased || false;
+            hasAccessViaPlan = purchaseStatusResponse.data.accessVia === 'SUBSCRIPTION_PLAN';
+          }
+        } catch (error) {
+          console.error('[ShopsSearchScreen] Erro ao verificar status de compra:', error);
+          // Continuar mesmo se falhar a verificação
+        }
+      }
+
+      // Se já comprou ou tem acesso via plano, navegar para a tela do produto
+      if (hasPurchased || hasAccessViaPlan) {
+        // TODO: Navegar para tela de visualização do produto (ProductScreen)
+        showToast.info('Produto', `Abrindo ${product.title}`);
+        return;
+      }
+
+      // Navegar para a loja do usuário com o produto/plano aberto
+      // ShopsSearchScreen é uma tab direta, então navigation já é o TabNavigator
+      try {
+        // Se é produto de assinatura, abrir modal de assinatura
+        const subscriptionPlanId = product.subscriptionPlanId || product.subscriptionPlan?._id;
+        if (product.paymentMode === 'ASSINATURA' && subscriptionPlanId) {
+          (navigation as any).navigate('ProfileStack', {
+            screen: 'MyShop',
+            params: {
+              username: product.userId.username,
+              openPlan: subscriptionPlanId,
+            },
+          });
+        } else {
+          // Produto único, abrir modal de compra
+          (navigation as any).navigate('ProfileStack', {
+            screen: 'MyShop',
+            params: {
+              username: product.userId.username,
+              openProduct: product._id,
+            },
+          });
+        }
+      } catch (navError) {
+        console.error('[ShopsSearchScreen] Erro na navegação:', navError);
+        showToast.error('Erro', 'Não foi possível abrir a loja');
+      }
+    } catch (error) {
+      console.error('[ShopsSearchScreen] Erro ao navegar para produto:', error);
+      showToast.error('Erro', 'Não foi possível abrir a loja');
+    }
   };
 
   const renderItem = ({ item }: { item: Product }) => (
@@ -239,7 +290,7 @@ export function ShopsSearchScreen() {
       <View style={styles.content}>
         {/* Título e Botão Minha Loja */}
         <View style={styles.titleRow}>
-          <Text style={styles.title}>Buscar Lojas</Text>
+          <Text style={styles.title}>Lojas</Text>
           {user?.username && (
             <TouchableOpacity
               style={styles.myShopButton}

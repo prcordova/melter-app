@@ -133,16 +133,6 @@ export function ProfileScreen() {
     { id: 'logout', title: 'Sair', icon: '🚪', onPress: handleLogout, variant: 'danger' as const },
   ];
 
-  // Se for admin, adicionar painel admin
-  if (user?.accountType === 'admin') {
-    menuOptions.splice(6, 0, {
-      id: 'admin',
-      title: 'Admin',
-      icon: '👑',
-      onPress: () => handleMenuPress('admin'),
-    });
-  }
-
   const handleStatusChange = async (newStatus: UserStatus) => {
     const previousStatus = status;
     setSavingStatus(true);

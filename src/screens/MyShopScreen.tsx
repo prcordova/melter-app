@@ -99,9 +99,32 @@ export function MyShopScreen() {
       fetchShopData();
       if (isOwner) {
         fetchShopSettings();
+      } else {
+        // Se não é dono, buscar produtos da loja para exibir
+        fetchProducts();
       }
     }
   }, [authLoading, username, isOwner, dataLoaded]);
+
+  // Verificar se deve abrir modais de produto ou plano (quando não é dono)
+  useEffect(() => {
+    if (!dataLoaded || loading || !products.length) return;
+
+    const openProductId = route.params?.openProduct;
+    const openPlanId = route.params?.openPlan;
+
+    if (openProductId) {
+      // Buscar o produto e abrir modal de compra
+      const product = products.find((p: any) => p._id === openProductId);
+      if (product) {
+        // TODO: Abrir modal de compra
+        showToast.info('Produto', `Abrindo modal de compra para ${product.title}`);
+      }
+    } else if (openPlanId) {
+      // TODO: Abrir modal de assinatura do plano
+      showToast.info('Plano', `Abrindo modal de assinatura do plano ${openPlanId}`);
+    }
+  }, [dataLoaded, loading, products, route.params?.openProduct, route.params?.openPlan]);
 
   // Buscar configurações da loja (apenas para dono)
   const fetchShopSettings = async () => {
@@ -125,13 +148,12 @@ export function MyShopScreen() {
 
   // Buscar produtos da loja
   const fetchProducts = async () => {
-    if (!isOwner) return; // Apenas dono pode ver seus produtos na aba de produtos
-    
     try {
       setLoadingProducts(true);
       const response = await productsApi.getProducts({
         username: username,
-        isActive: undefined, // Buscar todos (ativos e inativos)
+        // Se for dono, buscar todos (ativos e inativos). Se não for, apenas ativos
+        isActive: isOwner ? undefined : true,
       });
 
       if (response.success) {
@@ -240,6 +262,11 @@ export function MyShopScreen() {
           }
         }
       }
+
+      // Se não é dono e passou nas verificações, buscar produtos da loja
+      if (!isOwner) {
+        fetchProducts();
+      }
     } catch (error) {
       console.error('[MyShopScreen] Erro ao carregar loja:', error);
       showToast.error('Erro', 'Erro ao carregar dados da loja');
@@ -306,8 +333,30 @@ export function MyShopScreen() {
   }
 
   const sellerVerification = shopSettings?.sellerVerification;
-  const isShopApproved = sellerVerification?.status === 'approved';
-  const showTabs = (isOwner && isShopApproved) || isAdmin;
+  // Se não é dono, tentar verificar se a loja está aprovada através dos produtos ou buscar settings
+  const [visitorShopApproved, setVisitorShopApproved] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    if (!isOwner && shopOwner) {
+      // Tentar verificar se a loja está aprovada buscando settings
+      shopApi.getSettings().then((response) => {
+        if (response.success && response.data) {
+          const verification = response.data.sellerVerification;
+          setVisitorShopApproved(verification?.status === 'approved');
+        }
+      }).catch(() => {
+        // Se falhar, assumir que não está aprovada se não houver produtos
+        setVisitorShopApproved(products.length > 0);
+      });
+    }
+  }, [isOwner, shopOwner, products.length]);
+
+  const isShopApproved = isOwner 
+    ? sellerVerification?.status === 'approved' 
+    : visitorShopApproved !== null 
+      ? visitorShopApproved 
+      : products.length > 0; // Se não souber, assumir aprovada se tiver produtos
+  const showTabs = (isOwner && isShopApproved) || isAdmin || (!isOwner && isShopApproved);
 
   return (
     <View style={styles.container}>
@@ -544,11 +593,72 @@ export function MyShopScreen() {
                   </>
                 )}
 
-                {/* Placeholder quando não está aprovado ou não é dono */}
-                {(!isOwner || !isShopApproved) && (
+                {/* Mostrar produtos para visitantes (não-donos) quando loja está aprovada */}
+                {!isOwner && isShopApproved && (
+                  <>
+                    {loadingProducts ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                        <Text style={styles.loadingText}>Carregando produtos...</Text>
+                      </View>
+                    ) : products.length === 0 ? (
+                      <View style={styles.emptyProductsContainer}>
+                        <Text style={styles.emptyProductsTitle}>
+                          Esta loja ainda não tem produtos
+                        </Text>
+                      </View>
+                    ) : (
+                      <ScrollView 
+                        style={styles.productsList}
+                        showsVerticalScrollIndicator={false}
+                      >
+                        {products.map((product: any) => (
+                          <ShopCard
+                            key={product._id}
+                            product={product}
+                            onPress={async () => {
+                              // Verificar se já comprou
+                              if (user) {
+                                try {
+                                  const purchaseStatus = await productsApi.getPurchaseStatus(product._id);
+                                  if (purchaseStatus.success && purchaseStatus.data) {
+                                    const hasPurchased = purchaseStatus.data.hasPurchased || false;
+                                    const hasAccessViaPlan = purchaseStatus.data.accessVia === 'SUBSCRIPTION_PLAN';
+                                    
+                                    if (hasPurchased || hasAccessViaPlan) {
+                                      // TODO: Navegar para tela do produto
+                                      showToast.info('Produto', `Abrindo ${product.title}`);
+                                      return;
+                                    }
+                                  }
+                                } catch (error) {
+                                  console.error('[MyShopScreen] Erro ao verificar compra:', error);
+                                }
+                              }
+
+                              // Se é produto de assinatura, abrir modal de assinatura
+                              const subscriptionPlanId = product.subscriptionPlanId || product.subscriptionPlan?._id;
+                              if (product.paymentMode === 'ASSINATURA' && subscriptionPlanId) {
+                                // TODO: Abrir modal de assinatura
+                                showToast.info('Assinatura', `Abrindo modal de assinatura`);
+                              } else {
+                                // Produto único, abrir modal de compra
+                                // TODO: Abrir modal de compra
+                                showToast.info('Compra', `Abrindo modal de compra para ${product.title}`);
+                              }
+                            }}
+                          />
+                        ))}
+                      </ScrollView>
+                    )}
+                  </>
+                )}
+
+                {/* Placeholder quando não está aprovado e não é dono */}
+                {!isOwner && !isShopApproved && (
                   <View style={styles.placeholderContent}>
-                    <Text style={styles.placeholderText}>Lista de Produtos</Text>
-                    <Text style={styles.placeholderSubtext}>Em desenvolvimento...</Text>
+                    <Text style={styles.placeholderText}>Loja em desenvolvimento</Text>
+                    <Text style={styles.placeholderSubtext}>Esta loja ainda não está disponível</Text>
                   </View>
                 )}
               </View>
