@@ -13,8 +13,11 @@ import { ShopCard } from '../components/ShopCard';
 import { shopsApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { Picker } from '@react-native-picker/picker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { showToast } from '../components/CustomToast';
+import { useAuth } from '../contexts/AuthContext';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { TouchableOpacity } from 'react-native';
 
 interface Product {
   _id: string;
@@ -52,6 +55,7 @@ type SortOrderType = 'asc' | 'desc';
 
 export function ShopsSearchScreen() {
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +66,41 @@ export function ShopsSearchScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  const handleMyShopPress = () => {
+    if (user?.username) {
+      // Navegar para MyShopScreen no ProfileStackNavigator
+      // Estrutura: TabNavigator > ProfileStack (tab) > ProfileStackNavigator > MyShop
+      try {
+        // Obter o TabNavigator (2 níveis acima: SearchStack > TabNavigator)
+        const tabNavigator = navigation.getParent()?.getParent();
+        
+        if (tabNavigator) {
+          // Navegar para a tab ProfileStack e especificar a tela MyShop dentro do stack
+          (tabNavigator as any).navigate('ProfileStack', {
+            screen: 'MyShop',
+            params: { username: user.username },
+          });
+        } else {
+          // Fallback: tentar com apenas um nível acima
+          const parent = navigation.getParent();
+          if (parent) {
+            (parent as any).navigate('ProfileStack', {
+              screen: 'MyShop',
+              params: { username: user.username },
+            });
+          } else {
+            showToast.error('Erro', 'Não foi possível acessar sua loja. Tente acessar pelo menu do perfil.');
+          }
+        }
+      } catch (error) {
+        console.error('[ShopsSearchScreen] Erro ao navegar para MyShop:', error);
+        showToast.error('Erro', 'Não foi possível acessar sua loja. Tente acessar pelo menu do perfil.');
+      }
+    } else {
+      showToast.error('Erro', 'Você precisa estar logado para acessar sua loja');
+    }
+  };
 
   useEffect(() => {
     fetchProducts(1);
@@ -198,66 +237,80 @@ export function ShopsSearchScreen() {
       />
 
       <View style={styles.content}>
-        {/* Título */}
-        <Text style={styles.title}>Buscar Lojas</Text>
-
-        {/* Barra de Busca */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar produtos..."
-            placeholderTextColor={COLORS.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+        {/* Título e Botão Minha Loja */}
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Buscar Lojas</Text>
+          {user?.username && (
+            <TouchableOpacity
+              style={styles.myShopButton}
+              onPress={handleMyShopPress}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="storefront-outline" size={18} color="#ffffff" />
+              <Text style={styles.myShopButtonText}>Minha Loja</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Filtros */}
-        <View style={styles.filtersSection}>
-          {/* Ordenação */}
-          <View style={styles.filterRow}>
-            <Text style={styles.filterLabel}>Ordenar por:</Text>
-            <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={sortBy}
-              onValueChange={(value: SortByType) => setSortBy(value)}
-              style={styles.picker}
-              dropdownIconColor={COLORS.text.secondary}
-            >
-                <Picker.Item label="Mais Recentes" value="createdAt" />
-                <Picker.Item label="Preço" value="price" />
-                <Picker.Item label="Mais Vendidos" value="salesCount" />
-              </Picker>
-            </View>
+        {/* Barra de Busca e Toggle +18 */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar produtos..."
+              placeholderTextColor={COLORS.text.tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
           </View>
-
-          {/* Ordem */}
-          <View style={styles.filterRow}>
-            <Text style={styles.filterLabel}>Ordem:</Text>
-            <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={sortOrder}
-              onValueChange={(value: SortOrderType) => setSortOrder(value)}
-              style={styles.picker}
-              dropdownIconColor={COLORS.text.secondary}
-            >
-                <Picker.Item label="Decrescente" value="desc" />
-                <Picker.Item label="Crescente" value="asc" />
-              </Picker>
-            </View>
-          </View>
-
-          {/* Toggle +18 */}
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Mostrar conteúdo +18</Text>
+          <View style={styles.adultToggleContainer}>
+            <Text style={styles.adultToggleLabel}>+18</Text>
             <Switch
               value={showAdultContent}
               onValueChange={setShowAdultContent}
               trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
               thumbColor="#ffffff"
             />
+          </View>
+        </View>
+
+        {/* Filtros - Ordenar por e Ordem lado a lado */}
+        <View style={styles.filtersSection}>
+          <View style={styles.sortRow}>
+            {/* Ordenação */}
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterLabel}>Ordenar por:</Text>
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={sortBy}
+                  onValueChange={(value: SortByType) => setSortBy(value)}
+                  style={styles.picker}
+                  dropdownIconColor={COLORS.text.secondary}
+                >
+                  <Picker.Item label="Mais Recentes" value="createdAt" />
+                  <Picker.Item label="Preço" value="price" />
+                  <Picker.Item label="Mais Vendidos" value="salesCount" />
+                </Picker>
+              </View>
+            </View>
+
+            {/* Ordem */}
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterLabel}>Ordem:</Text>
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={sortOrder}
+                  onValueChange={(value: SortOrderType) => setSortOrder(value)}
+                  style={styles.picker}
+                  dropdownIconColor={COLORS.text.secondary}
+                >
+                  <Picker.Item label="Decrescente" value="desc" />
+                  <Picker.Item label="Crescente" value="asc" />
+                </Picker>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -298,15 +351,41 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 12,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.text.primary,
-    marginTop: 16,
+    flex: 1,
+  },
+  myShopButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.secondary.main,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  myShopButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginBottom: 12,
   },
   searchContainer: {
-    marginBottom: 12,
+    flex: 1,
   },
   searchInput: {
     backgroundColor: COLORS.background.paper,
@@ -318,11 +397,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border.light,
   },
+  adultToggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  adultToggleLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
   filtersSection: {
     marginBottom: 16,
+  },
+  sortRow: {
+    flexDirection: 'row',
     gap: 12,
   },
-  filterRow: {
+  filterGroup: {
+    flex: 1,
     gap: 8,
   },
   filterLabel: {
@@ -338,17 +432,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   picker: {
-    color: COLORS.text.primary,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  toggleLabel: {
-    fontSize: 14,
-    fontWeight: '600',
     color: COLORS.text.primary,
   },
   listContent: {
