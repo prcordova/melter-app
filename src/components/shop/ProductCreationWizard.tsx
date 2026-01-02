@@ -160,39 +160,49 @@ export function ProductCreationWizard({
   }, [product, visible]);
 
   const canProceedToNext = (step: number): boolean => {
-    switch (step) {
-      case 0: // Conteúdo - precisa ter pelo menos um link ou arquivo
-        return (
-          (formData.links && formData.links.length > 0) ||
-          (formData.files && formData.files.length > 0)
-        );
-      case 1: // Detalhes
-        const hasTitle = formData.title.trim() !== '';
-        const hasCategory = formData.categoryId.trim() !== '';
+    try {
+      switch (step) {
+        case 0: // Conteúdo - precisa ter pelo menos um link ou arquivo
+          return (
+            (formData.links && formData.links.length > 0) ||
+            (formData.files && formData.files.length > 0)
+          );
+        case 1: // Detalhes
+          const hasTitle = Boolean(formData.title && String(formData.title).trim() !== '');
+          const hasCategory = Boolean(formData.categoryId && String(formData.categoryId).trim() !== '');
 
-        if (formData.paymentMode === 'ASSINATURA') {
-          return hasTitle && hasCategory && !!formData.subscriptionPlanId;
-        } else {
-          return hasTitle && hasCategory && formData.price >= 10;
-        }
-      case 2: // Revisão
-        const validations = formData.contentValidations;
-        return (
-          validations.readTerms &&
-          validations.noViolence &&
-          validations.noThirdParty &&
-          validations.ownContent &&
-          validations.noHateSpeech &&
-          validations.noSpam
-        );
-      default:
-        return false;
+          if (formData.paymentMode === 'ASSINATURA') {
+            return hasTitle && hasCategory && !!formData.subscriptionPlanId;
+          } else {
+            const price = Number(formData.price) || 0;
+            return hasTitle && hasCategory && price >= 10;
+          }
+        case 2: // Revisão
+          const validations = formData.contentValidations || {};
+          return (
+            validations.readTerms &&
+            validations.noViolence &&
+            validations.noThirdParty &&
+            validations.ownContent &&
+            validations.noHateSpeech &&
+            validations.noSpam
+          );
+        default:
+          return false;
+      }
+    } catch (error) {
+      console.error('[ProductCreationWizard] Erro ao validar step:', error);
+      return false;
     }
   };
 
   const handleNext = () => {
-    if (canProceedToNext(activeStep)) {
-      setActiveStep((prev) => prev + 1);
+    try {
+      if (canProceedToNext(activeStep)) {
+        setActiveStep((prev) => prev + 1);
+      }
+    } catch (error) {
+      console.error('[ProductCreationWizard] Erro ao avançar step:', error);
     }
   };
 
