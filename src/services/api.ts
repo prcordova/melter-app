@@ -385,14 +385,48 @@ export const storiesApi = {
     return response.data;
   },
 
-  createStory: async (data: FormData) => {
+  uploadStoryMedia: async (fileUri: string, fileName: string, fileType: string) => {
     const token = await AsyncStorage.getItem('token');
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/stories`, data, {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: fileUri,
+      name: fileName,
+      type: fileType,
+    } as any);
+
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/stories/upload`, formData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
       },
     });
+    return response.data;
+  },
+
+  createStory: async (data: {
+    content: {
+      type: 'image' | 'video' | 'gif';
+      mediaUrl: string;
+      text?: string | null;
+      elements?: Array<{
+        type: 'text' | 'music';
+        content: string;
+        x: number;
+        y: number;
+        fontSize?: number;
+        color?: string;
+        backgroundColor?: string;
+        strokeColor?: string;
+        fontWeight?: 'normal' | 'bold';
+      }> | null;
+      zoom?: number;
+      panX?: number;
+      panY?: number;
+    };
+    visibility?: 'followers' | 'friends' | 'public';
+    duration?: number;
+  }) => {
+    const response = await api.post<ApiResponse<any>>('/api/stories', data);
     return response.data;
   },
 

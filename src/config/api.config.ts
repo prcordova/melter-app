@@ -3,11 +3,14 @@ import Constants from 'expo-constants';
 
 // Função para obter variável de ambiente com fallback
 const getEnvVar = (key: string, fallback: string = ''): string => {
+  // No Expo, variáveis de ambiente devem começar com EXPO_PUBLIC_
   // Tenta com prefixo EXPO_PUBLIC_ primeiro, depois sem prefixo, depois NEXT_PUBLIC_
+  // E também verifica em Constants.expoConfig.extra (para builds)
   return process.env[`EXPO_PUBLIC_${key}`] || 
          process.env[key] || 
          process.env[`NEXT_PUBLIC_${key}`] ||
-         Constants.expoConfig?.extra?.[key] || 
+         Constants.expoConfig?.extra?.[key] ||
+         Constants.expoConfig?.extra?.[`EXPO_PUBLIC_${key}`] ||
          fallback;
 };
 
