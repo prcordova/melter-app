@@ -59,10 +59,10 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
     ) {
       const firstActivePlan = subscriptionPlans.find((p) => p.isActive);
       if (firstActivePlan) {
-        setFormData({
-          ...formData,
+        setFormData((prev: any) => ({
+          ...prev,
           subscriptionPlanId: firstActivePlan._id,
-        });
+        }));
       }
     }
   }, [formData.paymentMode, subscriptionPlans]);
@@ -211,13 +211,27 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={formData.categoryId || ''}
-                onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                onValueChange={(value: string) => {
+                  if (value !== undefined && value !== null) {
+                    setFormData((prev: any) => ({
+                      ...prev,
+                      categoryId: String(value),
+                    }));
+                  }
+                }}
                 style={styles.picker}
               >
                 <Picker.Item label="Selecione uma categoria" value="" />
-                {categories.map((category) => (
-                  <Picker.Item key={category._id} label={category.name} value={category._id} />
-                ))}
+                {categories.map((category) => {
+                  const categoryValue = String(category._id || '');
+                  return (
+                    <Picker.Item
+                      key={category._id}
+                      label={category.name}
+                      value={categoryValue}
+                    />
+                  );
+                })}
               </Picker>
             </View>
           )}
