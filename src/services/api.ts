@@ -246,6 +246,10 @@ export const userApi = {
     const response = await api.get<ApiResponse<Array<{ _id: string; username: string; avatar?: string }>>>(`/api/users/search-mentions?q=${encodeURIComponent(query)}`);
     return response.data;
   },
+  getMyPurchases: async () => {
+    const response = await api.get<ApiResponse<any[]>>('/api/users/my-purchases');
+    return response.data;
+  },
 };
 
 // API de Posts (Feed)

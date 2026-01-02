@@ -8,6 +8,7 @@ import { WalletSettingsScreen } from '../screens/settings/WalletSettingsScreen';
 import { PlansScreen } from '../screens/PlansScreen';
 import { TermsScreen } from '../screens/TermsScreen';
 import { MyShopScreen } from '../screens/MyShopScreen';
+import { PurchasesScreen } from '../screens/PurchasesScreen';
 import { SettingsScreenTemplate } from '../components/SettingsScreenTemplate';
 import { Text } from 'react-native';
 
@@ -76,6 +77,13 @@ export function ProfileStackNavigator() {
       <Stack.Screen 
         name="MyShop" 
         component={MyShopScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="Purchases" 
+        component={PurchasesScreen}
         options={{
           headerShown: false,
         }}

@@ -104,6 +104,8 @@ export function ProfileScreen() {
       if (user?.username) {
         (navigation as any).navigate('MyShop', { username: user.username });
       }
+    } else if (screen === 'purchases') {
+      (navigation as any).navigate('Purchases');
     } else {
       showToast.info('Em breve', `Tela de ${screen} será implementada`);
     }
@@ -128,7 +130,6 @@ export function ProfileScreen() {
     { id: 'wallet', title: 'Carteira', icon: '💰', onPress: () => handleMenuPress('wallet'), badgeCount: 0 },
     { id: 'settings', title: 'Configurações', icon: '⚙️', onPress: () => handleMenuPress('settings') },
     { id: 'plans', title: user?.plan?.type === 'FREE' ? 'Upgrade' : 'Planos', icon: '⭐', onPress: () => handleMenuPress('plans') },
-    { id: 'download', title: 'Download', icon: '📱', onPress: () => handleMenuPress('download') },
     { id: 'terms', title: 'Termos', icon: '📄', onPress: () => handleMenuPress('terms') },
     { id: 'logout', title: 'Sair', icon: '🚪', onPress: handleLogout, variant: 'danger' as const },
   ];
