@@ -212,7 +212,7 @@ export function MyShopScreen() {
             if (followersResponse.success) {
               const followers = followersResponse.data || [];
               const isFollower = followers.some(
-                (follower: any) => follower._id === user?.id || follower.id === user?.id
+                (follower: any) => (follower?._id === user?.id) || (follower?.id === user?.id)
               );
 
               if (!isFollower) {
@@ -242,10 +242,10 @@ export function MyShopScreen() {
               
               const isFriend = friends.some(
                 (friend: any) =>
-                  friend._id === owner.id ||
-                  friend._id === owner._id ||
-                  friend.id === owner.id ||
-                  friend.id === owner._id
+                  (friend?._id === owner?.id) ||
+                  (friend?._id === owner?._id) ||
+                  (friend?.id === owner?.id) ||
+                  (friend?.id === owner?._id)
               );
 
               if (!isFriend) {

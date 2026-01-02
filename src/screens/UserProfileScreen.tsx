@@ -134,13 +134,39 @@ export function UserProfileScreen() {
         
         // Buscar stories do usuário
         try {
-          const storiesRes = await storiesApi.getStories(true);
-          if (storiesRes.success) {
-            const storiesData = storiesRes.data?.stories || storiesRes.data || [];
-            const group = storiesData.find((g: any) => g.user.username === username);
-            if (group) setUserStories(group);
+          const targetUserId = userData._id || userData.id;
+          if (targetUserId) {
+            const storiesRes = await storiesApi.getStoriesByUser(targetUserId);
+            if (storiesRes.success) {
+              const storiesData = storiesRes.data || [];
+              // Se retornar array de stories individuais, criar grupo
+              if (Array.isArray(storiesData) && storiesData.length > 0) {
+                const group: StoriesGroup = {
+                  user: {
+                    _id: targetUserId,
+                    username: userData.username || username,
+                    avatar: userData.avatar,
+                  },
+                  stories: storiesData.map((story: any) => ({
+                    _id: story._id,
+                    userId: {
+                      _id: story.userId?._id || targetUserId,
+                      username: story.userId?.username || userData.username || username,
+                      avatar: story.userId?.avatar || userData.avatar,
+                    },
+                    content: story.content || { type: 'image', mediaUrl: '' },
+                    duration: story.duration || 10,
+                    views: story.views || [],
+                    createdAt: story.createdAt || new Date().toISOString(),
+                  })),
+                };
+                setUserStories(group);
+              }
+            }
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error('Erro ao buscar stories:', e);
+        }
 
         // Se posts estiverem habilitados no perfil
         if (response.data.profile?.showPosts) {

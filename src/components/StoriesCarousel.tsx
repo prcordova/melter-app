@@ -26,12 +26,12 @@ export function StoriesCarousel({
 
   // Verificar se o usuário já tem stories
   const userHasStories = storiesGroups.some(
-    (group) => group.user._id === user?.id
+    (group) => group?.user?._id === user?.id
   );
 
   // Verificar se um story foi visualizado
   const isStoryViewed = (story: any) => {
-    return story.views?.some((view: any) => view.userId._id === user?.id);
+    return story.views?.some((view: any) => view?.userId?._id === user?.id);
   };
 
   // Verificar se todos os stories do grupo foram visualizados
@@ -40,6 +40,11 @@ export function StoriesCarousel({
   };
 
   const renderStoryItem = (group: StoriesGroup, index: number) => {
+    // Validação de segurança
+    if (!group || !group.user || !group.user._id) {
+      return null;
+    }
+
     const isViewed = isGroupViewed(group);
     const isCurrentUser = group.user._id === user?.id;
 
@@ -119,7 +124,9 @@ export function StoriesCarousel({
         {renderCreateStory()}
 
         {/* Stories dos usuários */}
-        {storiesGroups.map((group, index) => renderStoryItem(group, index))}
+        {storiesGroups
+          .filter((group) => group && group.user && group.user._id) // Filtrar grupos inválidos
+          .map((group, index) => renderStoryItem(group, index))}
       </ScrollView>
     </View>
   );

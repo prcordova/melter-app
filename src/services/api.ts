@@ -380,8 +380,24 @@ export const messageApi = {
 
 // API de Stories
 export const storiesApi = {
-  getStories: async (myStoriesOnly = false) => {
-    const response = await api.get<ApiResponse<any>>(`/api/stories?myStoriesOnly=${myStoriesOnly}`);
+  // Buscar stories do feed (agrupados por usuário) - usado no feed principal
+  getStoriesFeed: async (page = 1, limit = 10) => {
+    const response = await api.get<ApiResponse<any>>(`/api/stories/feed?page=${page}&limit=${limit}`);
+    return response.data;
+  },
+
+  // Buscar stories de um usuário específico - usado em perfis
+  getStoriesByUser: async (userId?: string) => {
+    const url = userId 
+      ? `/api/stories?userId=${userId}`
+      : '/api/stories'; // Se não passar userId, retorna stories do usuário atual
+    const response = await api.get<ApiResponse<any>>(url);
+    return response.data;
+  },
+
+  // Verificar limite de stories ativos do usuário
+  checkStoriesLimit: async () => {
+    const response = await api.get<ApiResponse<any>>('/api/stories?checkLimit=true');
     return response.data;
   },
 
@@ -432,6 +448,21 @@ export const storiesApi = {
 
   deleteStory: async (storyId: string) => {
     const response = await api.delete<ApiResponse<any>>(`/api/stories/${storyId}`);
+    return response.data;
+  },
+
+  // Marcar story como visualizado
+  viewStory: async (storyId: string) => {
+    const response = await api.put<ApiResponse<any>>(`/api/stories/${storyId}`, {});
+    return response.data;
+  },
+
+  // Denunciar story
+  reportStory: async (storyId: string, data: { category?: string; description?: string }) => {
+    const response = await api.post<ApiResponse<any>>(`/api/stories/${storyId}/report`, {
+      reason: data.category || 'OTHER',
+      description: data.description || 'Denúncia de story',
+    });
     return response.data;
   },
 };

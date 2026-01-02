@@ -73,13 +73,37 @@ export function ProfileScreen() {
   React.useEffect(() => {
     const fetchMyStories = async () => {
       try {
-        const response = await storiesApi.getStories(true);
+        if (!user?.id) return;
+        const response = await storiesApi.getStoriesByUser(user.id);
         if (response.success) {
-          const storiesData = response.data?.stories || response.data || [];
-          const group = storiesData.find((g: any) => g.user._id === user?.id);
-          if (group) setUserStories(group);
+          const storiesData = response.data || [];
+          // Se retornar array de stories individuais, criar grupo
+          if (Array.isArray(storiesData) && storiesData.length > 0) {
+            const group: StoriesGroup = {
+              user: {
+                _id: user.id,
+                username: user.username || 'Você',
+                avatar: user.avatar,
+              },
+              stories: storiesData.map((story: any) => ({
+                _id: story._id,
+                userId: {
+                  _id: story.userId?._id || user.id,
+                  username: story.userId?.username || user.username || 'Você',
+                  avatar: story.userId?.avatar || user.avatar,
+                },
+                content: story.content || { type: 'image', mediaUrl: '' },
+                duration: story.duration || 10,
+                views: story.views || [],
+                createdAt: story.createdAt || new Date().toISOString(),
+              })),
+            };
+            setUserStories(group);
+          }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Erro ao buscar stories:', e);
+      }
     };
     if (user?.id) fetchMyStories();
   }, [user?.id]);

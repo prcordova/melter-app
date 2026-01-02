@@ -124,18 +124,23 @@ export function FeedScreen() {
   // Fetch Stories
   const fetchStories = async () => {
     try {
-      const response = await storiesApi.getStories(true);
+      // Usar endpoint de feed que retorna stories já agrupados
+      const response = await storiesApi.getStoriesFeed(1, 20);
 
       if (response.success) {
-        const storiesData = response.data?.stories || response.data || [];
+        // O endpoint retorna data.stories (já agrupados)
+        const storiesData = response.data?.stories || response.data?.data?.stories || [];
         
-        // Ordenar: stories do usuário primeiro
+        // Filtrar e ordenar grupos válidos
         const sortedStories = Array.isArray(storiesData)
-          ? storiesData.sort((a: any, b: any) => {
-              if (a.user._id === user?.id) return -1;
-              if (b.user._id === user?.id) return 1;
-              return 0;
-            })
+          ? storiesData
+              .filter((group: any) => group && group.user && group.user._id) // Filtrar grupos inválidos
+              .sort((a: any, b: any) => {
+                // Stories do próprio usuário primeiro
+                if (a?.user?._id === user?.id) return -1;
+                if (b?.user?._id === user?.id) return 1;
+                return 0;
+              })
           : [];
 
         setStoriesGroups(sortedStories);
@@ -258,7 +263,8 @@ export function FeedScreen() {
   };
 
   const handleStoryClick = (group: StoriesGroup) => {
-    const index = storiesGroups.findIndex(g => g.user._id === group.user._id);
+    if (!group || !group.user || !group.user._id) return;
+    const index = storiesGroups.findIndex(g => g?.user?._id === group.user._id);
     if (index !== -1) {
       setSelectedStoryGroupIndex(index);
       setShowStoryViewer(true);
