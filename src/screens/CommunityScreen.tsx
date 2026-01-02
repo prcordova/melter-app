@@ -194,10 +194,12 @@ export function CommunityScreen() {
                 <Ionicons name="search" size={20} color={COLORS.text.tertiary} style={styles.searchIcon} />
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Procurar amigo pelo nome..."
+                  placeholder="Buscar por nome..."
                   placeholderTextColor={COLORS.text.tertiary}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
                 />
               </View>
             )}
@@ -268,8 +270,8 @@ const styles = StyleSheet.create({
   },
   exploreContainer: {
     flex: 1,
-    marginTop: -16, // Compensar o padding do content
     marginHorizontal: -16, // Compensar o padding do content
+    minHeight: 0, // Importante para ScrollView funcionar corretamente
   },
   searchContainer: {
     flexDirection: 'row',

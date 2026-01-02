@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 interface User {
   _id: string;
@@ -55,21 +56,43 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [isMounted, setIsMounted] = useState(true);
+
+  // Verificar se o componente está montado
+  useEffect(() => {
+    setIsMounted(true);
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
 
   useEffect(() => {
+    if (!isMounted) return;
+    // Resetar página ao mudar filtro
+    setPage(1);
+    setHasMore(true);
     fetchUsers(1);
-  }, [selectedFilter]);
+  }, [selectedFilter, isMounted]);
 
   useEffect(() => {
+    if (!isMounted) return;
     // Debounce na busca
     const timer = setTimeout(() => {
-      fetchUsers(1);
+      if (isMounted) {
+        // Resetar página ao buscar
+        setPage(1);
+        setHasMore(true);
+        fetchUsers(1);
+      }
     }, searchQuery ? 500 : 0);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, isMounted]);
 
   const fetchUsers = async (pageNum = 1) => {
+    // Verificar se o componente ainda está montado antes de fazer a requisição
+    if (!isMounted) return;
+
     try {
       if (pageNum === 1) {
         setLoading(true);
@@ -84,25 +107,32 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
         search: searchQuery.trim(),
       });
 
-      if (response.success) {
+      // Verificar novamente se está montado antes de atualizar estado
+      if (!isMounted) return;
+
+      if (response && response.success) {
         let rawUsers = searchQuery
-          ? response.data.searchResults || []
-          : response.data.featuredUsers || [];
+          ? (response.data?.searchResults || [])
+          : (response.data?.featuredUsers || []);
 
         // Enriquecer dados com isFollowing
-        const processedUsers = rawUsers.map((u: any) => ({
-          ...u,
-          isFollowing: u.isFollowing || (u.followers?.includes(currentUser?.id)),
-        }));
+        const processedUsers = (rawUsers || []).map((u: any) => {
+          if (!u || !u._id) return null;
+          return {
+            ...u,
+            isFollowing: u.isFollowing || (u.followers?.includes(currentUser?.id)),
+          };
+        }).filter(Boolean) as User[];
 
         if (pageNum === 1) {
           setUsers(processedUsers);
         } else {
           // Evitar duplicatas
           setUsers((prev) => {
+            if (!prev || prev.length === 0) return processedUsers;
             const existingIds = new Set(prev.map((u) => u._id));
             const uniqueNewUsers = processedUsers.filter(
-              (u: User) => !existingIds.has(u._id)
+              (u: User) => u && u._id && !existingIds.has(u._id)
             );
             return [...prev, ...uniqueNewUsers];
           });
@@ -110,13 +140,23 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
 
         setHasMore(processedUsers.length >= 20);
         setPage(pageNum);
+      } else {
+        // Se não houver resposta válida, definir lista vazia
+        if (pageNum === 1 && isMounted) {
+          setUsers([]);
+        }
       }
     } catch (error) {
       console.error('[UsersSearchScreen] Erro ao buscar usuários:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os usuários');
+      // Não mostrar alert se o componente foi desmontado
+      if (isMounted && pageNum === 1) {
+        setUsers([]);
+      }
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (isMounted) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   };
 
@@ -183,34 +223,34 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
         {/* Título */}
         {!hideTitle && <Text style={styles.title}>Buscar Pessoas</Text>}
 
-        {/* Barra de Busca */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar por nome..."
-            placeholderTextColor={COLORS.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
-
-        {/* Filtro */}
-        <View style={styles.filterContainer}>
-          <Text style={styles.filterLabel}>Filtrar por:</Text>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={selectedFilter}
-              onValueChange={(value: FilterType) => setSelectedFilter(value)}
-              style={styles.picker}
-              dropdownIconColor={COLORS.text.secondary}
-            >
-              <Picker.Item label="Populares" value="popular" />
-              <Picker.Item label="Recentes" value="recent" />
-              <Picker.Item label="Mais Vistos" value="most-viewed" />
-              <Picker.Item label="Mais Curtidos" value="most-liked" />
-            </Picker>
+        {/* Barra de Busca e Filtro na mesma linha */}
+        <View style={styles.searchAndFilterRow}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color={COLORS.text.tertiary} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por nome..."
+              placeholderTextColor={COLORS.text.tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+          <View style={styles.filterContainer}>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={selectedFilter}
+                onValueChange={(value: FilterType) => setSelectedFilter(value)}
+                style={styles.picker}
+                dropdownIconColor={COLORS.text.secondary}
+              >
+                <Picker.Item label="Populares" value="popular" />
+                <Picker.Item label="Recentes" value="recent" />
+                <Picker.Item label="Mais Vistos" value="most-viewed" />
+                <Picker.Item label="Mais Curtidos" value="most-liked" />
+              </Picker>
+            </View>
           </View>
         </View>
 
@@ -258,37 +298,50 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 12,
   },
-  searchContainer: {
-    marginBottom: 12,
+  searchAndFilterRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16, // Adicionar margem superior para não ficar colado nas tabs
+    marginBottom: 16,
   },
-  searchInput: {
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.background.paper,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: COLORS.text.primary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: COLORS.border.light,
   },
-  filterContainer: {
-    marginBottom: 16,
+  searchIcon: {
+    marginRight: 8,
   },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 15,
     color: COLORS.text.primary,
-    marginBottom: 8,
+  },
+  filterContainer: {
+    width: 140,
   },
   pickerWrapper: {
     backgroundColor: COLORS.background.paper,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border.light,
     overflow: 'hidden',
+    height: 48, // Altura fixa para igualar ao input
+    justifyContent: 'center', // Centralizar verticalmente
   },
   picker: {
     color: COLORS.text.primary,
+    height: 48, // Altura fixa para igualar ao input
+    paddingVertical: 0, // Remover padding vertical padrão
+    marginVertical: 0, // Remover margem vertical
+    textAlignVertical: 'center', // Centralizar texto verticalmente (Android)
+    includeFontPadding: false, // Remover padding extra de fonte (Android)
   },
   listContent: {
     paddingBottom: 16,
