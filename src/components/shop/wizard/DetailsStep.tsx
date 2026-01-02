@@ -38,34 +38,74 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Debug: Log quando formData mudar
   useEffect(() => {
-    // Categorias fixas - não busca da API
-    setCategories(FIXED_CATEGORIES);
-    setLoadingCategories(false);
+    console.log('[DetailsStep] formData atualizado:', {
+      hasFormData: !!formData,
+      title: formData?.title,
+      categoryId: formData?.categoryId,
+      paymentMode: formData?.paymentMode,
+    });
+  }, [formData]);
+
+  // Garantir que formData existe
+  const safeFormData = formData || {
+    title: '',
+    description: '',
+    tags: '',
+    price: 10,
+    categoryId: '',
+    coverImage: null,
+    paymentMode: 'UNICO' as const,
+    subscriptionPlanId: undefined,
+    allowDownload: false,
+    allowCertificate: false,
+    allowComments: 'ALL' as const,
+    showViews: true,
+    showLikes: true,
+    layout: 'GRID' as const,
+  };
+
+  useEffect(() => {
+    try {
+      // Categorias fixas - não busca da API
+      setCategories(FIXED_CATEGORIES);
+      setLoadingCategories(false);
+    } catch (error) {
+      console.error('[DetailsStep] Erro ao inicializar categorias:', error);
+    }
   }, []);
 
   useEffect(() => {
-    if (formData.paymentMode === 'ASSINATURA') {
-      fetchSubscriptionPlans();
+    try {
+      if (safeFormData?.paymentMode === 'ASSINATURA') {
+        fetchSubscriptionPlans();
+      }
+    } catch (error) {
+      console.error('[DetailsStep] Erro no useEffect paymentMode:', error);
     }
-  }, [formData.paymentMode]);
+  }, [safeFormData?.paymentMode]);
 
   // Auto-selecionar primeiro plano quando planos forem carregados
   useEffect(() => {
-    if (
-      formData.paymentMode === 'ASSINATURA' &&
-      subscriptionPlans.length > 0 &&
-      !formData.subscriptionPlanId
-    ) {
-      const firstActivePlan = subscriptionPlans.find((p) => p.isActive);
-      if (firstActivePlan) {
-        setFormData((prev: any) => ({
-          ...prev,
-          subscriptionPlanId: firstActivePlan._id,
-        }));
+    try {
+      if (
+        safeFormData?.paymentMode === 'ASSINATURA' &&
+        subscriptionPlans.length > 0 &&
+        !safeFormData?.subscriptionPlanId
+      ) {
+        const firstActivePlan = subscriptionPlans.find((p) => p.isActive);
+        if (firstActivePlan) {
+          setFormData((prev: any) => ({
+            ...prev,
+            subscriptionPlanId: firstActivePlan._id,
+          }));
+        }
       }
+    } catch (error) {
+      console.error('[DetailsStep] Erro no useEffect subscriptionPlanId:', error);
     }
-  }, [formData.paymentMode, subscriptionPlans]);
+  }, [safeFormData?.paymentMode, subscriptionPlans]);
 
   const fetchSubscriptionPlans = async () => {
     if (!user) return;
@@ -127,10 +167,10 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
 
           if (response.data.success) {
             const imageUrl = response.data.data?.url || response.data.url;
-            setFormData({
-              ...formData,
+            setFormData((prev: any) => ({
+              ...prev,
               coverImage: imageUrl,
-            });
+            }));
             showToast.success('Sucesso', 'Imagem enviada com sucesso!');
           } else {
             if (response.data.upgradeRequired) {
@@ -155,6 +195,15 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
     }
   };
 
+  if (!formData) {
+    console.error('[DetailsStep] formData é undefined/null');
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Erro ao carregar formulário</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Informações Básicas */}
@@ -170,26 +219,34 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
           </Text>
           <TextInput
             style={styles.input}
-            value={formData.title}
+            value={safeFormData.title || ''}
             onChangeText={(text) => {
-              const limitedText = text.slice(0, 100);
-              setFormData({ ...formData, title: limitedText });
+              try {
+                const limitedText = text.slice(0, 100);
+                setFormData((prev: any) => ({ ...prev, title: limitedText }));
+              } catch (error) {
+                console.error('[DetailsStep] Erro ao atualizar título:', error);
+              }
             }}
             placeholder="Ex: Curso Completo de Marketing Digital"
             placeholderTextColor={COLORS.text.tertiary}
             maxLength={100}
           />
-          <Text style={styles.helperText}>{formData.title.length}/100 caracteres</Text>
+          <Text style={styles.helperText}>{(safeFormData.title || '').length}/100 caracteres</Text>
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Descrição (Opcional)</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            value={formData.description}
+            value={safeFormData.description || ''}
             onChangeText={(text) => {
-              const limitedText = text.slice(0, 1000);
-              setFormData({ ...formData, description: limitedText });
+              try {
+                const limitedText = text.slice(0, 1000);
+                setFormData((prev: any) => ({ ...prev, description: limitedText }));
+              } catch (error) {
+                console.error('[DetailsStep] Erro ao atualizar descrição:', error);
+              }
             }}
             placeholder="Descreva seu produto, o que o cliente vai receber, benefícios..."
             placeholderTextColor={COLORS.text.tertiary}
@@ -198,7 +255,7 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
             textAlignVertical="top"
             maxLength={1000}
           />
-          <Text style={styles.helperText}>{formData.description.length}/1000 caracteres</Text>
+          <Text style={styles.helperText}>{(safeFormData.description || '').length}/1000 caracteres</Text>
         </View>
 
         <View style={styles.inputGroup}>
@@ -210,7 +267,7 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
           ) : (
             <View style={styles.pickerContainer}>
               <Picker
-                selectedValue={formData.categoryId || ''}
+                selectedValue={safeFormData.categoryId || ''}
                 onValueChange={(value: string) => {
                   if (value !== undefined && value !== null) {
                     setFormData((prev: any) => ({
@@ -241,8 +298,14 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
           <Text style={styles.label}>Tags (Opcional)</Text>
           <TextInput
             style={styles.input}
-            value={formData.tags || ''}
-            onChangeText={(text) => setFormData({ ...formData, tags: text })}
+            value={safeFormData.tags || ''}
+            onChangeText={(text) => {
+              try {
+                setFormData((prev: any) => ({ ...prev, tags: text }));
+              } catch (error) {
+                console.error('[DetailsStep] Erro ao atualizar tags:', error);
+              }
+            }}
             placeholder="Ex: marketing, curso, tutorial, dicas (separadas por vírgula)"
             placeholderTextColor={COLORS.text.tertiary}
           />
@@ -260,23 +323,29 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
         </View>
 
         <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
-          {formData.coverImage && (
+          {safeFormData.coverImage && (
             <View style={styles.imagePreviewContainer}>
               <Image
-                source={{ uri: getImageUrl(formData.coverImage) }}
+                source={{ uri: getImageUrl(safeFormData.coverImage) }}
                 style={styles.imagePreview}
                 resizeMode="cover"
               />
               <TouchableOpacity
                 style={styles.removeImageButton}
-                onPress={() => setFormData({ ...formData, coverImage: null })}
+                onPress={() => {
+                  try {
+                    setFormData((prev: any) => ({ ...prev, coverImage: null }));
+                  } catch (error) {
+                    console.error('[DetailsStep] Erro ao remover imagem:', error);
+                  }
+                }}
               >
                 <Ionicons name="close-circle" size={24} color={COLORS.states.error} />
               </TouchableOpacity>
             </View>
           )}
 
-          {!formData.coverImage && (
+          {!safeFormData.coverImage && (
             <View style={styles.emptyImageBox}>
               <Text style={styles.emptyImageText}>Nenhuma imagem de capa selecionada</Text>
             </View>
@@ -294,7 +363,7 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
               <>
                 <Ionicons name="cloud-upload-outline" size={18} color={COLORS.secondary.main} />
                 <Text style={styles.imageUploadText}>
-                  {formData.coverImage ? 'Trocar Capa' : 'Adicionar Capa'}
+                  {safeFormData.coverImage ? 'Trocar Capa' : 'Adicionar Capa'}
                 </Text>
               </>
             )}
@@ -314,20 +383,24 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
           <TouchableOpacity
             style={[
               styles.radioOption,
-              formData.paymentMode === 'UNICO' && styles.radioOptionSelected,
+              safeFormData.paymentMode === 'UNICO' && styles.radioOptionSelected,
             ]}
-            onPress={() =>
-              setFormData({
-                ...formData,
-                paymentMode: 'UNICO',
-                subscriptionScope: undefined,
-              })
-            }
+            onPress={() => {
+              try {
+                setFormData((prev: any) => ({
+                  ...prev,
+                  paymentMode: 'UNICO',
+                  subscriptionScope: undefined,
+                }));
+              } catch (error) {
+                console.error('[DetailsStep] Erro ao atualizar paymentMode:', error);
+              }
+            }}
             activeOpacity={0.7}
           >
             <View style={styles.radioContent}>
               <View style={styles.radioCircle}>
-                {formData.paymentMode === 'UNICO' && <View style={styles.radioCircleInner} />}
+                {safeFormData.paymentMode === 'UNICO' && <View style={styles.radioCircleInner} />}
               </View>
               <View style={styles.radioTextContainer}>
                 <View style={styles.radioHeader}>
@@ -344,20 +417,24 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
           <TouchableOpacity
             style={[
               styles.radioOption,
-              formData.paymentMode === 'ASSINATURA' && styles.radioOptionSelected,
+              safeFormData.paymentMode === 'ASSINATURA' && styles.radioOptionSelected,
             ]}
-            onPress={() =>
-              setFormData({
-                ...formData,
-                paymentMode: 'ASSINATURA',
-                subscriptionScope: 'LOJA',
-              })
-            }
+            onPress={() => {
+              try {
+                setFormData((prev: any) => ({
+                  ...prev,
+                  paymentMode: 'ASSINATURA',
+                  subscriptionScope: 'LOJA',
+                }));
+              } catch (error) {
+                console.error('[DetailsStep] Erro ao atualizar paymentMode:', error);
+              }
+            }}
             activeOpacity={0.7}
           >
             <View style={styles.radioContent}>
               <View style={styles.radioCircle}>
-                {formData.paymentMode === 'ASSINATURA' && <View style={styles.radioCircleInner} />}
+                {safeFormData.paymentMode === 'ASSINATURA' && <View style={styles.radioCircleInner} />}
               </View>
               <View style={styles.radioTextContainer}>
                 <View style={styles.radioHeader}>
@@ -373,17 +450,21 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
         </View>
 
         {/* Preço (se UNICO) */}
-        {formData.paymentMode === 'UNICO' && (
+        {safeFormData.paymentMode === 'UNICO' && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
               Preço (R$) <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
               style={styles.input}
-              value={formData.price.toString()}
+              value={String(safeFormData.price || 10)}
               onChangeText={(text) => {
-                const numValue = Math.max(10, Number(text) || 10);
-                setFormData({ ...formData, price: numValue });
+                try {
+                  const numValue = Math.max(10, Number(text) || 10);
+                  setFormData((prev: any) => ({ ...prev, price: numValue }));
+                } catch (error) {
+                  console.error('[DetailsStep] Erro ao atualizar preço:', error);
+                }
               }}
               placeholder="10.00"
               placeholderTextColor={COLORS.text.tertiary}
@@ -394,7 +475,7 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
         )}
 
         {/* Plano de Assinatura (se ASSINATURA) */}
-        {formData.paymentMode === 'ASSINATURA' && (
+        {safeFormData.paymentMode === 'ASSINATURA' && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
               Plano de Assinatura <Text style={styles.required}>*</Text>
@@ -404,13 +485,17 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
             ) : (
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={formData.subscriptionPlanId || ''}
-                  onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      subscriptionPlanId: value || undefined,
-                    })
-                  }
+                  selectedValue={safeFormData.subscriptionPlanId || ''}
+                  onValueChange={(value) => {
+                    try {
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        subscriptionPlanId: value || undefined,
+                      }));
+                    } catch (error) {
+                      console.error('[DetailsStep] Erro ao atualizar subscriptionPlanId:', error);
+                    }
+                  }}
                   style={styles.picker}
                 >
                   <Picker.Item label="Selecione um plano" value="" />
@@ -440,39 +525,57 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
         <View style={styles.switchGroup}>
           <Text style={styles.switchLabel}>Permitir download dos arquivos</Text>
           <Switch
-            value={formData.allowDownload}
-            onValueChange={(value) => setFormData({ ...formData, allowDownload: value })}
+            value={safeFormData.allowDownload || false}
+            onValueChange={(value) => {
+              try {
+                setFormData((prev: any) => ({ ...prev, allowDownload: value }));
+              } catch (error) {
+                console.error('[DetailsStep] Erro ao atualizar allowDownload:', error);
+              }
+            }}
             trackColor={{
               false: COLORS.border.medium,
               true: COLORS.secondary.main,
             }}
-            thumbColor={formData.allowDownload ? '#ffffff' : COLORS.text.tertiary}
+            thumbColor={safeFormData.allowDownload ? '#ffffff' : COLORS.text.tertiary}
           />
         </View>
 
         <View style={styles.switchGroup}>
           <Text style={styles.switchLabel}>Mostrar visualizações</Text>
           <Switch
-            value={formData.showViews}
-            onValueChange={(value) => setFormData({ ...formData, showViews: value })}
+            value={safeFormData.showViews !== false}
+            onValueChange={(value) => {
+              try {
+                setFormData((prev: any) => ({ ...prev, showViews: value }));
+              } catch (error) {
+                console.error('[DetailsStep] Erro ao atualizar showViews:', error);
+              }
+            }}
             trackColor={{
               false: COLORS.border.medium,
               true: COLORS.secondary.main,
             }}
-            thumbColor={formData.showViews ? '#ffffff' : COLORS.text.tertiary}
+            thumbColor={safeFormData.showViews !== false ? '#ffffff' : COLORS.text.tertiary}
           />
         </View>
 
         <View style={styles.switchGroup}>
           <Text style={styles.switchLabel}>Mostrar curtidas</Text>
           <Switch
-            value={formData.showLikes}
-            onValueChange={(value) => setFormData({ ...formData, showLikes: value })}
+            value={safeFormData.showLikes !== false}
+            onValueChange={(value) => {
+              try {
+                setFormData((prev: any) => ({ ...prev, showLikes: value }));
+              } catch (error) {
+                console.error('[DetailsStep] Erro ao atualizar showLikes:', error);
+              }
+            }}
             trackColor={{
               false: COLORS.border.medium,
               true: COLORS.secondary.main,
             }}
-            thumbColor={formData.showLikes ? '#ffffff' : COLORS.text.tertiary}
+            thumbColor={safeFormData.showLikes !== false ? '#ffffff' : COLORS.text.tertiary}
           />
         </View>
 
@@ -480,8 +583,14 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
           <Text style={styles.label}>Comentários</Text>
           <View style={styles.pickerContainer}>
             <Picker
-              selectedValue={formData.allowComments}
-              onValueChange={(value) => setFormData({ ...formData, allowComments: value })}
+              selectedValue={safeFormData.allowComments || 'ALL'}
+              onValueChange={(value) => {
+                try {
+                  setFormData((prev: any) => ({ ...prev, allowComments: value }));
+                } catch (error) {
+                  console.error('[DetailsStep] Erro ao atualizar allowComments:', error);
+                }
+              }}
               style={styles.picker}
             >
               <Picker.Item label="Todos" value="ALL" />
@@ -591,6 +700,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.text.secondary,
     marginTop: 4,
+  },
+  errorText: {
+    fontSize: 16,
+    color: COLORS.states.error,
+    textAlign: 'center',
+    padding: 20,
   },
   pickerContainer: {
     backgroundColor: COLORS.background.tertiary,

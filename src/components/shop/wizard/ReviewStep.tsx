@@ -27,8 +27,8 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
   };
 
   const handleAcceptAll = (checked: boolean) => {
-    setFormData({
-      ...formData,
+    setFormData((prev: any) => ({
+      ...prev,
       contentValidations: {
         readTerms: checked,
         noViolence: checked,
@@ -37,7 +37,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
         noHateSpeech: checked,
         noSpam: checked,
       },
-    });
+    }));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -204,7 +204,47 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
           </Text>
         </View>
 
-        {!canProceed && (
+        {/* Lista de Validações */}
+        <View style={styles.validationsList}>
+          <View style={styles.validationListItem}>
+            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Text style={styles.validationListItemText}>
+              Li e aceito os Termos de Uso
+            </Text>
+          </View>
+          <View style={styles.validationListItem}>
+            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Text style={styles.validationListItemText}>
+              Sou o proprietário legítimo deste conteúdo
+            </Text>
+          </View>
+          <View style={styles.validationListItem}>
+            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Text style={styles.validationListItemText}>
+              O conteúdo não é de terceiros
+            </Text>
+          </View>
+          <View style={styles.validationListItem}>
+            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Text style={styles.validationListItemText}>
+              Não contém violência ou conteúdo violento
+            </Text>
+          </View>
+          <View style={styles.validationListItem}>
+            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Text style={styles.validationListItemText}>
+              Não contém discurso de ódio
+            </Text>
+          </View>
+          <View style={styles.validationListItem}>
+            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Text style={styles.validationListItemText}>
+              Não contém spam ou conteúdo enganoso
+            </Text>
+          </View>
+        </View>
+
+        {!canProceed && !allValidationsChecked && (
           <View style={styles.warningBox}>
             <Text style={styles.warningText}>
               ⚠️ Você deve confirmar todas as validações para continuar
@@ -219,7 +259,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
               Concordo com todas as regras e diretrizes
             </Text>
             <Text style={styles.validationDescription}>
-              Li e aceito os Termos de Uso. Sou o proprietário legítimo deste conteúdo. O conteúdo não é de terceiros, não contém violência, discurso de ódio ou spam.
+              Ao ativar este toggle, você confirma que leu e concorda com todas as validações listadas acima.
             </Text>
           </View>
           <Switch
@@ -375,6 +415,18 @@ const styles = StyleSheet.create({
   },
   validationsList: {
     gap: 12,
+    marginBottom: 16,
+  },
+  validationListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  validationListItemText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    flex: 1,
   },
   validationItem: {
     flexDirection: 'row',

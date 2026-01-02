@@ -18,6 +18,7 @@ import { shopApi, sellerVerificationApi, userApi, productsApi } from '../service
 import { SellerVerificationStatusCard } from '../components/shop/SellerVerificationStatusCard';
 import { AppealModal } from '../components/shop/AppealModal';
 import { ProductCreationWizard } from '../components/shop/ProductCreationWizard';
+import { ShopCard } from '../components/ShopCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
 import axios from 'axios';
@@ -522,13 +523,22 @@ export function MyShopScreen() {
                             <Text style={styles.newProductButtonText}>Novo Produto</Text>
                           </TouchableOpacity>
                         </View>
-                        {/* TODO: Lista de produtos será implementada aqui */}
-                        <View style={styles.placeholderContent}>
-                          <Text style={styles.placeholderText}>Lista de Produtos</Text>
-                          <Text style={styles.placeholderSubtext}>
-                            {products.length} produto(s) encontrado(s)
-                          </Text>
-                        </View>
+                        {/* Lista de Produtos */}
+                        <ScrollView 
+                          style={styles.productsList}
+                          showsVerticalScrollIndicator={false}
+                        >
+                          {products.map((product) => (
+                            <ShopCard
+                              key={product._id}
+                              product={product}
+                              onPress={() => {
+                                // TODO: Navegar para detalhes do produto ou abrir modal de edição
+                                showToast.info('Produto', `Abrindo ${product.title}`);
+                              }}
+                            />
+                          ))}
+                        </ScrollView>
                       </>
                     )}
                   </>
@@ -887,6 +897,9 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  productsList: {
+    flex: 1,
   },
   placeholderContent: {
     paddingVertical: 60,

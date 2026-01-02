@@ -17,17 +17,17 @@ interface Product {
   price: number;
   type: 'DIGITAL_PACK' | 'DIGITAL_PRODUCT' | 'COURSE' | 'SERVICE' | 'PHYSICAL_PRODUCT';
   coverImage?: string | null;
-  userId: {
-    _id: string;
-    username: string;
+  userId?: {
+    _id?: string;
+    username?: string;
     avatar?: string;
-  };
+  } | null;
   categoryId?: {
     _id?: string;
     name: string;
     color?: string;
     emoji?: string;
-  } | string;
+  } | string | null;
   salesCount?: number;
   isActive?: boolean;
   isAdultContent?: boolean;
@@ -63,9 +63,10 @@ const PRODUCT_TYPE_ICONS: Record<string, string> = {
 };
 
 export function ShopCard({ product, onPress }: ShopCardProps) {
+  // Usar bgMelter.jpg como fallback quando não tem coverImage
   const imageSource = product.coverImage
     ? { uri: getImageUrl(product.coverImage) }
-    : null;
+    : require('../../assets/bgMelter.jpg');
   
   // Normalizar categoryId (pode ser string ou objeto)
   const category = typeof product.categoryId === 'string' 
@@ -88,17 +89,7 @@ export function ShopCard({ product, onPress }: ShopCardProps) {
     >
       {/* Imagem do Produto */}
       <View style={styles.imageContainer}>
-        {imageSource ? (
-          <Image source={imageSource} style={styles.image} />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Ionicons
-              name={PRODUCT_TYPE_ICONS[product.type] as any}
-              size={48}
-              color={COLORS.text.tertiary}
-            />
-          </View>
-        )}
+        <Image source={imageSource} style={styles.image} />
 
         {/* Badge +18 */}
         {product.isAdultContent && (
@@ -143,10 +134,12 @@ export function ShopCard({ product, onPress }: ShopCardProps) {
         )}
 
         {/* Vendedor */}
-        <View style={styles.seller}>
-          <Ionicons name="person-outline" size={14} color={COLORS.text.secondary} />
-          <Text style={styles.sellerText}>@{product.userId.username}</Text>
-        </View>
+        {product.userId && product.userId.username && (
+          <View style={styles.seller}>
+            <Ionicons name="person-outline" size={14} color={COLORS.text.secondary} />
+            <Text style={styles.sellerText}>@{product.userId.username}</Text>
+          </View>
+        )}
 
         {/* Footer */}
         <View style={styles.footer}>

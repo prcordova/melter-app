@@ -169,11 +169,7 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
               {(() => {
                 // Calcular unreadCount localmente para garantir que está correto
                 const localUnreadCount = notifications.filter(n => !n.isRead).length;
-                console.log('[NotificationModal] Renderizando ações:', {
-                  unreadCount,
-                  localUnreadCount,
-                  shouldShow: localUnreadCount > 0
-                });
+                
                 
                 return localUnreadCount > 0 ? (
                   <TouchableOpacity
@@ -220,7 +216,6 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
               <>
                 {recentNotifications.length > 0 ? (
                   recentNotifications.map((notification) => {
-                    console.log('[NotificationModal] Renderizando notificação:', notification._id, notification.title);
                     return (
                       <TouchableOpacity
                         key={notification._id}
