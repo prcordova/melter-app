@@ -24,6 +24,7 @@ import { COLORS } from '../theme/colors';
 import { showToast } from './CustomToast';
 import { StoryReactionButton } from './stories/StoryReactionButton';
 import { StoryMessageInput } from './stories/StoryMessageInput';
+import { ReportStoryModal } from './stories/ReportStoryModal';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 segundos por story
@@ -53,6 +54,10 @@ export function StoryViewerModal({
   const [showViewers, setShowViewers] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [loadingFriendship, setLoadingFriendship] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   
   const progress = useRef(new Animated.Value(0)).current;
   const currentGroup = storiesGroups[groupIndex];
@@ -118,6 +123,58 @@ export function StoryViewerModal({
       }).catch(() => {});
     }
   }, [currentStory?._id, visible, loading]);
+
+  // Mostrar Alert de confirmação de exclusão
+  useEffect(() => {
+    if (showDeleteConfirm && currentStory) {
+      Alert.alert(
+        'Excluir Story',
+        'Tem certeza que deseja excluir este story? Esta ação não pode ser desfeita.',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => setShowDeleteConfirm(false),
+          },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                setDeleting(true);
+                const response = await storiesApi.deleteStory(currentStory._id);
+                if (response.success) {
+                  showToast.success('Sucesso', 'Story excluído com sucesso');
+                  setShowDeleteConfirm(false);
+                  // Se não houver mais stories, fechar o modal
+                  if (currentGroup.stories.length === 1) {
+                    onClose();
+                  } else {
+                    // Avançar para o próximo story ou voltar
+                    if (storyIndex < currentGroup.stories.length - 1) {
+                      setStoryIndex(storyIndex + 1);
+                    } else if (groupIndex < storiesGroups.length - 1) {
+                      setGroupIndex(groupIndex + 1);
+                      setStoryIndex(0);
+                    } else {
+                      onClose();
+                    }
+                  }
+                } else {
+                  throw new Error(response.message || 'Erro ao excluir story');
+                }
+              } catch (error: any) {
+                console.error('Erro ao excluir story:', error);
+                showToast.error('Erro', error.message || 'Não foi possível excluir o story');
+              } finally {
+                setDeleting(false);
+              }
+            },
+          },
+        ]
+      );
+    }
+  }, [showDeleteConfirm, currentStory?._id, currentGroup?.stories.length, storyIndex, groupIndex, storiesGroups.length, onClose]);
 
   // Verificar status de amizade
   useEffect(() => {
@@ -238,9 +295,18 @@ export function StoryViewerModal({
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={30} color="#ffffff" />
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                {/* Menu de 3 pontinhos */}
+                <TouchableOpacity
+                  onPress={() => setShowMenu(true)}
+                  style={styles.menuButton}
+                >
+                  <Ionicons name="ellipsis-horizontal" size={24} color="#ffffff" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                  <Ionicons name="close" size={30} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -322,6 +388,67 @@ export function StoryViewerModal({
             )}
           </View>
         </View>
+
+        {/* Menu de Opções */}
+        {showMenu && (
+          <Modal
+            visible={showMenu}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowMenu(false)}
+          >
+            <TouchableOpacity
+              style={styles.menuOverlay}
+              activeOpacity={1}
+              onPress={() => setShowMenu(false)}
+            >
+              <View style={styles.menuContainer}>
+                {isOwnStory ? (
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setShowMenu(false);
+                      setShowDeleteConfirm(true);
+                    }}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={COLORS.states.error} />
+                    <Text style={[styles.menuItemText, { color: COLORS.states.error }]}>
+                      Excluir story
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setShowMenu(false);
+                      setShowReportModal(true);
+                    }}
+                  >
+                    <Ionicons name="flag-outline" size={20} color={COLORS.states.warning} />
+                    <Text style={[styles.menuItemText, { color: COLORS.states.warning }]}>
+                      Denunciar story
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={[styles.menuItem, styles.menuItemLast]}
+                  onPress={() => setShowMenu(false)}
+                >
+                  <Text style={styles.menuItemText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
+
+
+        {/* Modal de Denúncia */}
+        <ReportStoryModal
+          visible={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          storyId={currentStory._id}
+          storyOwnerUsername={currentGroup.user.username}
+        />
 
         {/* Modal de Visualizadores (Simplified) */}
         {showViewers && (
@@ -436,8 +563,44 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontSize: 12,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuButton: {
+    padding: 4,
+  },
   closeButton: {
     padding: 4,
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuContainer: {
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    minWidth: 200,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border.light,
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: COLORS.text.primary,
+    fontWeight: '500',
   },
   textOverlay: {
     position: 'absolute',
