@@ -70,6 +70,7 @@ export function MyShopScreen() {
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [visitorShopApproved, setVisitorShopApproved] = useState<boolean | null>(null);
 
   // Extrair parâmetros da rota
   const username = route.params?.username || user?.username || '';
@@ -125,6 +126,22 @@ export function MyShopScreen() {
       showToast.info('Plano', `Abrindo modal de assinatura do plano ${openPlanId}`);
     }
   }, [dataLoaded, loading, products, route.params?.openProduct, route.params?.openPlan]);
+
+  // Verificar se loja está aprovada (para visitantes)
+  useEffect(() => {
+    if (!isOwner && shopOwner) {
+      // Tentar verificar se a loja está aprovada buscando settings
+      shopApi.getSettings().then((response) => {
+        if (response.success && response.data) {
+          const verification = response.data.sellerVerification;
+          setVisitorShopApproved(verification?.status === 'approved');
+        }
+      }).catch(() => {
+        // Se falhar, assumir que não está aprovada se não houver produtos
+        setVisitorShopApproved(products.length > 0);
+      });
+    }
+  }, [isOwner, shopOwner, products.length]);
 
   // Buscar configurações da loja (apenas para dono)
   const fetchShopSettings = async () => {
@@ -320,6 +337,8 @@ export function MyShopScreen() {
     setActiveTab(tab);
   };
 
+  const sellerVerification = shopSettings?.sellerVerification;
+  
   if (loading || authLoading) {
     return (
       <View style={styles.container}>
@@ -331,25 +350,6 @@ export function MyShopScreen() {
       </View>
     );
   }
-
-  const sellerVerification = shopSettings?.sellerVerification;
-  // Se não é dono, tentar verificar se a loja está aprovada através dos produtos ou buscar settings
-  const [visitorShopApproved, setVisitorShopApproved] = useState<boolean | null>(null);
-  
-  useEffect(() => {
-    if (!isOwner && shopOwner) {
-      // Tentar verificar se a loja está aprovada buscando settings
-      shopApi.getSettings().then((response) => {
-        if (response.success && response.data) {
-          const verification = response.data.sellerVerification;
-          setVisitorShopApproved(verification?.status === 'approved');
-        }
-      }).catch(() => {
-        // Se falhar, assumir que não está aprovada se não houver produtos
-        setVisitorShopApproved(products.length > 0);
-      });
-    }
-  }, [isOwner, shopOwner, products.length]);
 
   const isShopApproved = isOwner 
     ? sellerVerification?.status === 'approved' 
