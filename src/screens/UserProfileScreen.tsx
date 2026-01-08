@@ -12,17 +12,22 @@ import {
   ImageBackground,
   Dimensions,
   Linking,
+  Modal,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Header } from '../components/Header';
 import { PostCard } from '../components/PostCard';
 import { StoryViewerModal } from '../components/StoryViewerModal';
+import { ReportUserModal } from '../components/ReportUserModal';
 import { userApi, postsApi, storiesApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { useAuth } from '../contexts/AuthContext';
 import { StoriesGroup } from '../types/feed';
+import { showToast } from '../components/CustomToast';
+import * as Clipboard from 'expo-clipboard';
+import { API_CONFIG } from '../config/api.config';
 
 const { width } = Dimensions.get('window');
 
@@ -52,6 +57,9 @@ export function UserProfileScreen() {
   const [friendshipLoading, setFriendshipLoading] = useState(false);
   const [userStories, setUserStories] = useState<StoriesGroup | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   const loadData = async () => {
     try {
@@ -131,6 +139,16 @@ export function UserProfileScreen() {
         setIsFollowing(userData.isFollowing);
         setFriendshipStatus(userData.friendshipStatus || 'NONE');
         setFriendshipId(userData.friendshipId || null);
+        
+        // Verificar status de bloqueio
+        try {
+          const blockRes = await userApi.getBlockStatus(username);
+          if (blockRes.success) {
+            setIsBlocked(blockRes.data.isBlocked || false);
+          }
+        } catch (error) {
+          console.error('Erro ao verificar bloqueio:', error);
+        }
         
         // Buscar stories do usuário
         try {
@@ -285,7 +303,7 @@ export function UserProfileScreen() {
 
   const handleMessagePress = () => {
     if (friendshipStatus !== 'FRIENDS') {
-      Alert.alert('Aviso', 'Você só pode enviar mensagens para seus amigos.');
+      showToast.error('Aviso', 'Você só pode enviar mensagens para seus amigos.');
       return;
     }
     navigation.navigate('MessagesStack', {
@@ -296,6 +314,74 @@ export function UserProfileScreen() {
         avatar: user.avatar,
       },
     });
+  };
+
+  const handleShareProfile = async () => {
+    try {
+      const profileUrl = `https://melter.com.br/user/${username}`;
+      await Clipboard.setStringAsync(profileUrl);
+      showToast.success('Copiado!', 'Link do perfil copiado para a área de transferência');
+      setShowMenu(false);
+    } catch (error) {
+      console.error('Erro ao copiar link:', error);
+      showToast.error('Erro', 'Não foi possível copiar o link');
+    }
+  };
+
+  const handleBlockUser = async () => {
+    setShowMenu(false);
+    
+    if (isBlocked) {
+      // Desbloquear
+      Alert.alert(
+        'Desbloquear',
+        `Desbloquear @${username}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Desbloquear',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const response = await userApi.unblockUser(username);
+                if (response.success) {
+                  setIsBlocked(false);
+                  showToast.success('Sucesso', 'Usuário desbloqueado');
+                  loadData(); // Recarregar dados
+                }
+              } catch (error: any) {
+                showToast.error('Erro', error.response?.data?.message || 'Não foi possível desbloquear');
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      // Bloquear
+      Alert.alert(
+        'Bloquear',
+        `Bloquear @${username}? Vocês não poderão mais interagir.`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Bloquear',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const response = await userApi.blockUser(username);
+                if (response.success) {
+                  setIsBlocked(true);
+                  showToast.success('Sucesso', 'Usuário bloqueado');
+                  loadData(); // Recarregar dados
+                }
+              } catch (error: any) {
+                showToast.error('Erro', error.response?.data?.message || 'Não foi possível bloquear');
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   if (loading && !refreshing) {
@@ -416,19 +502,30 @@ export function UserProfileScreen() {
 
         {/* Info do Usuário */}
         <View style={styles.profileHeader}>
-          <View 
-            style={[
-              styles.avatarWrapper,
-              userStories && styles.avatarWrapperWithStory
-            ]}
-          >
-            <Avatar 
-              user={{ username: user.username, avatar: user.avatar }} 
-              size={100}
-              onPress={() => userStories && setShowStoryViewer(true)}
-              disableNavigation // Já estamos no perfil
-            />
-            <View style={[styles.statusIndicator, { backgroundColor: user.status?.visibility === 'online' ? '#10b981' : '#94a3b8' }]} />
+          <View style={styles.avatarContainer}>
+            <View 
+              style={[
+                styles.avatarWrapper,
+                userStories && styles.avatarWrapperWithStory
+              ]}
+            >
+              <Avatar 
+                user={{ username: user.username, avatar: user.avatar }} 
+                size={100}
+                onPress={() => userStories && setShowStoryViewer(true)}
+                disableNavigation // Já estamos no perfil
+              />
+              <View style={[styles.statusIndicator, { backgroundColor: user.status?.visibility === 'online' ? '#10b981' : '#94a3b8' }]} />
+            </View>
+            
+            {/* Balão de status (mensagem de status) */}
+            {user.status?.customMessage && user.status.customMessage.trim() && (
+              <View style={styles.statusBalloon}>
+                <Text style={[styles.statusBalloonText, dynamicStyles.text]} numberOfLines={2}>
+                  {user.status.customMessage}
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.userInfo}>
@@ -436,6 +533,15 @@ export function UserProfileScreen() {
               <Text style={[styles.username, dynamicStyles.text]}>@{user.username}</Text>
               {user.verifiedBadge?.isVerified && (
                 <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
+              )}
+              {/* Menu de 3 pontinhos */}
+              {currentUser?.id !== (user.id || user._id) && (
+                <TouchableOpacity
+                  style={styles.menuButton}
+                  onPress={() => setShowMenu(true)}
+                >
+                  <Ionicons name="ellipsis-vertical" size={24} color={getSafeColor(profile.textColor, COLORS.text.primary)} />
+                </TouchableOpacity>
               )}
             </View>
             <Text style={[styles.planType, { color: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) }]}>
@@ -618,6 +724,70 @@ export function UserProfileScreen() {
           initialGroupIndex={0}
         />
       )}
+
+      <ReportUserModal
+        visible={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetUsername={username}
+      />
+
+      {/* Menu de 3 pontinhos */}
+      <Modal
+        visible={showMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.menuOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenu(false)}
+        >
+          <View style={styles.menuContainer}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleShareProfile}
+            >
+              <Ionicons name="share-outline" size={20} color={COLORS.primary.main} />
+              <Text style={[styles.menuItemText, { color: COLORS.primary.main }]}>
+                Compartilhar Perfil
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                setShowReportModal(true);
+              }}
+            >
+              <Ionicons name="flag-outline" size={20} color={COLORS.states.warning} />
+              <Text style={[styles.menuItemText, { color: COLORS.states.warning }]}>
+                Denunciar
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleBlockUser}
+            >
+              <Ionicons 
+                name={isBlocked ? "lock-open-outline" : "lock-closed-outline"} 
+                size={20} 
+                color={isBlocked ? COLORS.primary.main : COLORS.states.error} 
+              />
+              <Text style={[
+                styles.menuItemText, 
+                { color: isBlocked ? COLORS.primary.main : COLORS.states.error }
+              ]}>
+                {isBlocked ? 'Desbloquear' : 'Bloquear'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -654,11 +824,83 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
   },
+  avatarContainer: {
+    position: 'relative',
+    alignItems: 'center',
+  },
   avatarWrapper: {
     position: 'relative',
     padding: 4,
     backgroundColor: COLORS.background.default,
     borderRadius: 60,
+  },
+  statusBalloonContainer: {
+    position: 'absolute',
+    left: 120, // Avatar width (100) + padding (20)
+    top: '50%',
+    marginTop: -20, // Aproximadamente metade da altura do balão
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusBalloon: {
+    maxWidth: 200,
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+  },
+  statusBalloonArrow: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 8,
+    borderTopColor: 'transparent',
+    borderBottomWidth: 8,
+    borderBottomColor: 'transparent',
+    borderRightWidth: 8,
+    borderRightColor: COLORS.background.paper,
+    marginLeft: -1,
+  },
+  statusBalloonText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.text.primary,
+  },
+  menuButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  menuContainer: {
+    backgroundColor: COLORS.background.paper,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 12,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: COLORS.border.light,
+    marginVertical: 8,
   },
   avatarWrapperWithStory: {
     borderWidth: 3,
@@ -774,6 +1016,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#6366f1',
     gap: 8,
+  },
+  reportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.states.error,
+    gap: 8,
+    marginTop: 10,
   },
   buttonPrimary: {
     backgroundColor: COLORS.secondary.main,

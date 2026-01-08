@@ -8,6 +8,7 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
@@ -21,6 +22,7 @@ import { storiesApi, userApi } from '../services/api';
 import { StoriesGroup } from '../types/feed';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Clipboard from 'expo-clipboard';
 
 type UserStatus = 'online' | 'busy' | 'offline';
 
@@ -39,6 +41,7 @@ export function ProfileScreen() {
   const [userStories, setUserStories] = useState<StoriesGroup | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const statusMessageInputRef = useRef<TextInput>(null);
+  const [userLinks, setUserLinks] = useState<any[]>([]);
 
   // Função para carregar status
   const loadStatus = useCallback(async () => {
@@ -110,6 +113,40 @@ export function ProfileScreen() {
     if (user?.id) fetchMyStories();
   }, [user?.id]);
 
+  // Carregar links do usuário
+  React.useEffect(() => {
+    const fetchUserLinks = async () => {
+      try {
+        if (!user?.id) return;
+        const response = await userApi.getMyProfile();
+        if (response.success && response.data) {
+          setUserLinks(response.data.links || []);
+        }
+      } catch (e) {
+        console.error('Erro ao buscar links:', e);
+      }
+    };
+    if (user?.id) fetchUserLinks();
+  }, [user?.id]);
+
+  // Recarregar links quando voltar da tela de links
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserLinks = async () => {
+        try {
+          if (!user?.id) return;
+          const response = await userApi.getMyProfile();
+          if (response.success && response.data) {
+            setUserLinks(response.data.links || []);
+          }
+        } catch (e) {
+          console.error('Erro ao buscar links:', e);
+        }
+      };
+      if (user?.id) fetchUserLinks();
+    }, [user?.id])
+  );
+
   // Handlers (declarados antes para evitar erros de referência)
   const handleMenuPress = (screen: string) => {
     if (screen === 'settings') {
@@ -148,6 +185,18 @@ export function ProfileScreen() {
         { text: 'Sair', onPress: logout, style: 'destructive' },
       ]
     );
+  };
+
+  const handleShareProfile = async () => {
+    try {
+      if (!user?.username) return;
+      const profileUrl = `https://melter.com.br/user/${user.username}`;
+      await Clipboard.setStringAsync(profileUrl);
+      showToast.success('Copiado!', 'Link do perfil copiado para a área de transferência');
+    } catch (error) {
+      console.error('Erro ao copiar link:', error);
+      showToast.error('Erro', 'Não foi possível copiar o link');
+    }
   };
 
   // Opções do menu (baseado no dropdown do Melter web)
@@ -230,21 +279,43 @@ export function ProfileScreen() {
         {/* Avatar e Info do Usuário */}
         <View style={styles.userSection}>
           <View style={styles.avatarWrapper}>
-            <View style={[
-              styles.avatarContainer,
-              userStories && styles.avatarContainerWithStory
-            ]}>
-              <Avatar 
-                user={{ username: user?.username, avatar: user?.avatar }} 
-                size={80}
-                onPress={() => {
-                  if (userStories) {
-                    setShowStoryViewer(true);
-                  } else {
-                    handleMenuPress('profile');
-                  }
-                }}
-              />
+            <View style={styles.avatarContainer}>
+              <View style={[
+                styles.avatarInnerContainer,
+                userStories && styles.avatarContainerWithStory
+              ]}>
+                <Avatar 
+                  user={{ username: user?.username, avatar: user?.avatar }} 
+                  size={80}
+                  onPress={() => {
+                    if (userStories) {
+                      setShowStoryViewer(true);
+                    } else {
+                      handleMenuPress('profile');
+                    }
+                  }}
+                />
+              </View>
+              {/* Botão de compartilhar */}
+              <TouchableOpacity
+                style={styles.shareButton}
+                onPress={handleShareProfile}
+              >
+                <Ionicons name="share-outline" size={20} color="#ffffff" />
+              </TouchableOpacity>
+              
+              {/* Balão de status (mensagem de status) */}
+              {statusMessage && statusMessage.trim() && (
+                <View style={styles.statusBalloonContainer}>
+                  <View style={styles.statusBalloon}>
+                    <Text style={styles.statusBalloonText} numberOfLines={2}>
+                      {statusMessage}
+                    </Text>
+                  </View>
+                  {/* Seta do balão apontando para o avatar */}
+                  <View style={styles.statusBalloonArrow} />
+                </View>
+              )}
             </View>
             {/* Botão de editar status (estilo balão de fala) */}
             <TouchableOpacity
@@ -395,6 +466,43 @@ export function ProfileScreen() {
           )}
         </View>
 
+        {/* Links do Usuário */}
+        <View style={styles.linksSection}>
+          <Text style={styles.sectionTitle}>Links</Text>
+          {userLinks.length > 0 ? (
+            userLinks.map((link) => (
+              <TouchableOpacity
+                key={link._id}
+                style={styles.linkCard}
+                onPress={() => {
+                  if (link.url) {
+                    Linking.openURL(link.url.startsWith('http') ? link.url : `https://${link.url}`);
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                {link.icon && (
+                  <View style={styles.linkIconContainer}>
+                    <Text style={styles.linkIconEmoji}>{link.icon}</Text>
+                  </View>
+                )}
+                <Text style={styles.linkTitle}>{link.title}</Text>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.text.tertiary} />
+              </TouchableOpacity>
+            ))
+          ) : (
+            <TouchableOpacity
+              style={styles.addLinkButton}
+              onPress={() => {
+                (navigation as any).navigate('LinksSettings');
+              }}
+            >
+              <Ionicons name="add-circle-outline" size={24} color={COLORS.primary.main} />
+              <Text style={styles.addLinkText}>Cadastrar Link</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Grid de Cards */}
         <View style={styles.menuGrid}>
           {menuOptions.map((option, index) => (
@@ -461,13 +569,68 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatarContainer: {
+    position: 'relative',
+    alignItems: 'center',
     marginBottom: 0,
+  },
+  avatarInnerContainer: {
+    position: 'relative',
   },
   avatarContainerWithStory: {
     borderWidth: 3,
     borderColor: COLORS.secondary.main,
     borderRadius: 44,
     padding: 2,
+  },
+  shareButton: {
+    position: 'absolute',
+    top: 0,
+    right: -10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  statusBalloonContainer: {
+    position: 'absolute',
+    left: 100, // Avatar width (80) + padding (20)
+    top: '50%',
+    marginTop: -20, // Aproximadamente metade da altura do balão
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusBalloon: {
+    maxWidth: 200,
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+  },
+  statusBalloonText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.text.primary,
+  },
+  statusBalloonArrow: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 8,
+    borderTopColor: 'transparent',
+    borderBottomWidth: 8,
+    borderBottomColor: 'transparent',
+    borderRightWidth: 8,
+    borderRightColor: COLORS.background.paper,
+    marginLeft: -1,
   },
   editStatusButton: {
     position: 'absolute',
@@ -643,5 +806,54 @@ const styles = StyleSheet.create({
   logoutButtonContainer: {
     marginTop: 16,
     alignItems: 'center',
+  },
+  linksSection: {
+    marginTop: 24,
+    marginBottom: 16,
+    gap: 12,
+  },
+  linkCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+  },
+  linkIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.background.tertiary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  linkIconEmoji: {
+    fontSize: 20,
+  },
+  linkTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  addLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    padding: 20,
+    gap: 12,
+    borderWidth: 2,
+    borderColor: COLORS.primary.main,
+    borderStyle: 'dashed',
+  },
+  addLinkText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary.main,
   },
 });

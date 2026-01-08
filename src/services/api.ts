@@ -307,6 +307,26 @@ export const userApi = {
     const response = await api.get<ApiResponse<any>>(`/api/blocks/${username}`);
     return response.data;
   },
+  reportUser: async (targetUsername: string, data: {
+    category: string;
+    description: string;
+    targetType?: string;
+    targetId?: string;
+  }) => {
+    const formData = new FormData();
+    formData.append('targetUsername', targetUsername);
+    formData.append('targetType', data.targetType || 'PROFILE');
+    if (data.targetId) formData.append('targetId', data.targetId);
+    formData.append('category', data.category);
+    formData.append('description', data.description);
+
+    const response = await api.post<ApiResponse<any>>('/api/reports', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
   getBlockedUsers: async () => {
     const response = await api.get<ApiResponse<Array<{
       userId: string;
