@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
 import { COLORS } from '../theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function RegisterScreen() {
   const navigation = useNavigation();
@@ -37,6 +38,22 @@ export function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+
+  // Buscar referralCode do AsyncStorage ao montar o componente
+  useEffect(() => {
+    const loadReferralCode = async () => {
+      try {
+        const storedRef = await AsyncStorage.getItem('referralCode');
+        if (storedRef) {
+          setReferralCode(storedRef);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar referralCode:', error);
+      }
+    };
+    loadReferralCode();
+  }, []);
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, '').slice(0, 11);
@@ -147,7 +164,17 @@ export function RegisterScreen() {
         birthDate: `${birthDateParts[2]}-${birthDateParts[1]}-${birthDateParts[0]}`,
         termsAccepted: acceptedTerms,
         avatar: avatarFile || undefined,
+        referralCode: referralCode || undefined,
       });
+
+      // Limpar referralCode do AsyncStorage após registro bem-sucedido
+      if (referralCode && response.success) {
+        try {
+          await AsyncStorage.removeItem('referralCode');
+        } catch (error) {
+          console.error('Erro ao remover referralCode:', error);
+        }
+      }
 
       if (response.success) {
         if (response.data?.requiresVerification) {
@@ -192,10 +219,20 @@ export function RegisterScreen() {
             <BackButton title="Login" />
           </View>
 
-          <View style={styles.formContainer}>
+              <View style={styles.formContainer}>
             <View style={styles.formCard}>
               <Text style={styles.logo}>Melter</Text>
               <Text style={styles.formTitle}>Criar Conta</Text>
+
+              {/* Indicador de Referral Code */}
+              {referralCode && (
+                <View style={styles.referralBanner}>
+                  <Ionicons name="gift" size={20} color="#ffffff" />
+                  <Text style={styles.referralText}>
+                    Você está ajudando <Text style={styles.referralCodeText}>{referralCode}</Text>!
+                  </Text>
+                </View>
+              )}
 
               {/* Avatar */}
               <View style={styles.avatarContainer}>
@@ -381,6 +418,25 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     textAlign: 'center',
     marginBottom: 32,
+  },
+  referralBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.secondary.main,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 24,
+    gap: 8,
+  },
+  referralText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  referralCodeText: {
+    fontWeight: 'bold',
+    fontSize: 15,
   },
   avatarContainer: {
     alignItems: 'center',

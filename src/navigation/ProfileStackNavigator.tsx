@@ -16,6 +16,7 @@ import { PromotionsScreen } from '../screens/settings/PromotionsScreen';
 import { SecurityScreen } from '../screens/settings/SecurityScreen';
 import { PrivacyScreen } from '../screens/settings/PrivacyScreen';
 import { PreferencesScreen } from '../screens/settings/PreferencesScreen';
+import { ReferralScreen } from '../screens/ReferralScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -59,6 +60,13 @@ export function ProfileStackNavigator() {
       <Stack.Screen 
         name="Product" 
         component={ProductScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="Referral" 
+        component={ReferralScreen}
         options={{
           headerShown: false,
         }}

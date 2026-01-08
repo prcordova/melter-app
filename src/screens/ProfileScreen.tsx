@@ -171,6 +171,8 @@ export function ProfileScreen() {
       (navigation as any).navigate('Purchases');
     } else if (screen === 'promotions') {
       (navigation as any).navigate('PromotionsSettings');
+    } else if (screen === 'referral') {
+      (navigation as any).navigate('Referral');
     } else {
       showToast.info('Em breve', `Tela de ${screen} será implementada`);
     }
@@ -206,6 +208,7 @@ export function ProfileScreen() {
     { id: 'purchases', title: 'Compras', icon: '🛍️', onPress: () => handleMenuPress('purchases') },
     { id: 'wallet', title: 'Carteira', icon: '💰', onPress: () => handleMenuPress('wallet'), badgeCount: 0 },
     { id: 'promotions', title: 'Promoções', icon: '🎁', onPress: () => handleMenuPress('promotions') },
+    { id: 'referral', title: 'Indique e Ganhe', icon: '🎯', onPress: () => handleMenuPress('referral') },
     { id: 'settings', title: 'Configurações', icon: '⚙️', onPress: () => handleMenuPress('settings') },
     { id: 'plans', title: user?.plan?.type === 'FREE' ? 'Upgrade' : 'Planos', icon: '⭐', onPress: () => handleMenuPress('plans') },
     { id: 'terms', title: 'Termos', icon: '📄', onPress: () => handleMenuPress('terms') },
