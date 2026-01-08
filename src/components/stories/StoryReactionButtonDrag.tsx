@@ -149,6 +149,8 @@ export function StoryReactionButtonDrag({
               // Centralizar horizontalmente em relação ao botão
               // O botão tem 44px de largura, então centralizamos o menu relativo ao centro do botão
               left: 22 - (REACTION_PICKER_WIDTH / 2), // Centralizar relativo ao centro do botão (22px = metade de 44px)
+              // Garantir que não saia da tela à esquerda
+              marginLeft: Math.max(0, (REACTION_PICKER_WIDTH / 2) - 22),
             },
           ]}
         >
