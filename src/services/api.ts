@@ -234,6 +234,15 @@ export const userApi = {
     const response = await api.get<ApiResponse<any>>(`/api/blocks/${username}`);
     return response.data;
   },
+  getBlockedUsers: async () => {
+    const response = await api.get<ApiResponse<Array<{
+      userId: string;
+      username: string;
+      avatar?: string;
+      blockedAt: string;
+    }>>>('/api/blocks/list');
+    return response.data;
+  },
   acceptTerms: async (version: string) => {
     const response = await api.post<ApiResponse<any>>('/api/users/accept-terms', { version });
     return response.data;
