@@ -7,7 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
-import { LoginScreen } from './src/screens/LoginScreen';
+import { AuthStackNavigator } from './src/navigation/AuthStackNavigator';
 import { TabNavigator } from './src/navigation/TabNavigator';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { usePermissions } from './src/hooks/usePermissions';
@@ -44,8 +44,8 @@ function Navigation() {
                />
              ) : (
                <Stack.Screen 
-                 name="Login" 
-                 component={LoginScreen}
+                 name="Auth" 
+                 component={AuthStackNavigator}
                  options={{ headerShown: false }}
                />
              )}

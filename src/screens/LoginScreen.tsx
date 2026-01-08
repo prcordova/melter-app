@@ -5,12 +5,12 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   TouchableOpacity,
   Image,
   StyleSheet,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { AxiosError } from 'axios';
@@ -18,6 +18,7 @@ import { showToast } from '../components/CustomToast';
 
 export function LoginScreen() {
   const { login } = useAuth();
+  const navigation = useNavigation();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -59,12 +60,11 @@ export function LoginScreen() {
       console.error('[LOGIN] Erro no login:', err);
 
       if (err.response?.data?.requiresVerification && err.response?.data?.email) {
-        setError(err.response.data.message);
-        Alert.alert(
-          'Verificação Necessária',
-          'Você precisa verificar seu e-mail antes de fazer login.',
-          [{ text: 'OK' }]
-        );
+        const userEmail = err.response.data.email;
+        showToast.info('Verificação Necessária', 'Você precisa verificar seu e-mail antes de fazer login.');
+        setTimeout(() => {
+          (navigation as any).navigate('VerifyEmail', { email: userEmail });
+        }, 1500);
       } else {
         setError(err.response?.data?.message || 'Erro ao fazer login');
       }
@@ -188,7 +188,10 @@ export function LoginScreen() {
                     Acessar
                   </Button>
 
-                  <TouchableOpacity style={styles.forgotPassword}>
+                  <TouchableOpacity 
+                    style={styles.forgotPassword}
+                    onPress={() => (navigation as any).navigate('ForgotPassword')}
+                  >
                     <Text style={styles.forgotPasswordText}>
                       Recuperar senha?
                     </Text>
@@ -199,7 +202,7 @@ export function LoginScreen() {
               {/* Link para cadastro */}
               <View style={styles.signupContainer}>
                 <Text style={styles.signupText}>Não tem uma conta? </Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => (navigation as any).navigate('Register')}>
                   <Text style={styles.signupLink}>Cadastre-se</Text>
                 </TouchableOpacity>
               </View>
