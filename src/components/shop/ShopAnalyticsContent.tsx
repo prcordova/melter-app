@@ -195,27 +195,6 @@ export function ShopAnalyticsContent() {
     setDateRange(getCurrentMonthRange());
   };
 
-  // Verificar se o usuário tem acesso ao analytics
-  const userPlan = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
-  const hasAccess = user?.accountType === 'admin' || 
-    (userPlan === 'PRO' || userPlan === 'PRO_PLUS');
-
-  if (!hasAccess) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.emptyContainer}>
-          <Ionicons name="lock-closed" size={64} color={COLORS.text.secondary} />
-          <Text style={styles.emptyTitle}>Analytics da Loja</Text>
-          <Text style={styles.emptyText}>
-            Use o analytics para entender seu público e melhorar suas vendas. Aqui você verá visitas, visualizações de produtos, cliques em comprar e muito mais.
-          </Text>
-          <Text style={styles.emptySubtext}>
-            Este recurso está disponível apenas para planos PRO ou superior.
-          </Text>
-        </View>
-      </View>
-    );
-  }
 
   if (loading) {
     return (

@@ -24,7 +24,7 @@ import { ShopSettingsModal } from '../components/shop/ShopSettingsModal';
 import { ShopAnalyticsContent } from '../components/shop/ShopAnalyticsContent';
 import { ShopCommunityContent } from '../components/shop/ShopCommunityContent';
 import { PlanLocker } from '../components/PlanLocker';
-import { getFeatureLimit } from '../config/plan-features';
+import { getFeatureLimit, hasFeatureAccess } from '../config/plan-features';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
 import axios from 'axios';
@@ -365,11 +365,12 @@ export function MyShopScreen() {
   const handleTabChange = (tab: ActiveTab) => {
     // Verificar acesso à tab Analytics
     if (tab === 'analytics') {
-      // TODO: Verificar se tem plano PRO
-      // Por enquanto, apenas permitir se for admin
-      if (!isAdmin) {
+      const userPlan = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
+      const hasAccess = isAdmin || hasFeatureAccess(userPlan, 'hasShopAnalytics');
+      
+      if (!hasAccess) {
         showToast.info('Analytics', 'Analytics disponível apenas para plano PRO');
-        // TODO: Navegar para tela de planos
+        navigation.navigate('Plans' as never);
         return;
       }
     }
@@ -771,7 +772,13 @@ export function MyShopScreen() {
             )}
 
             {activeTab === 'analytics' && (
-              <ShopAnalyticsContent />
+              <PlanLocker 
+                requiredPlan="PRO" 
+                currentPlan={(user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS'}
+                isAdmin={isAdmin}
+              >
+                <ShopAnalyticsContent />
+              </PlanLocker>
             )}
 
             {activeTab === 'community' && (

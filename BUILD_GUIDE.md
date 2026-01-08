@@ -1,294 +1,160 @@
-# Guia de Build e Instalação no Dispositivo
+# Guia de Build - Melter App
 
-## 📱 Opções para Testar no Celular
+Este guia explica como fazer o build do APK para o aplicativo Melter.
 
-Você **NÃO precisa** hospedar na Play Store para testar! Existem várias formas de instalar o app diretamente no seu celular via USB ou QR Code.
+## Pré-requisitos
 
----
-
-## 🚀 Opção 1: Build Local APK (Recomendado para Testes)
-
-### Pré-requisitos
-1. **Android Studio** instalado (para ter o Android SDK)
-2. **Java JDK** instalado
-3. **Expo CLI** instalado globalmente:
-   ```bash
-   npm install -g expo-cli eas-cli
-   ```
-
-### Passo a Passo
-
-#### 1. Configurar Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz do projeto `melter-app/`:
-
-```bash
-# .env
-EXPO_PUBLIC_API_URL=http://seu-backend.com
-# Adicione outras variáveis que precisar
-```
-
-**Importante:** No Expo, variáveis de ambiente devem começar com `EXPO_PUBLIC_` para serem acessíveis no app.
-
-#### 2. Atualizar `api.config.ts` para usar variáveis de ambiente
-
-O arquivo `src/config/api.config.ts` deve usar `process.env.EXPO_PUBLIC_API_URL`:
-
-```typescript
-export const API_CONFIG = {
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
-  TIMEOUT: 30000,
-};
-```
-
-#### 3. Gerar APK Local
-
-```bash
-cd melter-app
-
-# Instalar dependências (se ainda não instalou)
-npm install
-
-# Gerar build Android local
-npx expo build:android --type apk
-
-# OU usar EAS Build (mais moderno)
-eas build --platform android --profile preview
-```
-
-**Nota:** Se usar `expo build:android`, você precisará criar uma conta Expo (gratuita). O build será feito na nuvem, mas você pode baixar o APK.
-
-#### 4. Instalar via USB
-
-1. **Habilitar Depuração USB** no celular:
-   - Vá em `Configurações > Sobre o telefone`
-   - Toque 7 vezes em "Número da versão" para ativar "Opções do desenvolvedor"
-   - Volte e ative "Depuração USB"
-
-2. **Conectar o celular via USB** ao computador
-
-3. **Instalar o APK:**
-   ```bash
-   # Via ADB (Android Debug Bridge)
-   adb install caminho/para/o/app.apk
-   
-   # OU simplesmente copie o APK para o celular e instale manualmente
-   ```
-
----
-
-## 🎯 Opção 2: EAS Build (Recomendado para Produção)
-
-### Configurar EAS
-
-1. **Criar conta Expo** (gratuita): https://expo.dev
-
-2. **Instalar EAS CLI:**
+1. **Conta Expo**: Crie uma conta em [expo.dev](https://expo.dev)
+2. **EAS CLI**: Instale o EAS CLI globalmente:
    ```bash
    npm install -g eas-cli
    ```
-
-3. **Login:**
+3. **Login no EAS**:
    ```bash
    eas login
    ```
 
-4. **Configurar projeto:**
-   ```bash
-   eas build:configure
-   ```
+## Configuração do Ambiente
 
-Isso criará um arquivo `eas.json`:
+### 1. Variáveis de Ambiente
 
-```json
-{
-  "build": {
-    "preview": {
-      "android": {
-        "buildType": "apk"
-      }
-    },
-    "production": {
-      "android": {
-        "buildType": "app-bundle"
-      }
-    }
-  }
-}
-```
+O arquivo `eas.json` já está configurado com variáveis de ambiente para diferentes perfis:
 
-### Build Preview (APK para testes)
+- **Preview**: `EXPO_PUBLIC_API_URL=http://192.168.2.100:3000` (desenvolvimento local)
+- **Production**: `EXPO_PUBLIC_API_URL=https://api.melter.com` (produção)
+
+Você pode ajustar essas URLs no arquivo `eas.json` conforme necessário.
+
+## Build do APK
+
+### Opção 1: Build Preview (APK para testes)
+
+Para gerar um APK que pode ser instalado diretamente em dispositivos Android:
 
 ```bash
-# Build APK para Android
+cd melter-app
 eas build --platform android --profile preview
-
-# O build será feito na nuvem e você receberá um link para download
 ```
 
-### Build Production (AAB para Play Store)
+Este comando irá:
+- Gerar um APK (não um AAB)
+- Usar a URL de API configurada no perfil `preview`
+- Permitir instalação direta em dispositivos Android
+
+### Opção 2: Build Production (AAB para Google Play)
+
+Para gerar um AAB (Android App Bundle) para publicação na Google Play Store:
 
 ```bash
+cd melter-app
 eas build --platform android --profile production
 ```
 
----
+**Nota**: O perfil `production` gera um AAB, não um APK. Para gerar APK em produção, você precisaria ajustar o `eas.json`.
 
-## 🔧 Opção 3: Development Build (Para Desenvolvimento)
+### Opção 3: Build Local (mais rápido, requer Android SDK)
 
-### Usando Expo Go (Mais Rápido)
-
-1. **Instalar Expo Go** no celular (Play Store)
-
-2. **Iniciar o servidor:**
-   ```bash
-   npm start
-   ```
-
-3. **Escanear QR Code** com o Expo Go
-
-**Limitação:** Expo Go não suporta todas as bibliotecas nativas. Se você usar bibliotecas que não são suportadas, use a Opção 4.
-
-### Usando Development Build Local
-
-1. **Gerar development build:**
-   ```bash
-   npx expo run:android
-   ```
-
-2. **Instalar no dispositivo conectado via USB**
-
----
-
-## 📝 Configuração de Variáveis de Ambiente
-
-### Para Builds Locais
-
-Crie arquivos `.env`:
+Se você tem o Android SDK configurado localmente:
 
 ```bash
-# .env (desenvolvimento)
-EXPO_PUBLIC_API_URL=http://localhost:3000
-
-# .env.production (produção)
-EXPO_PUBLIC_API_URL=https://api.melter.com
+cd melter-app
+eas build --platform android --profile preview --local
 ```
 
-### Para EAS Build
+## Processo de Build
 
-Configure no `eas.json`:
-
-```json
-{
-  "build": {
-    "preview": {
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://api-staging.melter.com"
-      }
-    },
-    "production": {
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.melter.com"
-      }
-    }
-  }
-}
-```
-
-**OU** configure no dashboard do Expo: https://expo.dev
-
----
-
-## 🔐 Chaves e Certificados
-
-### Android (Keystore)
-
-Para builds de produção, você precisa de um keystore:
-
-1. **Gerar keystore:**
+1. **Inicie o build**:
    ```bash
-   keytool -genkeypair -v -storetype PKCS12 -keystore melter-release-key.jks -alias melter-key -keyalg RSA -keysize 2048 -validity 10000
+   eas build --platform android --profile preview
    ```
 
-2. **Configurar no `app.json`:**
-   ```json
-   {
-     "expo": {
-       "android": {
-         "package": "com.melter.app"
-       }
-     }
-   }
-   ```
+2. **Siga as instruções**:
+   - O EAS CLI irá fazer algumas perguntas sobre configurações
+   - Você pode escolher fazer o build na nuvem (recomendado) ou localmente
 
-3. **EAS gerencia automaticamente** se você usar EAS Build.
+3. **Aguarde o build**:
+   - O build na nuvem geralmente leva 10-20 minutos
+   - Você receberá um link para acompanhar o progresso
 
----
+4. **Download do APK**:
+   - Após o build concluir, você receberá um link para download
+   - Ou execute: `eas build:list` para ver todos os builds
 
-## 📦 Instalação Manual do APK
+## Comandos Úteis
 
-1. **Transferir APK** para o celular (via USB, email, ou nuvem)
-
-2. **Habilitar "Fontes desconhecidas"**:
-   - `Configurações > Segurança > Fontes desconhecidas` (Android 8+)
-   - Ou `Configurações > Apps > Instalar apps desconhecidos`
-
-3. **Abrir o APK** no celular e instalar
-
----
-
-## ✅ Checklist Antes do Build
-
-- [ ] Variáveis de ambiente configuradas (`.env` ou EAS)
-- [ ] `app.json` configurado com package name correto
-- [ ] Ícone e splash screen configurados
-- [ ] Permissões configuradas no `app.json`
-- [ ] Versão atualizada no `app.json` e `package.json`
-- [ ] Testado em desenvolvimento primeiro
-
----
-
-## 🐛 Troubleshooting
-
-### Erro: "Cannot find module"
+### Ver histórico de builds
 ```bash
-# Limpar cache e reinstalar
-rm -rf node_modules
-npm install
-npx expo start --clear
+eas build:list
 ```
 
-### Erro: "Keystore not found"
-- Use EAS Build (gerencia automaticamente)
-- OU gere um keystore manualmente (veja seção acima)
-
-### APK não instala
-- Verifique se "Fontes desconhecidas" está habilitado
-- Verifique se o APK não está corrompido
-- Tente gerar um novo build
-
----
-
-## 📚 Recursos Úteis
-
-- [Documentação Expo Build](https://docs.expo.dev/build/introduction/)
-- [EAS Build Guide](https://docs.expo.dev/build/introduction/)
-- [Expo Environment Variables](https://docs.expo.dev/guides/environment-variables/)
-
----
-
-## 🎯 Resumo Rápido
-
-**Para testar rapidamente:**
+### Ver detalhes de um build específico
 ```bash
-# 1. Configurar .env
-echo "EXPO_PUBLIC_API_URL=http://seu-backend.com" > .env
-
-# 2. Build APK
-eas build --platform android --profile preview
-
-# 3. Baixar e instalar no celular
+eas build:view [BUILD_ID]
 ```
 
-**Não precisa de Play Store para testar!** 🎉
+### Baixar um build
+```bash
+eas build:download [BUILD_ID]
+```
 
+### Cancelar um build em andamento
+```bash
+eas build:cancel [BUILD_ID]
+```
+
+## Configurações Importantes
+
+### Arquivo `eas.json`
+
+O arquivo já está configurado com:
+- **Preview**: Gera APK para testes
+- **Production**: Gera AAB para Google Play Store
+- Variáveis de ambiente específicas para cada perfil
+
+### Arquivo `app.json`
+
+Contém:
+- Nome do app: "melter-app"
+- Package name: `com.melter.app`
+- Permissões necessárias (câmera, galeria, notificações, etc.)
+- Configurações de ícone e splash screen
+
+## Troubleshooting
+
+### Erro: "No credentials found"
+Execute:
+```bash
+eas credentials
+```
+
+### Erro: "Build failed"
+- Verifique os logs do build: `eas build:view [BUILD_ID]`
+- Certifique-se de que todas as dependências estão instaladas: `npm install`
+- Verifique se o arquivo `.env` está configurado corretamente (se usado)
+
+### Build muito lento
+- Use `--local` se tiver Android SDK configurado
+- Verifique sua conexão com a internet
+- Considere usar o plano pago do EAS para builds mais rápidos
+
+## Próximos Passos
+
+Após gerar o APK:
+1. Transfira o arquivo para seu dispositivo Android
+2. Ative "Fontes desconhecidas" nas configurações do Android
+3. Instale o APK tocando no arquivo
+4. Teste o aplicativo
+
+## Publicação na Google Play Store
+
+Para publicar na Play Store:
+1. Gere o build de produção: `eas build --platform android --profile production`
+2. Faça upload do AAB na Google Play Console
+3. Complete as informações da loja
+4. Envie para revisão
+
+## Suporte
+
+Para mais informações, consulte:
+- [Documentação do EAS Build](https://docs.expo.dev/build/introduction/)
+- [Documentação do Expo](https://docs.expo.dev/)

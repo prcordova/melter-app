@@ -9,6 +9,7 @@ interface PlanLockerProps {
   children: React.ReactNode;
   requiredPlan: 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
   currentPlan?: 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
+  isAdmin?: boolean;
 }
 
 const planValues = {
@@ -18,10 +19,10 @@ const planValues = {
   PRO_PLUS: 3,
 };
 
-export function PlanLocker({ children, requiredPlan, currentPlan = 'FREE' }: PlanLockerProps) {
+export function PlanLocker({ children, requiredPlan, currentPlan = 'FREE', isAdmin = false }: PlanLockerProps) {
   const navigation = useNavigation();
   
-  const hasAccess = planValues[currentPlan] >= planValues[requiredPlan];
+  const hasAccess = isAdmin || planValues[currentPlan] >= planValues[requiredPlan];
 
   const handleUpgradePress = () => {
     (navigation as any).navigate('Plans');
