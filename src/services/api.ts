@@ -1218,12 +1218,20 @@ export const shopCommunityApi = {
     }>>('/api/shop/comments/moderation');
     return response.data;
   },
-  approveComment: async (commentId: string) => {
-    const response = await api.post<ApiResponse<any>>(`/api/shop/comments/${commentId}/approve`);
+  approveComment: async (productId: string, commentId: string) => {
+    const response = await api.post<ApiResponse<any>>(`/api/products/${productId}/comments/${commentId}/moderate`, {
+      status: 'APPROVED',
+    });
     return response.data;
   },
-  rejectComment: async (commentId: string) => {
-    const response = await api.post<ApiResponse<any>>(`/api/shop/comments/${commentId}/reject`);
+  rejectComment: async (productId: string, commentId: string) => {
+    const response = await api.post<ApiResponse<any>>(`/api/products/${productId}/comments/${commentId}/moderate`, {
+      status: 'REJECTED',
+    });
+    return response.data;
+  },
+  deleteComment: async (productId: string, fileId: string, commentId: string) => {
+    const response = await api.delete<ApiResponse<any>>(`/api/products/${productId}/files/${fileId}/comments/${commentId}`);
     return response.data;
   },
   getLikes: async () => {

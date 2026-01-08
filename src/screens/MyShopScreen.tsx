@@ -21,6 +21,10 @@ import { ProductCreationWizard } from '../components/shop/ProductCreationWizard'
 import { ShopCard } from '../components/ShopCard';
 import { SubscriptionPlansContent } from '../components/shop/SubscriptionPlansContent';
 import { ShopSettingsModal } from '../components/shop/ShopSettingsModal';
+import { ShopAnalyticsContent } from '../components/shop/ShopAnalyticsContent';
+import { ShopCommunityContent } from '../components/shop/ShopCommunityContent';
+import { PlanLocker } from '../components/PlanLocker';
+import { getFeatureLimit } from '../config/plan-features';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
 import axios from 'axios';
@@ -74,6 +78,7 @@ export function MyShopScreen() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [visitorShopApproved, setVisitorShopApproved] = useState<boolean | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [pendingProductsCount, setPendingProductsCount] = useState(0);
 
   // Extrair parâmetros da rota
   const username = route.params?.username || user?.username || '';
@@ -170,17 +175,43 @@ export function MyShopScreen() {
   const fetchProducts = async () => {
     try {
       setLoadingProducts(true);
-      const response = await productsApi.getProducts({
-        username: username,
-        // Se for dono, buscar todos (ativos e inativos). Se não for, apenas ativos
-        isActive: isOwner ? undefined : true,
-      });
+      
+      // Se for dono, não passar username para buscar produtos próprios (incluindo pendentes)
+      // Se não for dono, passar username para buscar produtos públicos (apenas aprovados)
+      const response = await productsApi.getProducts(
+        isOwner 
+          ? { isActive: undefined } // Busca própria: retorna todos os status (PENDING, APPROVED, etc)
+          : { username: username, isActive: true } // Busca pública: apenas produtos aprovados e ativos
+      );
 
       if (response.success) {
-        const productsData = Array.isArray(response.data) ? response.data : [];
+        let productsData = Array.isArray(response.data) ? response.data : [];
+        
+        // Para visitantes, garantir que apenas produtos aprovados sejam mostrados
+        if (!isOwner) {
+          productsData = productsData.filter((p: any) => p.status === 'APPROVED');
+        }
+        // Para dono, incluir produtos aprovados, pendentes e que requerem mudanças
+        else {
+          productsData = productsData.filter((p: any) => 
+            p.status === 'APPROVED' || 
+            p.status === 'PENDING' || 
+            p.status === 'REQUIRES_CHANGES'
+          );
+        }
+        
         setProducts(productsData);
+        
+        // Contar produtos pendentes (apenas para dono)
+        if (isOwner) {
+          const pendingCount = productsData.filter((p: any) => p.status === 'PENDING').length;
+          setPendingProductsCount(pendingCount);
+        } else {
+          setPendingProductsCount(0);
+        }
       } else {
         setProducts([]);
+        setPendingProductsCount(0);
       }
     } catch (error) {
       console.error('[MyShopScreen] Erro ao buscar produtos:', error);
@@ -347,6 +378,30 @@ export function MyShopScreen() {
   };
 
   const sellerVerification = shopSettings?.sellerVerification;
+
+  // Verificar se pode criar mais produtos (incluindo produtos pendentes no limite)
+  const getProductLimits = () => {
+    const planType = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
+    const maxProducts = getFeatureLimit(planType, 'maxProducts');
+    // Incluir produtos pendentes no limite (eles já "gastam" o recurso)
+    const currentProducts = products.length; // products já inclui todos (ativos + pendentes) para o dono
+    return { max: maxProducts, current: currentProducts };
+  };
+
+  const canCreateProduct = () => {
+    const limits = getProductLimits();
+    // Não pode criar se já atingiu o limite (incluindo produtos pendentes)
+    return limits.current < limits.max;
+  };
+
+  // Determinar qual plano é necessário quando o limite é atingido
+  const getRequiredPlan = (): 'STARTER' | 'PRO' | 'PRO_PLUS' => {
+    const planType = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
+    if (planType === 'FREE') return 'STARTER';
+    if (planType === 'STARTER') return 'PRO';
+    if (planType === 'PRO') return 'PRO_PLUS';
+    return 'PRO_PLUS'; // Se já é PRO_PLUS, não há upgrade
+  };
   
   if (loading || authLoading) {
     return (
@@ -434,11 +489,6 @@ export function MyShopScreen() {
                 style={[styles.tab, activeTab === 'products' && styles.tabActive]}
                 onPress={() => handleTabChange('products')}
               >
-                <Ionicons
-                  name="storefront-outline"
-                  size={18}
-                  color={activeTab === 'products' ? COLORS.secondary.main : COLORS.text.secondary}
-                />
                 <Text
                   style={[
                     styles.tabText,
@@ -453,11 +503,6 @@ export function MyShopScreen() {
                 style={[styles.tab, activeTab === 'analytics' && styles.tabActive]}
                 onPress={() => handleTabChange('analytics')}
               >
-                <Ionicons
-                  name="analytics-outline"
-                  size={18}
-                  color={activeTab === 'analytics' ? COLORS.secondary.main : COLORS.text.secondary}
-                />
                 <Text
                   style={[
                     styles.tabText,
@@ -472,11 +517,6 @@ export function MyShopScreen() {
                 style={[styles.tab, activeTab === 'community' && styles.tabActive]}
                 onPress={() => handleTabChange('community')}
               >
-                <Ionicons
-                  name="chatbubbles-outline"
-                  size={18}
-                  color={activeTab === 'community' ? COLORS.secondary.main : COLORS.text.secondary}
-                />
                 <Text
                   style={[
                     styles.tabText,
@@ -492,11 +532,6 @@ export function MyShopScreen() {
                   style={[styles.tab, activeTab === 'plans' && styles.tabActive]}
                   onPress={() => handleTabChange('plans')}
                 >
-                  <Ionicons
-                    name="card-outline"
-                    size={18}
-                    color={activeTab === 'plans' ? COLORS.secondary.main : COLORS.text.secondary}
-                  />
                   <Text
                     style={[
                       styles.tabText,
@@ -533,6 +568,23 @@ export function MyShopScreen() {
                 {/* Conteúdo quando loja está aprovada */}
                 {isOwner && isShopApproved && (
                   <>
+                    {/* Alerta de produtos pendentes */}
+                    {pendingProductsCount > 0 && (
+                      <View style={styles.pendingAlert}>
+                        <View style={styles.pendingAlertContent}>
+                          <Ionicons name="information-circle" size={20} color={COLORS.primary.main} />
+                          <View style={styles.pendingAlertText}>
+                            <Text style={styles.pendingAlertTitle}>
+                              Você tem {pendingProductsCount} produto{pendingProductsCount > 1 ? 's' : ''} pendente{pendingProductsCount > 1 ? 's' : ''}
+                            </Text>
+                            <Text style={styles.pendingAlertDescription}>
+                              Seu{pendingProductsCount > 1 ? 's' : ''} produto{pendingProductsCount > 1 ? 's' : ''} está{pendingProductsCount > 1 ? 'ão' : ''} sob análise e em breve estará{pendingProductsCount > 1 ? 'ão' : ''} ativo{pendingProductsCount > 1 ? 's' : ''} em sua loja.
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+
                     {loadingProducts ? (
                       <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color={COLORS.secondary.main} />
@@ -550,17 +602,33 @@ export function MyShopScreen() {
                         <Text style={styles.emptyProductsText}>
                           Comece criando seu primeiro produto!
                         </Text>
-                        <TouchableOpacity
-                          style={styles.createProductButton}
-                          onPress={() => {
-                            setEditingProduct(null);
-                            setShowCreateProductModal(true);
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
-                          <Text style={styles.createProductButtonText}>Criar Primeiro Produto</Text>
-                        </TouchableOpacity>
+                        {!canCreateProduct() ? (
+                          <PlanLocker
+                            requiredPlan={getRequiredPlan()}
+                            currentPlan={(user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS'}
+                          >
+                            <TouchableOpacity
+                              style={[styles.createProductButton, styles.createProductButtonDisabled]}
+                              disabled={true}
+                              activeOpacity={0.7}
+                            >
+                              <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
+                              <Text style={styles.createProductButtonText}>Criar Primeiro Produto</Text>
+                            </TouchableOpacity>
+                          </PlanLocker>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.createProductButton}
+                            onPress={() => {
+                              setEditingProduct(null);
+                              setShowCreateProductModal(true);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
+                            <Text style={styles.createProductButtonText}>Criar Primeiro Produto</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     ) : (
                       // Há produtos - mostrar botão "Novo Produto" e lista
@@ -568,18 +636,39 @@ export function MyShopScreen() {
                         <View style={styles.productsHeader}>
                           <Text style={styles.productsCount}>
                             {products.length} {products.length === 1 ? 'produto' : 'produtos'}
+                            {pendingProductsCount > 0 && ` (${pendingProductsCount} pendente${pendingProductsCount > 1 ? 's' : ''})`}
                           </Text>
-                          <TouchableOpacity
-                            style={styles.newProductButton}
-                            onPress={() => {
-                              setEditingProduct(null);
-                              setShowCreateProductModal(true);
-                            }}
-                            activeOpacity={0.7}
-                          >
-                            <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
-                            <Text style={styles.newProductButtonText}>Novo Produto</Text>
-                          </TouchableOpacity>
+                          {!canCreateProduct() ? (
+                            <PlanLocker
+                              requiredPlan={getRequiredPlan()}
+                              currentPlan={(user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS'}
+                            >
+                              <TouchableOpacity
+                                style={[styles.newProductButton, styles.newProductButtonDisabled]}
+                                disabled={true}
+                                activeOpacity={0.7}
+                              >
+                                <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
+                                <Text style={styles.newProductButtonText}>
+                                  Novo ({getProductLimits().current}/{getProductLimits().max})
+                                </Text>
+                              </TouchableOpacity>
+                            </PlanLocker>
+                          ) : (
+                            <TouchableOpacity
+                              style={styles.newProductButton}
+                              onPress={() => {
+                                setEditingProduct(null);
+                                setShowCreateProductModal(true);
+                              }}
+                              activeOpacity={0.7}
+                            >
+                              <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
+                              <Text style={styles.newProductButtonText}>
+                                Novo ({getProductLimits().current}/{getProductLimits().max})
+                              </Text>
+                            </TouchableOpacity>
+                          )}
                         </View>
                         {/* Lista de Produtos */}
                         <ScrollView 
@@ -590,6 +679,7 @@ export function MyShopScreen() {
                             <ShopCard
                               key={product._id}
                               product={product}
+                              showPendingBadge={isOwner}
                               onPress={() => {
                                 // Se é dono, navegar para tela de visualização do produto
                                 if (isOwner) {
@@ -681,17 +771,11 @@ export function MyShopScreen() {
             )}
 
             {activeTab === 'analytics' && (
-              <View style={styles.placeholderContent}>
-                <Text style={styles.placeholderText}>Tab Analytics</Text>
-                <Text style={styles.placeholderSubtext}>Em desenvolvimento...</Text>
-              </View>
+              <ShopAnalyticsContent />
             )}
 
             {activeTab === 'community' && (
-              <View style={styles.placeholderContent}>
-                <Text style={styles.placeholderText}>Tab Comunidade</Text>
-                <Text style={styles.placeholderSubtext}>Em desenvolvimento...</Text>
-              </View>
+              <ShopCommunityContent />
             )}
 
             {activeTab === 'plans' && isOwner && (
@@ -996,9 +1080,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   tab: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 2,
@@ -1091,6 +1173,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  newProductButtonDisabled: {
+    opacity: 0.5,
+  },
+  createProductButtonDisabled: {
+    opacity: 0.5,
+  },
   productsList: {
     flex: 1,
   },
@@ -1107,6 +1195,33 @@ const styles = StyleSheet.create({
   placeholderSubtext: {
     fontSize: 14,
     color: COLORS.text.secondary,
+  },
+  pendingAlert: {
+    backgroundColor: COLORS.primary.main + '15',
+    borderWidth: 1,
+    borderColor: COLORS.primary.main + '40',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  pendingAlertContent: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  pendingAlertText: {
+    flex: 1,
+    gap: 4,
+  },
+  pendingAlertTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.primary.main,
+  },
+  pendingAlertDescription: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    lineHeight: 16,
   },
 });
 

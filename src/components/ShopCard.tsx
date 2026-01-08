@@ -32,6 +32,7 @@ interface Product {
   isActive?: boolean;
   isAdultContent?: boolean;
   paymentMode?: 'UNICO' | 'ASSINATURA';
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REQUIRES_CHANGES' | 'INACTIVE';
   subscriptionPlan?: {
     _id: string;
     name: string;
@@ -44,6 +45,7 @@ interface Product {
 interface ShopCardProps {
   product: Product;
   onPress?: () => void;
+  showPendingBadge?: boolean; // Se true, mostra badge de pendente apenas para dono
 }
 
 const PRODUCT_TYPE_LABELS: Record<string, string> = {
@@ -62,7 +64,7 @@ const PRODUCT_TYPE_ICONS: Record<string, string> = {
   PHYSICAL_PRODUCT: 'cube-outline',
 };
 
-export function ShopCard({ product, onPress }: ShopCardProps) {
+export function ShopCard({ product, onPress, showPendingBadge = false }: ShopCardProps) {
   // Usar bgMelter.jpg como fallback quando não tem coverImage
   const imageSource = product.coverImage
     ? { uri: getImageUrl(product.coverImage) }
@@ -80,9 +82,11 @@ export function ShopCard({ product, onPress }: ShopCardProps) {
     }).format(price);
   };
 
+  const isPending = showPendingBadge && product.status === 'PENDING';
+
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, isPending && styles.cardPending]}
       onPress={onPress}
       activeOpacity={0.7}
       disabled={!onPress}
@@ -95,6 +99,14 @@ export function ShopCard({ product, onPress }: ShopCardProps) {
         {product.isAdultContent && (
           <View style={styles.adultBadge}>
             <Text style={styles.adultBadgeText}>+18</Text>
+          </View>
+        )}
+
+        {/* Badge Status Pendente (apenas para dono) */}
+        {showPendingBadge && product.status === 'PENDING' && (
+          <View style={styles.pendingBadge}>
+            <Ionicons name="time-outline" size={12} color="#FFFFFF" />
+            <Text style={styles.pendingBadgeText}>Pendente</Text>
           </View>
         )}
 
@@ -306,6 +318,26 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  pendingBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: COLORS.states.warning,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  pendingBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  cardPending: {
+    opacity: 0.7,
   },
 });
 

@@ -15,6 +15,8 @@ import { showToast } from '../CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { subscriptionPlansApi } from '../../services/api';
 import { SubscriptionPlanFormModal } from './SubscriptionPlanFormModal';
+import { getFeatureLimit } from '../../config/plan-features';
+import { PlanLocker } from '../PlanLocker';
 
 interface SubscriptionPlan {
   _id?: string;
@@ -52,7 +54,10 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
   const [deleteConfirmPlan, setDeleteConfirmPlan] = useState<string | null>(null);
 
   const hasAccess = userPlan === 'PRO' || userPlan === 'PRO_PLUS';
-  const maxSubscriptionPlans = userPlan === 'PRO' || userPlan === 'PRO_PLUS' ? 5 : userPlan === 'STARTER' ? 2 : 0;
+  // Usar getFeatureLimit para obter o limite correto do plan-features
+  const maxSubscriptionPlans = hasAccess 
+    ? getFeatureLimit(userPlan, 'maxSubscriptionPlans')
+    : 0;
 
   useEffect(() => {
     if (hasAccess) {
@@ -181,16 +186,32 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>Planos de Assinatura</Text>
-        <TouchableOpacity
-          style={[styles.createButton, (!canCreatePlan || !canCreateActivePlan) && styles.createButtonDisabled]}
-          onPress={handleCreate}
-          disabled={!canCreatePlan || !canCreateActivePlan}
-        >
-          <Ionicons name="add" size={20} color="#FFFFFF" />
-          <Text style={styles.createButtonText}>
-            Criar ({currentPlansCount}/{maxSubscriptionPlans})
-          </Text>
-        </TouchableOpacity>
+        {!canCreatePlan || !canCreateActivePlan ? (
+          <PlanLocker
+            requiredPlan={userPlan === 'PRO' ? 'PRO_PLUS' : 'PRO'}
+            currentPlan={userPlan}
+          >
+            <TouchableOpacity
+              style={[styles.createButton, styles.createButtonDisabled]}
+              disabled={true}
+            >
+              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Text style={styles.createButtonText}>
+                Criar ({currentPlansCount}/{maxSubscriptionPlans})
+              </Text>
+            </TouchableOpacity>
+          </PlanLocker>
+        ) : (
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={handleCreate}
+          >
+            <Ionicons name="add" size={20} color="#FFFFFF" />
+            <Text style={styles.createButtonText}>
+              Criar ({currentPlansCount}/{maxSubscriptionPlans})
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {(!canCreatePlan || !canCreateActivePlan) && (
