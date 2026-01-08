@@ -102,6 +102,8 @@ export function StoryViewerModal({
   const handleShareStory = async () => {
     if (!currentStory) return;
     
+    setIsPaused(true); // Pausar story ao compartilhar
+    
     try {
       // Criar URL do story (similar ao web)
       // Nota: Quando alguém abrir este link, o backend valida:
@@ -375,7 +377,10 @@ export function StoryViewerModal({
               <View style={styles.headerActions}>
                 {/* Menu de 3 pontinhos */}
                 <TouchableOpacity
-                  onPress={() => setShowMenu(true)}
+                  onPress={() => {
+                    setIsPaused(true); // Pausar story ao abrir menu
+                    setShowMenu(true);
+                  }}
                   style={styles.menuButton}
                 >
                   <Ionicons name="ellipsis-horizontal" size={24} color="#ffffff" />
@@ -421,7 +426,10 @@ export function StoryViewerModal({
             {isOwnStory ? (
               <TouchableOpacity 
                 style={styles.viewersIconButton}
-                onPress={() => setShowViewers(true)}
+                onPress={() => {
+                  setIsPaused(true); // Pausar story ao ver visualizações
+                  setShowViewers(true);
+                }}
               >
                 <Ionicons name="eye-outline" size={24} color="#ffffff" />
               </TouchableOpacity>
@@ -485,6 +493,8 @@ export function StoryViewerModal({
                 onReactionAdded={() => {
                   // Atualizar visualizações se necessário
                 }}
+                onDragStart={() => setIsPaused(true)} // Pausar story ao começar a arrastar
+                onDragEnd={() => setIsPaused(false)} // Retomar story ao soltar
               />
             </View>
           )}
@@ -543,7 +553,7 @@ export function StoryViewerModal({
                   style={styles.menuItem}
                   onPress={() => {
                     setShowMenu(false);
-                    handleShareStory();
+                    handleShareStory(); // handleShareStory já pausa o story
                   }}
                 >
                   <Ionicons name="share-outline" size={20} color={COLORS.primary.main} />
@@ -555,10 +565,11 @@ export function StoryViewerModal({
                 {isOwnStory ? (
                   <TouchableOpacity
                     style={styles.menuItem}
-                    onPress={() => {
-                      setShowMenu(false);
-                      setShowDeleteConfirm(true);
-                    }}
+                  onPress={() => {
+                    setShowMenu(false);
+                    setIsPaused(true); // Pausar story ao tentar excluir
+                    setShowDeleteConfirm(true);
+                  }}
                   >
                     <Ionicons name="trash-outline" size={20} color={COLORS.states.error} />
                     <Text style={[styles.menuItemText, { color: COLORS.states.error }]}>
@@ -568,10 +579,11 @@ export function StoryViewerModal({
                 ) : (
                   <TouchableOpacity
                     style={styles.menuItem}
-                    onPress={() => {
-                      setShowMenu(false);
-                      setShowReportModal(true);
-                    }}
+                  onPress={() => {
+                    setShowMenu(false);
+                    setIsPaused(true); // Pausar story ao denunciar
+                    setShowReportModal(true);
+                  }}
                   >
                     <Ionicons name="flag-outline" size={20} color={COLORS.states.warning} />
                     <Text style={[styles.menuItemText, { color: COLORS.states.warning }]}>
@@ -581,7 +593,10 @@ export function StoryViewerModal({
                 )}
                 <TouchableOpacity
                   style={[styles.menuItem, styles.menuItemLast]}
-                  onPress={() => setShowMenu(false)}
+                  onPress={() => {
+                    setShowMenu(false);
+                    setIsPaused(false); // Retomar story ao fechar menu
+                  }}
                 >
                   <Text style={styles.menuItemText}>Cancelar</Text>
                 </TouchableOpacity>
@@ -594,7 +609,10 @@ export function StoryViewerModal({
         {/* Modal de Denúncia */}
         <ReportStoryModal
           visible={showReportModal}
-          onClose={() => setShowReportModal(false)}
+          onClose={() => {
+            setShowReportModal(false);
+            setIsPaused(false); // Retomar story ao fechar modal de denúncia
+          }}
           storyId={currentStory._id}
           storyOwnerUsername={currentGroup.user.username}
         />
@@ -605,13 +623,19 @@ export function StoryViewerModal({
             visible={showViewers}
             transparent={true}
             animationType="slide"
-            onRequestClose={() => setShowViewers(false)}
+            onRequestClose={() => {
+              setShowViewers(false);
+              setIsPaused(false); // Retomar story ao fechar visualizações
+            }}
           >
             <View style={styles.viewersOverlay}>
               <View style={styles.viewersContainer}>
                 <View style={styles.viewersHeader}>
                   <Text style={styles.viewersTitle}>Visualizações</Text>
-                  <TouchableOpacity onPress={() => setShowViewers(false)}>
+                  <TouchableOpacity onPress={() => {
+                    setShowViewers(false);
+                    setIsPaused(false); // Retomar story ao fechar visualizações
+                  }}>
                     <Ionicons name="close" size={24} color={COLORS.text.primary} />
                   </TouchableOpacity>
                 </View>

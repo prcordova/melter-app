@@ -255,14 +255,14 @@ export function UserProfileScreen() {
         if (res.success) {
           setFriendshipStatus('PENDING_SENT');
           setFriendshipId(res.data?._id || res.data?.id);
-          Alert.alert('Sucesso', 'Solicitação de amizade enviada');
+          showToast.success('Sucesso', 'Solicitação de amizade enviada');
         }
       } else if (friendshipStatus === 'PENDING_RECEIVED') {
         if (!friendshipId) return;
         const res = await userApi.acceptFriendRequest(friendshipId);
         if (res.success) {
           setFriendshipStatus('FRIENDS');
-          Alert.alert('Sucesso', 'Agora vocês são amigos!');
+          showToast.success('Sucesso', 'Agora vocês são amigos!');
         }
       } else if (friendshipStatus === 'PENDING_SENT') {
         if (!friendshipId) return;
@@ -270,7 +270,7 @@ export function UserProfileScreen() {
         if (res.success) {
           setFriendshipStatus('NONE');
           setFriendshipId(null);
-          Alert.alert('Sucesso', 'Solicitação cancelada');
+          showToast.success('Sucesso', 'Solicitação cancelada');
         }
       } else if (friendshipStatus === 'FRIENDS') {
         Alert.alert(

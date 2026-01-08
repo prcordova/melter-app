@@ -17,6 +17,8 @@ interface StoryReactionButtonDragProps {
   storyId: string;
   currentUserId?: string;
   onReactionAdded?: () => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -31,13 +33,18 @@ const REACTION_CONFIG = [
   { type: 'ANGRY' as ReactionType, emoji: '😡', label: 'Raiva', color: '#FF5722' },
 ];
 
-const REACTION_PICKER_WIDTH = REACTION_CONFIG.length * 50 + 20; // Largura total do picker
+const REACTION_ITEM_SIZE = 44;
+const REACTION_ITEM_GAP = 4;
+const REACTION_PICKER_PADDING = 12;
+const REACTION_PICKER_WIDTH = REACTION_CONFIG.length * (REACTION_ITEM_SIZE + REACTION_ITEM_GAP) + REACTION_PICKER_PADDING * 2 - REACTION_ITEM_GAP; // Largura total do picker
 const REACTION_PICKER_HEIGHT = 60;
 
 export function StoryReactionButtonDrag({
   storyId,
   currentUserId,
   onReactionAdded,
+  onDragStart,
+  onDragEnd,
 }: StoryReactionButtonDragProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedReactionIndex, setSelectedReactionIndex] = useState<number | null>(null);
@@ -55,6 +62,7 @@ export function StoryReactionButtonDrag({
       onPanResponderGrant: () => {
         setIsDragging(true);
         setShowReactions(true);
+        onDragStart?.(); // Pausar story ao começar a arrastar
         pan.setOffset({
           x: (pan.x as any)._value,
           y: (pan.y as any)._value,
@@ -83,11 +91,11 @@ export function StoryReactionButtonDrag({
         pan.setValue({ x: gestureState.dx, y: gestureState.dy });
         
         // Calcular qual reação está sendo selecionada baseado na posição X do toque
-        // O picker aparece à esquerda do botão, então precisamos calcular baseado na posição do toque
+        // O picker está centralizado na tela, então calculamos baseado na posição do toque relativa ao centro
         const touchX = evt.nativeEvent.pageX;
-        const buttonX = SCREEN_WIDTH - 60; // Posição X aproximada do botão (lado direito)
-        const reactionsStartX = buttonX - REACTION_PICKER_WIDTH; // Início do picker (à esquerda do botão)
-        const relativeX = touchX - reactionsStartX;
+        const pickerCenterX = SCREEN_WIDTH / 2;
+        const pickerStartX = pickerCenterX - REACTION_PICKER_WIDTH / 2;
+        const relativeX = touchX - pickerStartX;
         
         if (relativeX >= 0 && relativeX <= REACTION_PICKER_WIDTH) {
           const index = Math.floor((relativeX / REACTION_PICKER_WIDTH) * REACTION_CONFIG.length);
@@ -125,6 +133,7 @@ export function StoryReactionButtonDrag({
         ]).start(() => {
           setIsDragging(false);
           setShowReactions(false);
+          onDragEnd?.(); // Retomar story ao soltar
         });
         
         // Se selecionou uma reação, enviar
@@ -166,15 +175,15 @@ export function StoryReactionButtonDrag({
 
   return (
     <View style={styles.container}>
-      {/* Reações aparecendo durante o arrastar */}
+      {/* Reações aparecendo durante o arrastar - centralizadas na tela */}
       {showReactions && (
         <Animated.View
           style={[
             styles.reactionsContainer,
             reactionsStyle,
             {
-              right: 60, // Posição à esquerda do botão
-              bottom: 0,
+              left: Math.max(10, (SCREEN_WIDTH - REACTION_PICKER_WIDTH) / 2), // Centralizar na tela, mas garantir margem mínima
+              bottom: 120, // Posição acima do botão
             },
           ]}
         >
@@ -227,20 +236,24 @@ const styles = StyleSheet.create({
   reactionsContainer: {
     position: 'absolute',
     flexDirection: 'row',
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     borderRadius: 30,
-    padding: 8,
-    paddingHorizontal: 12,
-    gap: 4,
+    padding: REACTION_PICKER_PADDING,
+    gap: REACTION_ITEM_GAP,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   reactionItem: {
-    width: 44,
-    height: 44,
+    width: REACTION_ITEM_SIZE,
+    height: REACTION_ITEM_SIZE,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 22,
+    borderRadius: REACTION_ITEM_SIZE / 2,
   },
   reactionItemSelected: {
     backgroundColor: 'rgba(255,255,255,0.2)',
