@@ -9,6 +9,7 @@ import { PlansScreen } from '../screens/PlansScreen';
 import { TermsScreen } from '../screens/TermsScreen';
 import { MyShopScreen } from '../screens/MyShopScreen';
 import { PurchasesScreen } from '../screens/PurchasesScreen';
+import { ProductScreen } from '../screens/ProductScreen';
 import { SettingsScreenTemplate } from '../components/SettingsScreenTemplate';
 import { AnalyticsScreen } from '../screens/settings/AnalyticsScreen';
 import { PromotionsScreen } from '../screens/settings/PromotionsScreen';
@@ -71,6 +72,13 @@ export function ProfileStackNavigator() {
       <Stack.Screen 
         name="Purchases" 
         component={PurchasesScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="Product" 
+        component={ProductScreen}
         options={{
           headerShown: false,
         }}

@@ -582,8 +582,15 @@ export function MyShopScreen() {
                               key={product._id}
                               product={product}
                               onPress={() => {
-                                // TODO: Navegar para detalhes do produto ou abrir modal de edição
-                                showToast.info('Produto', `Abrindo ${product.title}`);
+                                // Se é dono, navegar para tela de visualização do produto
+                                if (isOwner) {
+                                  navigation.navigate('Product', {
+                                    productId: product._id,
+                                  });
+                                } else {
+                                  // Se não é dono, mostrar toast (comportamento de compra)
+                                  showToast.info('Produto', `Abrindo ${product.title}`);
+                                }
                               }}
                             />
                           ))}
