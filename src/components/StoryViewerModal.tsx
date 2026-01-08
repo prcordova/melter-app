@@ -103,6 +103,10 @@ export function StoryViewerModal({
     
     try {
       // Criar URL do story (similar ao web)
+      // Nota: Quando alguém abrir este link, o backend valida:
+      // - Se o story está expirado (retorna 410)
+      // - Se o usuário tem permissão baseado na visibilidade (retorna 403 se não tiver)
+      // A validação é feita automaticamente pela rota GET /api/stories/:id
       const shareUrl = `${API_CONFIG.APP_URL || 'https://melter.app'}/stories/${currentGroup.user.username}/${currentStory._id}`;
       
       await Clipboard.setStringAsync(shareUrl);
@@ -443,7 +447,7 @@ export function StoryViewerModal({
             )}
           </View>
 
-          {/* Botões de ação no bottom (lado esquerdo e direito) */}
+          {/* Botões de ação no bottom (lado esquerdo e direito) com texto no meio */}
           <View style={[styles.bottomActionButtons, { bottom: insets.bottom + 20 }]}>
             {/* Botão de visualizações (apenas para dono) - lado esquerdo */}
             {isOwnStory && (
@@ -455,72 +459,45 @@ export function StoryViewerModal({
               </TouchableOpacity>
             )}
 
-            {/* Botões do lado direito */}
-            <View style={styles.rightActionButtons}>
-              {/* Botão de compartilhar */}
-              <TouchableOpacity 
-                style={styles.shareButton}
-                onPress={handleShareStory}
+            {/* Story Text no meio (entre os botões) */}
+            {currentStory.content.text && !textExpanded && (
+              <TouchableOpacity
+                style={styles.textOverlay}
+                onPress={handleTextPress}
+                activeOpacity={shouldShowReadMore(currentStory.content.text) ? 0.7 : 1}
               >
-                <Ionicons name="share-outline" size={24} color="#ffffff" />
+                <Text 
+                  style={[
+                    styles.storyText,
+                    { textAlign: isOwnStory ? 'left' : 'center' }
+                  ]} 
+                  numberOfLines={2}
+                >
+                  {shouldShowReadMore(currentStory.content.text) 
+                    ? getTruncatedText(currentStory.content.text) + ' '
+                    : currentStory.content.text.substring(0, 300)}
+                  {shouldShowReadMore(currentStory.content.text) && (
+                    <Text style={styles.readMoreText}>ver mais</Text>
+                  )}
+                </Text>
               </TouchableOpacity>
+            )}
 
-              {/* Botão play/pause */}
-              <TouchableOpacity 
-                style={styles.playPauseButton}
-                onPress={togglePlayPause}
-              >
-                <Ionicons 
-                  name={isPaused ? "play" : "pause"} 
-                  size={24} 
-                  color="#ffffff" 
-                />
-              </TouchableOpacity>
-            </View>
+            {/* Botão play/pause - lado direito */}
+            <TouchableOpacity 
+              style={styles.playPauseButton}
+              onPress={togglePlayPause}
+            >
+              <Ionicons 
+                name={isPaused ? "play" : "pause"} 
+                size={24} 
+                color="#ffffff" 
+              />
+            </TouchableOpacity>
           </View>
 
-          {/* Story Text no bottom (dentro da imagem) */}
-          {currentStory.content.text && (
-            <>
-              {/* Texto truncado/expandido */}
-              {!textExpanded ? (
-                <View
-                  style={[
-                    styles.textContainer,
-                    { 
-                      bottom: isOwnStory 
-                        ? insets.bottom + 60 
-                        : (!loadingFriendship && isFriend) 
-                          ? insets.bottom + 120 
-                          : insets.bottom + 80,
-                      justifyContent: isOwnStory ? 'flex-start' : 'center',
-                    }
-                  ]}
-                >
-                  {/* Texto do story */}
-                  <TouchableOpacity
-                    style={styles.textOverlay}
-                    onPress={handleTextPress}
-                    activeOpacity={shouldShowReadMore(currentStory.content.text) ? 0.7 : 1}
-                  >
-                    <Text 
-                      style={[
-                        styles.storyText,
-                        { textAlign: isOwnStory ? 'left' : 'center' }
-                      ]} 
-                      numberOfLines={2}
-                    >
-                      {shouldShowReadMore(currentStory.content.text) 
-                        ? getTruncatedText(currentStory.content.text) + ' '
-                        : currentStory.content.text.substring(0, 300)}
-                      {shouldShowReadMore(currentStory.content.text) && (
-                        <Text style={styles.readMoreText}>ver mais</Text>
-                      )}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                /* Modal com texto expandido */
+          {/* Modal de texto expandido */}
+          {currentStory.content.text && textExpanded && (
                 <Modal
                   visible={textExpanded}
                   transparent={true}
@@ -551,8 +528,6 @@ export function StoryViewerModal({
                     </TouchableOpacity>
                   </TouchableOpacity>
                 </Modal>
-              )}
-            </>
           )}
         </View>
 
@@ -570,6 +545,20 @@ export function StoryViewerModal({
               onPress={() => setShowMenu(false)}
             >
               <View style={styles.menuContainer}>
+                {/* Compartilhar (para todos) */}
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setShowMenu(false);
+                    handleShareStory();
+                  }}
+                >
+                  <Ionicons name="share-outline" size={20} color={COLORS.primary.main} />
+                  <Text style={[styles.menuItemText, { color: COLORS.primary.main }]}>
+                    Compartilhar
+                  </Text>
+                </TouchableOpacity>
+
                 {isOwnStory ? (
                   <TouchableOpacity
                     style={styles.menuItem}
@@ -775,27 +764,18 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
     zIndex: 3,
   },
-  rightActionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  textContainer: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    alignItems: 'center',
-  },
   textOverlay: {
+    flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
+    marginHorizontal: 8,
   },
   storyText: {
     color: '#ffffff',
@@ -850,15 +830,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewersIconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  shareButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
