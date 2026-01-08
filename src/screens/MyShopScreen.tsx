@@ -20,6 +20,7 @@ import { AppealModal } from '../components/shop/AppealModal';
 import { ProductCreationWizard } from '../components/shop/ProductCreationWizard';
 import { ShopCard } from '../components/ShopCard';
 import { SubscriptionPlansContent } from '../components/shop/SubscriptionPlansContent';
+import { ShopSettingsModal } from '../components/shop/ShopSettingsModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
 import axios from 'axios';
@@ -72,6 +73,7 @@ export function MyShopScreen() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [visitorShopApproved, setVisitorShopApproved] = useState<boolean | null>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // Extrair parâmetros da rota
   const username = route.params?.username || user?.username || '';
@@ -318,8 +320,14 @@ export function MyShopScreen() {
 
   // Handler para abrir configurações
   const handleSettingsPress = () => {
-    // TODO: Implementar modal de configurações
-    showToast.info('Configurações', 'Modal de configurações em desenvolvimento');
+    setShowSettingsModal(true);
+  };
+
+  // Handler para quando as configurações forem atualizadas
+  const handleSettingsUpdated = async () => {
+    await fetchShopSettings();
+    // Se a loja foi desativada ou excluída, recarregar dados
+    await fetchShopData();
   };
 
   // Handler para mudar tab
@@ -723,6 +731,17 @@ export function MyShopScreen() {
 
       {/* Modal de Formulário de Verificação (será implementado) */}
       {/* TODO: Implementar SellerVerificationFormModal */}
+
+      {/* Modal de Configurações da Loja */}
+      <ShopSettingsModal
+        visible={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        onSettingsUpdated={handleSettingsUpdated}
+        initialSettings={shopSettings}
+        onNavigateToPlans={() => {
+          setActiveTab('plans');
+        }}
+      />
 
       {/* Wizard de Criação de Produto */}
       <ProductCreationWizard
