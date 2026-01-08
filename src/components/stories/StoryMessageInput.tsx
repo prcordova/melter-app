@@ -26,6 +26,7 @@ interface StoryMessageInputProps {
   onMessageSent?: () => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  alwaysExpanded?: boolean;
 }
 
 export function StoryMessageInput({
@@ -37,12 +38,13 @@ export function StoryMessageInput({
   onMessageSent,
   onFocus,
   onBlur,
+  alwaysExpanded = false,
 }: StoryMessageInputProps) {
   const [message, setMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'image' | 'document' | null>(null);
   const [sending, setSending] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(alwaysExpanded);
 
   const handlePickImage = async () => {
     try {
@@ -162,8 +164,8 @@ export function StoryMessageInput({
     }
   };
 
-  // Se não estiver expandido, mostrar apenas botão minimizado
-  if (!isExpanded) {
+  // Se não estiver expandido e não estiver sempre expandido, mostrar apenas botão minimizado
+  if (!isExpanded && !alwaysExpanded) {
     return (
       <TouchableOpacity
         style={styles.minimizedButton}
@@ -197,22 +199,25 @@ export function StoryMessageInput({
           onPress={handlePickImage}
           disabled={sending}
         >
-          <Ionicons name="image-outline" size={24} color={COLORS.text.secondary} />
+          <Ionicons name="image-outline" size={24} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
 
         <TextInput
           style={styles.input}
           placeholder="Responder ao story..."
-          placeholderTextColor={COLORS.text.tertiary}
+          placeholderTextColor="rgba(255,255,255,0.6)"
           value={message}
           onChangeText={setMessage}
           multiline
           maxLength={1000}
-          onFocus={onFocus}
+          onFocus={() => {
+            if (onFocus) onFocus();
+            if (!alwaysExpanded) setIsExpanded(true);
+          }}
           onBlur={() => {
             if (onBlur) onBlur();
-            // Se não tiver mensagem nem arquivo, minimizar após blur
-            if (!message.trim() && !selectedFile) {
+            // Se não tiver mensagem nem arquivo e não estiver sempre expandido, minimizar após blur
+            if (!alwaysExpanded && !message.trim() && !selectedFile) {
               setTimeout(() => setIsExpanded(false), 300);
             }
           }}
@@ -245,10 +250,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   container: {
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderRadius: 24,
     padding: 8,
     gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   filePreview: {
     position: 'relative',
@@ -272,7 +280,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 24,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -282,7 +290,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: COLORS.text.primary,
+    color: '#ffffff',
     fontSize: 14,
     maxHeight: 100,
   },

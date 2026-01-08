@@ -34,9 +34,9 @@ const REACTION_CONFIG = [
 const REACTION_ITEM_SIZE = 44;
 const REACTION_ITEM_GAP = 4;
 const REACTION_PICKER_PADDING = 12;
-// Largura total: (tamanho do item * quantidade) + (gap entre itens * (quantidade - 1)) + (padding lateral * 2)
-const REACTION_PICKER_WIDTH = (REACTION_CONFIG.length * REACTION_ITEM_SIZE) + (REACTION_ITEM_GAP * (REACTION_CONFIG.length - 1)) + (REACTION_PICKER_PADDING * 2);
-const REACTION_PICKER_HEIGHT = 60;
+// Altura total para layout vertical: (tamanho do item * quantidade) + (gap entre itens * (quantidade - 1)) + (padding vertical * 2)
+const REACTION_PICKER_HEIGHT = (REACTION_CONFIG.length * REACTION_ITEM_SIZE) + (REACTION_ITEM_GAP * (REACTION_CONFIG.length - 1)) + (REACTION_PICKER_PADDING * 2);
+const REACTION_PICKER_WIDTH = REACTION_ITEM_SIZE + (REACTION_PICKER_PADDING * 2);
 
 export function StoryReactionButtonDrag({
   storyId,
@@ -52,26 +52,29 @@ export function StoryReactionButtonDrag({
   const reactionsScale = useRef(new Animated.Value(0.8)).current;
 
   const handleOpenMenu = () => {
-    setShowReactions(true);
-    onDragStart?.(); // Pausar story
-    
-    // Animar escala do botão
-    Animated.spring(scale, {
-      toValue: 1.2,
-      useNativeDriver: true,
-    }).start();
-    
-    // Animar reações aparecendo
-    Animated.parallel([
-      Animated.spring(reactionsOpacity, {
-        toValue: 1,
+    // Usar setTimeout para evitar atualizações durante renderização
+    setTimeout(() => {
+      setShowReactions(true);
+      onDragStart?.(); // Pausar story
+      
+      // Animar escala do botão
+      Animated.spring(scale, {
+        toValue: 1.2,
         useNativeDriver: true,
-      }),
-      Animated.spring(reactionsScale, {
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-    ]).start();
+      }).start();
+      
+      // Animar reações aparecendo
+      Animated.parallel([
+        Animated.spring(reactionsOpacity, {
+          toValue: 1,
+          useNativeDriver: true,
+        }),
+        Animated.spring(reactionsScale, {
+          toValue: 1,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, 0);
   };
 
   const handleCloseMenu = () => {
@@ -94,8 +97,11 @@ export function StoryReactionButtonDrag({
         }),
       ]),
     ]).start(() => {
-      setShowReactions(false);
-      onDragEnd?.(); // Retomar story
+      // Usar setTimeout para evitar atualizações durante renderização
+      setTimeout(() => {
+        setShowReactions(false);
+        onDragEnd?.(); // Retomar story
+      }, 0);
     });
   };
 
@@ -107,12 +113,14 @@ export function StoryReactionButtonDrag({
           onReactionAdded();
         }
       }
-      // Fechar menu após selecionar reação e retomar story
-      handleCloseMenu();
     } catch (error: any) {
       console.log('Erro ao reagir:', error);
-      // Mesmo com erro, fechar o menu e retomar story
-      handleCloseMenu();
+    } finally {
+      // Sempre fechar o menu após tentar reagir, independente de sucesso ou erro
+      // Usar setTimeout para evitar atualizações durante renderização
+      setTimeout(() => {
+        handleCloseMenu();
+      }, 0);
     }
   };
 
@@ -129,19 +137,18 @@ export function StoryReactionButtonDrag({
 
   return (
     <View style={styles.container}>
-      {/* Container de reações */}
+      {/* Container de reações - layout vertical acima do botão */}
       {showReactions && (
         <Animated.View
           style={[
             styles.reactionsContainer,
             reactionsStyle,
             {
-              // Posicionar logo acima do botão original
+              // Posicionar verticalmente acima do botão
               bottom: 52, // 44px (altura do botão) + 8px de espaçamento
-              // Centralizar o container relativo ao botão
+              // Centralizar horizontalmente em relação ao botão
               // O botão tem 44px de largura, então centralizamos o menu relativo ao centro do botão
-              // Calculamos: metade da largura do botão (22px) - metade da largura do menu
-              left: 22 - (REACTION_PICKER_WIDTH / 2), // Centralizar relativo ao centro do botão
+              left: 22 - (REACTION_PICKER_WIDTH / 2), // Centralizar relativo ao centro do botão (22px = metade de 44px)
             },
           ]}
         >
@@ -188,7 +195,7 @@ const styles = StyleSheet.create({
   },
   reactionsContainer: {
     position: 'absolute',
-    flexDirection: 'row',
+    flexDirection: 'column', // Layout vertical
     backgroundColor: 'rgba(0,0,0,0.85)',
     borderRadius: 30,
     paddingHorizontal: REACTION_PICKER_PADDING,
@@ -196,7 +203,8 @@ const styles = StyleSheet.create({
     gap: REACTION_ITEM_GAP,
     alignItems: 'center',
     justifyContent: 'center',
-    width: REACTION_PICKER_WIDTH, // Largura fixa para garantir que todos os ícones caibam
+    width: REACTION_PICKER_WIDTH, // Largura fixa para uma coluna
+    height: REACTION_PICKER_HEIGHT, // Altura baseada na quantidade de reações
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

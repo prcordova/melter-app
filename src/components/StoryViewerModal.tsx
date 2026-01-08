@@ -15,6 +15,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StoriesGroup, Story } from '../types/feed';
 import { storiesApi, userApi } from '../services/api';
@@ -49,6 +50,7 @@ export function StoryViewerModal({
   onStoryViewed,
 }: StoryViewerModalProps) {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const { user: currentUser } = useAuth();
   
   const [groupIndex, setGroupIndex] = useState(initialGroupIndex);
@@ -359,7 +361,15 @@ export function StoryViewerModal({
 
             {/* Header */}
             <View style={styles.header}>
-              <View style={styles.userInfo}>
+              <TouchableOpacity 
+                style={styles.userInfo}
+                onPress={() => {
+                  if (currentGroup.user.username) {
+                    navigation.navigate('UserProfile', { username: currentGroup.user.username });
+                  }
+                }}
+                activeOpacity={0.7}
+              >
                 <Image
                   source={{ uri: getAvatarUrl(currentGroup.user.avatar) }}
                   style={styles.avatar}
@@ -373,7 +383,7 @@ export function StoryViewerModal({
                     })}
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
               <View style={styles.headerActions}>
                 {/* Menu de 3 pontinhos */}
                 <TouchableOpacity
@@ -385,6 +395,17 @@ export function StoryViewerModal({
                 >
                   <Ionicons name="ellipsis-horizontal" size={24} color="#ffffff" />
                 </TouchableOpacity>
+                {/* Botão play/pause - lado direito do menu */}
+                <TouchableOpacity 
+                  style={styles.playPauseButtonHeader}
+                  onPress={togglePlayPause}
+                >
+                  <Ionicons 
+                    name={isPaused ? "play" : "pause"} 
+                    size={20} 
+                    color="#ffffff" 
+                  />
+                </TouchableOpacity>
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                   <Ionicons name="close" size={30} color="#ffffff" />
                 </TouchableOpacity>
@@ -392,23 +413,51 @@ export function StoryViewerModal({
             </View>
           </View>
 
-          {/* Footer Actions - Input de mensagem e reações (apenas para amigos) */}
-          {!isOwnStory && !loadingFriendship && isFriend && (
-            <View style={[styles.footerActions, { bottom: insets.bottom + 20 }]}>
-              <View style={styles.messageInputContainer}>
-                <StoryMessageInput
-                  storyId={currentStory._id}
-                  storyMediaUrl={currentStory.content.mediaUrl}
-                  storyMediaType={currentStory.content.type}
-                  recipientId={currentStory.userId._id}
-                  currentUserId={currentUser?.id}
-                  onMessageSent={() => {
-                    showToast.success('Sucesso', 'Mensagem enviada!');
-                    setIsPaused(true); // Pausar story após enviar
-                  }}
-                  onFocus={() => setIsPaused(true)}
-                  onBlur={() => setIsPaused(false)}
-                />
+          {/* Linha 1: Texto do story com botão reagir (apenas para amigos) */}
+          {currentStory.content.text && !textExpanded && (
+            <View style={[styles.storyTextContainer, { bottom: insets.bottom + (isOwnStory || !isFriend ? 60 : 100) }]}>
+              <View style={styles.storyTextRow}>
+                <TouchableOpacity
+                  style={styles.textOverlay}
+                  onPress={handleTextPress}
+                  activeOpacity={shouldShowReadMore(currentStory.content.text) ? 0.7 : 1}
+                >
+                  <Text 
+                    style={[
+                      styles.storyText,
+                      { textAlign: isOwnStory ? 'left' : 'center' }
+                    ]} 
+                    numberOfLines={2}
+                  >
+                    {shouldShowReadMore(currentStory.content.text) 
+                      ? getTruncatedText(currentStory.content.text) + ' '
+                      : currentStory.content.text.substring(0, 300)}
+                    {shouldShowReadMore(currentStory.content.text) && (
+                      <Text style={styles.readMoreText}>ver mais</Text>
+                    )}
+                  </Text>
+                </TouchableOpacity>
+                {/* Botão reagir ao lado direito do texto (apenas para amigos) */}
+                {!isOwnStory && !loadingFriendship && isFriend && (
+                  <StoryReactionButtonDrag
+                    storyId={currentStory._id}
+                    currentUserId={currentUser?.id}
+                    onReactionAdded={() => {
+                      // Atualizar visualizações se necessário
+                    }}
+                    onDragStart={() => setIsPaused(true)} // Pausar story ao abrir menu
+                    onDragEnd={() => setIsPaused(false)} // Retomar story ao fechar menu
+                  />
+                )}
+              </View>
+            </View>
+          )}
+          
+          {/* Linha 1: Apenas botão reagir se não houver texto (apenas para amigos) */}
+          {(!currentStory.content.text || textExpanded) && !isOwnStory && !loadingFriendship && isFriend && (
+            <View style={[styles.storyTextContainer, { bottom: insets.bottom + 100 }]}>
+              <View style={styles.storyTextRow}>
+                <View style={{ flex: 1 }} />
                 <StoryReactionButtonDrag
                   storyId={currentStory._id}
                   currentUserId={currentUser?.id}
@@ -422,10 +471,29 @@ export function StoryViewerModal({
             </View>
           )}
 
-          {/* Botões de ação no bottom (lado esquerdo e direito) com texto no meio */}
-          <View style={[styles.bottomActionButtons, { bottom: insets.bottom + (isOwnStory || !isFriend ? 20 : 80) }]}>
-            {/* Botão de visualizações (apenas para dono) ou Denunciar (se não for amigo) - lado esquerdo */}
-            {isOwnStory ? (
+          {/* Linha 2: Input de conversa (apenas para amigos) - sempre aberto, ocupa todo espaço horizontal */}
+          {!isOwnStory && !loadingFriendship && isFriend && (
+            <View style={[styles.footerActions, { bottom: insets.bottom + 8 }]}>
+              <StoryMessageInput
+                storyId={currentStory._id}
+                storyMediaUrl={currentStory.content.mediaUrl}
+                storyMediaType={currentStory.content.type}
+                recipientId={currentStory.userId._id}
+                currentUserId={currentUser?.id}
+                onMessageSent={() => {
+                  showToast.success('Sucesso', 'Mensagem enviada!');
+                  setIsPaused(true); // Pausar story após enviar
+                }}
+                onFocus={() => setIsPaused(true)}
+                onBlur={() => setIsPaused(false)}
+                alwaysExpanded={true}
+              />
+            </View>
+          )}
+
+          {/* Linha 2: Visualizações (apenas para dono) - bottom esquerdo */}
+          {isOwnStory && (
+            <View style={[styles.bottomActionButtons, { bottom: insets.bottom + 8 }]}>
               <TouchableOpacity 
                 style={styles.viewersIconButton}
                 onPress={() => {
@@ -435,68 +503,20 @@ export function StoryViewerModal({
               >
                 <Ionicons name="eye-outline" size={24} color="#ffffff" />
               </TouchableOpacity>
-            ) : !loadingFriendship && !isFriend && (
-              <TouchableOpacity 
-                style={styles.reportButtonBottom}
-                onPress={() => {
-                  Alert.alert('Denunciar Story', 'Deseja denunciar este conteúdo?', [
-                    { text: 'Cancelar', style: 'cancel' },
-                    { text: 'Denunciar', style: 'destructive', onPress: () => storiesApi.reportStory(currentStory._id, { category: 'other', description: 'Reported from mobile' }) }
-                  ]);
-                }}
-              >
-                <Ionicons name="flag-outline" size={24} color="#ffffff" />
-              </TouchableOpacity>
-            )}
+            </View>
+          )}
 
-            {/* Story Text no meio (entre os botões) */}
-            {currentStory.content.text && !textExpanded && (
-              <TouchableOpacity
-                style={styles.textOverlay}
-                onPress={handleTextPress}
-                activeOpacity={shouldShowReadMore(currentStory.content.text) ? 0.7 : 1}
-              >
-                <Text 
-                  style={[
-                    styles.storyText,
-                    { textAlign: isOwnStory ? 'left' : 'center' }
-                  ]} 
-                  numberOfLines={2}
-                >
-                  {shouldShowReadMore(currentStory.content.text) 
-                    ? getTruncatedText(currentStory.content.text) + ' '
-                    : currentStory.content.text.substring(0, 300)}
-                  {shouldShowReadMore(currentStory.content.text) && (
-                    <Text style={styles.readMoreText}>ver mais</Text>
-                  )}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Botão play/pause - lado direito */}
-            <TouchableOpacity 
-              style={styles.playPauseButton}
-              onPress={togglePlayPause}
-            >
-              <Ionicons 
-                name={isPaused ? "play" : "pause"} 
-                size={24} 
-                color="#ffffff" 
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Reações para não-amigos (centralizadas) */}
+          {/* Linha 2: Reagir (para não-amigos) */}
           {!isOwnStory && !loadingFriendship && !isFriend && (
-            <View style={[styles.nonFriendReactions, { bottom: insets.bottom + 80 }]}>
+            <View style={[styles.bottomActionButtons, { bottom: insets.bottom + 8 }]}>
               <StoryReactionButtonDrag
                 storyId={currentStory._id}
                 currentUserId={currentUser?.id}
                 onReactionAdded={() => {
                   // Atualizar visualizações se necessário
                 }}
-                onDragStart={() => setIsPaused(true)} // Pausar story ao começar a arrastar
-                onDragEnd={() => setIsPaused(false)} // Retomar story ao soltar
+                onDragStart={() => setIsPaused(true)} // Pausar story ao abrir menu
+                onDragEnd={() => setIsPaused(false)} // Retomar story ao fechar menu
               />
             </View>
           )}
@@ -777,12 +797,24 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     fontWeight: '500',
   },
+  storyTextContainer: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    zIndex: 3,
+  },
+  storyTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   bottomActionButtons: {
     position: 'absolute',
     left: 20,
     right: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
     zIndex: 3,
   },
@@ -794,7 +826,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
-    marginHorizontal: 8,
   },
   storyText: {
     color: '#ffffff',
@@ -866,6 +897,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexShrink: 0,
   },
+  playPauseButtonHeader: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
   viewersButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -901,13 +941,6 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  messageInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
   reportButtonBottom: {
     width: 44,
