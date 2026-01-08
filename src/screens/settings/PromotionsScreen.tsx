@@ -26,6 +26,7 @@ import { FIXED_CATEGORIES } from '../../constants/categories';
 import { getImageUrl } from '../../utils/image';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { CreateAdModal } from '../../components/promotions/CreateAdModal';
 
 // Interfaces
 interface Ad {
@@ -158,10 +159,12 @@ export function PromotionsScreen() {
 
   // Carregar configuração de campanha
   useEffect(() => {
+    let isMounted = true;
+    
     const loadCampaignConfig = async () => {
       try {
         const response = await adsApi.getCampaignConfig();
-        if (response.success && response.data) {
+        if (isMounted && response.success && response.data) {
           setCampaignConfig({
             pricePerView: response.data.pricePerView || 0.10,
             averages: response.data.averages || {},
@@ -171,7 +174,12 @@ export function PromotionsScreen() {
         console.error('Erro ao carregar config:', error);
       }
     };
+    
     loadCampaignConfig();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Buscar campanhas
@@ -210,13 +218,46 @@ export function PromotionsScreen() {
     }
   }, []);
 
+  // Handler para abrir modal de criar anúncio
+  const handleOpenDialog = () => {
+    setReactivatingAd(null);
+    setTitle('');
+    setDescription('');
+    setMediaUrl('');
+    setLink('');
+    setTargetCategories([]);
+    setCampaignDays(null);
+    setTargetViews(null);
+    setEstimatedCost(0);
+    const now = new Date();
+    setStartDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+    setStartTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+    setEndDate('');
+    setEndTime('');
+    setDialogOpen(true);
+  };
+
   useFocusEffect(
     useCallback(() => {
-      if (currentTab === 0) {
-        fetchAds();
-      } else {
-        fetchHistory();
-      }
+      let isMounted = true;
+      
+      const loadData = async () => {
+        if (currentTab === 0) {
+          if (isMounted) {
+            await fetchAds();
+          }
+        } else {
+          if (isMounted) {
+            await fetchHistory();
+          }
+        }
+      };
+      
+      loadData();
+      
+      return () => {
+        isMounted = false;
+      };
     }, [currentTab, fetchAds, fetchHistory])
   );
 
@@ -241,7 +282,7 @@ export function PromotionsScreen() {
           {currentTab === 0 && (
             <TouchableOpacity
               style={styles.createButton}
-              onPress={() => setDialogOpen(true)}
+              onPress={handleOpenDialog}
             >
               <Ionicons name="add" size={20} color="#ffffff" />
               <Text style={styles.createButtonText}>Criar Anúncio</Text>
@@ -521,7 +562,19 @@ export function PromotionsScreen() {
         </ScrollView>
       )}
 
-      {/* TODO: Adicionar modais aqui */}
+      {/* Modal de Criar Anúncio */}
+      <CreateAdModal
+        visible={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false);
+          setReactivatingAd(null);
+        }}
+        onSuccess={() => {
+          fetchAds();
+        }}
+        reactivatingAd={reactivatingAd}
+        campaignConfig={campaignConfig}
+      />
     </View>
   );
 }
