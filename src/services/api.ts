@@ -243,6 +243,30 @@ export const userApi = {
     }>>>('/api/blocks/list');
     return response.data;
   },
+  getCategoryPreferences: async () => {
+    const response = await api.get<ApiResponse<{
+      categoryInteractions: { [key: string]: number };
+      blockedCategories: string[];
+      categoryRanking: Array<{ category: string; count: number }>;
+    }>>('/api/users/preferences/category-preferences');
+    return response.data;
+  },
+  updateCategoryPreferences: async (blockedCategories: string[]) => {
+    const response = await api.put<ApiResponse<any>>('/api/users/preferences/category-preferences', {
+      blockedCategories,
+    });
+    return response.data;
+  },
+  resetCategoryPreferences: async () => {
+    const response = await api.delete<ApiResponse<any>>('/api/users/preferences/category-preferences');
+    return response.data;
+  },
+  updateEmailMarketing: async (enabled: boolean) => {
+    const response = await api.patch<ApiResponse<any>>('/api/users/preferences/email-marketing', {
+      enabled,
+    });
+    return response.data;
+  },
   acceptTerms: async (version: string) => {
     const response = await api.post<ApiResponse<any>>('/api/users/accept-terms', { version });
     return response.data;

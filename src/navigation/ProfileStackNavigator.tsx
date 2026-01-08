@@ -15,17 +15,9 @@ import { AnalyticsScreen } from '../screens/settings/AnalyticsScreen';
 import { PromotionsScreen } from '../screens/settings/PromotionsScreen';
 import { SecurityScreen } from '../screens/settings/SecurityScreen';
 import { PrivacyScreen } from '../screens/settings/PrivacyScreen';
-import { Text } from 'react-native';
+import { PreferencesScreen } from '../screens/settings/PreferencesScreen';
 
 const Stack = createNativeStackNavigator();
-
-function PreferencesSettingsScreen() {
-  return (
-    <SettingsScreenTemplate title="Preferências" emoji="⚙️">
-      <Text>Preferências de categorias, notificações, etc.</Text>
-    </SettingsScreenTemplate>
-  );
-}
 
 
 
@@ -45,7 +37,7 @@ export function ProfileStackNavigator() {
       <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="AppearanceSettings" component={AppearanceSettingsScreen} />
       <Stack.Screen name="WalletSettings" component={WalletSettingsScreen} />
-      <Stack.Screen name="PreferencesSettings" component={PreferencesSettingsScreen} />
+      <Stack.Screen name="PreferencesSettings" component={PreferencesScreen} />
       <Stack.Screen name="SecuritySettings" component={SecurityScreen} />
       <Stack.Screen name="PrivacitySettings" component={PrivacyScreen} />
       <Stack.Screen name="AnalyticsSettings" component={AnalyticsScreen} />
