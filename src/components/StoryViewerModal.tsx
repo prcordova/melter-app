@@ -25,6 +25,9 @@ import { showToast } from './CustomToast';
 import { StoryReactionButton } from './stories/StoryReactionButton';
 import { StoryMessageInput } from './stories/StoryMessageInput';
 import { ReportStoryModal } from './stories/ReportStoryModal';
+import * as ScreenCapture from 'expo-screen-capture';
+import * as Clipboard from 'expo-clipboard';
+import { API_CONFIG } from '../config/api.config';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 segundos por story
@@ -58,10 +61,57 @@ export function StoryViewerModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [textExpanded, setTextExpanded] = useState(false);
   
   const progress = useRef(new Animated.Value(0)).current;
   const currentGroup = storiesGroups[groupIndex];
   const currentStory = currentGroup?.stories[storyIndex];
+  const isOwnStory = currentStory?.userId?._id === currentUser?.id || 
+                     (typeof currentStory?.userId === 'string' && currentStory?.userId === currentUser?.id) ||
+                     (currentGroup?.user?._id === currentUser?.id);
+
+  // Função para truncar texto em 2 linhas (aproximadamente 60 caracteres por linha)
+  const getTruncatedText = (text: string, maxLength: number = 120) => {
+    if (text.length <= maxLength) return text;
+    const truncated = text.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    return lastSpace > 0 ? truncated.substring(0, lastSpace) : truncated;
+  };
+
+  const shouldShowReadMore = (text: string) => {
+    return text.length > 120; // Aproximadamente 2 linhas
+  };
+
+  const handleTextPress = () => {
+    if (shouldShowReadMore(currentStory?.content?.text || '') && !textExpanded) {
+      setIsPaused(true);
+      setTextExpanded(true);
+    }
+  };
+
+  const handleCloseExpandedText = () => {
+    setTextExpanded(false);
+    setIsPaused(false);
+  };
+
+  const togglePlayPause = () => {
+    setIsPaused(!isPaused);
+  };
+
+  const handleShareStory = async () => {
+    if (!currentStory) return;
+    
+    try {
+      // Criar URL do story (similar ao web)
+      const shareUrl = `${API_CONFIG.APP_URL || 'https://melter.app'}/stories/${currentGroup.user.username}/${currentStory._id}`;
+      
+      await Clipboard.setStringAsync(shareUrl);
+      showToast.success('Sucesso', 'Link copiado para a área de transferência!');
+    } catch (error) {
+      console.error('Erro ao compartilhar story:', error);
+      showToast.error('Erro', 'Não foi possível copiar o link');
+    }
+  };
   
   const nextStory = useCallback(() => {
     if (storyIndex < currentGroup.stories.length - 1) {
@@ -94,8 +144,9 @@ export function StoryViewerModal({
       setGroupIndex(initialGroupIndex);
       setStoryIndex(0);
       progress.setValue(0);
+      setTextExpanded(false); // Resetar expansão ao mudar de story
     }
-  }, [visible, initialGroupIndex]);
+  }, [visible, initialGroupIndex, storyIndex]);
 
   useEffect(() => {
     if (!visible || loading || isPaused || !currentStory) return;
@@ -114,6 +165,28 @@ export function StoryViewerModal({
 
     return () => animation.stop();
   }, [visible, loading, isPaused, currentStory, storyIndex, groupIndex, progress, nextStory]);
+
+  // Desativar screenshots quando o modal estiver aberto
+  useEffect(() => {
+    if (visible) {
+      // Desativar screenshots
+      ScreenCapture.preventScreenCaptureAsync().catch((error) => {
+        console.error('Erro ao desativar screenshots:', error);
+      });
+
+      // Reativar screenshots quando o modal fechar
+      return () => {
+        ScreenCapture.allowScreenCaptureAsync().catch((error) => {
+          console.error('Erro ao reativar screenshots:', error);
+        });
+      };
+    } else {
+      // Garantir que screenshots estão reativados quando o modal não está visível
+      ScreenCapture.allowScreenCaptureAsync().catch((error) => {
+        console.error('Erro ao reativar screenshots:', error);
+      });
+    }
+  }, [visible]);
 
   // Marcar como visto
   useEffect(() => {
@@ -224,7 +297,6 @@ export function StoryViewerModal({
 
   if (!currentGroup || !currentStory) return null;
 
-  const isOwnStory = currentGroup.user._id === currentUser?.id;
 
   return (
     <Modal
@@ -310,26 +382,9 @@ export function StoryViewerModal({
             </View>
           </View>
 
-          {/* Story Text (se houver) */}
-          {currentStory.content.text && (
-            <View style={styles.textOverlay}>
-              <Text style={styles.storyText}>{currentStory.content.text}</Text>
-            </View>
-          )}
-
           {/* Footer Actions */}
           <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-            {isOwnStory ? (
-              <TouchableOpacity 
-                style={styles.viewersButton}
-                onPress={() => setShowViewers(true)}
-              >
-                <Ionicons name="eye-outline" size={20} color="#ffffff" />
-                <Text style={styles.footerText}>
-                  {currentStory.views?.length || 0} visualizações
-                </Text>
-              </TouchableOpacity>
-            ) : (
+            {!isOwnStory && (
               <>
                 {/* Input de mensagem e reações (apenas para amigos) */}
                 {!loadingFriendship && isFriend && (
@@ -387,6 +442,118 @@ export function StoryViewerModal({
               </>
             )}
           </View>
+
+          {/* Botões de ação no bottom (lado esquerdo e direito) */}
+          <View style={[styles.bottomActionButtons, { bottom: insets.bottom + 20 }]}>
+            {/* Botão de visualizações (apenas para dono) - lado esquerdo */}
+            {isOwnStory && (
+              <TouchableOpacity 
+                style={styles.viewersIconButton}
+                onPress={() => setShowViewers(true)}
+              >
+                <Ionicons name="eye-outline" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            )}
+
+            {/* Botões do lado direito */}
+            <View style={styles.rightActionButtons}>
+              {/* Botão de compartilhar */}
+              <TouchableOpacity 
+                style={styles.shareButton}
+                onPress={handleShareStory}
+              >
+                <Ionicons name="share-outline" size={24} color="#ffffff" />
+              </TouchableOpacity>
+
+              {/* Botão play/pause */}
+              <TouchableOpacity 
+                style={styles.playPauseButton}
+                onPress={togglePlayPause}
+              >
+                <Ionicons 
+                  name={isPaused ? "play" : "pause"} 
+                  size={24} 
+                  color="#ffffff" 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Story Text no bottom (dentro da imagem) */}
+          {currentStory.content.text && (
+            <>
+              {/* Texto truncado/expandido */}
+              {!textExpanded ? (
+                <View
+                  style={[
+                    styles.textContainer,
+                    { 
+                      bottom: isOwnStory 
+                        ? insets.bottom + 60 
+                        : (!loadingFriendship && isFriend) 
+                          ? insets.bottom + 120 
+                          : insets.bottom + 80,
+                      justifyContent: isOwnStory ? 'flex-start' : 'center',
+                    }
+                  ]}
+                >
+                  {/* Texto do story */}
+                  <TouchableOpacity
+                    style={styles.textOverlay}
+                    onPress={handleTextPress}
+                    activeOpacity={shouldShowReadMore(currentStory.content.text) ? 0.7 : 1}
+                  >
+                    <Text 
+                      style={[
+                        styles.storyText,
+                        { textAlign: isOwnStory ? 'left' : 'center' }
+                      ]} 
+                      numberOfLines={2}
+                    >
+                      {shouldShowReadMore(currentStory.content.text) 
+                        ? getTruncatedText(currentStory.content.text) + ' '
+                        : currentStory.content.text.substring(0, 300)}
+                      {shouldShowReadMore(currentStory.content.text) && (
+                        <Text style={styles.readMoreText}>ver mais</Text>
+                      )}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                /* Modal com texto expandido */
+                <Modal
+                  visible={textExpanded}
+                  transparent={true}
+                  animationType="fade"
+                  onRequestClose={handleCloseExpandedText}
+                >
+                  <TouchableOpacity
+                    style={styles.expandedTextOverlay}
+                    activeOpacity={1}
+                    onPress={handleCloseExpandedText}
+                  >
+                    <TouchableOpacity
+                      style={styles.expandedTextContainer}
+                      activeOpacity={1}
+                      onPress={(e) => e.stopPropagation()}
+                    >
+                      <View style={styles.expandedTextHeader}>
+                        <Text style={styles.expandedTextTitle}>Texto do Story</Text>
+                        <TouchableOpacity onPress={handleCloseExpandedText}>
+                          <Ionicons name="close" size={24} color="#ffffff" />
+                        </TouchableOpacity>
+                      </View>
+                      <ScrollView style={styles.expandedTextScroll}>
+                        <Text style={styles.expandedText}>
+                          {currentStory.content.text.substring(0, 300)}
+                        </Text>
+                      </ScrollView>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                </Modal>
+              )}
+            </>
+          )}
         </View>
 
         {/* Menu de Opções */}
@@ -602,28 +769,112 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     fontWeight: '500',
   },
-  textOverlay: {
+  bottomActionButtons: {
     position: 'absolute',
-    top: '40%',
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 3,
+  },
+  rightActionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  textContainer: {
+    position: 'absolute',
     left: 20,
     right: 20,
     alignItems: 'center',
   },
+  textOverlay: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
   storyText: {
     color: '#ffffff',
-    fontSize: 24,
+    fontSize: 16,
+    textAlign: 'left',
+    lineHeight: 22,
+  },
+  readMoreText: {
+    color: '#4FC3F7',
+    fontWeight: '600',
+  },
+  expandedTextOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandedTextContainer: {
+    width: '85%',
+    maxWidth: 400,
+    maxHeight: '70%',
+    backgroundColor: 'rgba(30,30,30,0.95)',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  expandedTextHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  expandedTextTitle: {
+    color: '#ffffff',
+    fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 5,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    padding: 10,
-    borderRadius: 12,
+  },
+  expandedTextScroll: {
+    maxHeight: 400,
+  },
+  expandedText: {
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 24,
   },
   footer: {
     paddingHorizontal: 20,
     alignItems: 'center',
+  },
+  viewersIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  shareButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  playPauseButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
   },
   viewersButton: {
     flexDirection: 'row',
