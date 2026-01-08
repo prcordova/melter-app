@@ -9,6 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   Dimensions,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -34,6 +35,8 @@ export function StoryCreateModal({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [storyText, setStoryText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [visibility, setVisibility] = useState<'followers' | 'friends'>('followers');
+  const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
 
   const handlePickImage = async () => {
     try {
@@ -109,7 +112,7 @@ export function StoryCreateModal({
           panX: 0,
           panY: 0,
         },
-        visibility: 'followers' as const,
+        visibility: visibility,
         duration: 10,
       };
 
@@ -138,23 +141,71 @@ export function StoryCreateModal({
   const renderContent = () => {
     if (selectedImage) {
       return (
-        <View style={styles.previewContainer}>
-          <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+        <TouchableWithoutFeedback onPress={() => setShowVisibilityMenu(false)}>
+          <View style={styles.previewContainer}>
+            <Image source={{ uri: selectedImage }} style={styles.previewImage} />
 
-          {/* Overlay com controles */}
-          <View style={[styles.previewOverlay, { paddingTop: insets.top + 20 }]}>
-            <View style={styles.topControls}>
-              <TouchableOpacity
-                style={styles.cancelPreview}
-                onPress={() => {
-                  setSelectedImage(null);
-                  setStoryText('');
-                }}
-              >
-                <Ionicons name="close" size={30} color="#ffffff" />
-              </TouchableOpacity>
+            {/* Overlay com controles */}
+            <View style={[styles.previewOverlay, { paddingTop: insets.top + 20 }]}>
+              <View style={styles.topControls}>
+                <TouchableOpacity
+                  style={styles.cancelPreview}
+                  onPress={() => {
+                    setSelectedImage(null);
+                    setStoryText('');
+                  }}
+                >
+                  <Ionicons name="close" size={30} color="#ffffff" />
+                </TouchableOpacity>
+                
+                {/* Seletor de visibilidade */}
+                <View style={styles.visibilityContainer}>
+                  <TouchableOpacity
+                    style={styles.visibilityButton}
+                    onPress={() => setShowVisibilityMenu(!showVisibilityMenu)}
+                  >
+                    <Ionicons 
+                      name={visibility === 'friends' ? 'people' : 'people-outline'} 
+                      size={24} 
+                      color="#ffffff" 
+                    />
+                  </TouchableOpacity>
+                  
+                  {showVisibilityMenu && (
+                    <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+                      <View style={styles.visibilityMenu}>
+                        <TouchableOpacity
+                          style={[
+                            styles.visibilityOption,
+                            visibility === 'followers' && styles.visibilityOptionActive
+                          ]}
+                          onPress={() => {
+                            setVisibility('followers');
+                            setShowVisibilityMenu(false);
+                          }}
+                        >
+                          <Ionicons name="people-outline" size={20} color="#ffffff" />
+                          <Text style={styles.visibilityOptionText}>Seguidores</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.visibilityOption,
+                            visibility === 'friends' && styles.visibilityOptionActive
+                          ]}
+                          onPress={() => {
+                            setVisibility('friends');
+                            setShowVisibilityMenu(false);
+                          }}
+                        >
+                          <Ionicons name="people" size={20} color="#ffffff" />
+                          <Text style={styles.visibilityOptionText}>Amigos</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableWithoutFeedback>
+                  )}
+                </View>
+              </View>
             </View>
-          </View>
 
           {/* Input de texto fixo na parte inferior com botão de compartilhar ao lado (estilo WhatsApp) */}
           <View style={[styles.textInputContainer, { bottom: insets.bottom + 20 }]}>
@@ -180,7 +231,8 @@ export function StoryCreateModal({
               )}
             </TouchableOpacity>
           </View>
-        </View>
+          </View>
+        </TouchableWithoutFeedback>
       );
     }
 
@@ -331,5 +383,39 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.5,
+  },
+  visibilityContainer: {
+    position: 'relative',
+  },
+  visibilityButton: {
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 20,
+  },
+  visibilityMenu: {
+    position: 'absolute',
+    top: 50,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    borderRadius: 12,
+    padding: 8,
+    minWidth: 140,
+    zIndex: 1000,
+  },
+  visibilityOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+    borderRadius: 8,
+  },
+  visibilityOptionActive: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  visibilityOptionText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

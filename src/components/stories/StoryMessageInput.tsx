@@ -42,6 +42,7 @@ export function StoryMessageInput({
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'image' | 'document' | null>(null);
   const [sending, setSending] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handlePickImage = async () => {
     try {
@@ -161,6 +162,21 @@ export function StoryMessageInput({
     }
   };
 
+  // Se não estiver expandido, mostrar apenas botão minimizado
+  if (!isExpanded) {
+    return (
+      <TouchableOpacity
+        style={styles.minimizedButton}
+        onPress={() => {
+          setIsExpanded(true);
+          if (onFocus) onFocus();
+        }}
+      >
+        <Ionicons name="chatbubble-outline" size={20} color={COLORS.text.secondary} />
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {selectedFile && (
@@ -193,7 +209,13 @@ export function StoryMessageInput({
           multiline
           maxLength={1000}
           onFocus={onFocus}
-          onBlur={onBlur}
+          onBlur={() => {
+            if (onBlur) onBlur();
+            // Se não tiver mensagem nem arquivo, minimizar após blur
+            if (!message.trim() && !selectedFile) {
+              setTimeout(() => setIsExpanded(false), 300);
+            }
+          }}
           editable={!sending}
         />
 
@@ -214,6 +236,14 @@ export function StoryMessageInput({
 }
 
 const styles = StyleSheet.create({
+  minimizedButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.background.tertiary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     backgroundColor: COLORS.background.paper,
     borderRadius: 12,

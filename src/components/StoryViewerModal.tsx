@@ -23,6 +23,7 @@ import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { COLORS } from '../theme/colors';
 import { showToast } from './CustomToast';
 import { StoryReactionButton } from './stories/StoryReactionButton';
+import { StoryReactionButtonDrag } from './stories/StoryReactionButtonDrag';
 import { StoryMessageInput } from './stories/StoryMessageInput';
 import { ReportStoryModal } from './stories/ReportStoryModal';
 import * as ScreenCapture from 'expo-screen-capture';
@@ -386,76 +387,55 @@ export function StoryViewerModal({
             </View>
           </View>
 
-          {/* Footer Actions */}
-          <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-            {!isOwnStory && (
-              <>
-                {/* Input de mensagem e reações (apenas para amigos) */}
-                {!loadingFriendship && isFriend && (
-                  <View style={styles.friendActions}>
-                    <View style={styles.messageInputWrapper}>
-                      <StoryMessageInput
-                        storyId={currentStory._id}
-                        storyMediaUrl={currentStory.content.mediaUrl}
-                        storyMediaType={currentStory.content.type}
-                        recipientId={currentStory.userId._id}
-                        currentUserId={currentUser?.id}
-                        onMessageSent={() => {
-                          showToast.success('Sucesso', 'Mensagem enviada!');
-                          setIsPaused(true); // Pausar story após enviar
-                        }}
-                        onFocus={() => setIsPaused(true)}
-                        onBlur={() => setIsPaused(false)}
-                      />
-                    </View>
-                    <StoryReactionButton
-                      storyId={currentStory._id}
-                      currentUserId={currentUser?.id}
-                      isFriend={true}
-                      onReactionAdded={() => {
-                        // Atualizar visualizações se necessário
-                      }}
-                    />
-                  </View>
-                )}
-
-                {/* Reações centralizadas (se não for amigo) */}
-                {!loadingFriendship && !isFriend && (
-                  <View style={styles.nonFriendActions}>
-                    <StoryReactionButton
-                      storyId={currentStory._id}
-                      currentUserId={currentUser?.id}
-                      isFriend={false}
-                      onReactionAdded={() => {
-                        // Atualizar visualizações se necessário
-                      }}
-                    />
-                    <TouchableOpacity 
-                      style={styles.reportButton}
-                      onPress={() => {
-                        Alert.alert('Denunciar Story', 'Deseja denunciar este conteúdo?', [
-                          { text: 'Cancelar', style: 'cancel' },
-                          { text: 'Denunciar', style: 'destructive', onPress: () => storiesApi.reportStory(currentStory._id, { category: 'other', description: 'Reported from mobile' }) }
-                        ]);
-                      }}
-                    >
-                      <Ionicons name="flag-outline" size={24} color="#ffffff" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </>
-            )}
-          </View>
+          {/* Footer Actions - Input de mensagem e reações (apenas para amigos) */}
+          {!isOwnStory && !loadingFriendship && isFriend && (
+            <View style={[styles.footerActions, { bottom: insets.bottom + 20 }]}>
+              <View style={styles.messageInputContainer}>
+                <StoryMessageInput
+                  storyId={currentStory._id}
+                  storyMediaUrl={currentStory.content.mediaUrl}
+                  storyMediaType={currentStory.content.type}
+                  recipientId={currentStory.userId._id}
+                  currentUserId={currentUser?.id}
+                  onMessageSent={() => {
+                    showToast.success('Sucesso', 'Mensagem enviada!');
+                    setIsPaused(true); // Pausar story após enviar
+                  }}
+                  onFocus={() => setIsPaused(true)}
+                  onBlur={() => setIsPaused(false)}
+                />
+                <StoryReactionButtonDrag
+                  storyId={currentStory._id}
+                  currentUserId={currentUser?.id}
+                  onReactionAdded={() => {
+                    // Atualizar visualizações se necessário
+                  }}
+                />
+              </View>
+            </View>
+          )}
 
           {/* Botões de ação no bottom (lado esquerdo e direito) com texto no meio */}
-          <View style={[styles.bottomActionButtons, { bottom: insets.bottom + 20 }]}>
-            {/* Botão de visualizações (apenas para dono) - lado esquerdo */}
-            {isOwnStory && (
+          <View style={[styles.bottomActionButtons, { bottom: insets.bottom + (isOwnStory || !isFriend ? 20 : 80) }]}>
+            {/* Botão de visualizações (apenas para dono) ou Denunciar (se não for amigo) - lado esquerdo */}
+            {isOwnStory ? (
               <TouchableOpacity 
                 style={styles.viewersIconButton}
                 onPress={() => setShowViewers(true)}
               >
                 <Ionicons name="eye-outline" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            ) : !loadingFriendship && !isFriend && (
+              <TouchableOpacity 
+                style={styles.reportButtonBottom}
+                onPress={() => {
+                  Alert.alert('Denunciar Story', 'Deseja denunciar este conteúdo?', [
+                    { text: 'Cancelar', style: 'cancel' },
+                    { text: 'Denunciar', style: 'destructive', onPress: () => storiesApi.reportStory(currentStory._id, { category: 'other', description: 'Reported from mobile' }) }
+                  ]);
+                }}
+              >
+                <Ionicons name="flag-outline" size={24} color="#ffffff" />
               </TouchableOpacity>
             )}
 
@@ -495,6 +475,19 @@ export function StoryViewerModal({
               />
             </TouchableOpacity>
           </View>
+
+          {/* Reações para não-amigos (centralizadas) */}
+          {!isOwnStory && !loadingFriendship && !isFriend && (
+            <View style={[styles.nonFriendReactions, { bottom: insets.bottom + 80 }]}>
+              <StoryReactionButtonDrag
+                storyId={currentStory._id}
+                currentUserId={currentUser?.id}
+                onReactionAdded={() => {
+                  // Atualizar visualizações se necessário
+                }}
+              />
+            </View>
+          )}
 
           {/* Modal de texto expandido */}
           {currentStory.content.text && textExpanded && (
@@ -875,6 +868,33 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: 'rgba(0,0,0,0.3)',
     borderRadius: 20,
+  },
+  footerActions: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  messageInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  reportButtonBottom: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  nonFriendReactions: {
+    position: 'absolute',
+    alignSelf: 'center',
   },
   viewerActions: {
     flexDirection: 'row',
