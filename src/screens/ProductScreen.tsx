@@ -107,6 +107,16 @@ export function ProductScreen() {
           return;
         }
 
+        // Debug: verificar estrutura do produto
+        console.log('[ProductScreen] ========== PRODUTO RECEBIDO ==========');
+        console.log('[ProductScreen] ID:', productData._id);
+        console.log('[ProductScreen] Título:', productData.title);
+        console.log('[ProductScreen] Digital completo:', JSON.stringify(productData.digital, null, 2));
+        console.log('[ProductScreen] downloadUrl:', productData.digital?.downloadUrl);
+        console.log('[ProductScreen] downloadUrl type:', typeof productData.digital?.downloadUrl);
+        console.log('[ProductScreen] Files count:', productData.digital?.files?.length || 0);
+        console.log('[ProductScreen] ======================================');
+
         setProduct(productData);
 
         // Verificar status de compra se o usuário estiver logado
@@ -221,16 +231,50 @@ export function ProductScreen() {
   const canViewContent = hasPurchased || isOwner || user?.accountType === 'admin';
 
   // Separar conteúdo por tipo
-  const mainLink = product.digital?.downloadUrl && product.digital.downloadUrl.trim() !== ''
+  // Verificar downloadUrl (pode estar em digital.downloadUrl ou digital?.downloadUrl)
+  const digital = product.digital || {};
+  const downloadUrl = digital.downloadUrl;
+  
+  // Verificar se há link principal (downloadUrl não vazio e válido)
+  const hasMainLink = downloadUrl && 
+    typeof downloadUrl === 'string' && 
+    downloadUrl.trim() !== '' && 
+    downloadUrl.trim() !== 'null' && 
+    downloadUrl.trim() !== 'undefined' &&
+    (downloadUrl.startsWith('http://') || downloadUrl.startsWith('https://'));
+  
+  const mainLink = hasMainLink
     ? {
-        url: product.digital.downloadUrl,
-        fileName: product.digital.fileName || 'Link Principal',
-        customFileName: product.digital.fileName || 'Link Principal',
+        url: downloadUrl.trim(),
+        fileName: digital.fileName || 'Link Principal',
+        customFileName: digital.fileName || 'Link Principal',
       }
     : null;
 
   const files = product.digital?.files || [];
-  const links = files.filter((f) => f.fileType === 'document' && f.url && f.url.startsWith('http'));
+  
+  // Debug: verificar se o link foi encontrado
+  console.log('[ProductScreen] ========== VERIFICAÇÃO DE CONTEÚDO ==========');
+  console.log('[ProductScreen] hasMainLink:', hasMainLink);
+  console.log('[ProductScreen] downloadUrl:', downloadUrl);
+  console.log('[ProductScreen] downloadUrlType:', typeof downloadUrl);
+  console.log('[ProductScreen] mainLink:', mainLink);
+  console.log('[ProductScreen] digital completo:', JSON.stringify(product.digital, null, 2));
+  console.log('[ProductScreen] files array:', JSON.stringify(files, null, 2));
+  console.log('[ProductScreen] canViewContent:', canViewContent);
+  console.log('[ProductScreen] isOwner:', isOwner);
+  console.log('[ProductScreen] hasPurchased:', hasPurchased);
+  console.log('[ProductScreen] ============================================');
+
+  // Buscar links também no array files (caso o link tenha sido salvo como arquivo)
+  const links = files.filter((f) => {
+    // Verificar se é um link (documento com URL HTTP/HTTPS)
+    const isLink = f.fileType === 'document' && 
+                   f.url && 
+                   typeof f.url === 'string' &&
+                   (f.url.startsWith('http://') || f.url.startsWith('https://'));
+    return isLink;
+  });
   const images = files.filter((f) => f.fileType === 'image');
   const videos = files.filter((f) => f.fileType === 'video');
   const documents = files.filter(

@@ -735,7 +735,29 @@ export function MyShopScreen() {
         }}
         onSave={async (wizardData) => {
           try {
+            // Debug: verificar dados do wizard antes de salvar
+            console.log('[MyShopScreen] Wizard data antes de salvar:', {
+              links: wizardData.links,
+              linksLength: wizardData.links?.length || 0,
+              firstLink: wizardData.links?.[0],
+              firstLinkUrl: wizardData.links?.[0]?.url,
+            });
+
             // Preparar dados para o backend
+            const downloadUrl = wizardData.links && wizardData.links.length > 0 && wizardData.links[0].url
+              ? wizardData.links[0].url.trim()
+              : '';
+            
+            const fileName = wizardData.links && wizardData.links.length > 0 && wizardData.links[0].title
+              ? wizardData.links[0].title.trim()
+              : '';
+
+            console.log('[MyShopScreen] Dados preparados para salvar:', {
+              downloadUrl,
+              fileName,
+              hasDownloadUrl: !!downloadUrl && downloadUrl !== '',
+            });
+
             const productData = {
               ...wizardData,
               type: 'DIGITAL_PACK',
@@ -744,12 +766,8 @@ export function MyShopScreen() {
               subscriptionScope: wizardData.paymentMode === 'ASSINATURA' ? 'LOJA' : undefined,
               price: wizardData.paymentMode === 'ASSINATURA' ? 0 : wizardData.price,
               digital: {
-                downloadUrl:
-                  wizardData.links && wizardData.links.length > 0 ? wizardData.links[0].url : '',
-                fileName:
-                  wizardData.links && wizardData.links.length > 0
-                    ? wizardData.links[0].title
-                    : '',
+                downloadUrl,
+                fileName,
                 allowDownload: wizardData.allowDownload,
                 fileSize: 0,
                 files: wizardData.files || [],
