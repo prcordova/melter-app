@@ -415,6 +415,8 @@ export function StoryViewerModal({
                   onReactionAdded={() => {
                     // Atualizar visualizações se necessário
                   }}
+                  onDragStart={() => setIsPaused(true)} // Pausar story ao abrir menu
+                  onDragEnd={() => setIsPaused(false)} // Retomar story ao fechar menu
                 />
               </View>
             </View>
