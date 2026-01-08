@@ -17,6 +17,11 @@ export interface User {
   twoFactor?: {
     enabled: boolean;
   };
+  verifiedBadge?: {
+    isVerified: boolean;
+    verifiedAt: string | null;
+    source: 'plan' | 'manual' | 'partner' | null;
+  };
   wallet?: {
     balance: number;
     totalEarned: number;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,7 @@ export function ProfileScreen() {
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [userStories, setUserStories] = useState<StoriesGroup | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const statusMessageInputRef = useRef<TextInput>(null);
 
   // Função para carregar status
   const loadStatus = useCallback(async () => {
@@ -249,9 +250,10 @@ export function ProfileScreen() {
             <TouchableOpacity
               style={styles.editStatusButton}
               onPress={() => {
-                // Scroll para a seção de status
-                // Por enquanto, apenas mostra um toast
-                showToast.info('Status', 'Use os botões abaixo para alterar seu status');
+                // Focar no campo de mensagem de status
+                setTimeout(() => {
+                  statusMessageInputRef.current?.focus();
+                }, 100);
               }}
               activeOpacity={0.7}
             >
@@ -273,106 +275,124 @@ export function ProfileScreen() {
           </View>
         </View>
 
-        {/* Status Selector */}
+        {/* Status e Mensagem */}
         <View style={styles.statusSection}>
-          <Text style={styles.sectionTitle}>Status Atual</Text>
+          <Text style={styles.sectionTitle}>Status</Text>
+          
+          {/* Status Atual e Mensagem */}
+          {!loadingStatus && (
+            <View style={styles.statusHeader}>
+              <View style={styles.statusInfo}>
+                <Text style={styles.statusLabel}>
+                  {status === 'online' && '🟢 Online'}
+                  {status === 'busy' && '🟡 Ausente'}
+                  {status === 'offline' && '⚪ Offline'}
+                  {statusMessage && `, ${statusMessage}`}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {loadingStatus ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={COLORS.primary.main} />
             </View>
           ) : (
-            <View style={styles.statusButtons}>
-              <TouchableOpacity
-                style={[
-                  styles.statusButton,
-                  status === 'online' && styles.statusButtonActive,
-                  savingStatus && styles.statusButtonDisabled,
-                ]}
-                onPress={() => handleStatusChange('online')}
-                disabled={savingStatus}
-              >
-                <Text style={styles.statusIcon}>🟢</Text>
-                <Text style={[
-                  styles.statusButtonText,
-                  status === 'online' && styles.statusButtonTextActive,
-                ]}>
-                  Online
-                </Text>
-              </TouchableOpacity>
+            <>
+              {/* Botões de Status */}
+              <View style={styles.statusButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.statusButton,
+                    status === 'online' && styles.statusButtonActive,
+                    savingStatus && styles.statusButtonDisabled,
+                  ]}
+                  onPress={() => handleStatusChange('online')}
+                  disabled={savingStatus}
+                >
+                  <Text style={styles.statusIcon}>🟢</Text>
+                  <Text style={[
+                    styles.statusButtonText,
+                    status === 'online' && styles.statusButtonTextActive,
+                  ]}>
+                    Online
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.statusButton,
-                  status === 'busy' && styles.statusButtonActive,
-                  savingStatus && styles.statusButtonDisabled,
-                ]}
-                onPress={() => handleStatusChange('busy')}
-                disabled={savingStatus}
-              >
-                <Text style={styles.statusIcon}>🟡</Text>
-                <Text style={[
-                  styles.statusButtonText,
-                  status === 'busy' && styles.statusButtonTextActive,
-                ]}>
-                  Ausente
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.statusButton,
+                    status === 'busy' && styles.statusButtonActive,
+                    savingStatus && styles.statusButtonDisabled,
+                  ]}
+                  onPress={() => handleStatusChange('busy')}
+                  disabled={savingStatus}
+                >
+                  <Text style={styles.statusIcon}>🟡</Text>
+                  <Text style={[
+                    styles.statusButtonText,
+                    status === 'busy' && styles.statusButtonTextActive,
+                  ]}>
+                    Ausente
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.statusButton,
-                  status === 'offline' && styles.statusButtonActive,
-                  savingStatus && styles.statusButtonDisabled,
-                ]}
-                onPress={() => handleStatusChange('offline')}
-                disabled={savingStatus}
-              >
-                <Text style={styles.statusIcon}>⚪</Text>
-                <Text style={[
-                  styles.statusButtonText,
-                  status === 'offline' && styles.statusButtonTextActive,
-                ]}>
-                  Offline
-                </Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={[
+                    styles.statusButton,
+                    status === 'offline' && styles.statusButtonActive,
+                    savingStatus && styles.statusButtonDisabled,
+                  ]}
+                  onPress={() => handleStatusChange('offline')}
+                  disabled={savingStatus}
+                >
+                  <Text style={styles.statusIcon}>⚪</Text>
+                  <Text style={[
+                    styles.statusButtonText,
+                    status === 'offline' && styles.statusButtonTextActive,
+                  ]}>
+                    Offline
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Mensagem de Status */}
+              <View style={styles.statusMessageContainer}>
+                <TextInput
+                  ref={statusMessageInputRef}
+                  style={styles.statusMessageInput}
+                  placeholder="Digite uma mensagem de status..."
+                  placeholderTextColor={COLORS.text.tertiary}
+                  value={statusMessage}
+                  onChangeText={handleStatusMessageChange}
+                  maxLength={100}
+                  multiline
+                  editable={!savingMessage}
+                />
+                <View style={styles.statusMessageFooter}>
+                  <Text style={styles.statusMessageCount}>
+                    {statusMessage.length}/100
+                  </Text>
+                  {statusMessageHasChanges && (
+                    <TouchableOpacity
+                      style={[styles.saveMessageButton, savingMessage && styles.saveMessageButtonDisabled]}
+                      onPress={handleSaveStatusMessage}
+                      disabled={savingMessage}
+                    >
+                      {savingMessage ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      ) : (
+                        <>
+                          <Ionicons name="checkmark" size={16} color="#ffffff" />
+                          <Text style={styles.saveMessageButtonText}>Salvar</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </>
           )}
-        </View>
-
-        {/* Mensagem de Status */}
-        <View style={styles.statusMessageSection}>
-          <Text style={styles.sectionTitle}>Mensagem de Status</Text>
-          <TextInput
-            style={styles.statusMessageInput}
-            placeholder="Digite uma mensagem..."
-            placeholderTextColor={COLORS.text.tertiary}
-            value={statusMessage}
-            onChangeText={handleStatusMessageChange}
-            maxLength={100}
-            multiline
-            editable={!savingMessage}
-          />
-          <View style={styles.statusMessageFooter}>
-            <Text style={styles.statusMessageCount}>
-              {statusMessage.length}/100
-            </Text>
-            {statusMessageHasChanges && (
-              <TouchableOpacity
-                style={[styles.saveMessageButton, savingMessage && styles.saveMessageButtonDisabled]}
-                onPress={handleSaveStatusMessage}
-                disabled={savingMessage}
-              >
-                {savingMessage ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark" size={16} color="#ffffff" />
-                    <Text style={styles.saveMessageButtonText}>Salvar</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
         </View>
 
         {/* Grid de Cards */}
@@ -555,16 +575,24 @@ const styles = StyleSheet.create({
   statusButtonTextActive: {
     color: COLORS.secondary.main,
   },
-  statusMessageSection: {
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 16,
-    padding: 16,
+  statusHeader: {
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border.light,
+  },
+  statusInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  statusMessageContainer: {
+    marginTop: 12,
   },
   statusMessageInput: {
     borderWidth: 1,
@@ -609,9 +637,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   menuCardWrapper: {
-    flex: 1,
-    minWidth: '48%',
-    maxWidth: '48%',
+    width: '48%',
     marginBottom: 12,
   },
   logoutButtonContainer: {

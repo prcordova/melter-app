@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           plan: response.data.plan,
           accountType: response.data.accountType,
           twoFactor: response.data.twoFactor,
+          verifiedBadge: response.data.verifiedBadge,
           wallet: response.data.wallet,
           termsAndPrivacy: response.data.termsAndPrivacy,
         };
@@ -64,17 +65,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await userApi.getMyProfile();
         
         if (response.success) {
-          const userData: User = {
-            id: response.data._id || response.data.id,
-            username: response.data.username,
-            email: response.data.email,
-            avatar: response.data.avatar,
-            following: response.data.following,
-            plan: response.data.plan,
-            accountType: response.data.accountType,
-            twoFactor: response.data.twoFactor,
-            wallet: response.data.wallet,
-          };
+        const userData: User = {
+          id: response.data._id || response.data.id,
+          username: response.data.username,
+          email: response.data.email,
+          avatar: response.data.avatar,
+          following: response.data.following,
+          plan: response.data.plan,
+          accountType: response.data.accountType,
+          twoFactor: response.data.twoFactor,
+          verifiedBadge: response.data.verifiedBadge,
+          wallet: response.data.wallet,
+        };
           setUser(userData);
         }
       } catch (error: any) {
@@ -128,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           plan: response.data.user.plan,
           accountType: response.data.user.accountType,
           twoFactor: response.data.user.twoFactor,
+          verifiedBadge: response.data.user.verifiedBadge,
           wallet: response.data.user.wallet,
         };
         setUser(userData);

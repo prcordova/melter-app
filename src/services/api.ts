@@ -254,6 +254,23 @@ export const userApi = {
     const response = await api.get<ApiResponse<any[]>>('/api/users/my-purchases');
     return response.data;
   },
+  changePassword: async (data: {
+    currentPassword: string;
+    newPassword: string;
+    twoFactorCode?: string;
+    logoutAllDevices?: boolean;
+  }) => {
+    const response = await api.post<ApiResponse<{ newToken?: string }>>('/api/users/change-password', data);
+    return response.data;
+  },
+  setup2FA: async () => {
+    const response = await api.post<ApiResponse<{ secret: string; qrCode: string }>>('/api/users/2fa/setup', {});
+    return response.data;
+  },
+  verify2FA: async (code: string) => {
+    const response = await api.post<ApiResponse<{ backupCodes: string[] }>>('/api/users/2fa/verify', { code });
+    return response.data;
+  },
 };
 
 // API de Posts (Feed)
