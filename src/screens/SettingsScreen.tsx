@@ -38,13 +38,6 @@ export function SettingsScreen() {
       screen: 'AnalyticsSettings' 
     },
     { 
-      id: 'promotions', 
-      title: 'Promoções', 
-      subtitle: 'Criar e gerenciar anúncios',
-      icon: '🎁', 
-      screen: 'PromotionsSettings' 
-    },
-    { 
       id: 'security', 
       title: 'Segurança', 
       subtitle: 'Senha e 2FA',

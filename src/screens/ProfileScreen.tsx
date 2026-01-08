@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Header } from '../components/Header';
 import { MenuCard } from '../components/MenuCard';
 import { StoryViewerModal } from '../components/StoryViewerModal';
+import { Button } from '../components/Button';
 import { COLORS } from '../theme/colors';
 import { storiesApi, userApi } from '../services/api';
 import { StoriesGroup } from '../types/feed';
@@ -130,6 +131,8 @@ export function ProfileScreen() {
       }
     } else if (screen === 'purchases') {
       (navigation as any).navigate('Purchases');
+    } else if (screen === 'promotions') {
+      (navigation as any).navigate('PromotionsSettings');
     } else {
       showToast.info('Em breve', `Tela de ${screen} será implementada`);
     }
@@ -152,10 +155,10 @@ export function ProfileScreen() {
     { id: 'shop', title: 'Minha Loja', icon: '🏪', onPress: () => handleMenuPress('shop') },
     { id: 'purchases', title: 'Compras', icon: '🛍️', onPress: () => handleMenuPress('purchases') },
     { id: 'wallet', title: 'Carteira', icon: '💰', onPress: () => handleMenuPress('wallet'), badgeCount: 0 },
+    { id: 'promotions', title: 'Promoções', icon: '🎁', onPress: () => handleMenuPress('promotions') },
     { id: 'settings', title: 'Configurações', icon: '⚙️', onPress: () => handleMenuPress('settings') },
     { id: 'plans', title: user?.plan?.type === 'FREE' ? 'Upgrade' : 'Planos', icon: '⭐', onPress: () => handleMenuPress('plans') },
     { id: 'terms', title: 'Termos', icon: '📄', onPress: () => handleMenuPress('terms') },
-    { id: 'logout', title: 'Sair', icon: '🚪', onPress: handleLogout, variant: 'danger' as const },
   ];
 
   const handleStatusChange = async (newStatus: UserStatus) => {
@@ -381,10 +384,20 @@ export function ProfileScreen() {
                 icon={option.icon}
                 onPress={option.onPress}
                 badgeCount={option.badgeCount}
-                variant={option.variant}
               />
             </View>
           ))}
+        </View>
+
+        {/* Botão Sair */}
+        <View style={styles.logoutButtonContainer}>
+          <Button
+            variant="ghost"
+            size="md"
+            onPress={handleLogout}
+          >
+            Sair
+          </Button>
         </View>
 
         {/* Espaço extra no final */}
@@ -593,9 +606,16 @@ const styles = StyleSheet.create({
   menuGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -6,
+    gap: 12,
   },
   menuCardWrapper: {
-    width: '50%', // 2 cards por linha
+    flex: 1,
+    minWidth: '48%',
+    maxWidth: '48%',
+    marginBottom: 12,
+  },
+  logoutButtonContainer: {
+    marginTop: 16,
+    alignItems: 'center',
   },
 });

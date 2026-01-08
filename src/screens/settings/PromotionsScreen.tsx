@@ -276,7 +276,7 @@ export function PromotionsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <BackButton title="Configurações" />
+        <BackButton title="Perfil" />
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>🎁 Promoções</Text>
           {currentTab === 0 && (
