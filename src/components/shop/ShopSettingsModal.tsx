@@ -8,13 +8,13 @@ import {
   TouchableOpacity,
   Switch,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { shopApi } from '../../services/api';
 import { Picker } from '@react-native-picker/picker';
+import { useCustomModal, CustomModal } from '../CustomModal';
 
 type ShopVisibility = 'public' | 'preview' | 'friends' | 'followers';
 
@@ -42,7 +42,7 @@ export function ShopSettingsModal({
   const [shopEnabled, setShopEnabled] = useState(false);
   const [visibility, setVisibility] = useState<ShopVisibility>('preview');
   const [saleNotifications, setSaleNotifications] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { showConfirm, modalProps, hideModal } = useCustomModal();
 
   useEffect(() => {
     if (visible) {
@@ -113,7 +113,6 @@ export function ShopSettingsModal({
       showToast.error('Erro', 'Erro ao excluir loja');
     } finally {
       setSaving(false);
-      setShowDeleteConfirm(false);
     }
   };
 
@@ -258,17 +257,15 @@ export function ShopSettingsModal({
               <TouchableOpacity
                 style={styles.dangerButton}
                 onPress={() => {
-                  Alert.alert(
+                  showConfirm(
                     'Confirmar Exclusão',
                     'Tem certeza que deseja excluir sua loja? Isso desativará todos os seus produtos. Você precisará solicitar a abertura da loja novamente.',
-                    [
-                      { text: 'Cancelar', style: 'cancel' },
-                      {
-                        text: 'Excluir Loja',
-                        style: 'destructive',
-                        onPress: handleDeleteShop,
-                      },
-                    ]
+                    handleDeleteShop,
+                    {
+                      confirmText: 'Excluir Loja',
+                      cancelText: 'Cancelar',
+                      destructive: true,
+                    }
                   );
                 }}
                 disabled={saving}
@@ -307,6 +304,9 @@ export function ShopSettingsModal({
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Modal de Confirmação Customizado */}
+      <CustomModal {...modalProps} onClose={hideModal} />
     </Modal>
   );
 }
