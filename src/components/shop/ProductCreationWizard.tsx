@@ -162,11 +162,20 @@ export function ProductCreationWizard({
   const canProceedToNext = (step: number): boolean => {
     try {
       switch (step) {
-        case 0: // Conteúdo - precisa ter pelo menos um link ou arquivo
-          return (
-            (formData.links && formData.links.length > 0) ||
-            (formData.files && formData.files.length > 0)
-          );
+        case 0: // Conteúdo - precisa ter pelo menos um link com URL válida ou arquivo
+          // Verificar se há arquivos
+          const hasFiles = formData.files && formData.files.length > 0;
+          
+          // Verificar se há links com URL válida (não vazia e com mais de 3 caracteres)
+          const hasValidLinks = formData.links && formData.links.length > 0 && 
+            formData.links.some((link: any) => 
+              link.url && 
+              typeof link.url === 'string' && 
+              link.url.trim() !== '' &&
+              link.url.trim().length > 3
+            );
+          
+          return hasFiles || hasValidLinks;
         case 1: // Detalhes
           const hasTitle = Boolean(formData.title && String(formData.title).trim() !== '');
           const hasCategory = Boolean(formData.categoryId && String(formData.categoryId).trim() !== '');
@@ -233,10 +242,23 @@ export function ProductCreationWizard({
       isAdultContent: formData.categoryId === 'conteudo-18',
       contentValidations: formData.contentValidations,
       digital: {
-        downloadUrl:
-          formData.links && formData.links.length > 0 ? formData.links[0].url : '',
-        fileName:
-          formData.links && formData.links.length > 0 ? formData.links[0].title : '',
+        // Buscar o primeiro link válido (com URL preenchida e com mais de 3 caracteres)
+        downloadUrl: formData.links && formData.links.length > 0
+          ? (formData.links.find((link: any) => 
+              link.url && 
+              typeof link.url === 'string' && 
+              link.url.trim() !== '' &&
+              link.url.trim().length > 3
+            )?.url || '')
+          : '',
+        fileName: formData.links && formData.links.length > 0
+          ? (formData.links.find((link: any) => 
+              link.url && 
+              typeof link.url === 'string' && 
+              link.url.trim() !== '' &&
+              link.url.trim().length > 3
+            )?.title || '')
+          : '',
         allowDownload: formData.allowDownload,
         fileSize: 0,
         files: formData.files || [],

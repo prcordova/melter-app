@@ -83,7 +83,7 @@ export function StoryCreateModal({
     try {
       setLoading(true);
 
-      // 1. Fazer upload do arquivo
+      // 1. Fazer upload do arquivo usando presigned URL (upload direto ao S3)
       const filename = selectedImage.split('/').pop() || `story_${Date.now()}.jpg`;
       const match = /\.(\w+)$/.exec(filename);
       const fileType = match ? `image/${match[1]}` : 'image/jpeg';

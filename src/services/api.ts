@@ -431,17 +431,67 @@ export const storiesApi = {
 
   uploadStoryMedia: async (fileUri: string, fileName: string, fileType: string) => {
     const token = await AsyncStorage.getItem('token');
-    const formData = new FormData();
-    formData.append('file', {
-      uri: fileUri,
-      name: fileName,
-      type: fileType,
-    } as any);
+    
+    try {
+      // 1. Obter presigned URL
+      const presignedResponse = await api.get<ApiResponse<{
+        presignedUrl: string;
+        fileKey: string;
+        fileUrl: string;
+        metadata: any;
+      }>>('/api/stories/upload-presigned', {
+        params: {
+          fileName,
+          fileType,
+          fileSize: 0, // Tamanho será validado no upload
+        },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/stories/upload`, formData, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
+      if (!presignedResponse.data.success || !presignedResponse.data.data) {
+        throw new Error(presignedResponse.data.message || 'Erro ao obter URL de upload');
+      }
+
+      // 2. Fazer upload direto ao S3
+      const fileBlob = await fetch(fileUri).then(res => res.blob());
+      
+      await axios.put(presignedResponse.data.data.presignedUrl, fileBlob, {
+        headers: {
+          'Content-Type': fileType,
+        },
+        timeout: 600000, // 10 minutos para uploads grandes
+      });
+
+      // 3. Registrar upload no backend
+      const formData = new FormData();
+      formData.append('fileUrl', presignedResponse.data.data.fileUrl);
+      formData.append('fileName', fileName);
+
+      const response = await axios.post(`${API_CONFIG.BASE_URL}/api/stories/upload`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('[uploadStoryMedia] Erro:', error);
+      throw error;
+    }
+  },
+  getPresignedStoryUploadUrl: async (fileName: string, fileType: string, fileSize: number) => {
+    const response = await api.get<ApiResponse<{
+      presignedUrl: string;
+      fileKey: string;
+      fileUrl: string;
+      metadata: any;
+    }>>('/api/stories/upload-presigned', {
+      params: {
+        fileName,
+        fileType,
+        fileSize,
       },
     });
     return response.data;
@@ -971,6 +1021,22 @@ export const sellerVerificationApi = {
     });
     return response.data;
   },
+  getPresignedUploadUrl: async (fileName: string, fileType: string, fileSize: number, documentType: 'front' | 'back' | 'selfie') => {
+    const response = await api.get<ApiResponse<{
+      presignedUrl: string;
+      fileKey: string;
+      fileUrl: string;
+      metadata: any;
+    }>>('/api/users/seller-verification/upload-presigned', {
+      params: {
+        fileName,
+        fileType,
+        fileSize,
+        documentType,
+      },
+    });
+    return response.data;
+  },
 };
 
 // API de Produtos
@@ -1019,12 +1085,12 @@ export const productsApi = {
   },
   uploadFile: async (productId: string, fileData: FormData, onUploadProgress?: (progress: number) => void) => {
     const token = await AsyncStorage.getItem('token');
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/products/${productId}/files`, fileData, {
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/products/upload-file`, fileData, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
+        // Não definir Content-Type manualmente - axios faz isso automaticamente com boundary
       },
-      timeout: 60000,
+      timeout: 300000, // 5 minutos para uploads grandes
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
       onUploadProgress: (progressEvent) => {
@@ -1033,6 +1099,40 @@ export const productsApi = {
           onUploadProgress(progress);
         }
       },
+    });
+    return response.data;
+  },
+  getPresignedUploadUrl: async (productId: string, fileName: string, fileType: string, fileSize: number, order: number = 0) => {
+    const token = await AsyncStorage.getItem('token');
+    const response = await api.get<ApiResponse<{
+      presignedUrl: string;
+      fileKey: string;
+      fileUrl: string;
+      metadata: any;
+    }>>(`/api/products/upload-presigned`, {
+      params: {
+        productId,
+        fileName,
+        fileType,
+        fileSize,
+        order,
+      },
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+  registerFile: async (productId: string, fileUrl: string, fileName: string, fileType: string, fileSize: number, customFileName?: string, description?: string, order: number = 0) => {
+    const response = await api.post<ApiResponse<any>>(`/api/products/register-file`, {
+      productId,
+      fileUrl,
+      fileName,
+      fileType,
+      fileSize,
+      customFileName,
+      description,
+      order,
     });
     return response.data;
   },

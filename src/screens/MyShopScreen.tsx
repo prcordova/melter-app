@@ -744,18 +744,24 @@ export function MyShopScreen() {
             });
 
             // Preparar dados para o backend
-            const downloadUrl = wizardData.links && wizardData.links.length > 0 && wizardData.links[0].url
-              ? wizardData.links[0].url.trim()
-              : '';
+            // Buscar o primeiro link válido (com URL preenchida e com mais de 3 caracteres)
+            const validLink = wizardData.links && wizardData.links.length > 0
+              ? wizardData.links.find((link: any) => 
+                  link.url && 
+                  typeof link.url === 'string' && 
+                  link.url.trim() !== '' &&
+                  link.url.trim().length > 3
+                )
+              : null;
             
-            const fileName = wizardData.links && wizardData.links.length > 0 && wizardData.links[0].title
-              ? wizardData.links[0].title.trim()
-              : '';
+            const downloadUrl = validLink ? validLink.url.trim() : '';
+            const fileName = validLink ? (validLink.title || '').trim() : '';
 
             console.log('[MyShopScreen] Dados preparados para salvar:', {
               downloadUrl,
               fileName,
               hasDownloadUrl: !!downloadUrl && downloadUrl !== '',
+              validLink,
             });
 
             const productData = {
@@ -794,29 +800,64 @@ export function MyShopScreen() {
                 throw new Error('Erro ao criar produto');
               }
 
-              // Upload dos arquivos
-              const token = await AsyncStorage.getItem('token');
+              // Upload dos arquivos - sempre usando presigned URL e upload direto ao S3
               for (let i = 0; i < wizardData.files.length; i++) {
                 const fileData = wizardData.files[i];
                 if (fileData.file || fileData.uri) {
-                  const formData = new FormData();
-                  formData.append('file', {
-                    uri: fileData.uri || fileData.file.uri,
-                    type: fileData.type || fileData.file.mimeType || 'application/octet-stream',
-                    name: fileData.name || fileData.file.fileName || 'arquivo',
-                  } as any);
-                  formData.append('productId', productId);
-                  formData.append('order', i.toString());
+                  const fileUri = fileData.uri || fileData.file.uri;
+                  const fileType = fileData.type || fileData.file.mimeType || 'application/octet-stream';
+                  const fileName = fileData.name || fileData.file.fileName || 'arquivo';
+                  const fileSize = fileData.size || fileData.file.size || 0;
 
-                  await axios.post(`${API_CONFIG.BASE_URL}/api/products/${productId}/files`, formData, {
-                    headers: {
-                      Authorization: `Bearer ${token}`,
-                      'Content-Type': 'multipart/form-data',
-                    },
-                    timeout: 60000,
-                    maxContentLength: Infinity,
-                    maxBodyLength: Infinity,
-                  });
+                  try {
+                    // 1. Obter presigned URL (backend valida tudo aqui)
+                    const presignedResponse = await productsApi.getPresignedUploadUrl(
+                      productId,
+                      fileName,
+                      fileType,
+                      fileSize,
+                      i
+                    );
+
+                    if (!presignedResponse.success || !presignedResponse.data) {
+                      throw new Error(presignedResponse.message || 'Erro ao obter URL de upload');
+                    }
+
+                    // 2. Fazer upload direto para S3 usando a presigned URL
+                    const fileBlob = await fetch(fileUri).then(res => res.blob());
+                    
+                    await axios.put(presignedResponse.data.presignedUrl, fileBlob, {
+                      headers: {
+                        'Content-Type': fileType,
+                      },
+                      timeout: 600000, // 10 minutos para uploads grandes
+                      onUploadProgress: (progressEvent) => {
+                        if (progressEvent.total) {
+                          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                          console.log(`[Upload] Progresso: ${progress}%`);
+                        }
+                      },
+                    });
+
+                    // 3. Registrar o arquivo no backend após upload bem-sucedido
+                    await productsApi.registerFile(
+                      productId,
+                      presignedResponse.data.fileUrl,
+                      fileName,
+                      fileType,
+                      fileSize,
+                      fileData.customFileName,
+                      fileData.description,
+                      i
+                    );
+                    
+                    console.log('[Upload] Arquivo registrado com sucesso:', presignedResponse.data.fileUrl);
+                  } catch (uploadError: any) {
+                    console.error('[MyShopScreen] Erro no upload do arquivo:', uploadError);
+                    const errorMessage = uploadError.response?.data?.message || uploadError.message || 'Erro ao fazer upload do arquivo';
+                    showToast.error('Erro', errorMessage);
+                    throw uploadError;
+                  }
                 }
               }
             } else if (!productId) {

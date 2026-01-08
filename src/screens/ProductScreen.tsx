@@ -19,6 +19,8 @@ import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { productsApi } from '../services/api';
 import { getImageUrl } from '../utils/image';
+import * as ScreenCapture from 'expo-screen-capture';
+import ImageViewing from 'react-native-image-viewing';
 
 const { width } = Dimensions.get('window');
 
@@ -75,12 +77,35 @@ export function ProductScreen() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingPurchaseStatus, setLoadingPurchaseStatus] = useState(true);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
+  const [imageViewerImages, setImageViewerImages] = useState<Array<{ uri: string }>>([]);
 
   useEffect(() => {
     if (productId) {
       fetchProductData();
     }
   }, [productId]);
+
+  // Proteção contra prints e gravação de tela
+  useEffect(() => {
+    let isMounted = true;
+    
+    const enableProtection = async () => {
+      try {
+        await ScreenCapture.preventScreenCaptureAsync();
+      } catch (error) {
+        console.warn('[ProductScreen] Erro ao ativar proteção de tela:', error);
+      }
+    };
+
+    enableProtection();
+
+    return () => {
+      isMounted = false;
+      ScreenCapture.allowScreenCaptureAsync().catch(() => {});
+    };
+  }, []);
 
   const fetchProductData = async () => {
     try {
@@ -177,12 +202,26 @@ export function ProductScreen() {
     }
   };
 
-  const handleViewImage = (url: string, fileName: string) => {
-    // TODO: Implementar visualizador de imagem
-    Alert.alert('Visualizar Imagem', fileName, [
-      { text: 'Abrir no navegador', onPress: () => handleOpenLink(url) },
-      { text: 'Cancelar', style: 'cancel' },
-    ]);
+  const handleViewImage = (url: string, fileName: string, index: number, allImages: Array<{ url: string; fileName: string }>) => {
+    // Preparar imagens para o visualizador
+    const imageUris = allImages
+      .map(img => {
+        const imageUrl = getImageUrl(img.url);
+        return imageUrl ? { uri: imageUrl } : null;
+      })
+      .filter((item): item is { uri: string } => item !== null);
+    
+    if (imageUris.length === 0) {
+      showToast.error('Erro', 'Não foi possível carregar as imagens');
+      return;
+    }
+    
+    // Ajustar o índice se necessário
+    const adjustedIndex = Math.min(index, imageUris.length - 1);
+    
+    setImageViewerImages(imageUris);
+    setImageViewerIndex(adjustedIndex);
+    setImageViewerVisible(true);
   };
 
   const handleViewVideo = (url: string, fileName: string) => {
@@ -236,45 +275,53 @@ export function ProductScreen() {
   const downloadUrl = digital.downloadUrl;
   
   // Verificar se há link principal (downloadUrl não vazio e válido)
+  // Aceitar URLs que não começam com http mas são válidas (adicionar http:// se necessário)
+  const normalizeUrl = (url: string): string => {
+    const trimmed = url.trim();
+    if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    // Se não começa com http, adicionar https://
+    return `https://${trimmed}`;
+  };
+
   const hasMainLink = downloadUrl && 
     typeof downloadUrl === 'string' && 
     downloadUrl.trim() !== '' && 
     downloadUrl.trim() !== 'null' && 
     downloadUrl.trim() !== 'undefined' &&
-    (downloadUrl.startsWith('http://') || downloadUrl.startsWith('https://'));
+    downloadUrl.trim().length > 3; // Mínimo de 3 caracteres
   
   const mainLink = hasMainLink
     ? {
-        url: downloadUrl.trim(),
+        url: normalizeUrl(downloadUrl),
         fileName: digital.fileName || 'Link Principal',
         customFileName: digital.fileName || 'Link Principal',
       }
     : null;
 
   const files = product.digital?.files || [];
-  
-  // Debug: verificar se o link foi encontrado
-  console.log('[ProductScreen] ========== VERIFICAÇÃO DE CONTEÚDO ==========');
-  console.log('[ProductScreen] hasMainLink:', hasMainLink);
-  console.log('[ProductScreen] downloadUrl:', downloadUrl);
-  console.log('[ProductScreen] downloadUrlType:', typeof downloadUrl);
-  console.log('[ProductScreen] mainLink:', mainLink);
-  console.log('[ProductScreen] digital completo:', JSON.stringify(product.digital, null, 2));
-  console.log('[ProductScreen] files array:', JSON.stringify(files, null, 2));
-  console.log('[ProductScreen] canViewContent:', canViewContent);
-  console.log('[ProductScreen] isOwner:', isOwner);
-  console.log('[ProductScreen] hasPurchased:', hasPurchased);
-  console.log('[ProductScreen] ============================================');
 
   // Buscar links também no array files (caso o link tenha sido salvo como arquivo)
-  const links = files.filter((f) => {
-    // Verificar se é um link (documento com URL HTTP/HTTPS)
-    const isLink = f.fileType === 'document' && 
-                   f.url && 
-                   typeof f.url === 'string' &&
-                   (f.url.startsWith('http://') || f.url.startsWith('https://'));
-    return isLink;
-  });
+  const links = files
+    .filter((f) => {
+      // Verificar se é um link (documento com URL válida)
+      if (f.fileType !== 'document' || !f.url || typeof f.url !== 'string') {
+        return false;
+      }
+      const trimmed = f.url.trim();
+      // Aceitar URLs que começam com http ou que são válidas (mais de 3 caracteres)
+      return trimmed.length > 3 && (
+        trimmed.startsWith('http://') || 
+        trimmed.startsWith('https://') ||
+        trimmed.includes('.') // URLs válidas geralmente contêm ponto
+      );
+    })
+    .map((f) => ({
+      ...f,
+      url: normalizeUrl(f.url),
+    }));
   const images = files.filter((f) => f.fileType === 'image');
   const videos = files.filter((f) => f.fileType === 'video');
   const documents = files.filter(
@@ -290,23 +337,25 @@ export function ProductScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header do Produto */}
         <View style={styles.header}>
-          {product.coverImage && (
-            <Image
-              source={{ uri: getImageUrl(product.coverImage) }}
-              style={styles.coverImage}
-              resizeMode="cover"
-            />
-          )}
-          <View style={styles.headerInfo}>
-            <Text style={styles.title}>{product.title}</Text>
-            {product.description && (
-              <Text style={styles.description}>{product.description}</Text>
+          <View style={styles.headerContent}>
+            {product.coverImage && (
+              <Image
+                source={{ uri: getImageUrl(product.coverImage) }}
+                style={styles.coverImagePreview}
+                resizeMode="cover"
+              />
             )}
-            {product.categoryId && (
-              <View style={styles.category}>
-                <Text style={styles.categoryText}>{product.categoryId.name}</Text>
-              </View>
-            )}
+            <View style={styles.headerInfo}>
+              <Text style={styles.title}>{product.title}</Text>
+              {product.description && (
+                <Text style={styles.description}>{product.description}</Text>
+              )}
+              {product.categoryId && (
+                <View style={styles.category}>
+                  <Text style={styles.categoryText}>{product.categoryId.name}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
@@ -384,7 +433,14 @@ export function ProductScreen() {
                 <TouchableOpacity
                   key={index}
                   style={styles.mediaCard}
-                  onPress={() => handleViewImage(image.url, image.customFileName || image.fileName)}
+                  onPress={() => handleViewImage(image.url, image.customFileName || image.fileName, index, images)}
+                  onLongPress={() => {
+                    // Verificar se o download é permitido
+                    const allowDownload = product.digital?.allowDownload || false;
+                    if (!allowDownload) {
+                      showToast.info('Download', 'O download desta imagem não está permitido pelo vendedor');
+                    }
+                  }}
                 >
                   {image.thumbnail ? (
                     <Image
@@ -492,6 +548,17 @@ export function ProductScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Visualizador de Imagem em Tela Cheia */}
+      <ImageViewing
+        images={imageViewerImages}
+        imageIndex={imageViewerIndex}
+        visible={imageViewerVisible}
+        onRequestClose={() => setImageViewerVisible(false)}
+        presentationStyle="overFullScreen"
+        doubleTapToZoomEnabled
+        swipeToCloseEnabled
+      />
     </View>
   );
 }
@@ -526,14 +593,20 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.background.paper,
     marginBottom: 12,
+    padding: 16,
   },
-  coverImage: {
-    width: '100%',
-    height: 200,
+  headerContent: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  coverImagePreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
     backgroundColor: COLORS.background.tertiary,
   },
   headerInfo: {
-    padding: 16,
+    flex: 1,
   },
   title: {
     fontSize: 24,
