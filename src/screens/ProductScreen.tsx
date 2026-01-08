@@ -37,6 +37,7 @@ interface Product {
   } | null;
   type: string;
   paymentMode: string;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REQUIRES_CHANGES' | 'INACTIVE';
   userId: {
     _id: string;
     username: string;
@@ -269,6 +270,44 @@ export function ProductScreen() {
   const hasPurchased = product.purchaseStatus?.hasPurchased || false;
   const canViewContent = hasPurchased || isOwner || user?.accountType === 'admin';
 
+  // Verificar status de aprovação
+  const productStatus = product.status || 'APPROVED';
+  const isPending = productStatus !== 'APPROVED';
+  
+  // Funções auxiliares para status
+  const getStatusLabel = (status: string): string => {
+    switch (status) {
+      case 'PENDING': return 'Em Análise';
+      case 'APPROVED': return 'Aprovado';
+      case 'REJECTED': return 'Rejeitado';
+      case 'REQUIRES_CHANGES': return 'Alterações Necessárias';
+      case 'INACTIVE': return 'Inativo';
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'PENDING': return COLORS.states.warning;
+      case 'APPROVED': return COLORS.states.success;
+      case 'REJECTED': return COLORS.states.error;
+      case 'REQUIRES_CHANGES': return COLORS.primary.main;
+      case 'INACTIVE': return COLORS.text.secondary;
+      default: return COLORS.text.secondary;
+    }
+  };
+
+  const getStatusIcon = (status: string): string => {
+    switch (status) {
+      case 'PENDING': return 'hourglass-outline';
+      case 'APPROVED': return 'checkmark-circle-outline';
+      case 'REJECTED': return 'close-circle-outline';
+      case 'REQUIRES_CHANGES': return 'construct-outline';
+      case 'INACTIVE': return 'pause-circle-outline';
+      default: return 'help-circle-outline';
+    }
+  };
+
   // Separar conteúdo por tipo
   // Verificar downloadUrl (pode estar em digital.downloadUrl ou digital?.downloadUrl)
   const digital = product.digital || {};
@@ -336,19 +375,27 @@ export function ProductScreen() {
       <Header />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header do Produto */}
-        <View style={styles.header}>
+        <View style={[styles.header, isPending && styles.headerPending]}>
           <View style={styles.headerContent}>
             {product.coverImage && (
               <Image
                 source={{ uri: getImageUrl(product.coverImage) }}
-                style={styles.coverImagePreview}
+                style={[styles.coverImagePreview, isPending && styles.coverImagePending]}
                 resizeMode="cover"
               />
             )}
             <View style={styles.headerInfo}>
-              <Text style={styles.title}>{product.title}</Text>
+              <View style={styles.titleRow}>
+                <Text style={[styles.title, isPending && styles.titlePending]}>{product.title}</Text>
+                {isPending && (
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(productStatus) }]}>
+                    <Ionicons name={getStatusIcon(productStatus) as any} size={14} color="#FFFFFF" />
+                    <Text style={styles.statusBadgeText}>{getStatusLabel(productStatus)}</Text>
+                  </View>
+                )}
+              </View>
               {product.description && (
-                <Text style={styles.description}>{product.description}</Text>
+                <Text style={[styles.description, isPending && styles.descriptionPending]}>{product.description}</Text>
               )}
               {product.categoryId && (
                 <View style={styles.category}>
@@ -595,6 +642,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 16,
   },
+  headerPending: {
+    opacity: 0.65,
+  },
   headerContent: {
     flexDirection: 'row',
     gap: 12,
@@ -605,14 +655,43 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: COLORS.background.tertiary,
   },
+  coverImagePending: {
+    opacity: 0.65,
+  },
   headerInfo: {
     flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    marginBottom: 4,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.text.primary,
-    marginBottom: 8,
+    flex: 1,
+  },
+  titlePending: {
+    opacity: 0.8,
+  },
+  descriptionPending: {
+    opacity: 0.7,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   description: {
     fontSize: 14,

@@ -19,6 +19,7 @@ import { SellerVerificationStatusCard } from '../components/shop/SellerVerificat
 import { AppealModal } from '../components/shop/AppealModal';
 import { ProductCreationWizard } from '../components/shop/ProductCreationWizard';
 import { ShopCard } from '../components/ShopCard';
+import { SubscriptionPlansContent } from '../components/shop/SubscriptionPlansContent';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
 import axios from 'axios';
@@ -686,10 +687,7 @@ export function MyShopScreen() {
             )}
 
             {activeTab === 'plans' && isOwner && (
-              <View style={styles.placeholderContent}>
-                <Text style={styles.placeholderText}>Tab Planos</Text>
-                <Text style={styles.placeholderSubtext}>Em desenvolvimento...</Text>
-              </View>
+              <SubscriptionPlansContent userPlan={user?.plan?.type as any} />
             )}
           </View>
         ) : (
