@@ -538,6 +538,7 @@ export function UserProfileScreen() {
 
         {/* Info do Usuário */}
         <View style={styles.profileHeader}>
+          {/* Avatar à esquerda */}
           <View style={styles.avatarContainer}>
             <View 
               style={[
@@ -554,7 +555,7 @@ export function UserProfileScreen() {
               <View style={[styles.statusIndicator, { backgroundColor: user.status?.visibility === 'online' ? '#10b981' : '#94a3b8' }]} />
             </View>
             
-            {/* Balão de status (mensagem de status) */}
+            {/* Balão de status à direita do avatar, um pouco acima da metade */}
             {user.status?.customMessage && user.status.customMessage.trim() && (
               <View style={styles.statusBalloon}>
                 <Text style={[styles.statusBalloonText, dynamicStyles.text]} numberOfLines={2}>
@@ -564,12 +565,17 @@ export function UserProfileScreen() {
             )}
           </View>
 
+          {/* Informações do usuário à direita do avatar */}
           <View style={styles.userInfo}>
+            {/* Nome, plano e 3 pontinhos na mesma linha */}
             <View style={styles.nameRow}>
               <Text style={[styles.username, dynamicStyles.text]}>@{user.username}</Text>
               {user.verifiedBadge?.isVerified && (
                 <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
               )}
+              <Text style={[styles.planType, { color: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) }]}>
+                {user.plan?.type || 'FREE'}
+              </Text>
               {/* Menu de 3 pontinhos */}
               {currentUser?.id !== (user.id || user._id) && (
                 <TouchableOpacity
@@ -580,13 +586,14 @@ export function UserProfileScreen() {
                 </TouchableOpacity>
               )}
             </View>
-            <Text style={[styles.planType, { color: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) }]}>
-              {user.plan?.type || 'FREE'}
-            </Text>
+            
+            {/* Bio */}
             {user.bio ? <Text style={[styles.bio, dynamicStyles.text]}>{user.bio}</Text> : null}
           </View>
+        </View>
 
-          {/* Ações Rápidas (Loja e Doação) */}
+        {/* Ações Rápidas (Loja e Doação) */}
+        {(user.shop?.isEnabled || user.donationEnabled) && (
           <View style={styles.quickActions}>
             {user.shop?.isEnabled && (
               <TouchableOpacity 
@@ -607,81 +614,10 @@ export function UserProfileScreen() {
               </TouchableOpacity>
             )}
           </View>
+        )}
 
-          {/* Ações Principais */}
-          {currentUser?.id !== (user.id || user._id) && (
-            <View style={styles.actions}>
-              <View style={styles.actionRow}>
-                {/* Botão Seguir */}
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton, 
-                    isFollowing 
-                      ? { backgroundColor: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) + '80', opacity: 0.7 }
-                      : dynamicStyles.button
-                  ]}
-                  onPress={handleFollowAction}
-                  disabled={followLoading}
-                >
-                  <Ionicons 
-                    name={isFollowing ? "person-remove" : "person-add"} 
-                    size={18} 
-                    color={getSafeColor(profile.buttonTextColor, '#ffffff')} 
-                  />
-                  <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
-                    {isFollowing ? 'Seguindo' : 'Seguir'}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Botão Amizade */}
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    dynamicStyles.button
-                  ]}
-                  onPress={handleFriendshipAction}
-                  disabled={friendshipLoading}
-                >
-                  <Ionicons 
-                    name={
-                      friendshipStatus === 'FRIENDS' ? "people" :
-                      friendshipStatus === 'PENDING_SENT' ? "time" :
-                      friendshipStatus === 'PENDING_RECEIVED' ? "checkmark-circle" :
-                      "person-add-outline"
-                    } 
-                    size={18} 
-                    color={getSafeColor(profile.buttonTextColor, '#ffffff')} 
-                  />
-                  <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
-                    {friendshipStatus === 'FRIENDS' ? 'Amigos' :
-                     friendshipStatus === 'PENDING_SENT' ? 'Pendente' :
-                     friendshipStatus === 'PENDING_RECEIVED' ? 'Aceitar' :
-                     'Add Amigo'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity 
-                style={[
-                  styles.messageButtonFull,
-                  dynamicStyles.button,
-                  friendshipStatus !== 'FRIENDS' && { opacity: 0.5 }
-                ]} 
-                onPress={handleMessagePress}
-                disabled={friendshipStatus !== 'FRIENDS'}
-              >
-                <Ionicons 
-                  name="chatbubble-ellipses" 
-                  size={18} 
-                  color={getSafeColor(profile.buttonTextColor, '#ffffff')} 
-                />
-                <Text style={[styles.buttonText, dynamicStyles.buttonText]}>Enviar Mensagem</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Stats (Seguidores, Seguindo, Posts, Likes, Views) */}
-          <View style={[styles.statsRow, { borderColor: COLORS.border.light + '40' }]}>
+        {/* Stats (Seguidores, Seguindo, Posts, Likes, Views) */}
+        <View style={[styles.statsRow, { borderColor: COLORS.border.light + '40' }]}>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, dynamicStyles.text]}>
                 {user.followersCount !== undefined && user.followersCount !== null 
@@ -715,7 +651,78 @@ export function UserProfileScreen() {
               </View>
             )}
           </View>
-        </View>
+
+        {/* Ações Principais */}
+        {currentUser?.id !== (user.id || user._id) && (
+          <View style={styles.actions}>
+            <View style={styles.actionRow}>
+              {/* Botão Seguir */}
+              <TouchableOpacity
+                style={[
+                  styles.actionButton, 
+                  isFollowing 
+                    ? { backgroundColor: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) + '80', opacity: 0.7 }
+                    : dynamicStyles.button
+                ]}
+                onPress={handleFollowAction}
+                disabled={followLoading}
+              >
+                <Ionicons 
+                  name={isFollowing ? "person-remove" : "person-add"} 
+                  size={18} 
+                  color={getSafeColor(profile.buttonTextColor, '#ffffff')} 
+                />
+                <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
+                  {isFollowing ? 'Seguindo' : 'Seguir'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Botão Amizade */}
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  dynamicStyles.button
+                ]}
+                onPress={handleFriendshipAction}
+                disabled={friendshipLoading}
+              >
+                <Ionicons 
+                  name={
+                    friendshipStatus === 'FRIENDS' ? "people" :
+                    friendshipStatus === 'PENDING_SENT' ? "time" :
+                    friendshipStatus === 'PENDING_RECEIVED' ? "checkmark-circle" :
+                    "person-add-outline"
+                  } 
+                  size={18} 
+                  color={getSafeColor(profile.buttonTextColor, '#ffffff')} 
+                />
+                <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
+                  {friendshipStatus === 'FRIENDS' ? 'Amigos' :
+                   friendshipStatus === 'PENDING_SENT' ? 'Pendente' :
+                   friendshipStatus === 'PENDING_RECEIVED' ? 'Aceitar' :
+                   'Add Amigo'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={[
+                styles.messageButtonFull,
+                dynamicStyles.button,
+                friendshipStatus !== 'FRIENDS' && { opacity: 0.5 }
+              ]} 
+              onPress={handleMessagePress}
+              disabled={friendshipStatus !== 'FRIENDS'}
+            >
+              <Ionicons 
+                name="chatbubble-ellipses" 
+                size={18} 
+                color={getSafeColor(profile.buttonTextColor, '#ffffff')} 
+              />
+              <Text style={[styles.buttonText, dynamicStyles.buttonText]}>Enviar Mensagem</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Links do Usuário */}
         {links.length > 0 ? (
@@ -897,11 +904,14 @@ const styles = StyleSheet.create({
   profileHeader: {
     marginTop: -50,
     paddingHorizontal: 16,
-    alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingTop: 50, // Começa abaixo da metade do avatar (avatar tem 100px, metade = 50px)
   },
   avatarContainer: {
     position: 'relative',
-    alignItems: 'center',
+    marginTop: -50, // Move o avatar para cima para sobrepor o cover
   },
   avatarWrapper: {
     position: 'relative',
@@ -918,6 +928,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusBalloon: {
+    position: 'absolute',
+    left: 110, // À direita do avatar (100px + 10px de gap)
+    top: -30, // Na metade superior do avatar (sobreposto ao cover background)
     maxWidth: 200,
     backgroundColor: COLORS.background.paper,
     borderRadius: 12,
@@ -929,6 +942,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: COLORS.border.light,
+    zIndex: 10,
   },
   statusBalloonArrow: {
     width: 0,
@@ -1010,13 +1024,14 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   userInfo: {
-    alignItems: 'center',
-    marginTop: 12,
+    flex: 1,
+    marginTop: 50, // Começa abaixo da metade do avatar (50px = metade de 100px)
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    flexWrap: 'wrap',
   },
   username: {
     fontSize: 22,
@@ -1024,18 +1039,17 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
   planType: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.secondary.main,
-    marginTop: 2,
     textTransform: 'uppercase',
+    marginLeft: 4,
   },
   bio: {
     fontSize: 15,
     color: COLORS.text.secondary,
-    textAlign: 'center',
+    textAlign: 'left',
     marginTop: 8,
-    paddingHorizontal: 20,
     lineHeight: 20,
   },
   quickActions: {
@@ -1124,8 +1138,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     justifyContent: 'space-around',
-    marginTop: 24,
+    marginTop: 16,
     paddingVertical: 16,
+    paddingHorizontal: 16,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: COLORS.border.light,
