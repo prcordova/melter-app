@@ -484,6 +484,26 @@ export const postsApi = {
     });
     return response.data;
   },
+
+  reportPost: async (postId: string, data: {
+    category: string;
+    description: string;
+    targetUsername?: string;
+  }) => {
+    const formData = new FormData();
+    formData.append('targetId', postId);
+    formData.append('targetType', 'POST');
+    formData.append('targetUsername', data.targetUsername || '');
+    formData.append('category', data.category);
+    formData.append('description', data.description);
+
+    const response = await api.post<ApiResponse<any>>('/api/reports', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
 };
 
 // API de Mensagens
