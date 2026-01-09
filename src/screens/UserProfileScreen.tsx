@@ -614,16 +614,21 @@ export function UserProfileScreen() {
               <View style={styles.actionRow}>
                 {/* Botão Seguir */}
                 <TouchableOpacity
-                  style={[styles.actionButton, isFollowing ? styles.buttonSecondary : dynamicStyles.button]}
+                  style={[
+                    styles.actionButton, 
+                    isFollowing 
+                      ? { backgroundColor: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) + '80', opacity: 0.7 }
+                      : dynamicStyles.button
+                  ]}
                   onPress={handleFollowAction}
                   disabled={followLoading}
                 >
                   <Ionicons 
                     name={isFollowing ? "person-remove" : "person-add"} 
                     size={18} 
-                    color="#fff" 
+                    color={getSafeColor(profile.buttonTextColor, '#ffffff')} 
                   />
-                  <Text style={styles.buttonText}>
+                  <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
                     {isFollowing ? 'Seguindo' : 'Seguir'}
                   </Text>
                 </TouchableOpacity>
@@ -631,8 +636,8 @@ export function UserProfileScreen() {
                 {/* Botão Amizade */}
                 <TouchableOpacity
                   style={[
-                    styles.actionButton, 
-                    friendshipStatus === 'FRIENDS' ? styles.buttonFriends : styles.buttonPrimary
+                    styles.actionButton,
+                    dynamicStyles.button
                   ]}
                   onPress={handleFriendshipAction}
                   disabled={friendshipLoading}
@@ -645,9 +650,9 @@ export function UserProfileScreen() {
                       "person-add-outline"
                     } 
                     size={18} 
-                    color="#fff" 
+                    color={getSafeColor(profile.buttonTextColor, '#ffffff')} 
                   />
-                  <Text style={styles.buttonText}>
+                  <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
                     {friendshipStatus === 'FRIENDS' ? 'Amigos' :
                      friendshipStatus === 'PENDING_SENT' ? 'Pendente' :
                      friendshipStatus === 'PENDING_RECEIVED' ? 'Aceitar' :
@@ -658,13 +663,19 @@ export function UserProfileScreen() {
 
               <TouchableOpacity 
                 style={[
-                  styles.messageButtonFull, 
-                  friendshipStatus !== 'FRIENDS' && styles.buttonDisabled
+                  styles.messageButtonFull,
+                  dynamicStyles.button,
+                  friendshipStatus !== 'FRIENDS' && { opacity: 0.5 }
                 ]} 
                 onPress={handleMessagePress}
+                disabled={friendshipStatus !== 'FRIENDS'}
               >
-                <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
-                <Text style={styles.buttonText}>Enviar Mensagem</Text>
+                <Ionicons 
+                  name="chatbubble-ellipses" 
+                  size={18} 
+                  color={getSafeColor(profile.buttonTextColor, '#ffffff')} 
+                />
+                <Text style={[styles.buttonText, dynamicStyles.buttonText]}>Enviar Mensagem</Text>
               </TouchableOpacity>
             </View>
           )}
