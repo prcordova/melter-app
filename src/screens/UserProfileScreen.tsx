@@ -617,7 +617,7 @@ export function UserProfileScreen() {
         )}
 
         {/* Stats (Seguidores, Seguindo, Posts, Likes, Views) */}
-        <View style={[styles.statsRow, { borderColor: COLORS.border.light + '40' }]}>
+        <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, dynamicStyles.text]}>
                 {user.followersCount !== undefined && user.followersCount !== null 
@@ -1141,9 +1141,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: COLORS.border.light,
   },
   statItem: {
     alignItems: 'center',
@@ -1160,6 +1157,7 @@ const styles = StyleSheet.create({
   },
   linksSection: {
     padding: 16,
+    paddingTop: 32,
     gap: 12,
   },
   linkCard: {
