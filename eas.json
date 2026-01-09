@@ -12,6 +12,7 @@
       "ios": {
         "simulator": true
       },
+      "node": "20.19.4",
       "env": {
         "EXPO_PUBLIC_API_URL": "http://192.168.2.100:3000"
       }
@@ -20,6 +21,7 @@
       "android": {
         "buildType": "app-bundle"
       },
+      "node": "20.19.4",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://melter.com.br"
       }
