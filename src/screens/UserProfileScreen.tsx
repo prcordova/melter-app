@@ -134,6 +134,42 @@ export function UserProfileScreen() {
             userData.profile.gridAlignment = 'center';
           }
         }
+        
+        // Garantir que followersCount e followingCount sejam calculados se não existirem
+        // A API pode retornar os arrays ou os contadores diretamente
+        // Primeiro, tenta usar os valores diretos da API
+        let followersCount = userData.followersCount;
+        let followingCount = userData.followingCount;
+        
+        // Se não existirem, tenta calcular dos arrays
+        if (followersCount === undefined || followersCount === null || followersCount === '') {
+          if (Array.isArray(userData.followers)) {
+            followersCount = userData.followers.length;
+          } else {
+            followersCount = 0;
+          }
+        }
+        
+        if (followingCount === undefined || followingCount === null || followingCount === '') {
+          if (Array.isArray(userData.following)) {
+            followingCount = userData.following.length;
+          } else {
+            followingCount = 0;
+          }
+        }
+        
+        // Garantir que sejam números válidos (não strings, não null, não undefined)
+        followersCount = Number(followersCount);
+        followingCount = Number(followingCount);
+        
+        // Se Number() retornar NaN, usar 0
+        if (isNaN(followersCount)) followersCount = 0;
+        if (isNaN(followingCount)) followingCount = 0;
+        
+        // Atualizar os dados
+        userData.followersCount = followersCount;
+        userData.followingCount = followingCount;
+        
         setUser(userData);
         setLinks(userData.links || []);
         setIsFollowing(userData.isFollowing);
@@ -635,17 +671,19 @@ export function UserProfileScreen() {
 
           {/* Stats (Seguidores, Seguindo, Posts, Likes, Views) */}
           <View style={[styles.statsRow, { borderColor: COLORS.border.light + '40' }]}>
-            {(profile.showFollowers !== false) && (
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, dynamicStyles.text]}>
-                  {user.followersCount || 0}
-                </Text>
-                <Text style={[styles.statLabel, dynamicStyles.text, { opacity: 0.7 }]}>Seguidores</Text>
-              </View>
-            )}
             <View style={styles.statItem}>
               <Text style={[styles.statValue, dynamicStyles.text]}>
-                {user.followingCount || 0}
+                {user.followersCount !== undefined && user.followersCount !== null 
+                  ? String(user.followersCount) 
+                  : '0'}
+              </Text>
+              <Text style={[styles.statLabel, dynamicStyles.text, { opacity: 0.7 }]}>Seguidores</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, dynamicStyles.text]}>
+                {user.followingCount !== undefined && user.followingCount !== null 
+                  ? String(user.followingCount) 
+                  : '0'}
               </Text>
               <Text style={[styles.statLabel, dynamicStyles.text, { opacity: 0.7 }]}>Seguindo</Text>
             </View>
@@ -669,7 +707,7 @@ export function UserProfileScreen() {
         </View>
 
         {/* Links do Usuário */}
-        {links.length > 0 && (
+        {links.length > 0 ? (
           <View style={styles.linksSection}>
             {links.map((link) => (
               <TouchableOpacity
@@ -688,7 +726,33 @@ export function UserProfileScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        )}
+        ) : currentUser?.id === (user.id || user._id) ? (
+          <View style={styles.linksSection}>
+            <TouchableOpacity
+              style={[styles.addLinksButton, dynamicStyles.card]}
+              onPress={() => {
+                // Navegar diretamente para ProfileStack > LinksSettings
+                const tabNavigator = navigation.getParent()?.getParent();
+                if (tabNavigator) {
+                  (tabNavigator as any).navigate('ProfileStack', {
+                    screen: 'LinksSettings',
+                  });
+                } else {
+                  // Fallback: tentar navegar diretamente
+                  navigation.navigate('ProfileStack' as never, {
+                    screen: 'LinksSettings' as never,
+                  } as never);
+                }
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle-outline" size={24} color={getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main)} />
+              <Text style={[styles.addLinksButtonText, { color: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) }]}>
+                Adicionar seus links
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* Posts do Usuário */}
         {profile.showPosts && (
@@ -1099,6 +1163,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
+  },
+  addLinksButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 16,
+    gap: 12,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: COLORS.border.medium,
+  },
+  addLinksButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   postsSection: {
     padding: 16,
