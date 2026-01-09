@@ -21,7 +21,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.melter.com"
+        "EXPO_PUBLIC_API_URL": "https://melter.com.br"
       }
     },
     "development": {
