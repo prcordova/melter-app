@@ -4,16 +4,19 @@ import Constants from 'expo-constants';
 // Função para obter variável de ambiente com fallback
 // No Expo, variáveis de ambiente devem começar com EXPO_PUBLIC_
 // A função aceita a chave COM ou SEM o prefixo EXPO_PUBLIC_
+// IMPORTANTE: Em builds de produção, process.env não funciona, precisa usar Constants.expoConfig.extra
 const getEnvVar = (key: string, fallback: string = ''): string => {
   // Remove EXPO_PUBLIC_ se já estiver presente para evitar duplicação
   const cleanKey = key.startsWith('EXPO_PUBLIC_') ? key.replace('EXPO_PUBLIC_', '') : key;
   
-  // Tenta na ordem: EXPO_PUBLIC_ + key, key direto, NEXT_PUBLIC_ + key, Constants
-  return process.env[`EXPO_PUBLIC_${cleanKey}`] || 
+  // Em builds de produção do Expo, variáveis vêm de Constants.expoConfig.extra
+  // Priorizar Constants.expoConfig.extra primeiro (funciona em produção)
+  // Depois tentar process.env (funciona apenas em desenvolvimento)
+  return Constants.expoConfig?.extra?.[`EXPO_PUBLIC_${cleanKey}`] ||
+         Constants.expoConfig?.extra?.[cleanKey] ||
+         process.env[`EXPO_PUBLIC_${cleanKey}`] || 
          process.env[cleanKey] || 
          process.env[`NEXT_PUBLIC_${cleanKey}`] ||
-         Constants.expoConfig?.extra?.[cleanKey] ||
-         Constants.expoConfig?.extra?.[`EXPO_PUBLIC_${cleanKey}`] ||
          fallback;
 };
 
@@ -38,12 +41,16 @@ export const API_CONFIG = {
   APP_URL: getEnvVar('APP_URL', 'http://192.168.2.100:3000'),
 };
 
-// Log das configurações (apenas em desenvolvimento)
-if (__DEV__) {
-  console.log('[API_CONFIG] ✅ Configurações carregadas:', {
-    BASE_URL: API_CONFIG.BASE_URL,
-    S3_URL: '✓',
-    STRIPE: '✓',
-    PUSHER: '✓',
-  });
-}
+// Log das configurações (sempre, para debug em produção)
+console.log('[API_CONFIG] ✅ Configurações carregadas:', {
+  BASE_URL: API_CONFIG.BASE_URL,
+  S3_URL: '✓',
+  STRIPE: '✓',
+  PUSHER: '✓',
+});
+
+// Debug: Verificar variáveis de ambiente
+console.log('[API_CONFIG] 🔍 Debug - Variáveis de ambiente:', {
+  'process.env.EXPO_PUBLIC_API_URL': process.env.EXPO_PUBLIC_API_URL,
+  'Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL': Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL,
+});

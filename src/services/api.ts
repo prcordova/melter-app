@@ -112,6 +112,10 @@ interface LoginResult {
 export const authApi = {
   login: async (username: string, password: string): Promise<LoginResult> => {
     try {
+      // Log para debug
+      console.log('[API] 🔍 Tentando login com URL:', API_CONFIG.BASE_URL);
+      console.log('[API] 🔍 Endpoint completo:', `${API_CONFIG.BASE_URL}/api/auth/login`);
+      
       // Criar instância sem interceptor para login
       const loginApi = axios.create({
         baseURL: API_CONFIG.BASE_URL,
@@ -126,9 +130,17 @@ export const authApi = {
         password 
       });
       
+      console.log('[API] ✅ Login bem-sucedido');
       return response.data;
-    } catch (error) {
-      console.error('[API] Erro no login:', error);
+    } catch (error: any) {
+      console.error('[API] ❌ Erro no login:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+      });
       throw error;
     }
   },
