@@ -2,7 +2,7 @@
   "expo": {
     "name": "melter-app",
     "slug": "melter-app",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
@@ -49,7 +49,7 @@
     },
     "android": {
       "package": "com.melter.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#FFFFFF"
