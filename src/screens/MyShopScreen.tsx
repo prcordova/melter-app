@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { Header } from '../components/Header';
 import { COLORS } from '../theme/colors';
@@ -24,6 +25,7 @@ import { ShopSettingsModal } from '../components/shop/ShopSettingsModal';
 import { ShopAnalyticsContent } from '../components/shop/ShopAnalyticsContent';
 import { ShopCommunityContent } from '../components/shop/ShopCommunityContent';
 import { PlanLocker } from '../components/PlanLocker';
+import { BackArrow } from '../components/BackArrow';
 import { getFeatureLimit, hasFeatureAccess } from '../config/plan-features';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
@@ -62,6 +64,7 @@ export function MyShopScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
   const { user, loading: authLoading } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // Estados principais
   const [loading, setLoading] = useState(true);
@@ -423,6 +426,13 @@ export function MyShopScreen() {
       : products.length > 0; // Se não souber, assumir aprovada se tiver produtos
   const showTabs = (isOwner && isShopApproved) || isAdmin || (!isOwner && isShopApproved);
 
+  const handleBackToProfile = () => {
+    // Navegar para o perfil do dono da loja
+    navigation.navigate('UserProfile', {
+      username: username,
+    });
+  };
+
   return (
     <View style={styles.container}>
       <Header
@@ -470,16 +480,25 @@ export function MyShopScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Loja de {username}</Text>
-          {isOwner && (
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={handleSettingsPress}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="settings-outline" size={24} color={COLORS.text.secondary} />
-            </TouchableOpacity>
-          )}
+          <View style={styles.headerTop}>
+            {/* Back Button - sempre visível */}
+            <BackArrow onPress={handleBackToProfile} />
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>Loja de </Text>
+              <TouchableOpacity onPress={handleBackToProfile} activeOpacity={0.7}>
+                <Text style={styles.titleUsername}>{username}</Text>
+              </TouchableOpacity>
+            </View>
+            {isOwner && (
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={handleSettingsPress}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="settings-outline" size={24} color={COLORS.text.secondary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Sistema de Tabs (apenas para dono aprovado ou admin) */}
@@ -1045,21 +1064,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
     gap: 12,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    flexWrap: 'wrap',
+    minHeight: 32, // Altura mínima para alinhar com o ícone
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.text.primary,
-    flex: 1,
+    lineHeight: 32,
+  },
+  titleUsername: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.secondary.main,
+    lineHeight: 32,
   },
   settingsButton: {
     padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tabsContainer: {
     borderBottomWidth: 1,

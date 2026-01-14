@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ShopCard } from '../components/ShopCard';
-import { shopsApi, productsApi } from '../services/api';
+import { shopsApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation, CommonActions } from '@react-navigation/native';
@@ -183,59 +183,16 @@ export function ShopsSearchScreen() {
     }
 
     try {
-      // Verificar se o usuário já comprou o produto
-      let hasPurchased = false;
-      let hasAccessViaPlan = false;
-
-      if (user) {
-        try {
-          const purchaseStatusResponse = await productsApi.getPurchaseStatus(product._id);
-          if (purchaseStatusResponse.success && purchaseStatusResponse.data) {
-            hasPurchased = purchaseStatusResponse.data.hasPurchased || false;
-            hasAccessViaPlan = purchaseStatusResponse.data.accessVia === 'SUBSCRIPTION_PLAN';
-          }
-        } catch (error) {
-          console.error('[ShopsSearchScreen] Erro ao verificar status de compra:', error);
-          // Continuar mesmo se falhar a verificação
-        }
-      }
-
-      // Se já comprou ou tem acesso via plano, navegar para a tela do produto
-      if (hasPurchased || hasAccessViaPlan) {
-        // TODO: Navegar para tela de visualização do produto (ProductScreen)
-        showToast.info('Produto', `Abrindo ${product.title}`);
-        return;
-      }
-
-      // Navegar para a loja do usuário com o produto/plano aberto
-      // ShopsSearchScreen é uma tab direta, então navigation já é o TabNavigator
-      try {
-        // Se é produto de assinatura, abrir modal de assinatura
-        const subscriptionPlanId = product.subscriptionPlanId || product.subscriptionPlan?._id;
-        if (product.paymentMode === 'ASSINATURA' && subscriptionPlanId) {
-          (navigation as any).navigate('ProfileStack', {
-            screen: 'MyShop',
-            params: {
-              username: product.userId.username,
-              openPlan: subscriptionPlanId,
-            },
-          });
-        } else {
-          // Produto único, abrir modal de compra
-          (navigation as any).navigate('ProfileStack', {
-            screen: 'MyShop',
-            params: {
-              username: product.userId.username,
-              openProduct: product._id,
-            },
-          });
-        }
-      } catch (navError) {
-        console.error('[ShopsSearchScreen] Erro na navegação:', navError);
-        showToast.error('Erro', 'Não foi possível abrir a loja');
-      }
-    } catch (error) {
-      console.error('[ShopsSearchScreen] Erro ao navegar para produto:', error);
+      // Na tab "Lojas", sempre redirecionar para a loja do vendedor
+      // Seguindo o padrão do web: handleCardClick - sempre vai para a loja
+      (navigation as any).navigate('ProfileStack', {
+        screen: 'MyShop',
+        params: {
+          username: product.userId.username,
+        },
+      });
+    } catch (navError) {
+      console.error('[ShopsSearchScreen] Erro na navegação:', navError);
       showToast.error('Erro', 'Não foi possível abrir a loja');
     }
   };

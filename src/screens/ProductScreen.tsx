@@ -18,6 +18,7 @@ import { COLORS } from '../theme/colors';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { productsApi } from '../services/api';
+import { BackArrow } from '../components/BackArrow';
 import { getImageUrl } from '../utils/image';
 import * as ScreenCapture from 'expo-screen-capture';
 import ImageViewing from 'react-native-image-viewing';
@@ -360,10 +361,32 @@ export function ProductScreen() {
   // Verificar se há conteúdo (links também contam como conteúdo)
   const hasContent = mainLink !== null || links.length > 0 || images.length > 0 || videos.length > 0 || documents.length > 0;
 
+  // Obter username do dono do produto para voltar para a loja
+  const ownerUsername = product ? (typeof product.userId === 'object' ? product.userId.username : null) : null;
+
+  const handleBackToShop = () => {
+    if (ownerUsername) {
+      navigation.navigate('ProfileStack', {
+        screen: 'MyShop',
+        params: {
+          username: ownerUsername,
+        },
+      });
+    } else {
+      navigation.goBack();
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Header />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Back Button - apenas quando produto está carregado */}
+        {product && (
+          <View style={styles.backButtonContainer}>
+            <BackArrow onPress={handleBackToShop} label="Voltar para Loja" />
+          </View>
+        )}
         {/* Header do Produto */}
         <View style={[styles.header, isPending && styles.headerPending]}>
           <View style={styles.headerContent}>
@@ -604,6 +627,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background.default,
+  },
+  backButtonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   content: {
     flex: 1,

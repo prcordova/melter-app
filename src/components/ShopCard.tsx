@@ -95,16 +95,29 @@ export function ShopCard({ product, onPress, showPendingBadge = false }: ShopCar
       <View style={styles.imageContainer}>
         <Image source={imageSource} style={styles.image} />
 
-        {/* Badge +18 */}
+        {/* Avatar do Proprietário - canto esquerdo superior */}
+        {product.userId && product.userId.avatar && (
+          <View style={styles.ownerAvatar}>
+            <Image
+              source={{ uri: getImageUrl(product.userId.avatar) }}
+              style={styles.ownerAvatarImage}
+            />
+          </View>
+        )}
+
+        {/* Badge +18 - canto direito superior */}
         {product.isAdultContent && (
           <View style={styles.adultBadge}>
             <Text style={styles.adultBadgeText}>+18</Text>
           </View>
         )}
 
-        {/* Badge Status Pendente (apenas para dono) */}
+        {/* Badge Status Pendente (apenas para dono) - ajustar posição se tiver avatar */}
         {showPendingBadge && product.status === 'PENDING' && (
-          <View style={styles.pendingBadge}>
+          <View style={[
+            styles.pendingBadge,
+            product.userId?.avatar && styles.pendingBadgeWithAvatar
+          ]}>
             <Ionicons name="time-outline" size={12} color="#FFFFFF" />
             <Text style={styles.pendingBadgeText}>Pendente</Text>
           </View>
@@ -319,6 +332,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  ownerAvatar: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    zIndex: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  ownerAvatarImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
   pendingBadge: {
     position: 'absolute',
     top: 8,
@@ -330,6 +365,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  pendingBadgeWithAvatar: {
+    left: 48, // Ajustar posição quando tem avatar
   },
   pendingBadgeText: {
     color: '#FFFFFF',
