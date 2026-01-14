@@ -9,7 +9,6 @@ import {
   Dimensions,
   ActivityIndicator,
   Animated,
-  PanResponder,
   Platform,
   Alert,
   ScrollView,
@@ -296,27 +295,10 @@ export function StoryViewerModal({
     }
   }, [visible, currentStory?._id, currentUser?.id]);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => setIsPaused(true),
-      onPanResponderRelease: (evt, gestureState) => {
-        setIsPaused(false);
-        const { locationX } = evt.nativeEvent;
-        
-        if (gestureState.dy > 50) {
-          onClose();
-        } else if (locationX < width / 3) {
-          prevStory();
-        } else if (locationX > (width * 2) / 3) {
-          nextStory();
-        }
-      },
-    })
-  ).current;
-
   if (!currentGroup || !currentStory) return null;
 
+  // Dividir tela em 3 colunas iguais para navegação
+  const columnWidth = width / 3;
 
   return (
     <Modal
@@ -325,7 +307,7 @@ export function StoryViewerModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.container} {...panResponder.panHandlers}>
+      <View style={styles.container}>
         {/* Background do Story */}
         <View style={styles.mediaContainer}>
           {(() => {
@@ -378,6 +360,56 @@ export function StoryViewerModal({
               <ActivityIndicator size="large" color="#ffffff" />
             </View>
           )}
+        </View>
+        
+        {/* Camada para gestos de swipe (PanResponder) - abaixo das áreas clicáveis */}
+        {/* 3 Colunas invisíveis para navegação */}
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          {/* Coluna esquerda - voltar story */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: columnWidth,
+            }}
+            activeOpacity={1}
+            onPress={prevStory}
+          />
+          {/* Coluna centro - pausar enquanto segura */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              left: columnWidth,
+              top: 0,
+              bottom: 0,
+              width: columnWidth,
+            }}
+            activeOpacity={1}
+            onPressIn={() => setIsPaused(true)}
+            onPressOut={() => setIsPaused(false)}
+          />
+          {/* Coluna direita - avançar story ou fechar */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: columnWidth,
+            }}
+            activeOpacity={1}
+            onPress={() => {
+              if (storyIndex < currentGroup.stories.length - 1) {
+                nextStory();
+              } else if (groupIndex < storiesGroups.length - 1) {
+                nextStory();
+              } else {
+                onClose();
+              }
+            }}
+          />
         </View>
 
         {/* Overlay do Story */}
@@ -1066,6 +1098,9 @@ const styles = StyleSheet.create({
     color: COLORS.text.tertiary,
     marginTop: 40,
     fontSize: 16,
+  },
+  navigationArea: {
+    backgroundColor: 'transparent',
   },
 });
 

@@ -199,139 +199,146 @@ export function StoryCreateModal({
   const handleUpload = async () => {
     if (!selectedMedia) return;
 
-    try {
-      setLoading(true);
+    // Salvar dados antes de fechar o modal
+    const mediaToUpload = selectedMedia;
+    const mediaSizeToUpload = selectedMediaSize;
+    const mediaTypeToUpload = selectedMediaType;
+    const isVideoToUpload = isVideo;
+    const videoStartTimeToUpload = videoStartTime;
+    const videoEndTimeToUpload = videoEndTime;
+    const textToUpload = storyText.trim();
+    const visibilityToUpload = visibility;
 
-      // 1. Obter informações do arquivo
-      const filename = selectedMedia.split('/').pop() || `story_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`;
-      
-      // Determinar o tipo de arquivo - priorizar o tipo armazenado
-      let fileType = selectedMediaType;
-      
-      // Se não tiver tipo armazenado ou for inválido, inferir do nome do arquivo
-      if (!fileType || (!fileType.startsWith('image/') && !fileType.startsWith('video/'))) {
-        const match = /\.(\w+)$/.exec(filename.toLowerCase());
-        if (match) {
-          const ext = match[1].toLowerCase();
-          // Mapear extensões para tipos MIME válidos (usar exatamente como o backend espera)
-          const extToMime: { [key: string]: string } = {
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'png': 'image/png',
-            'gif': 'image/gif',
-            'webp': 'image/webp',
-            'mp4': 'video/mp4',
-            'mov': 'video/quicktime',
-            'webm': 'video/webm',
-            'avi': 'video/x-msvideo',
-          };
-          fileType = extToMime[ext];
-          
-          // Se ainda não encontrou, usar padrão baseado no isVideo
-          if (!fileType) {
-            fileType = isVideo ? 'video/mp4' : 'image/jpeg';
+    // Fechar modal imediatamente e limpar estado
+    setSelectedMedia(null);
+    setSelectedMediaSize(null);
+    setSelectedMediaType(null);
+    setIsVideo(false);
+    setVideoDuration(0);
+    setVideoStartTime(0);
+    setVideoEndTime(30);
+    setVideoPosition(0);
+    setStoryText('');
+    onClose();
+
+    // Mostrar notificação de início do upload
+    showToast.info('Upload', 'Enviando story...');
+
+    // Fazer upload em background
+    (async () => {
+      try {
+
+        // 1. Obter informações do arquivo
+        const filename = mediaToUpload.split('/').pop() || `story_${Date.now()}.${isVideoToUpload ? 'mp4' : 'jpg'}`;
+        
+        // Determinar o tipo de arquivo - priorizar o tipo armazenado
+        let fileType = mediaTypeToUpload;
+        
+        // Se não tiver tipo armazenado ou for inválido, inferir do nome do arquivo
+        if (!fileType || (!fileType.startsWith('image/') && !fileType.startsWith('video/'))) {
+          const match = /\.(\w+)$/.exec(filename.toLowerCase());
+          if (match) {
+            const ext = match[1].toLowerCase();
+            // Mapear extensões para tipos MIME válidos (usar exatamente como o backend espera)
+            const extToMime: { [key: string]: string } = {
+              'jpg': 'image/jpeg',
+              'jpeg': 'image/jpeg',
+              'png': 'image/png',
+              'gif': 'image/gif',
+              'webp': 'image/webp',
+              'mp4': 'video/mp4',
+              'mov': 'video/quicktime',
+              'webm': 'video/webm',
+              'avi': 'video/x-msvideo',
+            };
+            fileType = extToMime[ext];
+            
+            // Se ainda não encontrou, usar padrão baseado no isVideo
+            if (!fileType) {
+              fileType = isVideoToUpload ? 'video/mp4' : 'image/jpeg';
+            }
+          } else {
+            // Sem extensão, usar padrão baseado no isVideo
+            fileType = isVideoToUpload ? 'video/mp4' : 'image/jpeg';
           }
+        }
+        
+        // Normalizar tipo de arquivo (garantir lowercase)
+        fileType = fileType.toLowerCase().trim();
+        
+        // Garantir que seja um tipo válido aceito pelo backend
+        const validTypes = [
+          'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+          'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'
+        ];
+        
+        if (!validTypes.includes(fileType)) {
+          fileType = isVideoToUpload ? 'video/mp4' : 'image/jpeg';
+        }
+        
+        // Obter tamanho do arquivo (usar do ImagePicker se disponível, senão buscar via fetch)
+        let fileSize = mediaSizeToUpload;
+        if (!fileSize || fileSize === 0) {
+          try {
+            const response = await fetch(mediaToUpload);
+            const blob = await response.blob();
+            fileSize = blob.size;
+          } catch (error) {
+            console.error('[StoryCreate] Erro ao obter tamanho do arquivo:', error);
+            fileSize = isVideoToUpload ? 10 * 1024 * 1024 : 1024 * 1024; // 10MB para vídeo, 1MB para imagem
+          }
+        }
+        
+        // Validar tamanho mínimo
+        if (!fileSize || fileSize === 0) {
+          throw new Error('Não foi possível determinar o tamanho do arquivo');
+        }
+
+        // 2. Fazer upload do arquivo usando presigned URL (upload direto ao S3)
+        const uploadResponse = await storiesApi.uploadStoryMedia(
+          mediaToUpload,
+          filename,
+          fileType,
+          fileSize,
+          isVideoToUpload ? videoStartTimeToUpload : undefined,
+          isVideoToUpload ? Math.min(30, videoEndTimeToUpload - videoStartTimeToUpload) : undefined
+        );
+
+        if (!uploadResponse.success || !uploadResponse.data?.url) {
+          throw new Error(uploadResponse.message || 'Erro ao fazer upload');
+        }
+
+        // 3. Criar story com texto simples (fixo na parte inferior)
+        const storyData = {
+          content: {
+            type: isVideoToUpload ? ('video' as const) : ('image' as const),
+            mediaUrl: uploadResponse.data.url,
+            text: textToUpload || null,
+            elements: [],
+            zoom: 1,
+            panX: 0,
+            panY: 0,
+          },
+          visibility: visibilityToUpload,
+          duration: isVideoToUpload ? Math.min(30, videoEndTimeToUpload - videoStartTimeToUpload) : 10,
+        };
+
+        const response = await storiesApi.createStory(storyData);
+
+        if (response.success) {
+          showToast.success('Sucesso', 'Story criado com sucesso!');
+          onStoryCreated();
         } else {
-          // Sem extensão, usar padrão baseado no isVideo
-          fileType = isVideo ? 'video/mp4' : 'image/jpeg';
+          throw new Error(response.message || 'Erro ao criar story');
         }
+      } catch (error: any) {
+        console.error('[StoryCreate] Erro ao criar story:', error);
+        showToast.error(
+          'Erro',
+          error?.response?.data?.message || error?.message || 'Não foi possível criar o story'
+        );
       }
-      
-      // Normalizar tipo de arquivo (garantir lowercase)
-      fileType = fileType.toLowerCase().trim();
-      
-      // O backend aceita tanto image/jpg quanto image/jpeg, então manter como está
-      // Não converter jpg para jpeg, pois o backend aceita ambos
-      
-      // Garantir que seja um tipo válido aceito pelo backend
-      // O backend aceita: image/jpeg, image/jpg, image/png, image/gif, image/webp, video/mp4, video/webm, video/quicktime, video/x-msvideo
-      const validTypes = [
-        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-        'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'
-      ];
-      
-      if (!validTypes.includes(fileType)) {
-        // Se não for um tipo válido, usar padrão baseado no tipo
-        console.error('[StoryCreate] Tipo inválido detectado:', fileType, 'usando padrão:', isVideo ? 'video/mp4' : 'image/jpeg');
-        fileType = isVideo ? 'video/mp4' : 'image/jpeg';
-      }
-      
-      // (sem logs de debug aqui)
-      
-      // Obter tamanho do arquivo (usar do ImagePicker se disponível, senão buscar via fetch)
-      let fileSize = selectedMediaSize;
-      if (!fileSize || fileSize === 0) {
-        try {
-          const response = await fetch(selectedMedia);
-          const blob = await response.blob();
-          fileSize = blob.size;
-        } catch (error) {
-          console.error('[StoryCreate] Erro ao obter tamanho do arquivo:', error);
-          // Usar tamanho padrão se não conseguir obter
-          fileSize = isVideo ? 10 * 1024 * 1024 : 1024 * 1024; // 10MB para vídeo, 1MB para imagem
-        }
-      }
-      
-      // Validar tamanho mínimo
-      if (!fileSize || fileSize === 0) {
-        throw new Error('Não foi possível determinar o tamanho do arquivo');
-      }
-
-      // 2. Fazer upload do arquivo usando presigned URL (upload direto ao S3)
-      const uploadResponse = await storiesApi.uploadStoryMedia(
-        selectedMedia,
-        filename,
-        fileType,
-        fileSize,
-        isVideo ? videoStartTime : undefined,
-        isVideo ? Math.min(30, videoEndTime - videoStartTime) : undefined
-      );
-
-      if (!uploadResponse.success || !uploadResponse.data?.url) {
-        throw new Error(uploadResponse.message || 'Erro ao fazer upload');
-      }
-
-      // 3. Criar story com texto simples (fixo na parte inferior)
-      const storyData = {
-        content: {
-          type: isVideo ? ('video' as const) : ('image' as const),
-          mediaUrl: uploadResponse.data.url,
-          text: storyText.trim() || null,
-          elements: [],
-          zoom: 1,
-          panX: 0,
-          panY: 0,
-        },
-        visibility: visibility,
-        duration: isVideo ? Math.min(30, videoEndTime - videoStartTime) : 10,
-      };
-
-      const response = await storiesApi.createStory(storyData);
-
-      if (response.success) {
-        showToast.success('Sucesso', 'Story criado com sucesso!');
-        setSelectedMedia(null);
-        setSelectedMediaSize(null);
-        setSelectedMediaType(null);
-        setIsVideo(false);
-        setVideoDuration(0);
-        setVideoStartTime(0);
-        setVideoEndTime(30);
-        setStoryText('');
-        onStoryCreated();
-        onClose();
-      } else {
-        throw new Error(response.message || 'Erro ao criar story');
-      }
-    } catch (error: any) {
-      console.error('[StoryCreate] Erro ao criar:', error);
-      showToast.error(
-        'Erro',
-        error?.response?.data?.message || error?.message || 'Não foi possível criar o story'
-      );
-    } finally {
-      setLoading(false);
-    }
+    })();
   };
 
   // Função para renderizar timeline de vídeo
