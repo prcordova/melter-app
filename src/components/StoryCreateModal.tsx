@@ -48,8 +48,9 @@ export function StoryCreateModal({
         quality: 0.8,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
+        setSelectedImageSize(result.assets[0].fileSize || null);
         setStoryText('');
       }
     } catch (error) {
@@ -72,8 +73,9 @@ export function StoryCreateModal({
         quality: 0.8,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
+        setSelectedImageSize(result.assets[0].fileSize || null);
         setStoryText('');
       }
     } catch (error) {
