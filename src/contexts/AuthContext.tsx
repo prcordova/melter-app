@@ -118,22 +118,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { requires2FA: true, tempToken: response.tempToken };
       }
       
-      if (response.success && response.data) {
-        await AsyncStorage.setItem('token', response.data.token);
+      // Verificar estrutura da resposta - token pode estar em response.token ou response.data.token
+      const token = response.data?.token || response.token;
+      
+      if (response.success && (response.data || token)) {
+        if (!token) {
+          throw new Error('Token não encontrado na resposta do servidor');
+        }
         
-        const userData: User = {
-          id: response.data.user.id || response.data.user._id,
-          username: response.data.user.username,
-          email: response.data.user.email,
-          avatar: response.data.user.avatar,
-          following: response.data.user.following,
-          plan: response.data.user.plan,
-          accountType: response.data.user.accountType,
-          twoFactor: response.data.user.twoFactor,
-          verifiedBadge: response.data.user.verifiedBadge,
-          wallet: response.data.user.wallet,
+        await AsyncStorage.setItem('token', token);
+        
+        const userData = response.data?.user || response.user;
+        
+        if (!userData) {
+          throw new Error('Dados do usuário não encontrados na resposta');
+        }
+        
+        const user: User = {
+          id: userData.id || userData._id,
+          username: userData.username,
+          email: userData.email,
+          avatar: userData.avatar,
+          following: userData.following,
+          plan: userData.plan,
+          accountType: userData.accountType,
+          twoFactor: userData.twoFactor,
+          verifiedBadge: userData.verifiedBadge,
+          wallet: userData.wallet,
         };
-        setUser(userData);
+        setUser(user);
 
         return { success: true };
       }
