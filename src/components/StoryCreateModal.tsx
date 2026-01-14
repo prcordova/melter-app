@@ -54,12 +54,13 @@ export function StoryCreateModal({
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [wasRecording, setWasRecording] = useState(false); // Rastrear se estava gravando para evitar tirar foto ao soltar
+  const [cameraMode, setCameraMode] = useState<'picture' | 'video'>('picture');
   const cameraRef = useRef<CameraView>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const recordingStartTimeRef = useRef<number>(0);
   const recordingPromiseRef = useRef<Promise<{ uri: string } | undefined> | null>(null);
-  const wasStoppedManuallyRef = useRef<boolean>(false);
-  const recordingStartedRef = useRef<boolean>(false);
+  const pressStartTimeRef = useRef<number>(0);
+  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
 
@@ -160,13 +161,26 @@ export function StoryCreateModal({
   };
 
   const handleCapturePhoto = async () => {
-    // Se estava gravando, não tirar foto (o vídeo já foi processado)
-    if (wasRecording) {
-      setWasRecording(false);
+    // Se estava gravando ou foi um clique longo, não tirar foto
+    if (wasRecording || isRecording) {
+      if (wasRecording) {
+        setWasRecording(false);
+      }
       return;
     }
 
-    if (!cameraRef.current) return;
+    if (!cameraRef.current) {
+      console.error('[StoryCreate] cameraRef não disponível');
+      return;
+    }
+
+    // Aguardar um pouco para garantir que não há conflito com o sistema de gravação
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Verificar novamente após o delay
+    if (isRecording || wasRecording) {
+      return;
+    }
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
@@ -175,7 +189,7 @@ export function StoryCreateModal({
         skipProcessing: false,
       });
 
-      if (photo) {
+      if (photo && photo.uri) {
         setSelectedMedia(photo.uri);
         setSelectedMediaSize(null); // Será calculado depois
         setIsVideo(false);
@@ -185,6 +199,9 @@ export function StoryCreateModal({
         setVideoEndTime(30);
         setStoryText('');
         setShowCamera(false);
+      } else {
+        console.error('[StoryCreate] Foto capturada sem URI:', photo);
+        showToast.error('Erro', 'Não foi possível capturar a foto');
       }
     } catch (error) {
       console.error('[StoryCreate] Erro ao capturar foto:', error);
@@ -195,7 +212,33 @@ export function StoryCreateModal({
   const handleStartRecording = async () => {
     if (!cameraRef.current || isRecording) return;
 
+    // Marcar que começou um press (pode ser foto ou vídeo)
+    pressStartTimeRef.current = Date.now();
+
+    // Limpar timeout anterior se existir
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+    }
+
+    // Aguardar um pouco para determinar se é clique simples ou gravação
+    longPressTimeoutRef.current = setTimeout(() => {
+      // Se passou mais de 200ms e ainda está pressionado, é uma gravação
+      if (Date.now() - pressStartTimeRef.current > 200 && !isRecording) {
+        startRecordingVideo();
+      }
+    }, 200);
+  };
+
+  const startRecordingVideo = async () => {
+    if (!cameraRef.current || isRecording) return;
+
     try {
+      // Mudar para modo vídeo antes de iniciar a gravação
+      setCameraMode('video');
+      
+      // Aguardar um pouco para a câmera mudar de modo
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       recordingStartTimeRef.current = Date.now();
       setIsRecording(true);
       setWasRecording(true); // Marcar que estamos gravando
@@ -214,55 +257,30 @@ export function StoryCreateModal({
         });
       }, 100);
 
-      // Resetar flag de parada manual e início da gravação
-      wasStoppedManuallyRef.current = false;
-      recordingStartedRef.current = false;
-      
-      // Iniciar gravação de forma não bloqueante
-      // Armazenar a promise da gravação para poder processar quando parar
+      // Iniciar gravação - forma simples e direta
       recordingPromiseRef.current = cameraRef.current.recordAsync({
         maxDuration: 30,
       });
       
-      // Aguardar mais tempo para garantir que a gravação realmente iniciou e está gravando dados
-      // Isso evita o erro "stopped before any data could be produced"
-      // Aumentamos para 2 segundos para garantir que há dados sendo gravados
-      setTimeout(() => {
-        recordingStartedRef.current = true;
-        console.error('[StoryCreate] Gravação iniciada e pronta para parar');
-      }, 2000); // 2 segundos de delay para garantir que a gravação iniciou e há dados
-      
       // Tratar a promise - ela resolve quando stopRecording() é chamado ou maxDuration é atingido
       recordingPromiseRef.current.then((video) => {
-        console.error('[StoryCreate] Promise resolvida no handleStartRecording:', video, 'wasStoppedManually:', wasStoppedManuallyRef.current);
-        // Processar vídeo se foi parado manualmente ou se atingiu maxDuration
         if (video && video.uri) {
           handleVideoRecorded(video);
         }
       }).catch((error: any) => {
-        console.error('[StoryCreate] Erro na promise do recordAsync:', error);
-        // Se a gravação foi cancelada muito rápido, ignorar silenciosamente
-        if (error?.message && error.message.includes('stopped before any data')) {
-          // Não logar - apenas limpar estado silenciosamente
-          setIsRecording(false);
-          setWasRecording(false);
-          setRecordingDuration(0);
-          recordingStartTimeRef.current = 0;
-          recordingPromiseRef.current = null;
-          if (recordingTimerRef.current) {
-            clearInterval(recordingTimerRef.current);
-            recordingTimerRef.current = null;
-          }
-        } else {
-          setIsRecording(false);
-          setWasRecording(false);
-          setRecordingDuration(0);
-          recordingStartTimeRef.current = 0;
-          recordingPromiseRef.current = null;
-          if (recordingTimerRef.current) {
-            clearInterval(recordingTimerRef.current);
-            recordingTimerRef.current = null;
-          }
+        console.error('[StoryCreate] Erro na gravação:', error);
+        setIsRecording(false);
+        setWasRecording(false);
+        setRecordingDuration(0);
+        recordingStartTimeRef.current = 0;
+        recordingPromiseRef.current = null;
+        setCameraMode('picture'); // Voltar para modo picture em caso de erro
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+        if (!error?.message?.includes('stopped before any data')) {
+          showToast.error('Erro', 'Não foi possível gravar o vídeo');
         }
       });
     } catch (error) {
@@ -271,6 +289,7 @@ export function StoryCreateModal({
       setWasRecording(false);
       setRecordingDuration(0);
       recordingStartTimeRef.current = 0;
+      setCameraMode('picture'); // Voltar para modo picture em caso de erro
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
@@ -280,77 +299,55 @@ export function StoryCreateModal({
   };
 
   const handleStopRecording = async () => {
-    if (!cameraRef.current || !isRecording) {
-      console.error('[StoryCreate] handleStopRecording: cameraRef ou isRecording inválido');
-      return;
+    if (!cameraRef.current) return;
+
+    const pressDuration = Date.now() - pressStartTimeRef.current;
+
+    // Cancelar o timeout do long press se ainda não iniciou a gravação
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
     }
 
-    console.error('[StoryCreate] handleStopRecording chamado, duration:', recordingDuration, 'recordingStarted:', recordingStartedRef.current);
-
-    // Duração mínima obrigatória de 2.5 segundos para evitar o erro
-    // Isso garante que há dados suficientes sendo gravados
-    // O delay inicial é de 2 segundos, então precisamos de pelo menos 2.5 segundos totais
-    const MIN_RECORDING_DURATION = 2.5;
-    
-    // Se a gravação ainda não iniciou completamente OU a duração é muito curta, aguardar
-    if (!recordingStartedRef.current || recordingDuration < MIN_RECORDING_DURATION) {
-      const reason = !recordingStartedRef.current 
-        ? 'Gravação ainda não iniciou completamente' 
-        : `Duração muito curta (${recordingDuration.toFixed(1)}s < ${MIN_RECORDING_DURATION}s)`;
-      console.error(`[StoryCreate] ${reason}, aguardando...`);
-      
-      // Aguardar até que a gravação esteja pronta e tenha duração mínima
-      let attempts = 0;
-      const checkInterval = setInterval(() => {
-        attempts++;
-        const canStop = recordingStartedRef.current && recordingDuration >= MIN_RECORDING_DURATION;
-        
-        if (canStop || attempts >= 20) { // Máximo 2 segundos de espera
-          clearInterval(checkInterval);
-          if (canStop) {
-            console.error('[StoryCreate] Condições atendidas, parando agora');
-            // Chamar novamente após as condições serem atendidas
-            setTimeout(() => handleStopRecording(), 100);
-          } else {
-            console.error('[StoryCreate] Timeout aguardando condições');
-            // Mesmo assim, tentar parar se já passou tempo suficiente
-            if (recordingDuration >= MIN_RECORDING_DURATION) {
-              setTimeout(() => handleStopRecording(), 100);
-            }
-          }
+    // Se foi um clique muito rápido (menos de 200ms), tirar foto
+    if (pressDuration < 200 && !isRecording) {
+      // Foi um clique simples, tirar foto após um pequeno delay
+      // para garantir que não há conflito
+      setTimeout(() => {
+        if (!isRecording && !wasRecording) {
+          handleCapturePhoto();
         }
-      }, 100);
+      }, 50);
       return;
     }
+
+    // Se estava gravando, parar a gravação
+    if (!isRecording) return;
 
     try {
-      // Marcar que foi parado manualmente
-      wasStoppedManuallyRef.current = true;
-      
-      // Parar a gravação - isso vai resolver a promise do recordAsync com o vídeo
+      // Parar a gravação - isso resolve a promise do recordAsync
       cameraRef.current.stopRecording();
-      console.error('[StoryCreate] stopRecording() chamado');
       
-      // A promise já está sendo tratada no handleStartRecording
-      // Apenas limpar o estado de gravação
+      // Limpar estado de gravação
       setIsRecording(false);
       recordingStartTimeRef.current = 0;
-      recordingStartedRef.current = false;
+      
+      // Voltar para modo picture após parar a gravação
+      setCameraMode('picture');
       
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
       }
       
-      // Não resetar wasRecording aqui - será resetado quando o vídeo for processado no handleStartRecording
+      // A promise será tratada no handleStartRecording
     } catch (error) {
       console.error('[StoryCreate] Erro ao parar gravação:', error);
       setIsRecording(false);
-      setWasRecording(false); // Resetar em caso de erro
+      setWasRecording(false);
       recordingStartTimeRef.current = 0;
       recordingPromiseRef.current = null;
-      wasStoppedManuallyRef.current = false;
-      recordingStartedRef.current = false;
+      setCameraMode('picture'); // Voltar para modo picture em caso de erro
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
@@ -633,6 +630,7 @@ export function StoryCreateModal({
             style={styles.camera}
             facing={facing}
             flash={flash}
+            mode={cameraMode}
           />
           {/* Overlay da câmera - posicionamento absoluto (CameraView não aceita children) */}
           <View style={styles.cameraOverlay} pointerEvents="box-none">
@@ -649,6 +647,18 @@ export function StoryCreateModal({
                 >
                   <Ionicons name="close" size={28} color="#ffffff" />
                 </TouchableOpacity>
+                
+                {/* Indicador de gravação - centralizado no header */}
+                {isRecording ? (
+                  <View style={styles.recordingIndicator}>
+                    <View style={styles.recordingDot} />
+                    <Text style={styles.recordingText}>
+                      {Math.floor(recordingDuration)}s
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={{ flex: 1 }} />
+                )}
                 
                 <View style={styles.cameraHeaderRight}>
                   <TouchableOpacity
@@ -670,16 +680,6 @@ export function StoryCreateModal({
                 </View>
               </View>
 
-              {/* Indicador de gravação */}
-              {isRecording && (
-                <View style={styles.recordingIndicator}>
-                  <View style={styles.recordingDot} />
-                  <Text style={styles.recordingText}>
-                    {Math.floor(recordingDuration)}s
-                  </Text>
-                </View>
-              )}
-
               {/* Controles inferiores */}
               <View style={[styles.cameraControls, { paddingBottom: insets.bottom + 20 }]}>
                 <View style={styles.cameraButtonArea} />
@@ -687,7 +687,6 @@ export function StoryCreateModal({
                 {/* Botão de captura - segurar para gravar, toque para foto */}
                 <TouchableOpacity
                   style={[styles.captureButton, isRecording && styles.captureButtonRecording]}
-                  onPress={handleCapturePhoto}
                   onPressIn={handleStartRecording}
                   onPressOut={handleStopRecording}
                   activeOpacity={1}
@@ -1089,7 +1088,6 @@ const styles = StyleSheet.create({
   recordingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     paddingHorizontal: 16,
     paddingVertical: 8,
