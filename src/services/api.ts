@@ -603,6 +603,11 @@ export const messageApi = {
     const response = await api.delete<ApiResponse<any>>(`/api/messages/conversations/${conversationId}`);
     return response.data;
   },
+
+  searchMessages: async (query: string) => {
+    const response = await api.get<ApiResponse<any>>(`/api/messages/search?q=${encodeURIComponent(query)}`);
+    return response.data;
+  },
 };
 
 // API de Stories
