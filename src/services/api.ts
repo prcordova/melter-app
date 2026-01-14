@@ -640,37 +640,56 @@ export const storiesApi = {
     try {
       // 1. Obter tamanho do arquivo se não fornecido
       let actualFileSize = fileSize;
-      if (!actualFileSize) {
-        const response = await fetch(fileUri);
-        const blob = await response.blob();
-        actualFileSize = blob.size;
+      if (!actualFileSize || actualFileSize === 0) {
+        try {
+          const response = await fetch(fileUri);
+          const blob = await response.blob();
+          actualFileSize = blob.size;
+        } catch (error) {
+          console.error('[uploadStoryMedia] Erro ao obter tamanho do arquivo:', error);
+          throw new Error('Não foi possível determinar o tamanho do arquivo');
+        }
+      }
+
+      // Validar tamanho mínimo
+      if (!actualFileSize || actualFileSize === 0) {
+        throw new Error('Tamanho do arquivo inválido');
+      }
+
+      // Normalizar tipo de arquivo
+      let normalizedFileType = fileType.toLowerCase();
+      if (normalizedFileType === 'image/jpg') {
+        normalizedFileType = 'image/jpeg';
       }
 
       // 2. Obter presigned URL
-      const presignedResponse = await api.get<ApiResponse<{
-        presignedUrl: string;
-        fileKey: string;
-        fileUrl: string;
-        metadata: any;
-      }>>('/api/stories/upload-presigned', {
-        params: {
-          fileName,
-          fileType,
-          fileSize: actualFileSize,
-        },
+      // Usar query string manual para garantir que os parâmetros sejam enviados corretamente no React Native
+      const queryParams = new URLSearchParams();
+      queryParams.append('fileName', fileName);
+      queryParams.append('fileType', normalizedFileType);
+      queryParams.append('fileSize', actualFileSize.toString());
+      
+      const presignedResponse = await api.get<any>(`/api/stories/upload-presigned?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
-      if (!presignedResponse.data.success || !presignedResponse.data.data) {
-        throw new Error(presignedResponse.data.message || 'Erro ao obter URL de upload');
+      // A API retorna { success: true, presignedUrl, fileKey, fileUrl, metadata }
+      // O axios coloca a resposta em response.data
+      if (!presignedResponse.data || !presignedResponse.data.success) {
+        const errorMessage = presignedResponse.data?.message || presignedResponse.data?.error || 'Erro ao obter URL de upload';
+        throw new Error(errorMessage);
+      }
+
+      if (!presignedResponse.data.presignedUrl) {
+        throw new Error('URL de upload não foi retornada pelo servidor');
       }
 
       // 3. Fazer upload direto ao S3
       const fileBlob = await fetch(fileUri).then(res => res.blob());
       
-      await axios.put(presignedResponse.data.data.presignedUrl, fileBlob, {
+      await axios.put(presignedResponse.data.presignedUrl, fileBlob, {
         headers: {
           'Content-Type': fileType,
         },
@@ -679,7 +698,7 @@ export const storiesApi = {
 
       // 4. Registrar upload no backend
       const formData = new FormData();
-      formData.append('fileUrl', presignedResponse.data.data.fileUrl);
+      formData.append('fileUrl', presignedResponse.data.fileUrl);
       formData.append('fileName', fileName);
 
       const response = await axios.post(`${API_CONFIG.BASE_URL}/api/stories/upload`, formData, {

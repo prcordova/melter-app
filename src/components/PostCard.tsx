@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import ImageViewing from 'react-native-image-viewing';
 import { Post, ReactionType, REACTIONS } from '../types/feed';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -20,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { CommentsModal } from './CommentsModal';
 import { ShareModal } from './ShareModal';
 import { ReportPostModal } from './ReportPostModal';
+import { PostModal } from './PostModal';
 import { COLORS } from '../theme/colors';
 
 import { Avatar } from './Avatar';
@@ -46,6 +48,8 @@ export function PostCard({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [showOriginalPostModal, setShowOriginalPostModal] = useState(false);
 
   // Verificação de segurança
   if (!post || !post.userId || typeof post.userId !== 'object') {
@@ -125,8 +129,45 @@ export function PostCard({
     }
   };
 
+  // Função helper para sempre pegar o ID do post ORIGINAL na cadeia de compartilhamentos
+  const getOriginalPostId = (post: Post): string => {
+    if (!post.originalPostId) {
+      // Este é o post original
+      return post._id;
+    }
+    
+    // Se o post compartilhado tem outro originalPostId, usar aquele (post mais antigo da cadeia)
+    if (post.originalPostId && typeof post.originalPostId === 'object' && post.originalPostId.originalPostId) {
+      if (typeof post.originalPostId.originalPostId === 'object' && post.originalPostId.originalPostId._id) {
+        return post.originalPostId.originalPostId._id;
+      }
+      if (typeof post.originalPostId.originalPostId === 'string') {
+        return post.originalPostId.originalPostId;
+      }
+    }
+    
+    // Caso contrário, o originalPostId._id é o post original
+    if (post.originalPostId && typeof post.originalPostId === 'object' && post.originalPostId._id) {
+      return post.originalPostId._id;
+    }
+    
+    return post._id;
+  };
+
   const handleImagePress = () => {
-    // TODO: Abrir modal de visualização de imagem
+    if (post.imageUrl) {
+      setShowImageViewer(true);
+    }
+  };
+
+  const [originalPostId, setOriginalPostId] = useState<string | null>(null);
+
+  const handleOriginalPostPress = () => {
+    if (post.originalPostId) {
+      const originalId = getOriginalPostId(post);
+      setOriginalPostId(originalId);
+      setShowOriginalPostModal(true);
+    }
   };
 
   const handleLinkPress = () => {
@@ -224,6 +265,7 @@ export function PostCard({
           <TouchableOpacity 
             activeOpacity={0.9}
             style={{ marginTop: 8 }}
+            onPress={handleOriginalPostPress}
           >
             <Image
               source={{ uri: originalPost.imageUrl }}
@@ -296,7 +338,14 @@ export function PostCard({
       )}
 
       {/* Renderizar Post Original se existir */}
-      {post.originalPostId && typeof post.originalPostId === 'object' && renderOriginalPost(post.originalPostId as Post)}
+      {post.originalPostId && typeof post.originalPostId === 'object' && (
+        <TouchableOpacity 
+          activeOpacity={0.95}
+          onPress={handleOriginalPostPress}
+        >
+          {renderOriginalPost(post.originalPostId as Post)}
+        </TouchableOpacity>
+      )}
 
       {/* Link Preview (apenas para posts normais) */}
       {!post.originalPostId && post.linkId && typeof post.linkId === 'object' && (
@@ -332,7 +381,7 @@ export function PostCard({
       {!post.originalPostId && post.imageUrl && (
         <TouchableOpacity onPress={handleImagePress} activeOpacity={0.9}>
           <Image
-            source={{ uri: post.imageUrl }}
+            source={{ uri: getAvatarUrl(post.imageUrl) }}
             style={styles.postImage}
             resizeMode="cover"
           />
@@ -417,7 +466,6 @@ export function PostCard({
       )}
 
       {/* Modais */}
-      {/* Modais */}
       {post._id && (
         <>
           <CommentsModal
@@ -445,6 +493,31 @@ export function PostCard({
             postAuthorUsername={(post.userId?.username && typeof post.userId.username === 'string') ? post.userId.username : ''}
           />
         </>
+      )}
+
+      {/* Image Viewer */}
+      {post.imageUrl && (
+        <ImageViewing
+          images={[{ uri: getAvatarUrl(post.imageUrl) }]}
+          imageIndex={0}
+          visible={showImageViewer}
+          onRequestClose={() => setShowImageViewer(false)}
+          presentationStyle="overFullScreen"
+          doubleTapToZoomEnabled
+          swipeToCloseEnabled
+        />
+      )}
+
+      {/* Post Original Modal */}
+      {originalPostId && (
+        <PostModal
+          postId={originalPostId}
+          visible={showOriginalPostModal}
+          onClose={() => {
+            setShowOriginalPostModal(false);
+            setOriginalPostId(null);
+          }}
+        />
       )}
 
       {/* Menu Modal */}

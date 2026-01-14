@@ -92,14 +92,30 @@ export function StoryCreateModal({
       // 1. Obter informações do arquivo
       const filename = selectedImage.split('/').pop() || `story_${Date.now()}.jpg`;
       const match = /\.(\w+)$/.exec(filename);
-      const fileType = match ? `image/${match[1]}` : 'image/jpeg';
+      let fileType = match ? `image/${match[1]}` : 'image/jpeg';
+      
+      // Normalizar tipo de arquivo (jpg -> jpeg)
+      if (fileType === 'image/jpg') {
+        fileType = 'image/jpeg';
+      }
       
       // Obter tamanho do arquivo (usar do ImagePicker se disponível, senão buscar via fetch)
       let fileSize = selectedImageSize;
-      if (!fileSize) {
-        const response = await fetch(selectedImage);
-        const blob = await response.blob();
-        fileSize = blob.size;
+      if (!fileSize || fileSize === 0) {
+        try {
+          const response = await fetch(selectedImage);
+          const blob = await response.blob();
+          fileSize = blob.size;
+        } catch (error) {
+          console.error('[StoryCreate] Erro ao obter tamanho do arquivo:', error);
+          // Usar tamanho padrão se não conseguir obter
+          fileSize = 1024 * 1024; // 1MB como fallback
+        }
+      }
+      
+      // Validar tamanho mínimo
+      if (!fileSize || fileSize === 0) {
+        throw new Error('Não foi possível determinar o tamanho do arquivo');
       }
 
       // 2. Fazer upload do arquivo usando presigned URL (upload direto ao S3)
