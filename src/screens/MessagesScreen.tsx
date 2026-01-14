@@ -313,15 +313,14 @@ export function MessagesScreen() {
       username: conversation.user.username,
       avatar: conversation.user.avatar,
     });
+    // Limpar o input de pesquisa ao abrir a conversa
+    setSearchQuery('');
   };
 
   const handleUserPress = (username: string) => {
     (navigation as any).navigate('UserProfile', { username });
   };
 
-  const handleNewMessage = () => {
-    showToast.info('Nova Conversa', 'Seleção de contatos será implementada');
-  };
 
   const handleStartConversation = (friend: FriendUser) => {
     navigation.navigate('Chat', {
@@ -659,13 +658,6 @@ export function MessagesScreen() {
             </TouchableOpacity>
           )}
         </View>
-
-        <TouchableOpacity
-          style={styles.newMessageButton}
-          onPress={handleNewMessage}
-        >
-          <Ionicons name="create-outline" size={24} color={COLORS.secondary.main} />
-        </TouchableOpacity>
       </View>
 
       {/* Tabs Inbox / Archived - apenas quando não está pesquisando */}
@@ -875,7 +867,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: COLORS.background.paper,
-    gap: 12,
   },
   searchContainer: {
     flex: 1,
@@ -893,14 +884,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: COLORS.text.primary,
-  },
-  newMessageButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   tabContainer: {
     flexDirection: 'row',
