@@ -179,18 +179,10 @@ export function ChatScreen() {
         const hasMore = (response as any).hasMore ?? false;
         const previousDayDate = (response as any).previousDayDate ?? null;
         
-        console.log('[ChatScreen] Carregando mensagens:', {
-          date,
-          newMessagesCount: newMessages.length,
-          hasMore,
-          previousDayDate
-        });
-        
         if (date) {
           // Se carregando mensagens antigas, adicionar ao início
           setMessages((prev) => {
             const combined = [...newMessages, ...prev];
-            console.log('[ChatScreen] Mensagens antigas adicionadas. Total:', combined.length);
             return combined;
           });
         } else {

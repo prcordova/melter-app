@@ -66,7 +66,6 @@ export function StoryReactionButton({
       }
     } catch (error: any) {
       // Silencioso - não mostrar erro ao usuário
-      console.log('Reação já registrada ou limite atingido');
     } finally {
       setShowPicker(false);
     }

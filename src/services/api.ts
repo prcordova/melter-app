@@ -60,9 +60,6 @@ api.interceptors.request.use(
 // Interceptor para tratar erros de autenticação
 api.interceptors.response.use(
   (response) => {
-    if (__DEV__) {
-      console.log(`[API RESPONSE] ${response.config.method?.toUpperCase()} ${response.config.url}`, response.status);
-    }
     return response;
   },
   async (error: AxiosError) => {
@@ -637,11 +634,19 @@ export const storiesApi = {
     return response.data;
   },
 
-  uploadStoryMedia: async (fileUri: string, fileName: string, fileType: string) => {
+  uploadStoryMedia: async (fileUri: string, fileName: string, fileType: string, fileSize?: number) => {
     const token = await AsyncStorage.getItem('token');
     
     try {
-      // 1. Obter presigned URL
+      // 1. Obter tamanho do arquivo se não fornecido
+      let actualFileSize = fileSize;
+      if (!actualFileSize) {
+        const response = await fetch(fileUri);
+        const blob = await response.blob();
+        actualFileSize = blob.size;
+      }
+
+      // 2. Obter presigned URL
       const presignedResponse = await api.get<ApiResponse<{
         presignedUrl: string;
         fileKey: string;
@@ -651,7 +656,7 @@ export const storiesApi = {
         params: {
           fileName,
           fileType,
-          fileSize: 0, // Tamanho será validado no upload
+          fileSize: actualFileSize,
         },
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -662,7 +667,7 @@ export const storiesApi = {
         throw new Error(presignedResponse.data.message || 'Erro ao obter URL de upload');
       }
 
-      // 2. Fazer upload direto ao S3
+      // 3. Fazer upload direto ao S3
       const fileBlob = await fetch(fileUri).then(res => res.blob());
       
       await axios.put(presignedResponse.data.data.presignedUrl, fileBlob, {
@@ -672,7 +677,7 @@ export const storiesApi = {
         timeout: 600000, // 10 minutos para uploads grandes
       });
 
-      // 3. Registrar upload no backend
+      // 4. Registrar upload no backend
       const formData = new FormData();
       formData.append('fileUrl', presignedResponse.data.data.fileUrl);
       formData.append('fileName', fileName);

@@ -166,13 +166,6 @@ export function MessagesScreen() {
       // O conversationId é o _id do outro usuário
       // No backend, o _id da conversa é o ID do outro usuário
       const conversationId = conversationToArchive._id || conversationToArchive.user._id;
-      console.log('[MessagesScreen] Arquivando conversa:', {
-        conversationId,
-        conversation_id: conversationToArchive._id,
-        user_id: conversationToArchive.user._id,
-        isArchived: conversationToArchive.isArchived,
-        match: conversationToArchive._id === conversationToArchive.user._id
-      });
       
       // Timeout de 10 segundos
       const timeoutPromise = new Promise((_, reject) => 
@@ -182,20 +175,15 @@ export function MessagesScreen() {
       const archivePromise = messageApi.archiveConversation(conversationId);
       const response = await Promise.race([archivePromise, timeoutPromise]) as any;
       
-      console.log('[MessagesScreen] Resposta do arquivamento:', response);
-      
       if (response && response.success) {
         // Usar o valor retornado pela API para garantir consistência
         const newArchivedState = response.data?.isArchived ?? !conversationToArchive.isArchived;
-        
-        console.log('[MessagesScreen] Estado atual:', conversationToArchive.isArchived, 'Novo estado:', newArchivedState);
         
         // Atualizar estado local imediatamente com o valor retornado pela API
         // O _id da conversa é o ID do outro usuário (mesmo que user._id)
         setConversations(prev => prev.map(c => {
           // Usar _id que é o ID do outro usuário
           if (c._id === conversationToArchive._id) {
-            console.log('[MessagesScreen] Atualizando conversa:', c._id, 'isArchived:', newArchivedState);
             return { ...c, isArchived: newArchivedState };
           }
           return c;

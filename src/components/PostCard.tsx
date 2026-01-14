@@ -127,7 +127,6 @@ export function PostCard({
 
   const handleImagePress = () => {
     // TODO: Abrir modal de visualização de imagem
-    console.log('Abrir imagem em tela cheia');
   };
 
   const handleLinkPress = () => {
@@ -223,7 +222,6 @@ export function PostCard({
         {/* Imagem no Post Original */}
         {originalPost.imageUrl && (
           <TouchableOpacity 
-            onPress={() => console.log('Abrir imagem original')} 
             activeOpacity={0.9}
             style={{ marginTop: 8 }}
           >

@@ -33,6 +33,7 @@ export function StoryCreateModal({
 }: StoryCreateModalProps) {
   const insets = useSafeAreaInsets();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageSize, setSelectedImageSize] = useState<number | null>(null);
   const [storyText, setStoryText] = useState('');
   const [loading, setLoading] = useState(false);
   const [visibility, setVisibility] = useState<'followers' | 'friends'>('followers');
@@ -86,15 +87,25 @@ export function StoryCreateModal({
     try {
       setLoading(true);
 
-      // 1. Fazer upload do arquivo usando presigned URL (upload direto ao S3)
+      // 1. Obter informações do arquivo
       const filename = selectedImage.split('/').pop() || `story_${Date.now()}.jpg`;
       const match = /\.(\w+)$/.exec(filename);
       const fileType = match ? `image/${match[1]}` : 'image/jpeg';
+      
+      // Obter tamanho do arquivo (usar do ImagePicker se disponível, senão buscar via fetch)
+      let fileSize = selectedImageSize;
+      if (!fileSize) {
+        const response = await fetch(selectedImage);
+        const blob = await response.blob();
+        fileSize = blob.size;
+      }
 
+      // 2. Fazer upload do arquivo usando presigned URL (upload direto ao S3)
       const uploadResponse = await storiesApi.uploadStoryMedia(
         selectedImage,
         filename,
-        fileType
+        fileType,
+        fileSize
       );
 
       if (!uploadResponse.success || !uploadResponse.data?.url) {
@@ -121,6 +132,7 @@ export function StoryCreateModal({
       if (response.success) {
         showToast.success('Sucesso', 'Story criado com sucesso!');
         setSelectedImage(null);
+        setSelectedImageSize(null);
         setStoryText('');
         onStoryCreated();
         onClose();
@@ -152,6 +164,7 @@ export function StoryCreateModal({
                   style={styles.cancelPreview}
                   onPress={() => {
                     setSelectedImage(null);
+                    setSelectedImageSize(null);
                     setStoryText('');
                   }}
                 >

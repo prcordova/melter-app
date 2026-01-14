@@ -114,7 +114,7 @@ export function StoryReactionButtonDrag({
         }
       }
     } catch (error: any) {
-      console.log('Erro ao reagir:', error);
+      console.error('Erro ao reagir:', error);
     } finally {
       // Sempre fechar o menu após tentar reagir, independente de sucesso ou erro
       // Usar setTimeout para evitar atualizações durante renderização

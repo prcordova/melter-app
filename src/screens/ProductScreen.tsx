@@ -133,16 +133,6 @@ export function ProductScreen() {
           return;
         }
 
-        // Debug: verificar estrutura do produto
-        console.log('[ProductScreen] ========== PRODUTO RECEBIDO ==========');
-        console.log('[ProductScreen] ID:', productData._id);
-        console.log('[ProductScreen] Título:', productData.title);
-        console.log('[ProductScreen] Digital completo:', JSON.stringify(productData.digital, null, 2));
-        console.log('[ProductScreen] downloadUrl:', productData.digital?.downloadUrl);
-        console.log('[ProductScreen] downloadUrl type:', typeof productData.digital?.downloadUrl);
-        console.log('[ProductScreen] Files count:', productData.digital?.files?.length || 0);
-        console.log('[ProductScreen] ======================================');
-
         setProduct(productData);
 
         // Verificar status de compra se o usuário estiver logado

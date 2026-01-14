@@ -153,18 +153,13 @@ export function FeedScreen() {
   // Fetch Ads
   const fetchAds = async () => {
     try {
-      console.log('[FEED] Buscando anúncios...');
       const response = await adsApi.getAds(true, 10);
-      console.log('[FEED] Resposta de anúncios:', response);
 
       if (response.success && response.data) {
-        console.log('[FEED] ✅ Anúncios encontrados:', response.data.length);
         // Randomizar ordem
         const shuffled = [...response.data].sort(() => Math.random() - 0.5);
         setAds(shuffled);
         setAdIndices({});
-      } else {
-        console.log('[FEED] ⚠️ Nenhum anúncio retornado');
       }
     } catch (error) {
       console.error('[FEED] ❌ Erro ao buscar anúncios:', error);

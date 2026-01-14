@@ -146,7 +146,6 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
 
     try {
       setSending(true);
-      console.log('[CommentsModal] Enviando comentário para postId:', postId);
       
       let response;
       

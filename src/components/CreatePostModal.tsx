@@ -117,9 +117,6 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
       const asset = result.assets[0];
       setSelectedImage(asset);
       setImagePreview(asset.uri);
-      console.log('Imagem selecionada:', asset.uri);
-    } else {
-      console.log('Seleção de imagem cancelada ou inválida');
     }
   };
 
@@ -353,9 +350,6 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
                 resizeMode="cover"
                 onError={(error) => {
                   console.error('Erro ao carregar preview:', error);
-                }}
-                onLoad={() => {
-                  console.log('Preview carregado:', imagePreview);
                 }}
               />
               <TouchableOpacity

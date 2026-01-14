@@ -38,15 +38,6 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  // Debug: Log quando formData mudar
-  useEffect(() => {
-    console.log('[DetailsStep] formData atualizado:', {
-      hasFormData: !!formData,
-      title: formData?.title,
-      categoryId: formData?.categoryId,
-      paymentMode: formData?.paymentMode,
-    });
-  }, [formData]);
 
   // Garantir que formData existe
   const safeFormData = formData || {

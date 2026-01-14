@@ -120,19 +120,14 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
   const fetchData = async () => {
     setLoadingFee(true);
     try {
-      console.log('[ADD_BALANCE] Iniciando busca de pacotes e taxas...');
       // Buscar pacotes e taxas em paralelo
       const [packagesResponse, feesResponse] = await Promise.all([
         walletApi.getBalancePackages(),
         walletApi.getFees(),
       ]);
 
-      console.log('[ADD_BALANCE] Resposta pacotes:', packagesResponse);
-      console.log('[ADD_BALANCE] Resposta taxas:', feesResponse);
-
       // Processar pacotes
       if (packagesResponse.success && packagesResponse.data && packagesResponse.data.length > 0) {
-        console.log('[ADD_BALANCE] Pacotes encontrados:', packagesResponse.data.length);
         setPackages(packagesResponse.data);
         if (!selectedPackageId) {
           setSelectedPackageId(packagesResponse.data[0]._id);
@@ -145,7 +140,6 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
       // Processar taxas
       if (feesResponse.success && feesResponse.data?.fees) {
         const fee = feesResponse.data.fees.customDepositFeePercentage || 8;
-        console.log('[ADD_BALANCE] Taxa customizada:', fee);
         setCustomDepositFee(fee);
       } else {
         console.warn('[ADD_BALANCE] Erro ao buscar taxas, usando padrão. Resposta:', feesResponse);
@@ -157,7 +151,6 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
       setCustomDepositFee(8);
     } finally {
       setLoadingFee(false);
-      console.log('[ADD_BALANCE] Busca concluída. Pacotes:', packages.length, 'Taxa:', customDepositFee);
     }
   };
 

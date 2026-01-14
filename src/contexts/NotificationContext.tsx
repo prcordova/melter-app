@@ -76,12 +76,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           (n: Notification) => n.type !== 'MESSAGE'
         );
         
-        console.log('[NotificationContext] Definindo notificações:', {
-          total: filteredNotifications.length,
-          unread: filteredNotifications.filter((n: Notification) => !n.isRead).length,
-          sample: filteredNotifications.slice(0, 2).map((n: Notification) => ({ id: n._id, title: n.title }))
-        });
-        
         setNotifications(filteredNotifications);
         
         // Atualizar unreadCount baseado nas notificações filtradas (sem mensagens)

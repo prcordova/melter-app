@@ -29,7 +29,6 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
   const AUTO_SKIP_TIME = 30;
 
   useEffect(() => {
-    console.log('[AdCard] Renderizando anúncio:', ad._id, ad.type, ad.mediaUrl);
     if (!hasViewed) {
       onView(ad._id);
       setHasViewed(true);
@@ -95,7 +94,6 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
               source={{ uri: ad.mediaUrl }}
               style={styles.adMedia}
               resizeMode="contain"
-              onLoad={() => console.log('[AdCard] Imagem carregada')}
               onError={(e) => console.error('[AdCard] Erro ao carregar imagem:', e.nativeEvent.error)}
             />
           </View>
@@ -113,11 +111,9 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
               isLooping
               style={styles.adMedia}
               onLoadStart={() => {
-                console.log('[AdCard] Iniciando carregamento do vídeo');
                 setVideoLoading(true);
               }}
               onLoad={() => {
-                console.log('[AdCard] Vídeo carregado com sucesso');
                 setVideoLoading(false);
               }}
               onError={(error: any) => {

@@ -49,22 +49,6 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
 
   // Mostrar apenas as 10 mais recentes
   const recentNotifications = notifications.slice(0, 10);
-  
-  // Debug temporário
-  React.useEffect(() => {
-    if (visible) {
-      const unreadNotifications = notifications.filter(n => !n.isRead);
-      console.log('[NotificationModal] Estado quando modal está visível:', {
-        notificationsCount: notifications.length,
-        recentCount: recentNotifications.length,
-        loading,
-        unreadCount,
-        unreadNotificationsCount: unreadNotifications.length,
-        shouldShowMarkButton: unreadCount > 0,
-        notifications: notifications.map(n => ({ id: n._id, title: n.title, isRead: n.isRead }))
-      });
-    }
-  }, [visible, notifications, recentNotifications, loading, unreadCount]);
 
   const getTimeAgo = (date: string) => {
     try {

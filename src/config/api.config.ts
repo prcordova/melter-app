@@ -30,10 +30,3 @@ export const API_CONFIG = {
   APP_URL: API_BASE_URL,
 };
 
-// Log das configurações com debug
-console.log('[API_CONFIG] ✅ URL Base:', API_CONFIG.BASE_URL);
-console.log('[API_CONFIG] 🔍 Origem:', {
-  'Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL': Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL || 'NÃO DEFINIDO',
-  'URL final usada': API_CONFIG.BASE_URL
-});
-

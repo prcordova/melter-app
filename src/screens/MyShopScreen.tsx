@@ -843,14 +843,6 @@ export function MyShopScreen() {
         }}
         onSave={async (wizardData) => {
           try {
-            // Debug: verificar dados do wizard antes de salvar
-            console.log('[MyShopScreen] Wizard data antes de salvar:', {
-              links: wizardData.links,
-              linksLength: wizardData.links?.length || 0,
-              firstLink: wizardData.links?.[0],
-              firstLinkUrl: wizardData.links?.[0]?.url,
-            });
-
             // Preparar dados para o backend
             // Buscar o primeiro link válido (com URL preenchida e com mais de 3 caracteres)
             const validLink = wizardData.links && wizardData.links.length > 0
@@ -864,13 +856,6 @@ export function MyShopScreen() {
             
             const downloadUrl = validLink ? validLink.url.trim() : '';
             const fileName = validLink ? (validLink.title || '').trim() : '';
-
-            console.log('[MyShopScreen] Dados preparados para salvar:', {
-              downloadUrl,
-              fileName,
-              hasDownloadUrl: !!downloadUrl && downloadUrl !== '',
-              validLink,
-            });
 
             const productData = {
               ...wizardData,
@@ -940,10 +925,7 @@ export function MyShopScreen() {
                       },
                       timeout: 600000, // 10 minutos para uploads grandes
                       onUploadProgress: (progressEvent) => {
-                        if (progressEvent.total) {
-                          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                          console.log(`[Upload] Progresso: ${progress}%`);
-                        }
+                        // Progresso silencioso (sem logs)
                       },
                     });
 
@@ -958,8 +940,6 @@ export function MyShopScreen() {
                       fileData.description,
                       i
                     );
-                    
-                    console.log('[Upload] Arquivo registrado com sucesso:', presignedResponse.data.fileUrl);
                   } catch (uploadError: any) {
                     console.error('[MyShopScreen] Erro no upload do arquivo:', uploadError);
                     const errorMessage = uploadError.response?.data?.message || uploadError.message || 'Erro ao fazer upload do arquivo';

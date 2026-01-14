@@ -52,8 +52,6 @@ export function usePushNotifications() {
 
     // Listener para notificações recebidas quando o app está em foreground
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      console.log('[PushNotifications] Notificação recebida:', notification);
-      
       // Se for notificação de mensagem, podemos atualizar o estado aqui
       if (notification.request.content.data?.type === 'MESSAGE') {
         // O NotificationContext já vai buscar as notificações
@@ -63,8 +61,6 @@ export function usePushNotifications() {
 
     // Listener para quando o usuário toca na notificação
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log('[PushNotifications] Notificação tocada:', response);
-      
       const data = response.notification.request.content.data;
       
       // Navegar para a tela apropriada baseado no tipo
@@ -106,15 +102,12 @@ export function usePushNotifications() {
         projectId: Constants.expoConfig?.extra?.eas?.projectId || undefined,
       });
 
-      console.log('[PushNotifications] Token registrado:', token.data);
-
       // Enviar token para o backend
       try {
         await api.post('/api/users/push-token', {
           pushToken: token.data,
           platform: Platform.OS,
         });
-        console.log('[PushNotifications] Token enviado para o backend');
       } catch (error) {
         console.error('[PushNotifications] Erro ao enviar token:', error);
       }
