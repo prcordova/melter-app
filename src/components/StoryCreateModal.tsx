@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -10,10 +10,12 @@ import {
   ActivityIndicator,
   Dimensions,
   TouchableWithoutFeedback,
+  PanResponder,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
 import { storiesApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { showToast } from './CustomToast';
@@ -32,29 +34,89 @@ export function StoryCreateModal({
   onStoryCreated,
 }: StoryCreateModalProps) {
   const insets = useSafeAreaInsets();
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [selectedImageSize, setSelectedImageSize] = useState<number | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
+  const [selectedMediaSize, setSelectedMediaSize] = useState<number | null>(null);
+  const [selectedMediaType, setSelectedMediaType] = useState<string | null>(null);
+  const [isVideo, setIsVideo] = useState(false);
+  const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [videoStartTime, setVideoStartTime] = useState<number>(0);
+  const [videoEndTime, setVideoEndTime] = useState<number>(30);
+  const [videoPosition, setVideoPosition] = useState<number>(0);
+  const videoRef = useRef<Video>(null);
   const [storyText, setStoryText] = useState('');
   const [loading, setLoading] = useState(false);
   const [visibility, setVisibility] = useState<'followers' | 'friends'>('followers');
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
 
-  const handlePickImage = async () => {
+  const handlePickMedia = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        // NOTE: a versão atual do expo-image-picker neste projeto ainda usa MediaTypeOptions
+        // (apesar do warning de depreciação no runtime).
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsEditing: true,
         aspect: [9, 16],
         quality: 0.8,
+        videoMaxDuration: 300, // Permitir vídeos de até 5 minutos
       });
 
       if (!result.canceled && result.assets[0]) {
-        setSelectedImage(result.assets[0].uri);
-        setSelectedImageSize(result.assets[0].fileSize || null);
+        const asset = result.assets[0];
+        setSelectedMedia(asset.uri);
+        setSelectedMediaSize(asset.fileSize || null);
+        
+        // Determinar tipo MIME: usar mimeType se disponível, senão inferir da URI
+        let mimeType: string | null = null;
+        if ((asset as any).mimeType) {
+          mimeType = (asset as any).mimeType;
+        } else if ((asset as any).type) {
+          mimeType = (asset as any).type;
+        } else {
+          // Inferir do nome do arquivo
+          const filename = asset.uri.split('/').pop() || '';
+          const match = /\.(\w+)$/.exec(filename.toLowerCase());
+          if (match) {
+            const ext = match[1].toLowerCase();
+            const extToMime: { [key: string]: string } = {
+              'jpg': 'image/jpeg',
+              'jpeg': 'image/jpeg',
+              'png': 'image/png',
+              'gif': 'image/gif',
+              'webp': 'image/webp',
+              'mp4': 'video/mp4',
+              'mov': 'video/quicktime',
+              'webm': 'video/webm',
+              'avi': 'video/x-msvideo',
+            };
+            mimeType = extToMime[ext] || 'image/jpeg';
+          } else {
+            mimeType = 'image/jpeg'; // Padrão seguro
+          }
+        }
+        
+        const isVideoFile = mimeType ? mimeType.startsWith('video/') : false;
+        setIsVideo(isVideoFile);
+        setSelectedMediaType(mimeType);
+        
+        // Se for vídeo, configurar duração e limites
+        if (isVideoFile && asset.duration) {
+          const duration = Math.floor(asset.duration);
+          setVideoDuration(duration);
+          // Padrão: primeiros 30 segundos ou duração total se menor
+          const defaultEnd = Math.min(30, duration);
+          setVideoStartTime(0);
+          setVideoEndTime(defaultEnd);
+          setVideoPosition(0);
+        } else {
+          setVideoDuration(0);
+          setVideoStartTime(0);
+          setVideoEndTime(30);
+        }
+        
         setStoryText('');
       }
     } catch (error) {
-      showToast.error('Erro', 'Não foi possível selecionar a imagem');
+      showToast.error('Erro', 'Não foi possível selecionar a mídia');
     }
   };
 
@@ -67,15 +129,66 @@ export function StoryCreateModal({
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
+        // NOTE: a versão atual do expo-image-picker neste projeto ainda usa MediaTypeOptions
+        // (apesar do warning de depreciação no runtime).
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsEditing: true,
         aspect: [9, 16],
         quality: 0.8,
+        videoMaxDuration: 300,
       });
 
       if (!result.canceled && result.assets[0]) {
-        setSelectedImage(result.assets[0].uri);
-        setSelectedImageSize(result.assets[0].fileSize || null);
+        const asset = result.assets[0];
+        setSelectedMedia(asset.uri);
+        setSelectedMediaSize(asset.fileSize || null);
+        
+        // Determinar tipo MIME: usar mimeType se disponível, senão inferir da URI
+        let mimeType: string | null = null;
+        if ((asset as any).mimeType) {
+          mimeType = (asset as any).mimeType;
+        } else if ((asset as any).type) {
+          mimeType = (asset as any).type;
+        } else {
+          // Inferir do nome do arquivo
+          const filename = asset.uri.split('/').pop() || '';
+          const match = /\.(\w+)$/.exec(filename.toLowerCase());
+          if (match) {
+            const ext = match[1].toLowerCase();
+            const extToMime: { [key: string]: string } = {
+              'jpg': 'image/jpeg',
+              'jpeg': 'image/jpeg',
+              'png': 'image/png',
+              'gif': 'image/gif',
+              'webp': 'image/webp',
+              'mp4': 'video/mp4',
+              'mov': 'video/quicktime',
+              'webm': 'video/webm',
+            };
+            mimeType = extToMime[ext] || 'image/jpeg';
+          } else {
+            mimeType = 'image/jpeg'; // Padrão seguro
+          }
+        }
+        
+        const isVideoFile = mimeType ? mimeType.startsWith('video/') : false;
+        setIsVideo(isVideoFile);
+        setSelectedMediaType(mimeType);
+        
+        // Se for vídeo, configurar duração e limites
+        if (isVideoFile && asset.duration) {
+          const duration = Math.floor(asset.duration);
+          setVideoDuration(duration);
+          const defaultEnd = Math.min(30, duration);
+          setVideoStartTime(0);
+          setVideoEndTime(defaultEnd);
+          setVideoPosition(0);
+        } else {
+          setVideoDuration(0);
+          setVideoStartTime(0);
+          setVideoEndTime(30);
+        }
+        
         setStoryText('');
       }
     } catch (error) {
@@ -84,32 +197,78 @@ export function StoryCreateModal({
   };
 
   const handleUpload = async () => {
-    if (!selectedImage) return;
+    if (!selectedMedia) return;
 
     try {
       setLoading(true);
 
       // 1. Obter informações do arquivo
-      const filename = selectedImage.split('/').pop() || `story_${Date.now()}.jpg`;
-      const match = /\.(\w+)$/.exec(filename);
-      let fileType = match ? `image/${match[1]}` : 'image/jpeg';
+      const filename = selectedMedia.split('/').pop() || `story_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`;
       
-      // Normalizar tipo de arquivo (jpg -> jpeg)
-      if (fileType === 'image/jpg') {
-        fileType = 'image/jpeg';
+      // Determinar o tipo de arquivo - priorizar o tipo armazenado
+      let fileType = selectedMediaType;
+      
+      // Se não tiver tipo armazenado ou for inválido, inferir do nome do arquivo
+      if (!fileType || (!fileType.startsWith('image/') && !fileType.startsWith('video/'))) {
+        const match = /\.(\w+)$/.exec(filename.toLowerCase());
+        if (match) {
+          const ext = match[1].toLowerCase();
+          // Mapear extensões para tipos MIME válidos (usar exatamente como o backend espera)
+          const extToMime: { [key: string]: string } = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'mp4': 'video/mp4',
+            'mov': 'video/quicktime',
+            'webm': 'video/webm',
+            'avi': 'video/x-msvideo',
+          };
+          fileType = extToMime[ext];
+          
+          // Se ainda não encontrou, usar padrão baseado no isVideo
+          if (!fileType) {
+            fileType = isVideo ? 'video/mp4' : 'image/jpeg';
+          }
+        } else {
+          // Sem extensão, usar padrão baseado no isVideo
+          fileType = isVideo ? 'video/mp4' : 'image/jpeg';
+        }
       }
       
+      // Normalizar tipo de arquivo (garantir lowercase)
+      fileType = fileType.toLowerCase().trim();
+      
+      // O backend aceita tanto image/jpg quanto image/jpeg, então manter como está
+      // Não converter jpg para jpeg, pois o backend aceita ambos
+      
+      // Garantir que seja um tipo válido aceito pelo backend
+      // O backend aceita: image/jpeg, image/jpg, image/png, image/gif, image/webp, video/mp4, video/webm, video/quicktime, video/x-msvideo
+      const validTypes = [
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+        'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'
+      ];
+      
+      if (!validTypes.includes(fileType)) {
+        // Se não for um tipo válido, usar padrão baseado no tipo
+        console.error('[StoryCreate] Tipo inválido detectado:', fileType, 'usando padrão:', isVideo ? 'video/mp4' : 'image/jpeg');
+        fileType = isVideo ? 'video/mp4' : 'image/jpeg';
+      }
+      
+      // (sem logs de debug aqui)
+      
       // Obter tamanho do arquivo (usar do ImagePicker se disponível, senão buscar via fetch)
-      let fileSize = selectedImageSize;
+      let fileSize = selectedMediaSize;
       if (!fileSize || fileSize === 0) {
         try {
-          const response = await fetch(selectedImage);
+          const response = await fetch(selectedMedia);
           const blob = await response.blob();
           fileSize = blob.size;
         } catch (error) {
           console.error('[StoryCreate] Erro ao obter tamanho do arquivo:', error);
           // Usar tamanho padrão se não conseguir obter
-          fileSize = 1024 * 1024; // 1MB como fallback
+          fileSize = isVideo ? 10 * 1024 * 1024 : 1024 * 1024; // 10MB para vídeo, 1MB para imagem
         }
       }
       
@@ -120,20 +279,22 @@ export function StoryCreateModal({
 
       // 2. Fazer upload do arquivo usando presigned URL (upload direto ao S3)
       const uploadResponse = await storiesApi.uploadStoryMedia(
-        selectedImage,
+        selectedMedia,
         filename,
         fileType,
-        fileSize
+        fileSize,
+        isVideo ? videoStartTime : undefined,
+        isVideo ? Math.min(30, videoEndTime - videoStartTime) : undefined
       );
 
       if (!uploadResponse.success || !uploadResponse.data?.url) {
         throw new Error(uploadResponse.message || 'Erro ao fazer upload');
       }
 
-      // 2. Criar story com texto simples (fixo na parte inferior)
+      // 3. Criar story com texto simples (fixo na parte inferior)
       const storyData = {
         content: {
-          type: 'image' as const,
+          type: isVideo ? ('video' as const) : ('image' as const),
           mediaUrl: uploadResponse.data.url,
           text: storyText.trim() || null,
           elements: [],
@@ -142,15 +303,20 @@ export function StoryCreateModal({
           panY: 0,
         },
         visibility: visibility,
-        duration: 10,
+        duration: isVideo ? Math.min(30, videoEndTime - videoStartTime) : 10,
       };
 
       const response = await storiesApi.createStory(storyData);
 
       if (response.success) {
         showToast.success('Sucesso', 'Story criado com sucesso!');
-        setSelectedImage(null);
-        setSelectedImageSize(null);
+        setSelectedMedia(null);
+        setSelectedMediaSize(null);
+        setSelectedMediaType(null);
+        setIsVideo(false);
+        setVideoDuration(0);
+        setVideoStartTime(0);
+        setVideoEndTime(30);
         setStoryText('');
         onStoryCreated();
         onClose();
@@ -168,12 +334,110 @@ export function StoryCreateModal({
     }
   };
 
+  // Função para renderizar timeline de vídeo
+  const renderVideoTimeline = () => {
+    if (!isVideo || videoDuration === 0) return null;
+    
+    const timelineWidth = width - 40;
+    const startPercent = (videoStartTime / videoDuration) * 100;
+    const endPercent = (videoEndTime / videoDuration) * 100;
+    const selectedWidth = ((videoEndTime - videoStartTime) / videoDuration) * 100;
+    
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+    
+    const handleStartDrag = (gestureState: any) => {
+      const x = gestureState.moveX - 20; // Ajustar para o início do timeline
+      const percent = Math.max(0, Math.min(100, (x / timelineWidth) * 100));
+      const newStart = (percent / 100) * videoDuration;
+      const maxStart = videoEndTime - 1; // Mínimo 1 segundo de duração
+      const finalStart = Math.max(0, Math.min(maxStart, newStart));
+      setVideoStartTime(Math.floor(finalStart));
+      if (videoRef.current) {
+        videoRef.current.setPositionAsync(finalStart * 1000);
+      }
+    };
+    
+    const handleEndDrag = (gestureState: any) => {
+      const x = gestureState.moveX - 20;
+      const percent = Math.max(0, Math.min(100, (x / timelineWidth) * 100));
+      const newEnd = (percent / 100) * videoDuration;
+      const minEnd = videoStartTime + 1; // Mínimo 1 segundo de duração
+      const maxEnd = Math.min(videoDuration, videoStartTime + 30); // Máximo 30 segundos
+      const finalEnd = Math.max(minEnd, Math.min(maxEnd, newEnd));
+      setVideoEndTime(Math.floor(finalEnd));
+    };
+    
+    const startPanResponder = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gestureState) => handleStartDrag(gestureState),
+      onPanResponderRelease: () => {},
+    });
+    
+    const endPanResponder = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gestureState) => handleEndDrag(gestureState),
+      onPanResponderRelease: () => {},
+    });
+    
+    return (
+      <View style={styles.timelineContainer}>
+        <View style={styles.timelineLabels}>
+          <Text style={styles.timelineTime}>{formatTime(videoStartTime)}</Text>
+          <Text style={styles.timelineDuration}>
+            {formatTime(videoEndTime - videoStartTime)} / {formatTime(videoDuration)}
+          </Text>
+          <Text style={styles.timelineTime}>{formatTime(videoEndTime)}</Text>
+        </View>
+        <View style={styles.timelineTrack}>
+          <View style={[styles.timelineSelected, { left: `${startPercent}%`, width: `${selectedWidth}%` }]} />
+          <View
+            {...startPanResponder.panHandlers}
+            style={[styles.timelineHandle, { left: `${startPercent}%` }]}
+          >
+            <View style={styles.timelineHandleInner} />
+          </View>
+          <View
+            {...endPanResponder.panHandlers}
+            style={[styles.timelineHandle, { left: `${endPercent}%` }]}
+          >
+            <View style={styles.timelineHandleInner} />
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   const renderContent = () => {
-    if (selectedImage) {
+    if (selectedMedia) {
       return (
         <TouchableWithoutFeedback onPress={() => setShowVisibilityMenu(false)}>
           <View style={styles.previewContainer}>
-            <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+            {isVideo ? (
+              <Video
+                ref={videoRef}
+                source={{ uri: selectedMedia }}
+                style={styles.previewImage}
+                resizeMode={ResizeMode.COVER}
+                shouldPlay
+                isLooping
+                onLoad={(status) => {
+                  if (status.isLoaded && status.durationMillis && videoDuration === 0) {
+                    const duration = Math.floor(status.durationMillis / 1000);
+                    setVideoDuration(duration);
+                    const defaultEnd = Math.min(30, duration);
+                    setVideoEndTime(defaultEnd);
+                  }
+                }}
+              />
+            ) : (
+              <Image source={{ uri: selectedMedia }} style={styles.previewImage} />
+            )}
 
             {/* Overlay com controles */}
             <View style={[styles.previewOverlay, { paddingTop: insets.top + 20 }]}>
@@ -181,8 +445,13 @@ export function StoryCreateModal({
                 <TouchableOpacity
                   style={styles.cancelPreview}
                   onPress={() => {
-                    setSelectedImage(null);
-                    setSelectedImageSize(null);
+                    setSelectedMedia(null);
+                    setSelectedMediaSize(null);
+                    setSelectedMediaType(null);
+                    setIsVideo(false);
+                    setVideoDuration(0);
+                    setVideoStartTime(0);
+                    setVideoEndTime(30);
                     setStoryText('');
                   }}
                 >
@@ -238,8 +507,11 @@ export function StoryCreateModal({
               </View>
             </View>
 
+          {/* Timeline de vídeo (se for vídeo) */}
+          {isVideo && renderVideoTimeline()}
+
           {/* Input de texto fixo na parte inferior com botão de compartilhar ao lado (estilo WhatsApp) */}
-          <View style={[styles.textInputContainer, { bottom: insets.bottom + 20 }]}>
+          <View style={[styles.textInputContainer, { bottom: insets.bottom + (isVideo ? 100 : 20) }]}>
             <TextInput
               style={styles.textInput}
               placeholder="Digite seu texto..."
@@ -253,7 +525,7 @@ export function StoryCreateModal({
             <TouchableOpacity
               style={[styles.sendButton, loading && styles.sendButtonDisabled]}
               onPress={handleUpload}
-              disabled={loading || !selectedImage}
+              disabled={loading || !selectedMedia}
             >
               {loading ? (
                 <ActivityIndicator color="#ffffff" size="small" />
@@ -277,7 +549,7 @@ export function StoryCreateModal({
         </View>
 
         <View style={styles.optionsContainer}>
-          <TouchableOpacity style={styles.optionCard} onPress={handlePickImage}>
+          <TouchableOpacity style={styles.optionCard} onPress={handlePickMedia}>
             <View style={[styles.iconContainer, { backgroundColor: COLORS.secondary.main }]}>
               <Ionicons name="images" size={32} color="#ffffff" />
             </View>
@@ -299,10 +571,10 @@ export function StoryCreateModal({
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={selectedImage ? false : true}
+      transparent={selectedMedia ? false : true}
       onRequestClose={onClose}
     >
-      <View style={[styles.container, !selectedImage && styles.modalOverlay]}>
+      <View style={[styles.container, !selectedMedia && styles.modalOverlay]}>
         {renderContent()}
       </View>
     </Modal>
@@ -364,6 +636,59 @@ const styles = StyleSheet.create({
     width: width,
     height: height,
     resizeMode: 'cover',
+  },
+  timelineContainer: {
+    position: 'absolute',
+    bottom: 80,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  timelineLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  timelineTime: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  timelineDuration: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  timelineTrack: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+    position: 'relative',
+  },
+  timelineSelected: {
+    position: 'absolute',
+    height: '100%',
+    backgroundColor: COLORS.primary.main,
+    borderRadius: 2,
+  },
+  timelineHandle: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    top: -8,
+    marginLeft: -10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timelineHandleInner: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: COLORS.primary.main,
   },
   previewOverlay: {
     ...StyleSheet.absoluteFillObject,

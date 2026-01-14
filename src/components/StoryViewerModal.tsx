@@ -30,6 +30,7 @@ import { ReportStoryModal } from './stories/ReportStoryModal';
 import * as ScreenCapture from 'expo-screen-capture';
 import * as Clipboard from 'expo-clipboard';
 import { API_CONFIG } from '../config/api.config';
+import { Video, ResizeMode } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 segundos por story
@@ -149,13 +150,16 @@ export function StoryViewerModal({
   }, [storyIndex, groupIndex, storiesGroups, progress]);
 
   useEffect(() => {
+    // Resetar índices somente quando o modal abrir (ou quando o índice inicial mudar)
+    // NÃO depender de storyIndex aqui, senão ele reseta para 0 a cada avanço e fica em loop no primeiro story.
     if (visible) {
       setGroupIndex(initialGroupIndex);
       setStoryIndex(0);
       progress.setValue(0);
-      setTextExpanded(false); // Resetar expansão ao mudar de story
+      setTextExpanded(false);
     }
-  }, [visible, initialGroupIndex, storyIndex]);
+  }, [visible, initialGroupIndex, progress]);
+
 
   useEffect(() => {
     if (!visible || loading || isPaused || !currentStory) return;
@@ -205,6 +209,13 @@ export function StoryViewerModal({
       }).catch(() => {});
     }
   }, [currentStory?._id, visible, loading]);
+
+  // Resetar loading quando trocar de story (evita travar se o anterior ficou em loading)
+  useEffect(() => {
+    if (visible && currentStory?._id) {
+      setLoading(true);
+    }
+  }, [visible, currentStory?._id]);
 
   // Mostrar Alert de confirmação de exclusão
   useEffect(() => {
@@ -317,13 +328,51 @@ export function StoryViewerModal({
       <View style={styles.container} {...panResponder.panHandlers}>
         {/* Background do Story */}
         <View style={styles.mediaContainer}>
-          <Image
-            source={{ uri: currentStory.content.mediaUrl }}
-            style={styles.media}
-            resizeMode="cover"
-            onLoadStart={() => setLoading(true)}
-            onLoadEnd={() => setLoading(false)}
-          />
+          {(() => {
+            // Determinar se é vídeo: verificar tipo (case-insensitive) ou extensão da URL
+            const contentType = currentStory.content.type?.toLowerCase() || '';
+            const mediaUrl = currentStory.content.mediaUrl || '';
+            const isVideoFile = 
+              contentType === 'video' || 
+              /\.(mp4|webm|mov|avi|mkv|flv|wmv|m4v)$/i.test(mediaUrl);
+            
+            return isVideoFile ? (
+              <Video
+                key={currentStory._id}
+                source={{ uri: mediaUrl }}
+                style={styles.media}
+                resizeMode={ResizeMode.COVER}
+                shouldPlay={!isPaused}
+                isLooping
+                onLoadStart={() => setLoading(true)}
+                onLoad={() => {
+                  setLoading(false);
+                }}
+                onError={(error) => {
+                  console.error('Erro ao carregar vídeo do story:', error);
+                  setLoading(false);
+                }}
+              />
+            ) : (
+              <Image
+                key={currentStory._id}
+                source={{ uri: mediaUrl }}
+                style={styles.media}
+                resizeMode="cover"
+                onLoadStart={() => setLoading(true)}
+                onLoadEnd={() => setLoading(false)}
+                onError={(error) => {
+                  console.error('Erro ao carregar imagem do story:', {
+                    storyId: currentStory._id,
+                    mediaUrl,
+                    contentType: currentStory.content.type,
+                    error: error.nativeEvent?.error || error,
+                  });
+                  setLoading(false);
+                }}
+              />
+            );
+          })()}
           {loading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#ffffff" />
