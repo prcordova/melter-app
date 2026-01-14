@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { CommonActions } from '@react-navigation/native';
 import { WalletButton } from './WalletButton';
 import { NotificationButton } from './NotificationButton';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,7 +21,49 @@ export function Header({
   const { user } = useAuth();
 
   const handleProfilePress = () => {
-    navigation.navigate('ProfileStack');
+    try {
+      // Verificar se estamos dentro do ProfileStackNavigator
+      const currentRouteName = navigation.getState()?.routes?.[navigation.getState()?.index || 0]?.name;
+      const isInProfileStack = currentRouteName === 'MyShop' || currentRouteName === 'Product' || 
+                               currentRouteName === 'Settings' || currentRouteName === 'ProfileMain';
+      
+      if (isInProfileStack) {
+        // Estamos dentro do ProfileStackNavigator
+        // O navigation já é o ProfileStackNavigator, então podemos resetar diretamente
+        try {
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'ProfileMain' }],
+            })
+          );
+          return;
+        } catch (resetError) {
+          // Se não conseguir resetar, tentar navegar normalmente
+          console.log('[Header] Erro ao resetar stack, tentando navegar:', resetError);
+        }
+      }
+      
+      // Se não estiver dentro do ProfileStackNavigator, navegar normalmente
+      // Obter o TabNavigator: se estiver em uma tab, o parent direto é o TabNavigator
+      const tabNavigator = navigation.getParent();
+      
+      if (tabNavigator) {
+        // Navegar para ProfileStack (sem especificar screen, vai para a tela inicial)
+        (tabNavigator as any).navigate('ProfileStack');
+      } else {
+        // Fallback: navegar diretamente
+        navigation.navigate('ProfileStack');
+      }
+    } catch (error) {
+      console.error('[Header] Erro ao navegar para perfil:', error);
+      // Fallback: navegar diretamente
+      try {
+        navigation.navigate('ProfileStack');
+      } catch (finalError) {
+        console.error('[Header] Erro final na navegação:', finalError);
+      }
+    }
   };
 
   const handleWalletPress = () => {
