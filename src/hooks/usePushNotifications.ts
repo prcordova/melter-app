@@ -16,27 +16,29 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Configurar canal de notificação para Android (som baixinho estilo messenger)
+// Configurar canais de notificação para Android (deve ser feito antes de usar)
+// Executado uma vez quando o módulo é carregado
 if (Platform.OS === 'android') {
+  // Canal de mensagens com alta importância para garantir som e visibilidade
   Notifications.setNotificationChannelAsync('messages', {
     name: 'Mensagens',
-    description: 'Notificações de mensagens',
-    importance: Notifications.AndroidImportance.LOW, // Som baixinho (LOW = mais discreto)
+    description: 'Notificações de mensagens - toca som e vibra',
+    importance: Notifications.AndroidImportance.HIGH, // HIGH = som, vibração e banner visível
     sound: 'default', // Som padrão do sistema
-    vibrationPattern: [0, 200], // Vibração curta e suave
+    vibrationPattern: [0, 250, 250, 250], // Vibração perceptível
     showBadge: true,
-    enableLights: false, // Não acender LED
+    enableLights: true, // LED opcional
     enableVibrate: true,
-  });
+  }).catch(err => console.error('[PushNotifications] Erro ao criar canal messages:', err));
   
-  // Canal padrão também com som baixo
+  // Canal padrão também configurado
   Notifications.setNotificationChannelAsync('default', {
     name: 'Padrão',
     description: 'Notificações gerais',
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: 'default',
     showBadge: true,
-  });
+  }).catch(err => console.error('[PushNotifications] Erro ao criar canal default:', err));
 }
 
 export function usePushNotifications() {
@@ -102,14 +104,17 @@ export function usePushNotifications() {
         projectId: Constants.expoConfig?.extra?.eas?.projectId || undefined,
       });
 
+      console.log(`[PushNotifications] Token obtido: ${token.data.substring(0, 20)}...`);
+
       // Enviar token para o backend
       try {
-        await api.post('/api/users/push-token', {
+        const response = await api.post('/api/users/push-token', {
           pushToken: token.data,
           platform: Platform.OS,
         });
-      } catch (error) {
-        console.error('[PushNotifications] Erro ao enviar token:', error);
+        console.log('[PushNotifications] Token registrado com sucesso no backend');
+      } catch (error: any) {
+        console.error('[PushNotifications] Erro ao enviar token:', error?.response?.data || error?.message);
       }
     } catch (error) {
       console.error('[PushNotifications] Erro ao registrar:', error);
