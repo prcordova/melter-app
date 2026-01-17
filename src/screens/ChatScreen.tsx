@@ -14,18 +14,24 @@ import {
   Alert,
   Modal,
   Pressable,
+  ScrollView,
+  Linking,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatDistanceToNow, format, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { messageApi, userApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarUrl, getUserInitials, getImageUrl } from '../utils/image';
 import { COLORS } from '../theme/colors';
 import { showToast } from '../components/CustomToast';
 import { StoryReplyPreview } from '../components/stories/StoryReplyPreview';
+import { EmojiPicker } from '../components/EmojiPicker';
 
 interface Message {
   _id: string;
@@ -84,6 +90,14 @@ export function ChatScreen() {
   const [checkingFriendship, setCheckingFriendship] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  
+  // Estados para anexos
+  const [selectedImage, setSelectedImage] = useState<{ uri: string; name?: string } | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<{ uri: string; name: string; mimeType: string; size?: number } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  
+  // Estado para emoji picker
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
     fetchMessages();
@@ -222,13 +236,77 @@ export function ChatScreen() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || sending) return;
+    // Não enviar se não tiver conteúdo e não tiver anexo
+    if ((!newMessage.trim() && !selectedImage && !selectedDocument) || sending || uploading) return;
 
-    const messageContent = newMessage.trim();
+    const messageContent = newMessage.trim() || '';
+    
+    // Limpar estados de preview
     setNewMessage('');
+    const imageToSend = selectedImage;
+    const documentToSend = selectedDocument;
+    setSelectedImage(null);
+    setSelectedDocument(null);
 
     try {
       setSending(true);
+
+      let imageUrl: string | null = null;
+      let documentUrl: string | null = null;
+      let documentName: string | null = null;
+      let documentSize: number | null = null;
+      let messageType: 'text' | 'image' | 'document' = 'text';
+
+      // Upload de imagem se houver
+      if (imageToSend && userId) {
+        try {
+          setUploading(true);
+          messageType = 'image';
+          const uploadResponse = await messageApi.uploadImage(imageToSend.uri, userId);
+          if (uploadResponse.success && uploadResponse.data) {
+            imageUrl = uploadResponse.data.imageUrl;
+          } else {
+            throw new Error(uploadResponse.message || 'Erro ao fazer upload da imagem');
+          }
+        } catch (uploadError: any) {
+          console.error('[ChatScreen] Erro ao fazer upload da imagem:', uploadError);
+          showToast.error('Erro', uploadError.message || 'Não foi possível enviar a imagem');
+          setSending(false);
+          setUploading(false);
+          return;
+        } finally {
+          setUploading(false);
+        }
+      }
+
+      // Upload de documento se houver
+      if (documentToSend && userId) {
+        try {
+          setUploading(true);
+          messageType = 'document';
+          const uploadResponse = await messageApi.uploadDocument(
+            documentToSend.uri,
+            documentToSend.name,
+            documentToSend.mimeType,
+            userId
+          );
+          if (uploadResponse.success && uploadResponse.data) {
+            documentUrl = uploadResponse.data.documentUrl;
+            documentName = uploadResponse.data.fileName;
+            documentSize = uploadResponse.data.fileSize;
+          } else {
+            throw new Error(uploadResponse.message || 'Erro ao fazer upload do documento');
+          }
+        } catch (uploadError: any) {
+          console.error('[ChatScreen] Erro ao fazer upload do documento:', uploadError);
+          showToast.error('Erro', uploadError.message || 'Não foi possível enviar o documento');
+          setSending(false);
+          setUploading(false);
+          return;
+        } finally {
+          setUploading(false);
+        }
+      }
 
       // Mensagem otimista
       const optimisticMessage: Message = {
@@ -238,7 +316,10 @@ export function ChatScreen() {
         content: messageContent,
         timestamp: new Date().toISOString(),
         status: 'sent',
-        type: 'text',
+        type: messageType,
+        imageUrl: imageUrl || undefined,
+        documentUrl: documentUrl || undefined,
+        documentName: documentName || undefined,
       };
 
       setMessages((prev) => [...prev, optimisticMessage]);
@@ -252,7 +333,11 @@ export function ChatScreen() {
       const response = await messageApi.sendMessage({
         recipientId: userId,
         content: messageContent,
-        type: 'text',
+        type: messageType,
+        imageUrl,
+        documentUrl,
+        documentName,
+        documentSize,
       });
 
       if (response.success) {
@@ -270,7 +355,110 @@ export function ChatScreen() {
       setMessages((prev) => prev.filter((msg) => !msg._id.startsWith('temp-')));
     } finally {
       setSending(false);
+      setUploading(false);
     }
+  };
+
+  const handleAttachPress = () => {
+    Alert.alert(
+      'Anexar',
+      'Escolha uma opção',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Foto', 
+          onPress: async () => {
+            try {
+              const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+              if (!permissionResult.granted) {
+                showToast.error('Permissão', 'É necessário permitir acesso à galeria');
+                return;
+              }
+
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.8,
+                aspect: [4, 3],
+              });
+
+              if (!result.canceled && result.assets[0]) {
+                setSelectedImage({
+                  uri: result.assets[0].uri,
+                  name: result.assets[0].fileName || `image_${Date.now()}.jpg`,
+                });
+                setSelectedDocument(null); // Limpar documento se houver
+              }
+            } catch (error) {
+              console.error('[ChatScreen] Erro ao selecionar imagem:', error);
+              showToast.error('Erro', 'Não foi possível selecionar a imagem');
+            }
+          }
+        },
+        { 
+          text: 'Documento', 
+          onPress: async () => {
+            try {
+              const result = await DocumentPicker.getDocumentAsync({
+                type: '*/*',
+                copyToCacheDirectory: true,
+              });
+
+              if (!result.canceled && result.assets[0]) {
+                const file = result.assets[0];
+                setSelectedDocument({
+                  uri: file.uri,
+                  name: file.name,
+                  mimeType: file.mimeType || 'application/octet-stream',
+                  size: file.size,
+                });
+                setSelectedImage(null); // Limpar imagem se houver
+              }
+            } catch (error) {
+              console.error('[ChatScreen] Erro ao selecionar documento:', error);
+              showToast.error('Erro', 'Não foi possível selecionar o documento');
+            }
+          }
+        },
+      ]
+    );
+  };
+
+  const handleRemoveAttachment = () => {
+    setSelectedImage(null);
+    setSelectedDocument(null);
+  };
+
+  const handleDocumentPress = async (documentUrl: string, documentName: string) => {
+    if (!documentUrl) return;
+    
+    try {
+      const fullUrl = getImageUrl(documentUrl);
+      if (!fullUrl) {
+        showToast.error('Erro', 'URL do documento inválida');
+        return;
+      }
+      
+      // Tentar abrir com Linking primeiro
+      const canOpen = await Linking.canOpenURL(fullUrl);
+      if (canOpen) {
+        await Linking.openURL(fullUrl);
+      } else {
+        // Se não conseguir abrir, tentar download
+        showToast.info('Download', `Baixando ${documentName}...`);
+        // No React Native, o download geralmente é feito via Linking
+        // ou pode usar FileSystem para salvar localmente
+        await Linking.openURL(fullUrl);
+      }
+    } catch (error) {
+      console.error('[ChatScreen] Erro ao abrir documento:', error);
+      showToast.error('Erro', 'Não foi possível abrir o documento');
+    }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setNewMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
   };
 
   const getTimeAgo = (timestamp: string) => {
@@ -358,11 +546,65 @@ export function ChatScreen() {
 
               {/* Imagem (se houver) */}
               {item.type === 'image' && item.imageUrl && (
-                <Image
-                  source={{ uri: getImageUrl(item.imageUrl) }}
-                  style={styles.messageImage}
-                  resizeMode="cover"
-                />
+                <TouchableOpacity 
+                  onPress={() => {
+                    if (!item.imageUrl) return;
+                    // TODO: Abrir visualizador de imagem em tela cheia
+                    const fullUrl = getImageUrl(item.imageUrl);
+                    if (fullUrl) {
+                      Linking.openURL(fullUrl).catch(() => {
+                        showToast.error('Erro', 'Não foi possível abrir a imagem');
+                      });
+                    }
+                  }}
+                  activeOpacity={0.9}
+                >
+                  {item.imageUrl && (
+                    <Image
+                      source={{ uri: getImageUrl(item.imageUrl) }}
+                      style={styles.messageImage}
+                      resizeMode="cover"
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {/* Documento (se houver) */}
+              {item.type === 'document' && item.documentUrl && (
+                <TouchableOpacity
+                  style={[
+                    styles.messageDocument,
+                    isSentByMe && styles.myMessageDocument
+                  ]}
+                  onPress={() => {
+                    if (item.documentUrl) {
+                      handleDocumentPress(item.documentUrl, item.documentName || 'Documento');
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name="document-text" 
+                    size={32} 
+                    color={isSentByMe ? '#ffffff' : COLORS.primary.main} 
+                  />
+                  <View style={styles.documentInfo}>
+                    <Text 
+                      style={[
+                        styles.documentName,
+                        isSentByMe ? styles.myDocumentName : styles.otherDocumentName
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {item.documentName || 'Documento'}
+                    </Text>
+                    <Ionicons 
+                      name="download-outline" 
+                      size={16} 
+                      color={isSentByMe ? 'rgba(255,255,255,0.8)' : COLORS.text.tertiary} 
+                    />
+                  </View>
+                </TouchableOpacity>
               )}
 
               {/* Conteúdo da mensagem */}
@@ -564,35 +806,79 @@ export function ChatScreen() {
             </View>
           ) : (
             <>
-              <TouchableOpacity style={styles.attachButton}>
+              <TouchableOpacity 
+                style={styles.attachButton}
+                onPress={handleAttachPress}
+                disabled={sending || uploading}
+              >
                 <Ionicons name="add-circle-outline" size={28} color={COLORS.secondary.main} />
               </TouchableOpacity>
 
               <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Mensagem..."
-                  placeholderTextColor={COLORS.text.tertiary}
-                  value={newMessage}
-                  onChangeText={setNewMessage}
-                  multiline
-                  maxLength={1000}
-                  editable={!sending}
-                />
-                <TouchableOpacity style={styles.emojiButton}>
-                  <Ionicons name="happy-outline" size={24} color={COLORS.text.secondary} />
-                </TouchableOpacity>
+                {/* Preview de anexo */}
+                {(selectedImage || selectedDocument) && (
+                  <View style={styles.attachmentPreview}>
+                    {selectedImage && (
+                      <View style={styles.imagePreview}>
+                        <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
+                        <TouchableOpacity 
+                          style={styles.removePreviewButton}
+                          onPress={handleRemoveAttachment}
+                        >
+                          <Ionicons name="close-circle" size={24} color={COLORS.states.error} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    {selectedDocument && (
+                      <View style={styles.documentPreview}>
+                        <Ionicons name="document-text" size={20} color={COLORS.text.secondary} />
+                        <Text style={styles.documentPreviewText} numberOfLines={1}>
+                          {selectedDocument.name}
+                        </Text>
+                        <TouchableOpacity 
+                          style={styles.removePreviewButton}
+                          onPress={handleRemoveAttachment}
+                        >
+                          <Ionicons name="close-circle" size={20} color={COLORS.states.error} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                )}
+                
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Mensagem..."
+                    placeholderTextColor={COLORS.text.tertiary}
+                    value={newMessage}
+                    onChangeText={setNewMessage}
+                    multiline
+                    maxLength={1000}
+                    editable={!sending && !uploading}
+                  />
+                  <TouchableOpacity 
+                    style={styles.emojiButton}
+                    onPress={() => setShowEmojiPicker(!showEmojiPicker)}
+                  >
+                    <Ionicons 
+                      name={showEmojiPicker ? "happy" : "happy-outline"} 
+                      size={24} 
+                      color={COLORS.secondary.main} 
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <TouchableOpacity
                 style={[
                   styles.sendButton,
-                  (!newMessage.trim() || sending) && styles.sendButtonDisabled,
+                  ((!newMessage.trim() && !selectedImage && !selectedDocument) || sending || uploading) && styles.sendButtonDisabled,
                 ]}
                 onPress={handleSendMessage}
-                disabled={!newMessage.trim() || sending}
+                disabled={(!newMessage.trim() && !selectedImage && !selectedDocument) || sending || uploading}
               >
-                {sending ? (
+                {(sending || uploading) ? (
                   <ActivityIndicator size="small" color="#ffffff" animating={true} />
                 ) : (
                   <Ionicons name="send" size={20} color="#ffffff" />
@@ -601,8 +887,15 @@ export function ChatScreen() {
             </>
           )}
         </View>
-      </KeyboardAvoidingView>
-    </ImageBackground>
+          </KeyboardAvoidingView>
+
+        {/* Emoji Picker Modal */}
+        <EmojiPicker
+          visible={showEmojiPicker}
+          onEmojiSelect={handleEmojiSelect}
+          onClose={() => setShowEmojiPicker(false)}
+        />
+      </ImageBackground>
   );
 }
 
@@ -865,6 +1158,68 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.text.primary,
     fontWeight: '500',
+  },
+  messageDocument: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.background.tertiary,
+    marginBottom: 8,
+    gap: 12,
+  },
+  myMessageDocument: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  documentInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  documentName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  myDocumentName: {
+    color: '#ffffff',
+  },
+  otherDocumentName: {
+    color: COLORS.text.primary,
+  },
+  attachmentPreview: {
+    marginBottom: 8,
+  },
+  imagePreview: {
+    position: 'relative',
+    marginBottom: 8,
+  },
+  previewImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 12,
+  },
+  documentPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background.tertiary,
+    padding: 8,
+    borderRadius: 8,
+    gap: 8,
+  },
+  documentPreviewText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+  removePreviewButton: {
+    padding: 4,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
 });
 

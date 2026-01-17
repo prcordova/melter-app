@@ -167,7 +167,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const deleteAllNotifications = async () => {
     try {
-      const response = await api.delete('/api/notifications/all');
+      const response = await api.delete('/api/notifications/delete-all');
 
       if (response.data.success) {
         setNotifications([]);

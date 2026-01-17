@@ -608,6 +608,70 @@ export const messageApi = {
     const response = await api.get<ApiResponse<any>>(`/api/messages/search?q=${encodeURIComponent(query)}`);
     return response.data;
   },
+
+  uploadImage: async (imageUri: string, recipientId: string) => {
+    const token = await AsyncStorage.getItem('token');
+    const userId = await AsyncStorage.getItem('userId');
+    const formData = new FormData();
+    
+    // Criar objeto de arquivo compatível
+    const imageFile = {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: `image_${Date.now()}.jpg`,
+    };
+    
+    formData.append('image', imageFile as any);
+    if (userId) {
+      formData.append('senderId', userId);
+    }
+    formData.append('recipientId', recipientId);
+
+    const response = await axios.post<ApiResponse<{ imageUrl: string }>>(
+      `${API_CONFIG.BASE_URL}/api/messages/upload-image`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 60000,
+      }
+    );
+    return response.data;
+  },
+
+  uploadDocument: async (documentUri: string, documentName: string, mimeType: string, recipientId: string) => {
+    const token = await AsyncStorage.getItem('token');
+    const formData = new FormData();
+    
+    // Criar objeto de arquivo compatível
+    const documentFile = {
+      uri: documentUri,
+      type: mimeType,
+      name: documentName,
+    };
+    
+    formData.append('document', documentFile as any);
+    formData.append('recipientId', recipientId);
+
+    const response = await axios.post<ApiResponse<{ 
+      documentUrl: string;
+      fileName: string;
+      fileSize: number;
+    }>>(
+      `${API_CONFIG.BASE_URL}/api/messages/upload-document`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000,
+      }
+    );
+    return response.data;
+  },
 };
 
 // API de Stories
