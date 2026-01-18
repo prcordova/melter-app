@@ -29,7 +29,13 @@ if (Platform.OS === 'android') {
     showBadge: true,
     enableLights: true, // LED opcional
     enableVibrate: true,
-  }).catch(err => console.error('[PushNotifications] Erro ao criar canal messages:', err));
+  })
+  .then(() => {
+    console.log('[PushNotifications] ✅ Canal "messages" criado com sucesso (HIGH importance)');
+  })
+  .catch(err => {
+    console.error('[PushNotifications] ❌ Erro ao criar canal messages:', err);
+  });
   
   // Canal padrão também configurado
   Notifications.setNotificationChannelAsync('default', {
@@ -54,10 +60,15 @@ export function usePushNotifications() {
 
     // Listener para notificações recebidas quando o app está em foreground
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      console.log('[PushNotifications] 📬 Notificação recebida:', {
+      // Access channelId safely - Android properties are in request.trigger or content.data
+      const channelId = (notification.request.content.data as any)?.channelId || 'não definido';
+      
+      console.log('[PushNotifications] 📬 Notificação recebida no APP (foreground):', {
         type: notification.request.content.data?.type,
         title: notification.request.content.title,
         body: notification.request.content.body,
+        channelId: channelId,
+        identifier: notification.request.identifier,
       });
       
       // Se for notificação de mensagem, podemos atualizar o estado aqui
@@ -67,6 +78,8 @@ export function usePushNotifications() {
         // Mas podemos adicionar lógica específica aqui se necessário
       }
     });
+    
+    console.log('[PushNotifications] ✅ Listener de notificações configurado');
 
     // Listener para quando o usuário toca na notificação
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
@@ -101,9 +114,11 @@ export function usePushNotifications() {
       }
 
       if (finalStatus !== 'granted') {
-        console.warn('[PushNotifications] Permissão de notificação negada');
+        console.warn('[PushNotifications] ❌ Permissão de notificação negada - status:', finalStatus);
         return;
       }
+      
+      console.log('[PushNotifications] ✅ Permissão de notificação concedida');
 
       // Obter token do Expo Push
       // O projectId é obtido automaticamente do app.json ou Constants
