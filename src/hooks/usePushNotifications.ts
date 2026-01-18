@@ -105,16 +105,28 @@ export function usePushNotifications() {
   async function registerForPushNotificationsAsync() {
     try {
       // Verificar permissões
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
+      const permissions = await Notifications.getPermissionsAsync();
+      console.log('[PushNotifications] Permissões atuais:', {
+        status: permissions.status,
+        android: permissions.granted ? 'SIM' : 'NÃO',
+        ios: permissions.ios?.status || 'N/A',
+      });
+      
+      let finalStatus = permissions.status;
 
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+      if (permissions.status !== 'granted') {
+        console.log('[PushNotifications] Solicitando permissões...');
+        const requestResult = await Notifications.requestPermissionsAsync();
+        finalStatus = requestResult.status;
+        console.log('[PushNotifications] Resultado da solicitação:', {
+          status: requestResult.status,
+          android: requestResult.granted ? 'SIM' : 'NÃO',
+        });
       }
 
       if (finalStatus !== 'granted') {
         console.warn('[PushNotifications] ❌ Permissão de notificação negada - status:', finalStatus);
+        console.warn('[PushNotifications] ⚠️ AS NOTIFICAÇÕES VISUAIS NÃO FUNCIONARÃO SEM PERMISSÃO!');
         return;
       }
       
