@@ -100,11 +100,15 @@ export function usePushNotifications() {
 
       // Obter token do Expo Push
       // O projectId é obtido automaticamente do app.json ou Constants
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId || undefined;
+      
+      console.log(`[PushNotifications] Obtendo token - projectId: ${projectId || 'não configurado'}`);
+      
       const token = await Notifications.getExpoPushTokenAsync({
-        projectId: Constants.expoConfig?.extra?.eas?.projectId || undefined,
+        projectId,
       });
 
-      console.log(`[PushNotifications] Token obtido: ${token.data.substring(0, 20)}...`);
+      console.log(`[PushNotifications] Token obtido: ${token.data.substring(0, 20)}... (token completo: ${token.data})`);
 
       // Enviar token para o backend
       try {
