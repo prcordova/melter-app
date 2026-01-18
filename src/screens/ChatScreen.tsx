@@ -32,7 +32,7 @@ import { COLORS } from '../theme/colors';
 import { showToast } from '../components/CustomToast';
 import { StoryReplyPreview } from '../components/stories/StoryReplyPreview';
 import { EmojiPicker } from '../components/EmojiPicker';
-import { usePusher } from '../hooks/usePusher';
+import { useSocketIO } from '../hooks/useSocketIO';
 
 interface Message {
   _id: string;
@@ -100,30 +100,30 @@ export function ChatScreen() {
   // Estado para emoji picker
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // Pusher para receber mensagens em tempo real
-  const { channel } = usePusher();
+  // Socket.IO para receber mensagens em tempo real
+  const { socket } = useSocketIO();
 
   useEffect(() => {
     fetchMessages();
     checkFriendship();
   }, []);
 
-  // Listener para novas mensagens via Pusher
+  // Listener para novas mensagens via Socket.IO
   useEffect(() => {
-    if (!channel || !user?.id || !userId) {
-      console.log('[ChatScreen] Canal Pusher não está pronto ainda', { 
-        hasChannel: !!channel, 
+    if (!socket || !user?.id || !userId) {
+      console.log('[ChatScreen] Socket.IO não está pronto ainda', { 
+        hasSocket: !!socket, 
         hasUser: !!user?.id, 
         hasUserId: !!userId 
       });
       return;
     }
 
-    console.log('[ChatScreen] ✅ Configurando listener Pusher para novas mensagens');
+    console.log('[ChatScreen] ✅ Configurando listener Socket.IO para novas mensagens');
     console.log('[ChatScreen] Monitorando conversa entre:', { currentUser: user.id, otherUser: userId });
 
     const handleNewMessage = (message: Message) => {
-      console.log('[ChatScreen] 📨 Nova mensagem recebida via Pusher:', {
+      console.log('[ChatScreen] 📨 Nova mensagem recebida via Socket.IO:', {
         messageId: message._id,
         senderId: message.senderId,
         recipientId: message.recipientId,
@@ -168,20 +168,20 @@ export function ChatScreen() {
       }
     };
 
-    // Bind do evento
-    channel.bind('new-message', handleNewMessage);
-    console.log('[ChatScreen] ✅ Listener "new-message" configurado no canal');
+    // Registrar listener Socket.IO
+    socket.on('new-message', handleNewMessage);
+    console.log('[ChatScreen] ✅ Listener "new-message" configurado no socket');
 
     // Cleanup
     return () => {
-      console.log('[ChatScreen] Removendo listener Pusher');
+      console.log('[ChatScreen] Removendo listener Socket.IO');
       try {
-        channel.unbind('new-message', handleNewMessage);
+        socket.off('new-message', handleNewMessage);
       } catch (error) {
         console.error('[ChatScreen] Erro ao remover listener:', error);
       }
     };
-  }, [channel, user?.id, userId]);
+  }, [socket, user?.id, userId]);
 
   const checkFriendship = async () => {
     try {

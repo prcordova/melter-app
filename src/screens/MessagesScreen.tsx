@@ -23,7 +23,7 @@ import { COLORS } from '../theme/colors';
 import { showToast } from '../components/CustomToast';
 import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
-import { usePusher } from '../hooks/usePusher';
+import { useSocketIO } from '../hooks/useSocketIO';
 
 interface Conversation {
   _id: string;
@@ -92,21 +92,21 @@ export function MessagesScreen() {
   const [searchingFriends, setSearchingFriends] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Pusher para receber mensagens em tempo real
-  const { channel } = usePusher();
+  // Socket.IO para receber mensagens em tempo real
+  const { socket } = useSocketIO();
 
   useEffect(() => {
     fetchConversations();
   }, []);
 
-  // Listener para novas mensagens via Pusher - atualizar lista de conversas
+  // Listener para novas mensagens via Socket.IO - atualizar lista de conversas
   useEffect(() => {
-    if (!channel || !user?.id) return;
+    if (!socket || !user?.id) return;
 
-    console.log('[MessagesScreen] Configurando listener Pusher para atualizar conversas');
+    console.log('[MessagesScreen] Configurando listener Socket.IO para atualizar conversas');
 
     const handleNewMessage = (message: any) => {
-      console.log('[MessagesScreen] 📨 Nova mensagem recebida via Pusher:', message);
+      console.log('[MessagesScreen] 📨 Nova mensagem recebida via Socket.IO:', message);
       
       // Recarregar conversas para atualizar lista e contadores
       fetchConversations().catch((error) => {
@@ -114,12 +114,12 @@ export function MessagesScreen() {
       });
     };
 
-    channel.bind('new-message', handleNewMessage);
+    socket.on('new-message', handleNewMessage);
 
     return () => {
-      channel.unbind('new-message', handleNewMessage);
+      socket.off('new-message', handleNewMessage);
     };
-  }, [channel, user?.id]);
+  }, [socket, user?.id]);
 
   useEffect(() => {
     // Filtrar conversas quando a busca ou aba muda (apenas quando não está pesquisando)
