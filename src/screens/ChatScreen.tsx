@@ -32,6 +32,7 @@ import { COLORS } from '../theme/colors';
 import { showToast } from '../components/CustomToast';
 import { StoryReplyPreview } from '../components/stories/StoryReplyPreview';
 import { EmojiPicker } from '../components/EmojiPicker';
+import { usePusher } from '../hooks/usePusher';
 
 interface Message {
   _id: string;
@@ -99,10 +100,88 @@ export function ChatScreen() {
   // Estado para emoji picker
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  // Pusher para receber mensagens em tempo real
+  const { channel } = usePusher();
+
   useEffect(() => {
     fetchMessages();
     checkFriendship();
   }, []);
+
+  // Listener para novas mensagens via Pusher
+  useEffect(() => {
+    if (!channel || !user?.id || !userId) {
+      console.log('[ChatScreen] Canal Pusher não está pronto ainda', { 
+        hasChannel: !!channel, 
+        hasUser: !!user?.id, 
+        hasUserId: !!userId 
+      });
+      return;
+    }
+
+    console.log('[ChatScreen] ✅ Configurando listener Pusher para novas mensagens');
+    console.log('[ChatScreen] Monitorando conversa entre:', { currentUser: user.id, otherUser: userId });
+
+    const handleNewMessage = (message: Message) => {
+      console.log('[ChatScreen] 📨 Nova mensagem recebida via Pusher:', {
+        messageId: message._id,
+        senderId: message.senderId,
+        recipientId: message.recipientId,
+        content: message.content?.substring(0, 50),
+      });
+      
+      // Verificar se a mensagem é para esta conversa
+      const isForThisConversation = 
+        (message.senderId === userId && message.recipientId === user.id) ||
+        (message.senderId === user.id && message.recipientId === userId);
+      
+      console.log('[ChatScreen] Mensagem é para esta conversa?', isForThisConversation);
+      
+      if (isForThisConversation) {
+        // Adicionar mensagem à lista
+        setMessages((prev) => {
+          // Verificar se a mensagem já existe (evitar duplicatas)
+          const exists = prev.some((msg) => msg._id === message._id);
+          if (exists) {
+            console.log('[ChatScreen] Mensagem já existe, ignorando duplicata');
+            return prev;
+          }
+          
+          console.log('[ChatScreen] ✅ Adicionando nova mensagem ao chat');
+          // Adicionar nova mensagem no final
+          return [...prev, message];
+        });
+
+        // Scroll para o final automaticamente
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+
+        // Marcar como lida se a mensagem é para o usuário atual
+        if (message.recipientId === user.id && message.senderId === userId) {
+          messageApi.markAsRead(userId).catch((error) => {
+            console.warn('[ChatScreen] Erro ao marcar como lida:', error);
+          });
+        }
+      } else {
+        console.log('[ChatScreen] Mensagem não é para esta conversa, ignorando');
+      }
+    };
+
+    // Bind do evento
+    channel.bind('new-message', handleNewMessage);
+    console.log('[ChatScreen] ✅ Listener "new-message" configurado no canal');
+
+    // Cleanup
+    return () => {
+      console.log('[ChatScreen] Removendo listener Pusher');
+      try {
+        channel.unbind('new-message', handleNewMessage);
+      } catch (error) {
+        console.error('[ChatScreen] Erro ao remover listener:', error);
+      }
+    };
+  }, [channel, user?.id, userId]);
 
   const checkFriendship = async () => {
     try {

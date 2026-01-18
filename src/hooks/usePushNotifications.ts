@@ -54,8 +54,15 @@ export function usePushNotifications() {
 
     // Listener para notificações recebidas quando o app está em foreground
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
+      console.log('[PushNotifications] 📬 Notificação recebida:', {
+        type: notification.request.content.data?.type,
+        title: notification.request.content.title,
+        body: notification.request.content.body,
+      });
+      
       // Se for notificação de mensagem, podemos atualizar o estado aqui
       if (notification.request.content.data?.type === 'MESSAGE') {
+        console.log('[PushNotifications] ✅ Notificação de mensagem recebida - atualizando contador');
         // O NotificationContext já vai buscar as notificações
         // Mas podemos adicionar lógica específica aqui se necessário
       }

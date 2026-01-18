@@ -609,6 +609,11 @@ export const messageApi = {
     return response.data;
   },
 
+  getUnreadCount: async () => {
+    const response = await api.get<ApiResponse<{ count: number }>>('/api/messages/unread-count');
+    return response.data;
+  },
+
   uploadImage: async (imageUri: string, recipientId: string) => {
     const token = await AsyncStorage.getItem('token');
     const userId = await AsyncStorage.getItem('userId');

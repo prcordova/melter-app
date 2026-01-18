@@ -23,6 +23,7 @@ import { COLORS } from '../theme/colors';
 import { showToast } from '../components/CustomToast';
 import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
+import { usePusher } from '../hooks/usePusher';
 
 interface Conversation {
   _id: string;
@@ -91,9 +92,34 @@ export function MessagesScreen() {
   const [searchingFriends, setSearchingFriends] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Pusher para receber mensagens em tempo real
+  const { channel } = usePusher();
+
   useEffect(() => {
     fetchConversations();
   }, []);
+
+  // Listener para novas mensagens via Pusher - atualizar lista de conversas
+  useEffect(() => {
+    if (!channel || !user?.id) return;
+
+    console.log('[MessagesScreen] Configurando listener Pusher para atualizar conversas');
+
+    const handleNewMessage = (message: any) => {
+      console.log('[MessagesScreen] 📨 Nova mensagem recebida via Pusher:', message);
+      
+      // Recarregar conversas para atualizar lista e contadores
+      fetchConversations().catch((error) => {
+        console.error('[MessagesScreen] Erro ao recarregar conversas:', error);
+      });
+    };
+
+    channel.bind('new-message', handleNewMessage);
+
+    return () => {
+      channel.unbind('new-message', handleNewMessage);
+    };
+  }, [channel, user?.id]);
 
   useEffect(() => {
     // Filtrar conversas quando a busca ou aba muda (apenas quando não está pesquisando)
@@ -433,6 +459,40 @@ export function MessagesScreen() {
         destructive: true,
       }
     );
+  };
+
+  const handleMarkAsRead = async () => {
+    if (!selectedConversation || !selectedConversation.user._id) return;
+
+    // Fechar modal imediatamente
+    setShowOptionsModal(false);
+    const conversationToMark = selectedConversation;
+    setSelectedConversation(null);
+
+    try {
+      const response = await messageApi.markAsRead(conversationToMark.user._id);
+      
+      if (response && response.success) {
+        // Atualizar estado local - zerar contador de não lidas
+        setConversations(prev => prev.map(c => 
+          c._id === conversationToMark._id || c.user._id === conversationToMark.user._id
+            ? { ...c, unreadCount: 0 }
+            : c
+        ));
+        
+        showToast.success('Sucesso', 'Mensagens marcadas como lidas');
+        
+        // Recarregar conversas para sincronizar
+        setTimeout(async () => {
+          await fetchConversations();
+        }, 500);
+      } else {
+        showToast.error('Erro', 'Não foi possível marcar como lida');
+      }
+    } catch (error: any) {
+      console.error('[MessagesScreen] Erro ao marcar como lida:', error);
+      showToast.error('Erro', error.message || 'Não foi possível marcar como lida');
+    }
   };
 
   const handleBlockUser = async () => {
@@ -788,6 +848,19 @@ export function MessagesScreen() {
               <Text style={styles.modalTitle}>Opções da Conversa</Text>
               <Text style={styles.modalSubtitle}>@{selectedConversation?.user.username}</Text>
             </View>
+
+            {/* Marcar como lida - apenas se houver mensagens não lidas */}
+            {selectedConversation && selectedConversation.unreadCount > 0 && (
+              <TouchableOpacity 
+                style={styles.modalOption}
+                onPress={handleMarkAsRead}
+              >
+                <Ionicons name="checkmark-done-outline" size={22} color={COLORS.secondary.main} />
+                <Text style={[styles.modalOptionText, { color: COLORS.secondary.main }]}>
+                  Marcar como lida
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity 
               style={[styles.modalOption, isArchiving && styles.modalOptionDisabled]}
