@@ -9,12 +9,12 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Picker } from '@react-native-picker/picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BackButton } from '../../components/BackButton';
 import { AddLinkModal } from '../../components/links/AddLinkModal';
 import { LinkEditCard } from '../../components/links/LinkEditCard';
 import { CustomModal, useCustomModal } from '../../components/CustomModal';
+import { SelectRow } from '../../components/SelectRow';
 import { linksApi, userApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS } from '../../theme/colors';
@@ -417,21 +417,22 @@ export function LinksSettingsScreen() {
       <View style={styles.headerActions}>
         <View style={styles.sortContainer}>
           <Text style={styles.sortLabel}>Ordenar por:</Text>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={sortMode}
-              onValueChange={(value: 'custom' | 'date' | 'name' | 'likes') => {
-                setSortMode(value);
-                handleSort(value);
+          <View style={styles.selectRowWrapper}>
+            <SelectRow
+              label="Ordenar por"
+              value={sortMode}
+              options={[
+                { label: 'Personalizado', value: 'custom' },
+                { label: 'Data', value: 'date' },
+                { label: 'Nome', value: 'name' },
+                { label: 'Likes', value: 'likes' },
+              ]}
+              onChange={(value) => {
+                const newSortMode = value as 'custom' | 'date' | 'name' | 'likes';
+                setSortMode(newSortMode);
+                handleSort(newSortMode);
               }}
-              style={styles.picker}
-              dropdownIconColor={COLORS.text.secondary}
-            >
-              <Picker.Item label="Personalizado" value="custom" />
-              <Picker.Item label="Data" value="date" />
-              <Picker.Item label="Nome" value="name" />
-              <Picker.Item label="Likes" value="likes" />
-            </Picker>
+            />
           </View>
         </View>
 
@@ -572,15 +573,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.primary,
   },
-  pickerWrapper: {
+  selectRowWrapper: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: COLORS.border.medium,
-    borderRadius: 8,
-    backgroundColor: COLORS.background.default,
-  },
-  picker: {
-    color: COLORS.text.primary,
   },
   addButton: {
     flexDirection: 'row',
