@@ -51,6 +51,23 @@ interface ReferralStats {
 }
 
 export function ReferralScreen() {
+  const renderReferralSkeleton = () => (
+    <View style={styles.referralSkeletonWrapper}>
+      <View style={styles.referralSkeletonHeader} />
+      <View style={styles.referralSkeletonCard}>
+        <View style={styles.referralSkeletonLinePrimary} />
+        <View style={styles.referralSkeletonLineSecondary} />
+        <View style={styles.referralSkeletonButton} />
+      </View>
+      <View style={styles.referralSkeletonGrid}>
+        <View style={styles.referralSkeletonStat} />
+        <View style={styles.referralSkeletonStat} />
+        <View style={styles.referralSkeletonStat} />
+        <View style={styles.referralSkeletonStat} />
+      </View>
+    </View>
+  );
+
   const navigation = useNavigation();
   const { user } = useAuth();
   const [stats, setStats] = useState<ReferralStats | null>(null);
@@ -174,10 +191,9 @@ export function ReferralScreen() {
         <View style={styles.header}>
           <BackButton title="Perfil" />
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondary.main} />
-          <Text style={styles.loadingText}>Carregando...</Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {renderReferralSkeleton()}
+        </ScrollView>
       </View>
     );
   }
@@ -475,6 +491,49 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: COLORS.text.secondary,
+  },
+  referralSkeletonWrapper: {
+    gap: 14,
+  },
+  referralSkeletonHeader: {
+    height: 58,
+    borderRadius: 12,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  referralSkeletonCard: {
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 16,
+    padding: 16,
+    gap: 10,
+  },
+  referralSkeletonLinePrimary: {
+    width: '60%',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  referralSkeletonLineSecondary: {
+    width: '90%',
+    height: 10,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  referralSkeletonButton: {
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: COLORS.background.tertiary,
+    marginTop: 4,
+  },
+  referralSkeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  referralSkeletonStat: {
+    width: '48%',
+    height: 100,
+    borderRadius: 14,
+    backgroundColor: COLORS.background.tertiary,
   },
   headerSection: {
     marginBottom: 24,

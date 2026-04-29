@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { BackButton } from '../components/BackButton';
 import { COLORS } from '../theme/colors';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -20,42 +21,42 @@ export function SettingsScreen() {
       id: 'links', 
       title: 'Meus Links', 
       subtitle: 'Gerenciar links',
-      icon: '🔗', 
+      icon: 'link-outline', 
       screen: 'LinksSettings' 
     },
     { 
       id: 'appearance', 
       title: 'Perfil', 
       subtitle: 'Personalização do perfil',
-      icon: '🎨', 
+      icon: 'color-palette-outline', 
       screen: 'AppearanceSettings' 
     },
     { 
       id: 'analytics', 
       title: 'Analytics', 
       subtitle: 'Métricas dos posts',
-      icon: '📊', 
+      icon: 'bar-chart-outline', 
       screen: 'AnalyticsSettings' 
     },
     { 
       id: 'security', 
       title: 'Segurança', 
       subtitle: 'Senha e 2FA',
-      icon: '🔒', 
+      icon: 'shield-checkmark-outline', 
       screen: 'SecuritySettings' 
     },
     { 
       id: 'privacity', 
       title: 'Privacidade', 
       subtitle: 'Controle de bloqueios',
-      icon: '👁️', 
+      icon: 'eye-outline', 
       screen: 'PrivacitySettings' 
     },
     { 
       id: 'preferences', 
       title: 'Preferências', 
       subtitle: 'Configurações gerais',
-      icon: '⚙️', 
+      icon: 'settings-outline', 
       screen: 'PreferencesSettings' 
     },
   ];
@@ -88,13 +89,13 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.optionIconContainer}>
-                <Text style={styles.optionIcon}>{option.icon}</Text>
+                <Ionicons name={option.icon as any} size={24} color={COLORS.secondary.main} />
               </View>
               <View style={styles.optionContent}>
                 <Text style={styles.optionTitle}>{option.title}</Text>
                 <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
               </View>
-              <Text style={styles.optionArrow}>›</Text>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.secondary.main} />
             </TouchableOpacity>
           ))}
         </View>
@@ -152,9 +153,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 16,
   },
-  optionIcon: {
-    fontSize: 24,
-  },
   optionContent: {
     flex: 1,
   },
@@ -167,11 +165,6 @@ const styles = StyleSheet.create({
   optionSubtitle: {
     fontSize: 14,
     color: COLORS.text.secondary,
-  },
-  optionArrow: {
-    fontSize: 24,
-    color: COLORS.text.secondary,
-    marginLeft: 8,
   },
 });
 

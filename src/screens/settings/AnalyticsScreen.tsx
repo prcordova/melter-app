@@ -71,6 +71,19 @@ interface AnalyticsData {
 type SortFilter = 'recent' | 'most-viewed' | 'most-engagement' | 'most-comments' | 'most-reactions';
 
 export function AnalyticsScreen() {
+  const renderAnalyticsSkeleton = () => (
+    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.analyticsSkeletonSummary} />
+      <View style={styles.analyticsSkeletonFilterRow}>
+        <View style={styles.analyticsSkeletonTitle} />
+        <View style={styles.analyticsSkeletonSelect} />
+      </View>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <View key={`analytics-skeleton-${index}`} style={styles.analyticsSkeletonCard} />
+      ))}
+    </ScrollView>
+  );
+
   const insets = useSafeAreaInsets();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -204,10 +217,7 @@ export function AnalyticsScreen() {
   if (loading && !analytics) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondary.main} />
-          <Text style={styles.loadingText}>Carregando análises...</Text>
-        </View>
+        {renderAnalyticsSkeleton()}
       </View>
     );
   }
@@ -294,6 +304,36 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: COLORS.text.secondary,
+  },
+  analyticsSkeletonSummary: {
+    height: 140,
+    borderRadius: 12,
+    backgroundColor: COLORS.background.tertiary,
+    marginBottom: 20,
+  },
+  analyticsSkeletonFilterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  analyticsSkeletonTitle: {
+    width: 80,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  analyticsSkeletonSelect: {
+    width: 180,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  analyticsSkeletonCard: {
+    height: 120,
+    borderRadius: 12,
+    backgroundColor: COLORS.background.tertiary,
+    marginBottom: 12,
   },
   scrollContent: {
     padding: 16,

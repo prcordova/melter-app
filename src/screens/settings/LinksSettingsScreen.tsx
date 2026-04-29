@@ -45,6 +45,21 @@ interface ApiLink {
 }
 
 export function LinksSettingsScreen() {
+  const renderLinksSkeleton = () => (
+    <View style={styles.skeletonWrapper}>
+      <View style={styles.skeletonHeaderRow}>
+        <View style={styles.skeletonSelect} />
+        <View style={styles.skeletonButton} />
+      </View>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <View key={`link-skeleton-${index}`} style={styles.skeletonCard}>
+          <View style={styles.skeletonLinePrimary} />
+          <View style={styles.skeletonLineSecondary} />
+        </View>
+      ))}
+    </View>
+  );
+
   const insets = useSafeAreaInsets();
   const { user, refreshUser } = useAuth();
   const { modalProps, showConfirm, hideModal } = useCustomModal();
@@ -384,10 +399,9 @@ export function LinksSettingsScreen() {
           <BackButton title="Configurações" />
           <Text style={styles.headerTitle}>Links</Text>
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
-          <Text style={styles.loadingText}>Carregando links...</Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {renderLinksSkeleton()}
+        </ScrollView>
       </View>
     );
   }
@@ -608,6 +622,46 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
     color: COLORS.text.secondary,
+  },
+  skeletonWrapper: {
+    gap: 12,
+  },
+  skeletonHeaderRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  skeletonSelect: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  skeletonButton: {
+    width: 110,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  skeletonCard: {
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    gap: 8,
+  },
+  skeletonLinePrimary: {
+    width: '55%',
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  skeletonLineSecondary: {
+    width: '80%',
+    height: 9,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
   },
   emptyContainer: {
     flex: 1,

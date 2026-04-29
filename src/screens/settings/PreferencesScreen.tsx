@@ -25,6 +25,18 @@ interface CategoryPreferences {
 }
 
 export function PreferencesScreen() {
+  const renderPreferencesSkeleton = () => (
+    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.prefSkeletonDescription} />
+      <View style={styles.prefSkeletonSection}>
+        <View style={styles.prefSkeletonTitle} />
+        {Array.from({ length: 4 }).map((_, index) => (
+          <View key={`pref-skeleton-${index}`} style={styles.prefSkeletonItem} />
+        ))}
+      </View>
+    </ScrollView>
+  );
+
   const insets = useSafeAreaInsets();
   const { showConfirm } = useCustomModal();
 
@@ -166,10 +178,7 @@ export function PreferencesScreen() {
             <Text style={styles.headerTitle}>⚙️ Preferências</Text>
           </View>
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondary.main} />
-          <Text style={styles.loadingText}>Carregando...</Text>
-        </View>
+        {renderPreferencesSkeleton()}
       </View>
     );
   }
@@ -334,6 +343,29 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: COLORS.text.secondary,
+  },
+  prefSkeletonDescription: {
+    width: '100%',
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+    marginBottom: 20,
+  },
+  prefSkeletonSection: {
+    gap: 10,
+  },
+  prefSkeletonTitle: {
+    width: '50%',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+    marginBottom: 4,
+  },
+  prefSkeletonItem: {
+    width: '100%',
+    height: 52,
+    borderRadius: 10,
+    backgroundColor: COLORS.background.tertiary,
   },
   scrollContent: {
     padding: 16,

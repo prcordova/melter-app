@@ -9,6 +9,8 @@ import {
   TextInput,
   ActivityIndicator,
   Pressable,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -395,11 +397,16 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
       onRequestClose={onClose}
     >
       <Pressable style={styles.overlay} onPress={onClose}>
-        <View
-          style={[styles.container, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 16) }]}
-          onStartShouldSetResponder={() => true}
-          onMoveShouldSetResponder={() => false}
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoiding}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Math.max(insets.bottom, 12)}
         >
+          <View
+            style={[styles.container, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 16) }]}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => false}
+          >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
@@ -416,6 +423,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={true}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             nestedScrollEnabled={true}
           >
             {/* Saldo Disponível */}
@@ -647,7 +655,8 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
               )}
             </TouchableOpacity>
           </View>
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       </Pressable>
     </Modal>
   );
@@ -657,6 +666,12 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  keyboardAvoiding: {
+    width: '100%',
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },

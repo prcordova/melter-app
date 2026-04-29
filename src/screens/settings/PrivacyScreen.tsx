@@ -29,6 +29,21 @@ interface BlockedUser {
 }
 
 export function PrivacyScreen() {
+  const renderPrivacySkeleton = () => (
+    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.privacySkeletonDescription} />
+      {Array.from({ length: 3 }).map((_, index) => (
+        <View key={`privacy-skeleton-${index}`} style={styles.privacySkeletonCard}>
+          <View style={styles.privacySkeletonAvatar} />
+          <View style={styles.privacySkeletonContent}>
+            <View style={styles.privacySkeletonLinePrimary} />
+            <View style={styles.privacySkeletonLineSecondary} />
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { showConfirm } = useCustomModal();
@@ -101,10 +116,7 @@ export function PrivacyScreen() {
             <Text style={styles.headerTitle}>👁️ Privacidade</Text>
           </View>
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondary.main} />
-          <Text style={styles.loadingText}>Carregando...</Text>
-        </View>
+        {renderPrivacySkeleton()}
       </View>
     );
   }
@@ -202,6 +214,46 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: COLORS.text.secondary,
+  },
+  privacySkeletonDescription: {
+    width: '100%',
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+    marginBottom: 20,
+  },
+  privacySkeletonCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    gap: 12,
+    marginBottom: 12,
+  },
+  privacySkeletonAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  privacySkeletonContent: {
+    flex: 1,
+    gap: 8,
+  },
+  privacySkeletonLinePrimary: {
+    width: '52%',
+    height: 10,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  privacySkeletonLineSecondary: {
+    width: '75%',
+    height: 9,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
   },
   scrollContent: {
     padding: 16,

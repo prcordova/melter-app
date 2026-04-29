@@ -763,14 +763,24 @@ export function MessagesScreen() {
           <View style={styles.searchSection}>
             <View style={styles.searchSectionHeader}>
               <Text style={styles.searchSectionTitle}>Conversas</Text>
-              {searchingMessages && (
-                <ActivityIndicator size="small" color={COLORS.secondary.main} />
-              )}
+              {searchingMessages && <Text style={styles.searchingLabel}>Buscando...</Text>}
             </View>
             {searchingMessages ? (
               <View style={styles.searchLoading}>
-                <ActivityIndicator size="small" color={COLORS.secondary.main} />
-                <Text style={styles.searchLoadingText}>Buscando...</Text>
+                <View style={styles.searchSkeletonItem}>
+                  <View style={styles.searchSkeletonAvatar} />
+                  <View style={styles.searchSkeletonContent}>
+                    <View style={styles.searchSkeletonLinePrimary} />
+                    <View style={styles.searchSkeletonLineSecondary} />
+                  </View>
+                </View>
+                <View style={styles.searchSkeletonItem}>
+                  <View style={styles.searchSkeletonAvatar} />
+                  <View style={styles.searchSkeletonContent}>
+                    <View style={styles.searchSkeletonLinePrimary} />
+                    <View style={styles.searchSkeletonLineSecondary} />
+                  </View>
+                </View>
               </View>
             ) : searchResultsConversations.length > 0 ? (
               <FlatList
@@ -794,14 +804,24 @@ export function MessagesScreen() {
           <View style={styles.searchSection}>
             <View style={styles.searchSectionHeader}>
               <Text style={styles.searchSectionTitle}>Novos Contatos</Text>
-              {searchingFriends && (
-                <ActivityIndicator size="small" color={COLORS.secondary.main} />
-              )}
+              {searchingFriends && <Text style={styles.searchingLabel}>Buscando...</Text>}
             </View>
             {searchingFriends ? (
               <View style={styles.searchLoading}>
-                <ActivityIndicator size="small" color={COLORS.secondary.main} />
-                <Text style={styles.searchLoadingText}>Buscando...</Text>
+                <View style={styles.searchSkeletonItem}>
+                  <View style={styles.searchSkeletonAvatar} />
+                  <View style={styles.searchSkeletonContent}>
+                    <View style={styles.searchSkeletonLinePrimary} />
+                    <View style={styles.searchSkeletonLineSecondary} />
+                  </View>
+                </View>
+                <View style={styles.searchSkeletonItem}>
+                  <View style={styles.searchSkeletonAvatar} />
+                  <View style={styles.searchSkeletonContent}>
+                    <View style={styles.searchSkeletonLinePrimary} />
+                    <View style={styles.searchSkeletonLineSecondary} />
+                  </View>
+                </View>
               </View>
             ) : searchResultsFriends.length > 0 ? (
               <FlatList
@@ -1144,6 +1164,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.primary,
   },
+  searchingLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.secondary.main,
+  },
   searchDivider: {
     height: 1,
     backgroundColor: COLORS.border.light,
@@ -1155,13 +1180,40 @@ const styles = StyleSheet.create({
   searchLoading: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    gap: 12,
   },
-  searchLoadingText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: COLORS.text.secondary,
+  searchSkeletonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+  },
+  searchSkeletonAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  searchSkeletonContent: {
+    flex: 1,
+    gap: 7,
+  },
+  searchSkeletonLinePrimary: {
+    width: '45%',
+    height: 10,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  searchSkeletonLineSecondary: {
+    width: '70%',
+    height: 8,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
   },
   searchEmpty: {
     flex: 1,

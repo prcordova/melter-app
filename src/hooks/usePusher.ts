@@ -47,11 +47,38 @@ export function usePusher() {
 
         const pusher = new Pusher(API_CONFIG.PUSHER_KEY, {
           cluster: API_CONFIG.PUSHER_CLUSTER,
-          authEndpoint: `${API_CONFIG.BASE_URL}/api/pusher/auth`,
-          auth: {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+          authorizer: (channel: any) => {
+            return {
+              authorize: (socketId: string, callback: (error: Error | null, data?: any) => void) => {
+                const body = new URLSearchParams({
+                  socket_id: socketId,
+                  channel_name: channel.name,
+                }).toString();
+
+                fetch(`${API_CONFIG.BASE_URL}/api/pusher/auth`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    Authorization: `Bearer ${token}`,
+                    'X-Auth-Token': token,
+                  },
+                  body,
+                })
+                  .then(async (response) => {
+                    const data = await response.json();
+                    if (!response.ok) {
+                      console.error('[Pusher] Falha na autenticação do canal:', response.status, data);
+                      callback(new Error(data?.error || `Auth ${response.status}`), data);
+                      return;
+                    }
+                    callback(null, data);
+                  })
+                  .catch((authError: any) => {
+                    console.error('[Pusher] Erro no authorizer customizado:', authError);
+                    callback(authError instanceof Error ? authError : new Error('Falha de autenticação Pusher'));
+                  });
+              },
+            };
           },
         });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -62,6 +62,35 @@ type AdStatus = 'ACTIVE' | 'INACTIVE' | 'PAUSED';
 type ActiveTab = 0 | 1; // 0 = Campanhas, 1 = Histórico
 
 export function PromotionsScreen() {
+  const renderPromotionsSkeleton = useMemo(
+    () => (
+      <View style={styles.skeletonWrapper}>
+        <View style={styles.skeletonFilter} />
+        <View style={styles.skeletonFilterRow}>
+          <View style={styles.skeletonFilterSmall} />
+          <View style={styles.skeletonFilterSmall} />
+        </View>
+        {Array.from({ length: 3 }).map((_, index) => (
+          <View key={`promo-skeleton-${index}`} style={styles.skeletonCard}>
+            <View style={styles.skeletonHeaderRow}>
+              <View style={styles.skeletonMedia} />
+              <View style={styles.skeletonHeaderContent}>
+                <View style={styles.skeletonLinePrimary} />
+                <View style={styles.skeletonLineSecondary} />
+              </View>
+            </View>
+            <View style={styles.skeletonMetricsRow}>
+              <View style={styles.skeletonMetric} />
+              <View style={styles.skeletonMetric} />
+              <View style={styles.skeletonMetric} />
+            </View>
+          </View>
+        ))}
+      </View>
+    ),
+    []
+  );
+
   const insets = useSafeAreaInsets();
   const { user, refreshUser } = useAuth();
   
@@ -265,10 +294,9 @@ export function PromotionsScreen() {
   if (loading && ads.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondary.main} />
-          <Text style={styles.loadingText}>Carregando campanhas...</Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {renderPromotionsSkeleton}
+        </ScrollView>
       </View>
     );
   }
@@ -534,8 +562,10 @@ export function PromotionsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {loadingHistory ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.secondary.main} />
+            <View style={styles.historySkeletonWrapper}>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <View key={`history-skeleton-${index}`} style={styles.historySkeletonItem} />
+              ))}
             </View>
           ) : history.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -653,6 +683,77 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: COLORS.text.secondary,
+  },
+  skeletonWrapper: {
+    gap: 12,
+  },
+  skeletonFilter: {
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  skeletonFilterRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  skeletonFilterSmall: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  skeletonCard: {
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    gap: 10,
+  },
+  skeletonHeaderRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  skeletonMedia: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  skeletonHeaderContent: {
+    flex: 1,
+    gap: 8,
+    justifyContent: 'center',
+  },
+  skeletonLinePrimary: {
+    width: '72%',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  skeletonLineSecondary: {
+    width: '44%',
+    height: 10,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  skeletonMetricsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  skeletonMetric: {
+    flex: 1,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  historySkeletonWrapper: {
+    gap: 10,
+  },
+  historySkeletonItem: {
+    height: 56,
+    borderRadius: 10,
+    backgroundColor: COLORS.background.tertiary,
   },
   filtersContainer: {
     gap: 12,

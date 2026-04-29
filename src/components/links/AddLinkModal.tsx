@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Modal,
   View,
   Text,
   TextInput,
@@ -9,9 +8,9 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
+import { ModalBottom } from '../ModalBottom';
 
 interface AddLinkModalProps {
   visible: boolean;
@@ -21,7 +20,6 @@ interface AddLinkModalProps {
 }
 
 export function AddLinkModal({ visible, onClose, onAdd, loading = false }: AddLinkModalProps) {
-  const insets = useSafeAreaInsets();
   const [linkData, setLinkData] = useState({
     title: '',
     url: '',
@@ -47,14 +45,12 @@ export function AddLinkModal({ visible, onClose, onAdd, loading = false }: AddLi
   const isValid = linkData.title.trim().length > 0 && linkData.url.trim().length > 0;
 
   return (
-    <Modal
+    <ModalBottom
       visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={handleClose}
+      onClose={handleClose}
+      maxHeight="90%"
     >
-      <View style={[styles.overlay, { paddingTop: insets.top }]}>
-        <View style={styles.modalContainer}>
+      <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Adicionar Link</Text>
@@ -129,23 +125,14 @@ export function AddLinkModal({ visible, onClose, onAdd, loading = false }: AddLi
               )}
             </TouchableOpacity>
           </View>
-        </View>
       </View>
-    </Modal>
+    </ModalBottom>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
   modalContainer: {
     backgroundColor: COLORS.background.paper,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
   },
   header: {
     flexDirection: 'row',

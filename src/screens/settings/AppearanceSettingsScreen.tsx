@@ -55,6 +55,18 @@ interface UserStatus {
 }
 
 export function AppearanceSettingsScreen() {
+  const renderAppearanceSkeleton = () => (
+    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <View key={`appearance-skeleton-${index}`} style={styles.skeletonSection}>
+          <View style={styles.skeletonTitle} />
+          <View style={styles.skeletonField} />
+          <View style={styles.skeletonField} />
+        </View>
+      ))}
+    </ScrollView>
+  );
+
   const insets = useSafeAreaInsets();
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -359,10 +371,7 @@ export function AppearanceSettingsScreen() {
           <BackButton title="Configurações" />
           <Text style={styles.headerTitle}>Aparência</Text>
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
-          <Text style={styles.loadingText}>Carregando...</Text>
-        </View>
+        {renderAppearanceSkeleton()}
       </View>
     );
   }
@@ -789,6 +798,29 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: COLORS.text.secondary,
+  },
+  skeletonSection: {
+    backgroundColor: COLORS.background.paper,
+    marginTop: 16,
+    marginHorizontal: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    gap: 10,
+  },
+  skeletonTitle: {
+    width: '45%',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+    marginBottom: 4,
+  },
+  skeletonField: {
+    width: '100%',
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
   },
   scrollView: {
     flex: 1,
