@@ -46,6 +46,8 @@ interface UserCardProps {
   showFriendsSince?: boolean;
 }
 
+const normalizeUsername = (value?: string) => (value || '').trim().replace(/\s+/g, '');
+
 export function UserCard({ user, onPress, showFriendsSince = false }: UserCardProps) {
   const { user: currentUser } = useAuth();
   const navigation = useNavigation<any>();
@@ -57,16 +59,21 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
   const isOwnProfile = currentUser?.id === user._id;
 
   const handleProfilePress = () => {
+    const normalizedUsername = normalizeUsername(user.username);
+    if (!normalizedUsername) {
+      showToast.error('Erro', 'Username inválido para abrir perfil');
+      return;
+    }
     if (onPress) {
       onPress();
     } else {
       if (typeof navigation.push === 'function') {
-        navigation.push('UserProfile', { username: user.username });
+        navigation.push('UserProfile', { username: normalizedUsername });
         return;
       }
       navigation.navigate({
         name: 'UserProfile',
-        params: { username: user.username },
+        params: { username: normalizedUsername },
         merge: false,
       } as never);
     }

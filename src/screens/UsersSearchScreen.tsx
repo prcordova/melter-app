@@ -15,7 +15,7 @@ import { COLORS } from '../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 interface User {
@@ -48,6 +48,7 @@ interface UsersSearchScreenProps {
 }
 
 const usersCache = new Map<string, User[]>();
+const normalizeUsername = (value?: string) => (value || '').trim().replace(/\s+/g, '');
 
 export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: UsersSearchScreenProps = {}) {
   const { user: currentUser } = useAuth();
@@ -95,6 +96,15 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
 
     return () => clearTimeout(timer);
   }, [searchQuery, isMounted]);
+
+  useFocusEffect(
+    useCallback(() => {
+      usersCache.clear();
+      setPage(1);
+      setHasMore(true);
+      fetchUsers(1);
+    }, [selectedFilter, searchQuery, isMounted])
+  );
 
   const fetchUsers = async (pageNum = 1) => {
     // Verificar se o componente ainda está montado antes de fazer a requisição
@@ -186,13 +196,18 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
   };
 
   const handleUserPress = (user: User) => {
+    const normalizedUsername = normalizeUsername(user.username);
+    if (!normalizedUsername) {
+      Alert.alert('Erro', 'Username inválido para navegação');
+      return;
+    }
     if (typeof navigation.push === 'function') {
-      navigation.push('CommunityUserProfile', { username: user.username });
+      navigation.push('CommunityUserProfile', { username: normalizedUsername });
       return;
     }
     navigation.navigate({
       name: 'UserProfile',
-      params: { username: user.username },
+      params: { username: normalizedUsername },
       merge: false,
     } as never);
   };

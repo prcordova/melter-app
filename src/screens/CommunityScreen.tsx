@@ -21,6 +21,7 @@ import { useNavigation } from '@react-navigation/native';
 import { UsersSearchScreen } from './UsersSearchScreen';
 
 type TabType = 'explore' | 'friends' | 'received' | 'sent';
+const normalizeUsername = (value?: string) => (value || '').trim().replace(/\s+/g, '');
 
 export function CommunityScreen() {
   const { user: currentUser } = useAuth();
@@ -106,7 +107,11 @@ export function CommunityScreen() {
       <UserCard 
         user={userData} 
         showFriendsSince={isFriendsTab}
-        onPress={() => navigation.push('CommunityUserProfile', { username: userData.username })}
+        onPress={() => {
+          const normalizedUsername = normalizeUsername(userData.username);
+          if (!normalizedUsername) return;
+          navigation.push('CommunityUserProfile', { username: normalizedUsername });
+        }}
       />
     );
   };
