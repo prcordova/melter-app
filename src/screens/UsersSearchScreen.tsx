@@ -376,19 +376,12 @@ const styles = StyleSheet.create({
   pickerWrapper: {
     backgroundColor: COLORS.background.paper,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderWidth: 1.5,
+    borderColor: COLORS.secondary.main,
     overflow: 'hidden',
-    height: 48, // Altura fixa para igualar ao input
-    justifyContent: 'center', // Centralizar verticalmente
   },
   picker: {
     color: COLORS.text.primary,
-    height: 48, // Altura fixa para igualar ao input
-    paddingVertical: 0, // Remover padding vertical padrão
-    marginVertical: 0, // Remover margem vertical
-    textAlignVertical: 'center', // Centralizar texto verticalmente (Android)
-    includeFontPadding: false, // Remover padding extra de fonte (Android)
   },
   listContent: {
     paddingBottom: 16,
