@@ -33,9 +33,11 @@ interface User {
   friendshipId?: string;
   friendRequestId?: string;
   followersCount?: number;
+  followingCount?: number;
   friendsCount?: number;
+  viewsCount?: number;
+  lastLoginAt?: string | Date | null;
   isFollowing?: boolean;
-  followers?: string[];
 }
 
 type FilterType = 'popular' | 'recent' | 'most-viewed' | 'most-liked';
@@ -136,7 +138,7 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
           if (!u || !u._id) return null;
           return {
             ...u,
-            isFollowing: u.isFollowing || (u.followers?.includes(currentUser?.id)),
+            isFollowing: Boolean(u.isFollowing),
           };
         }).filter(Boolean) as User[];
 

@@ -32,7 +32,10 @@ interface User {
   friendshipId?: string;
   friendRequestId?: string;
   followersCount?: number;
+  followingCount?: number;
   friendsCount?: number;
+  viewsCount?: number;
+  lastLoginAt?: string | Date | null;
   isFollowing?: boolean;
   friendsSince?: string | Date;
 }
@@ -66,6 +69,15 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
       return new Date(date).toLocaleDateString('pt-BR');
     } catch {
       return '';
+    }
+  };
+
+  const formatLastLogin = (date: string | Date | null | undefined) => {
+    if (!date) return 'Sem atividade recente';
+    try {
+      return new Date(date).toLocaleString('pt-BR');
+    } catch {
+      return 'Sem atividade recente';
     }
   };
 
@@ -259,17 +271,31 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
             )}
 
             <View style={styles.stats}>
-              {user.friendsCount !== undefined && (
+              {user.viewsCount !== undefined && (
                 <Text style={styles.statText}>
-                  👥 {user.friendsCount}
+                  Visualizações: {user.viewsCount}
                 </Text>
               )}
               {user.followersCount !== undefined && (
                 <Text style={styles.statText}>
-                  👁️ {user.followersCount}
+                  Seguidores: {user.followersCount}
+                </Text>
+              )}
+              {user.friendsCount !== undefined && (
+                <Text style={styles.statText}>
+                  Amigos: {user.friendsCount}
+                </Text>
+              )}
+              {user.followingCount !== undefined && (
+                <Text style={styles.statText}>
+                  Seguindo: {user.followingCount}
                 </Text>
               )}
             </View>
+
+            <Text style={styles.lastLoginText}>
+              Último login: {formatLastLogin(user.lastLoginAt)}
+            </Text>
 
             {showFriendsSince && user.friendsSince && (
               <Text style={styles.friendsSince}>
@@ -445,13 +471,18 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   stats: {
-    flexDirection: 'row',
-    gap: 12,
+    marginTop: 2,
+    gap: 2,
   },
   statText: {
     fontSize: 13,
     color: COLORS.text.tertiary,
     fontWeight: '500',
+  },
+  lastLoginText: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+    marginTop: 6,
   },
   friendsSince: {
     fontSize: 12,
