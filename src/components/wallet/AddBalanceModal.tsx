@@ -9,6 +9,8 @@ import {
   TextInput,
   ActivityIndicator,
   Pressable,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,6 +18,7 @@ import { walletApi } from '../../services/api';
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../CustomToast';
 import { Linking } from 'react-native';
+import { SelectRow } from '../SelectRow';
 
 interface AddBalanceModalProps {
   visible: boolean;
@@ -81,6 +84,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
 
   const [packages, setPackages] = useState<BalancePackage[]>([]);
   const [selectedPackageId, setSelectedPackageId] = useState<string>('');
+  const [currentPackageIndex, setCurrentPackageIndex] = useState(0);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [useCustomAmount, setUseCustomAmount] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -89,10 +93,11 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('MERCADOPAGO'); // Padrão: Mercado Pago para Brasil
   const [detectingCountry, setDetectingCountry] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
-  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
 
   const MIN_AMOUNT = 10;
   const MAX_AMOUNT = 50000;
+  const isStripeMode = paymentProvider === 'STRIPE';
+  const VISIBLE_PACKAGES = 3;
 
   useEffect(() => {
     if (visible) {
@@ -129,9 +134,8 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
       // Processar pacotes
       if (packagesResponse.success && packagesResponse.data && packagesResponse.data.length > 0) {
         setPackages(packagesResponse.data);
-        if (!selectedPackageId) {
-          setSelectedPackageId(packagesResponse.data[0]._id);
-        }
+        if (!selectedPackageId) setSelectedPackageId(packagesResponse.data[0]._id);
+        setCurrentPackageIndex(0);
       } else {
         console.warn('[ADD_BALANCE] Nenhum pacote encontrado. Resposta:', packagesResponse);
         setPackages([]);
@@ -234,6 +238,32 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
     return packages.find(p => p._id === selectedPackageId) || null;
   };
 
+  const handlePrevPackage = () => {
+    if (packages.length <= 1) return;
+    const nextIndex = currentPackageIndex === 0 ? packages.length - 1 : currentPackageIndex - 1;
+    const nextPackage = packages[nextIndex];
+    setCurrentPackageIndex(nextIndex);
+    if (nextPackage) {
+      setSelectedPackageId(nextPackage._id);
+      setUseCustomAmount(false);
+      setCustomAmount('');
+    }
+  };
+
+  const handleNextPackage = () => {
+    if (packages.length <= 1) return;
+    const nextIndex = currentPackageIndex === packages.length - 1 ? 0 : currentPackageIndex + 1;
+    setCurrentPackageIndex(nextIndex);
+  };
+
+  const getVisiblePackages = () => {
+    if (packages.length <= VISIBLE_PACKAGES) return packages;
+    return Array.from({ length: VISIBLE_PACKAGES }, (_, idx) => {
+      const packageIndex = (currentPackageIndex + idx) % packages.length;
+      return packages[packageIndex];
+    });
+  };
+
   return (
     <Modal
       visible={visible}
@@ -242,14 +272,24 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
       onRequestClose={onClose}
     >
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable
-          style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 16) }]}
-          onPress={(e) => e.stopPropagation()}
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoiding}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
         >
+          <Pressable
+            style={[
+              styles.container,
+              isStripeMode ? styles.containerStripe : styles.containerMercadoPago,
+              { paddingTop: 12, paddingBottom: 16 },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Text style={styles.headerTitle}>💰 Adicionar Saldo</Text>
+              <Ionicons name="wallet-outline" size={20} color={COLORS.secondary.main} />
+              <Text style={styles.headerTitle}>Adicionar Saldo</Text>
               {!loadingFee && packages.length > 0 && (
                 <TouchableOpacity
                   onPress={() => setShowInfo(!showInfo)}
@@ -272,8 +312,10 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
           <ScrollView 
             style={styles.content} 
             contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={true}
+            showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
 
             {loadingFee ? (
@@ -291,24 +333,47 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
               </View>
             ) : (
               <>
-                {/* Pacotes - Scroll Horizontal */}
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={true}
-                  contentContainerStyle={styles.packagesScrollContent}
-                  style={styles.packagesScroll}
-                >
-                  {packages.map((pkg) => {
+                {/* Seleção de Gateway - no topo */}
+                <View style={styles.gatewaySection}>
+                  <SelectRow
+                    label="Selecionar gateway"
+                    value={paymentProvider}
+                    options={[
+                      { value: 'MERCADOPAGO', label: 'Mercado Pago' },
+                      { value: 'STRIPE', label: 'Stripe' },
+                    ]}
+                    onChange={(value) => {
+                      const selected = value as PaymentProvider;
+                      setPaymentProvider(selected);
+                      if (selected === 'STRIPE') {
+                        setUseCustomAmount(false);
+                        setCustomAmount('');
+                      }
+                    }}
+                  />
+                </View>
+
+                {/* Pacotes - Carrossel com setas */}
+                <View style={styles.packagesCarouselContainer}>
+                  {packages.length > 1 && (
+                    <TouchableOpacity style={styles.carouselArrowButton} onPress={handlePrevPackage} activeOpacity={0.7}>
+                      <Ionicons name="chevron-back" size={20} color={COLORS.secondary.main} />
+                    </TouchableOpacity>
+                  )}
+
+                  <View style={styles.carouselCardsRow}>
+                    {getVisiblePackages().map((pkg) => {
                     const netAmount = calculateNetAmount(pkg.amount, pkg.feePercentage);
                     const isSelected = !useCustomAmount && selectedPackageId === pkg._id;
 
                     return (
                       <TouchableOpacity
                         key={pkg._id}
-                        style={[styles.packageCard, isSelected && styles.packageCardSelected]}
+                        style={[styles.packageCard, styles.packageCardCarousel, isSelected && styles.packageCardSelected]}
                         onPress={() => {
                           setSelectedPackageId(pkg._id);
                           setUseCustomAmount(false);
+                          setCustomAmount('');
                         }}
                         activeOpacity={0.7}
                       >
@@ -320,15 +385,16 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                         <Text style={styles.packageName}>{pkg.name}</Text>
                         <Text style={styles.packageAmount}>R$ {pkg.amount.toFixed(2)}</Text>
                         <View style={styles.packageFooter}>
-                          <Text style={styles.packageReceive}>
-                            Você recebe: R$ {netAmount.toFixed(2)}
-                          </Text>
-                          {pkg.feePercentage > 0 && (
+                          {pkg.feePercentage > 0 ? (
+                            <>
+                              <Text style={styles.packageReceive}>
+                                Você recebe: R$ {netAmount.toFixed(2)}
+                              </Text>
                             <Text style={styles.packageFee}>
                               Taxa: {pkg.feePercentage}% (R$ {(pkg.amount - netAmount).toFixed(2)})
                             </Text>
-                          )}
-                          {pkg.feePercentage === 0 && (
+                            </>
+                          ) : (
                             <Text style={[styles.packageFee, { color: COLORS.states.success }]}>
                               Sem taxas
                             </Text>
@@ -337,124 +403,67 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                       </TouchableOpacity>
                     );
                   })}
+                  </View>
 
-                  {/* Valor Customizado - Apenas Mercado Pago */}
-                  {paymentProvider === 'MERCADOPAGO' && (
-                    <TouchableOpacity
-                      style={[styles.packageCard, styles.customCard, useCustomAmount && styles.packageCardSelected]}
-                      onPress={() => setUseCustomAmount(true)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.packageName}>✏️ Valor Customizado</Text>
-                      {useCustomAmount ? (
-                        <>
-                          <View style={styles.customInputContainer}>
-                            <Text style={styles.customInputLabel}>R$</Text>
-                            <TextInput
-                              style={styles.customInput}
-                              value={customAmount}
-                              onChangeText={(value) => {
-                                const cleaned = value.replace(/[^\d,.]/g, '');
-                                setCustomAmount(cleaned);
-                              }}
-                              onBlur={() => {
-                                const num = parseFloat(customAmount.replace(',', '.'));
-                                if (!isNaN(num)) {
-                                  setCustomAmount(num.toFixed(2).replace('.', ','));
-                                }
-                              }}
-                              placeholder="0,00"
-                              placeholderTextColor={COLORS.text.tertiary}
-                              keyboardType="numeric"
-                              autoFocus
-                            />
-                          </View>
-                          {customAmount && (() => {
-                            const amount = parseFloat(customAmount.replace(',', '.'));
-                            if (!isNaN(amount)) {
-                              if (amount < MIN_AMOUNT) {
-                                return (
-                                  <Text style={[styles.packageFee, { color: COLORS.states.error }]}>
-                                    Valor mínimo: R$ {MIN_AMOUNT.toFixed(2)}
-                                  </Text>
-                                );
-                              }
-                              if (amount > MAX_AMOUNT) {
-                                return (
-                                  <Text style={[styles.packageFee, { color: COLORS.states.error }]}>
-                                    Valor máximo: R$ {MAX_AMOUNT.toFixed(2)}
-                                  </Text>
-                                );
-                              }
-                              const netAmount = calculateNetAmount(amount, customDepositFee);
-                              return (
-                                <View style={styles.packageFooter}>
-                                  <Text style={styles.packageReceive}>
-                                    Você recebe: R$ {netAmount.toFixed(2)}
-                                  </Text>
-                                  {customDepositFee > 0 && (
-                                    <Text style={styles.packageFee}>
-                                      Taxa: {customDepositFee}% (R$ {(amount - netAmount).toFixed(2)})
-                                    </Text>
-                                  )}
-                                </View>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </>
-                      ) : (
-                        <Text style={styles.customPlaceholder}>Escolha o valor</Text>
-                      )}
+                  {packages.length > 1 && (
+                    <TouchableOpacity style={styles.carouselArrowButton} onPress={handleNextPackage} activeOpacity={0.7}>
+                      <Ionicons name="chevron-forward" size={20} color={COLORS.secondary.main} />
                     </TouchableOpacity>
                   )}
-                </ScrollView>
-
-                {/* Seleção de Gateway - Botão Compacto */}
-                <View style={styles.gatewaySection}>
-                  <TouchableOpacity
-                    style={styles.gatewayButton}
-                    onPress={() => setShowPaymentOptions(!showPaymentOptions)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.gatewayButtonText}>
-                      {paymentProvider === 'STRIPE' ? '💳 Stripe' : '🇧🇷 Mercado Pago'}
-                    </Text>
-                    <Ionicons 
-                      name={showPaymentOptions ? "chevron-up" : "chevron-down"} 
-                      size={18} 
-                      color={COLORS.text.secondary} 
-                    />
-                  </TouchableOpacity>
-                  
-                  {showPaymentOptions && (
-                    <View style={styles.gatewayOptions}>
-                      <TouchableOpacity
-                        style={[styles.gatewayOption, paymentProvider === 'STRIPE' && styles.gatewayOptionSelected]}
-                        onPress={() => {
-                          setPaymentProvider('STRIPE');
-                          setUseCustomAmount(false);
-                          setShowPaymentOptions(false);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.gatewayOptionTitle}>💳 Stripe</Text>
-                        <Text style={styles.gatewayOptionDesc}>Cartões internacionais</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.gatewayOption, paymentProvider === 'MERCADOPAGO' && styles.gatewayOptionSelected]}
-                        onPress={() => {
-                          setPaymentProvider('MERCADOPAGO');
-                          setShowPaymentOptions(false);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.gatewayOptionTitle}>🇧🇷 Mercado Pago</Text>
-                        <Text style={styles.gatewayOptionDesc}>Brasil e América Latina</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
                 </View>
+
+                {paymentProvider === 'MERCADOPAGO' && (
+                  <View style={styles.customAmountSection}>
+                    <View style={styles.customTitleRow}>
+                      <Ionicons name="create-outline" size={16} color={COLORS.secondary.main} />
+                      <Text style={styles.customAmountTitle}>Adicionar valor personalizado</Text>
+                    </View>
+                    <View style={[styles.customAmountInputContainer, useCustomAmount && styles.customAmountInputContainerActive]}>
+                      <Text style={styles.customInputLabel}>R$</Text>
+                      <TextInput
+                        style={styles.customInput}
+                        value={customAmount}
+                        onFocus={() => setUseCustomAmount(true)}
+                        onChangeText={(value) => {
+                          const cleaned = value.replace(/[^\d,.]/g, '');
+                          setCustomAmount(cleaned);
+                          setUseCustomAmount(cleaned.length > 0);
+                        }}
+                        onBlur={() => {
+                          const num = parseFloat(customAmount.replace(',', '.'));
+                          if (!isNaN(num)) {
+                            setCustomAmount(num.toFixed(2).replace('.', ','));
+                          }
+                        }}
+                        placeholder="0,00"
+                        placeholderTextColor={COLORS.text.tertiary}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    {customAmount ? (
+                      (() => {
+                        const amount = parseFloat(customAmount.replace(',', '.'));
+                        if (isNaN(amount)) return null;
+                        if (amount < MIN_AMOUNT) {
+                          return <Text style={styles.customAmountHintError}>Valor mínimo: R$ {MIN_AMOUNT.toFixed(2)}</Text>;
+                        }
+                        if (amount > MAX_AMOUNT) {
+                          return <Text style={styles.customAmountHintError}>Valor máximo: R$ {MAX_AMOUNT.toFixed(2)}</Text>;
+                        }
+                        const netAmount = calculateNetAmount(amount, customDepositFee);
+                        return (
+                          <Text style={styles.customAmountHint}>
+                            Você recebe R$ {netAmount.toFixed(2)} (taxa {customDepositFee}%)
+                          </Text>
+                        );
+                      })()
+                    ) : (
+                      <Text style={styles.customAmountHint}>
+                        Mínimo R$ {MIN_AMOUNT.toFixed(2)} · Máximo R$ {MAX_AMOUNT.toFixed(2)}
+                      </Text>
+                    )}
+                  </View>
+                )}
 
               </>
             )}
@@ -497,7 +506,8 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
               )}
             </TouchableOpacity>
           </View>
-        </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Pressable>
     </Modal>
   );
@@ -509,13 +519,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  keyboardAvoiding: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'flex-end',
+  },
   container: {
+    width: '100%',
     backgroundColor: COLORS.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '95%',
-    minHeight: '70%',
     flexDirection: 'column',
+  },
+  containerStripe: {
+    maxHeight: '82%',
+    minHeight: '60%',
+  },
+  containerMercadoPago: {
+    maxHeight: '94%',
+    minHeight: '72%',
   },
   header: {
     flexDirection: 'row',
@@ -548,7 +570,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingVertical: 8,
-    paddingBottom: 16,
+    paddingBottom: 12,
     flexGrow: 1,
   },
   loadingContainer: {
@@ -577,24 +599,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
   },
-  packagesScroll: {
-    marginTop: 8,
-    marginHorizontal: -20, // Compensar padding do content
+  packagesCarouselContainer: {
+    marginTop: 6,
+    marginBottom: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
-  packagesScrollContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 4,
-    gap: 12,
+  carouselCardsRow: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
+  },
+  carouselArrowButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+    backgroundColor: COLORS.background.tertiary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   packageCard: {
     backgroundColor: COLORS.background.tertiary,
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 2,
     borderColor: COLORS.border.medium,
     position: 'relative',
-    width: 150, // Largura menor para mostrar parte do terceiro card
-    minHeight: 180,
+    width: 68,
+    height: 104,
+    justifyContent: 'space-between',
+  },
+  packageCardCarousel: {
+    flex: 1,
+    minWidth: 0,
   },
   packageCardSelected: {
     borderColor: COLORS.secondary.main,
@@ -603,52 +646,87 @@ const styles = StyleSheet.create({
   customCard: {
     width: 150, // Mesma largura dos outros cards
   },
+  customTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  customAmountSection: {
+    marginTop: 4,
+    marginBottom: 4,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    backgroundColor: COLORS.background.tertiary,
+    gap: 8,
+  },
+  customAmountTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
   popularBadge: {
     position: 'absolute',
-    top: -8,
-    right: -8,
+    top: -6,
+    right: -6,
     backgroundColor: COLORS.states.success,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   popularBadgeText: {
     color: '#ffffff',
-    fontSize: 10,
+    fontSize: 7,
     fontWeight: '700',
   },
   packageName: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: '600',
     color: COLORS.text.secondary,
-    marginBottom: 4,
+    marginBottom: 2,
+    minHeight: 14,
   },
   packageAmount: {
-    fontSize: 24,
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.primary.main,
-    marginBottom: 8,
-  },
-  packageFooter: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
-  },
-  packageReceive: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.states.success,
     marginBottom: 2,
   },
+  packageFooter: {
+    marginTop: 2,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border.light,
+    minHeight: 24,
+  },
+  packageReceive: {
+    fontSize: 8,
+    fontWeight: '600',
+    color: COLORS.states.success,
+    marginBottom: 1,
+  },
   packageFee: {
-    fontSize: 10,
+    fontSize: 7,
     color: COLORS.states.warning,
   },
   customInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
+  },
+  customAmountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: COLORS.background.paper,
+  },
+  customAmountInputContainerActive: {
+    borderColor: COLORS.secondary.main,
   },
   customInputLabel: {
     fontSize: 18,
@@ -658,12 +736,18 @@ const styles = StyleSheet.create({
   },
   customInput: {
     flex: 1,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: COLORS.text.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.medium,
-    paddingVertical: 4,
+    paddingVertical: 6,
+  },
+  customAmountHint: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+  },
+  customAmountHintError: {
+    fontSize: 12,
+    color: COLORS.states.error,
   },
   customPlaceholder: {
     fontSize: 18,
@@ -693,49 +777,6 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     lineHeight: 20,
     marginBottom: 8,
-  },
-  gatewayButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.background.tertiary,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border.medium,
-  },
-  gatewayButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-  },
-  gatewayOptions: {
-    marginTop: 8,
-    flexDirection: 'row',
-    gap: 12,
-  },
-  gatewayOption: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.tertiary,
-  },
-  gatewayOptionSelected: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: COLORS.primary.light + '20',
-  },
-  gatewayOptionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 4,
-  },
-  gatewayOptionDesc: {
-    fontSize: 11,
-    color: COLORS.text.secondary,
   },
   actions: {
     flexDirection: 'row',
