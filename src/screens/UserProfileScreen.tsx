@@ -30,6 +30,7 @@ import * as Clipboard from 'expo-clipboard';
 import { API_CONFIG } from '../config/api.config';
 
 const { width } = Dimensions.get('window');
+const FREE_PLAN_DEFAULT_BG = require('../../public/assets/imgs/bgMelter.jpg');
 
 type UserProfileRouteParams = {
   username: string;
@@ -512,9 +513,15 @@ export function UserProfileScreen() {
   };
 
   // Validar backgroundImage para garantir que seja uma string válida
-  const bgImageSource = profile.backgroundImage && typeof profile.backgroundImage === 'string' && profile.backgroundImage.trim() !== ''
+  const hasCustomBackgroundImage =
+    typeof profile.backgroundImage === 'string' && profile.backgroundImage.trim() !== '';
+  const isFreePlanUser = (user.plan?.type || 'FREE') === 'FREE';
+  const shouldUseFreeDefaultBackground = !hasCustomBackgroundImage && isFreePlanUser;
+  const bgImageSource = hasCustomBackgroundImage
     ? { uri: profile.backgroundImage }
-    : null;
+    : shouldUseFreeDefaultBackground
+      ? FREE_PLAN_DEFAULT_BG
+      : null;
 
   // Validar backgroundOverlayOpacity para garantir que seja um número válido entre 0 e 100
   const safeOverlayOpacity = profile.backgroundOverlayOpacity !== undefined && profile.backgroundOverlayOpacity !== null
