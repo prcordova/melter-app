@@ -97,7 +97,7 @@ export function LinksSettingsScreen() {
   const loadLinks = async () => {
     try {
       setLoading(true);
-      const response = await userApi.getMyProfile();
+      const response = await userApi.getMyProfile({ scope: 'full' });
 
       if (response.success) {
         const formattedLinks = (response.data.links || [])
@@ -332,7 +332,7 @@ export function LinksSettingsScreen() {
 
   const handleSort = async (mode: 'custom' | 'date' | 'name' | 'likes') => {
     try {
-      const response = await userApi.getMyProfile();
+      const response = await userApi.getMyProfile({ scope: 'full' });
 
       if (response.success) {
         const formattedLinks = (response.data.links || [])

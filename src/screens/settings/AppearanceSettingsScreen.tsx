@@ -117,7 +117,7 @@ export function AppearanceSettingsScreen() {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      const response = await userApi.getMyProfile();
+      const response = await userApi.getMyProfile({ scope: 'full' });
 
       if (response.success) {
         const data = response.data;

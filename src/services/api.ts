@@ -259,8 +259,9 @@ export const authApi = {
 
 // API de usuário
 export const userApi = {
-  getMyProfile: async () => {
-    const response = await api.get<ApiResponse<any>>('/api/users/profile');
+  getMyProfile: async (params?: { scope?: 'basic' | 'full' }) => {
+    const scope = params?.scope || 'basic';
+    const response = await api.get<ApiResponse<any>>(`/api/users/profile?scope=${scope}`);
     return response.data;
   },
   listUsers: async (params: {

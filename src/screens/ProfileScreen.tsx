@@ -67,7 +67,7 @@ export function ProfileScreen() {
   const loadUserLinks = useCallback(async () => {
     try {
       if (!user?.id) return;
-      const response = await userApi.getMyProfile();
+      const response = await userApi.getMyProfile({ scope: 'full' });
       if (response.success && response.data) {
         const links = response.data.links || [];
         const profileSortMode = response.data.profile?.sortMode || 'custom';
