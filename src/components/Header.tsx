@@ -68,7 +68,7 @@ export function Header({
 
   const handleWalletPress = () => {
     navigation.navigate('ProfileStack', {
-      screen: 'Profile',
+      screen: 'WalletSettings',
     });
   };
 

@@ -125,6 +125,16 @@ export function TabNavigator() {
             <Ionicons name="person" size={size} color={color} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Força sempre abrir o início da stack de perfil,
+            // evitando estados presos quando vindo da tab de lojas.
+            e.preventDefault();
+            navigation.navigate('ProfileStack', {
+              screen: 'ProfileMain',
+            });
+          },
+        })}
       />
       <Tab.Screen
         name="UserProfile"

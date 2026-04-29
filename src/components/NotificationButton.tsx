@@ -30,7 +30,7 @@ export function NotificationButton({ onPress }: NotificationButtonProps) {
         <Ionicons
           name="notifications-outline"
           size={24}
-          color={COLORS.icon.inactive}
+          color={COLORS.secondary.main}
         />
         {unreadCount > 0 && (
           <View style={styles.badge}>

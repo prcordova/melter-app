@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../theme/colors';
 import { api } from '../services/api';
 
@@ -60,7 +61,7 @@ export function WalletButton({ onPress }: WalletButtonProps) {
       activeOpacity={0.7}
     >
       {/* Ícone da Carteira */}
-      <Text style={styles.icon}>💰</Text>
+      <Ionicons name="wallet-outline" size={16} color={COLORS.secondary.main} />
 
       {/* Saldo */}
       <View style={styles.balanceContainer}>
@@ -93,9 +94,11 @@ export function WalletButton({ onPress }: WalletButtonProps) {
         style={styles.eyeButton}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Text style={styles.eyeIcon}>
-          {isBalanceVisible ? '🙈' : '👁️'}
-        </Text>
+        <Ionicons
+          name={isBalanceVisible ? 'eye-off-outline' : 'eye-outline'}
+          size={16}
+          color={COLORS.secondary.main}
+        />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -113,9 +116,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background.paper,
     gap: 6,
     minWidth: 120,
-  },
-  icon: {
-    fontSize: 16,
   },
   balanceContainer: {
     flexDirection: 'row',
@@ -141,9 +141,6 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: 4,
-  },
-  eyeIcon: {
-    fontSize: 14,
   },
 });
 

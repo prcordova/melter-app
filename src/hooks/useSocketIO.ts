@@ -1,87 +1,35 @@
-import { useEffect, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../contexts/AuthContext';
-import { API_CONFIG } from '../config/api.config';
+import { useMemo } from 'react';
+import { usePusher } from './usePusher';
 
 export function useSocketIO() {
-  const { user } = useAuth();
-  const socketRef = useRef<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const { channel, isConnected } = usePusher();
 
-  useEffect(() => {
-    if (!user?.id) {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-      setSocket(null);
-      setIsConnected(false);
-      return;
-    }
+  // Adapter para manter compatibilidade com chamadas socket.on/off existentes
+  // enquanto o app usa Pusher como provider de realtime.
+  const socket = useMemo(() => {
+    if (!channel) return null;
 
-    console.log('[Socket.IO] Inicializando conexão...');
-
-    const initSocket = async () => {
-      try {
-        // Obter token do AsyncStorage
-        const token = await AsyncStorage.getItem('token');
-
-        if (!token) {
-          console.warn('[Socket.IO] Token não encontrado - não será possível conectar');
-          return;
+    return {
+      on: (eventName: string, callback: (...args: any[]) => void) => {
+        try {
+          channel.bind(eventName, callback);
+        } catch (error) {
+          console.error('[Realtime Adapter] Erro ao registrar listener:', error);
         }
-
-        // Criar conexão Socket.IO
-        const socketUrl = API_CONFIG.BASE_URL.replace(/\/$/, ''); // Remover barra final se existir
-        
-        const newSocket = io(socketUrl, {
-          auth: {
-            token: token,
-          },
-          transports: ['websocket', 'polling'],
-          path: '/socket.io/',
-        });
-
-        socketRef.current = newSocket;
-
-        // Eventos de conexão
-        newSocket.on('connect', () => {
-          console.log('[Socket.IO] ✅ Conectado ao servidor');
-          setIsConnected(true);
-          setSocket(newSocket);
-        });
-
-        newSocket.on('disconnect', () => {
-          console.log('[Socket.IO] ❌ Desconectado do servidor');
-          setIsConnected(false);
-        });
-
-        newSocket.on('connect_error', (error) => {
-          console.error('[Socket.IO] Erro de conexão:', error.message);
-          setIsConnected(false);
-        });
-
-      } catch (error) {
-        console.error('[Socket.IO] Erro ao inicializar:', error);
-        setIsConnected(false);
+      },
+      off: (eventName: string, callback: (...args: any[]) => void) => {
+        try {
+          channel.unbind(eventName, callback);
+        } catch (error) {
+          console.error('[Realtime Adapter] Erro ao remover listener:', error);
+        }
+      },
+      disconnect: () => {
+        // O ciclo de conexão/desconexão é controlado por usePusher.
+        // Mantido por compatibilidade de interface.
       }
     };
-
-    initSocket();
-
-    // Cleanup
-    return () => {
-      console.log('[Socket.IO] Desconectando...');
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-      setSocket(null);
-      setIsConnected(false);
-    };
-  }, [user?.id]);
+  }, [channel]);
 
   return {
     socket,

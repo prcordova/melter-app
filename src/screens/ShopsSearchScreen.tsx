@@ -13,7 +13,7 @@ import { ShopCard } from '../components/ShopCard';
 import { shopsApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { Picker } from '@react-native-picker/picker';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { showToast } from '../components/CustomToast';
 import { useAuth } from '../contexts/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -70,21 +70,11 @@ export function ShopsSearchScreen() {
 
   const handleMyShopPress = () => {
     if (user?.username) {
-      // Navegar para MyShopScreen no ProfileStackNavigator
-      // Estrutura: TabNavigator > ProfileStack (tab) > ProfileStackNavigator > MyShop
       try {
-        // Obter o TabNavigator (agora é parent direto, pois ShopsSearchScreen é uma tab)
-        const tabNavigator = navigation.getParent();
-        
-        if (tabNavigator) {
-          // Navegar para a tab ProfileStack e especificar a tela MyShop dentro do stack
-          (tabNavigator as any).navigate('ProfileStack', {
-            screen: 'MyShop',
-            params: { username: user.username },
-          });
-        } else {
-          showToast.error('Erro', 'Não foi possível acessar sua loja. Tente acessar pelo menu do perfil.');
-        }
+        navigation.navigate('ProfileStack', {
+          screen: 'MyShop',
+          params: { username: user.username },
+        });
       } catch (error) {
         console.error('[ShopsSearchScreen] Erro ao navegar para MyShop:', error);
         showToast.error('Erro', 'Não foi possível acessar sua loja. Tente acessar pelo menu do perfil.');

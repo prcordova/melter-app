@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 import { authApi, userApi } from '../services/api';
 import { User } from '../types';
 
@@ -92,6 +93,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     loadUser();
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshIfAuthenticated = async () => {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+      await refreshUser();
+    };
+
+    const intervalId = setInterval(refreshIfAuthenticated, 5 * 60 * 1000);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        refreshIfAuthenticated();
+      }
+    });
+
+    return () => {
+      clearInterval(intervalId);
+      subscription.remove();
+    };
+  }, [user]);
 
   const login = async (
     username: string,

@@ -203,15 +203,15 @@ export function ProfileScreen() {
 
   // Opções do menu (baseado no dropdown do Melter web)
   const menuOptions = [
-    { id: 'profile', title: 'Ver Perfil', icon: '👤', onPress: () => handleMenuPress('profile') },
-    { id: 'shop', title: 'Minha Loja', icon: '🏪', onPress: () => handleMenuPress('shop') },
-    { id: 'purchases', title: 'Compras', icon: '🛍️', onPress: () => handleMenuPress('purchases') },
-    { id: 'wallet', title: 'Carteira', icon: '💰', onPress: () => handleMenuPress('wallet'), badgeCount: 0 },
-    { id: 'promotions', title: 'Promoções', icon: '🎁', onPress: () => handleMenuPress('promotions') },
-    { id: 'referral', title: 'Indique e Ganhe', icon: '🎯', onPress: () => handleMenuPress('referral') },
-    { id: 'settings', title: 'Configurações', icon: '⚙️', onPress: () => handleMenuPress('settings') },
-    { id: 'plans', title: user?.plan?.type === 'FREE' ? 'Upgrade' : 'Planos', icon: '⭐', onPress: () => handleMenuPress('plans') },
-    { id: 'terms', title: 'Termos', icon: '📄', onPress: () => handleMenuPress('terms') },
+    { id: 'profile', title: 'Ver Perfil', icon: 'person-outline', onPress: () => handleMenuPress('profile') },
+    { id: 'shop', title: 'Minha Loja', icon: 'storefront-outline', onPress: () => handleMenuPress('shop') },
+    { id: 'purchases', title: 'Compras', icon: 'bag-handle-outline', onPress: () => handleMenuPress('purchases') },
+    { id: 'wallet', title: 'Carteira', icon: 'wallet-outline', onPress: () => handleMenuPress('wallet'), badgeCount: 0 },
+    { id: 'promotions', title: 'Promoções', icon: 'gift-outline', onPress: () => handleMenuPress('promotions') },
+    { id: 'referral', title: 'Indique e Ganhe', icon: 'megaphone-outline', onPress: () => handleMenuPress('referral') },
+    { id: 'settings', title: 'Configurações', icon: 'settings-outline', onPress: () => handleMenuPress('settings') },
+    { id: 'plans', title: user?.plan?.type === 'FREE' ? 'Upgrade' : 'Planos', icon: 'ribbon-outline', onPress: () => handleMenuPress('plans') },
+    { id: 'terms', title: 'Termos', icon: 'document-text-outline', onPress: () => handleMenuPress('terms') },
   ];
 
   const handleStatusChange = async (newStatus: UserStatus) => {
@@ -506,6 +506,11 @@ export function ProfileScreen() {
           )}
         </View>
 
+        {/* Seção de Atalhos */}
+        <View style={styles.shortcutsSectionHeader}>
+          <Text style={styles.sectionTitle}>Atalhos</Text>
+        </View>
+
         {/* Grid de Cards */}
         <View style={styles.menuGrid}>
           {menuOptions.map((option, index) => (
@@ -515,6 +520,7 @@ export function ProfileScreen() {
                 icon={option.icon}
                 onPress={option.onPress}
                 badgeCount={option.badgeCount}
+                fullWidth
               />
             </View>
           ))}
@@ -523,9 +529,10 @@ export function ProfileScreen() {
         {/* Botão Sair */}
         <View style={styles.logoutButtonContainer}>
           <Button
-            variant="ghost"
+            variant="primary"
             size="md"
             onPress={handleLogout}
+            style={styles.logoutButton}
           >
             Sair
           </Button>
@@ -798,17 +805,23 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   menuGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    alignItems: 'stretch',
+    gap: 8,
+  },
+  shortcutsSectionHeader: {
+    marginTop: 8,
+    marginBottom: 10,
   },
   menuCardWrapper: {
-    width: '48%',
-    marginBottom: 12,
+    width: '100%',
+    marginBottom: 8,
   },
   logoutButtonContainer: {
     marginTop: 16,
     alignItems: 'center',
+  },
+  logoutButton: {
+    width: '100%',
   },
   linksSection: {
     marginTop: 24,

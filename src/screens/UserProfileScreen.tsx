@@ -552,7 +552,12 @@ export function UserProfileScreen() {
                 onPress={() => userStories && setShowStoryViewer(true)}
                 disableNavigation // Já estamos no perfil
               />
-              <View style={[styles.statusIndicator, { backgroundColor: user.status?.visibility === 'online' ? '#10b981' : '#94a3b8' }]} />
+              <View
+                style={[
+                  styles.statusIndicator,
+                  { backgroundColor: user.status?.isOnline ? '#10b981' : '#94a3b8' }
+                ]}
+              />
             </View>
             
             {/* Balão de status à direita do avatar, um pouco acima da metade */}

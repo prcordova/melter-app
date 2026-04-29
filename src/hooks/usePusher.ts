@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import Pusher from 'pusher-js';
+import Pusher from 'pusher-js/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { API_CONFIG } from '../config/api.config';

@@ -1,13 +1,15 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../theme/colors';
 
 interface MenuCardProps {
   title: string;
-  icon: string; // Emoji para simplicidade
+  icon: string;
   onPress: () => void;
   badgeCount?: number;
   variant?: 'default' | 'danger';
+  fullWidth?: boolean;
 }
 
 export function MenuCard({ 
@@ -15,19 +17,21 @@ export function MenuCard({
   icon, 
   onPress, 
   badgeCount, 
-  variant = 'default' 
+  variant = 'default',
+  fullWidth = false,
 }: MenuCardProps) {
   return (
     <TouchableOpacity 
       style={[
         styles.card,
-        variant === 'danger' && styles.cardDanger
+        variant === 'danger' && styles.cardDanger,
+        fullWidth && styles.cardFullWidth,
       ]} 
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.iconContainer}>
-        <Text style={styles.icon}>{icon}</Text>
+        <Ionicons name={icon} size={28} color={COLORS.secondary.main} />
         {badgeCount !== undefined && badgeCount > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>
@@ -51,13 +55,13 @@ export function MenuCard({
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
-    aspectRatio: 1, // Quadrado
+    width: '100%',
+    minHeight: 96,
     backgroundColor: COLORS.background.paper,
     borderRadius: 16,
-    padding: 16,
-    margin: 6,
-    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    alignItems: 'flex-start',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -67,16 +71,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border.light,
   },
+  cardFullWidth: {
+    width: '100%',
+  },
   cardDanger: {
     borderColor: COLORS.states.error,
     borderWidth: 1.5,
   },
   iconContainer: {
     position: 'relative',
-    marginBottom: 12,
-  },
-  icon: {
-    fontSize: 32,
+    marginBottom: 10,
   },
   badge: {
     position: 'absolute',
@@ -96,10 +100,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   title: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text.primary,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   titleDanger: {
     color: COLORS.states.error,
