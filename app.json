@@ -49,7 +49,7 @@
     },
     "android": {
       "package": "com.melter.app",
-      "versionCode": 11,
+      "versionCode": 12,
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#FFFFFF"
