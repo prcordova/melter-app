@@ -6,6 +6,7 @@ yarn-error.log*
 
 # Expo
 .expo/
+.expo-export-check/
 dist/
 web-build/
 

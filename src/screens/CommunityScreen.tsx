@@ -21,7 +21,12 @@ import { useNavigation } from '@react-navigation/native';
 import { UsersSearchScreen } from './UsersSearchScreen';
 
 type TabType = 'explore' | 'friends' | 'received' | 'sent';
-const normalizeUsername = (value?: string) => (value || '').trim().replace(/\s+/g, '');
+const normalizeUsername = (value?: string) =>
+  (value || '')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .join('');
 
 export function CommunityScreen() {
   const { user: currentUser } = useAuth();

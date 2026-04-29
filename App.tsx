@@ -12,14 +12,12 @@ import { TabNavigator } from './src/navigation/TabNavigator';
 import { View, Text, StyleSheet } from 'react-native';
 import { usePermissions } from './src/hooks/usePermissions';
 import { CustomToast } from './src/components/CustomToast';
-import { usePushNotifications } from './src/hooks/usePushNotifications';
 
 const Stack = createNativeStackNavigator();
 
 function Navigation() {
   const { user, loading } = useAuth();
   const permissions = usePermissions();
-  usePushNotifications(); // Registrar push notifications
 
   // Mostrar loading enquanto carrega auth ou permissões
   if (loading || permissions.loading) {

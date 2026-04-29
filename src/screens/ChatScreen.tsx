@@ -77,7 +77,7 @@ export function ChatScreen() {
   const { userId, username, avatar } = route.params;
 
   const handleUserPress = () => {
-    (navigation as any).navigate('UserProfile', { username });
+    (navigation as any).navigate('UserProfile', { username: username });
   };
 
   const [messages, setMessages] = useState<Message[]>([]);

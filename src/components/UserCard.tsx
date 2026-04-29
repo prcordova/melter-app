@@ -46,7 +46,12 @@ interface UserCardProps {
   showFriendsSince?: boolean;
 }
 
-const normalizeUsername = (value?: string) => (value || '').trim().replace(/\s+/g, '');
+const normalizeUsername = (value?: string) =>
+  (value || '')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .join('');
 
 export function UserCard({ user, onPress, showFriendsSince = false }: UserCardProps) {
   const { user: currentUser } = useAuth();

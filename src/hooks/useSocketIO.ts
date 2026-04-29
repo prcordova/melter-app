@@ -1,39 +1,25 @@
 import { useMemo } from 'react';
-import { usePusher } from './usePusher';
 
 export function useSocketIO() {
-  const { channel, isConnected } = usePusher();
-
-  // Adapter para manter compatibilidade com chamadas socket.on/off existentes
-  // enquanto o app usa Pusher como provider de realtime.
+  // Fallback estável: desativa provider realtime problemático no boot.
+  // Mantemos a mesma interface para não quebrar as telas.
   const socket = useMemo(() => {
-    if (!channel) return null;
-
     return {
-      on: (eventName: string, callback: (...args: any[]) => void) => {
-        try {
-          channel.bind(eventName, callback);
-        } catch (error) {
-          console.error('[Realtime Adapter] Erro ao registrar listener:', error);
-        }
+      on: (_eventName: string, _callback: (...args: any[]) => void) => {
+        // no-op
       },
-      off: (eventName: string, callback: (...args: any[]) => void) => {
-        try {
-          channel.unbind(eventName, callback);
-        } catch (error) {
-          console.error('[Realtime Adapter] Erro ao remover listener:', error);
-        }
+      off: (_eventName: string, _callback: (...args: any[]) => void) => {
+        // no-op
       },
       disconnect: () => {
-        // O ciclo de conexão/desconexão é controlado por usePusher.
-        // Mantido por compatibilidade de interface.
+        // no-op
       }
     };
-  }, [channel]);
+  }, []);
 
   return {
     socket,
-    isConnected,
+    isConnected: false,
   };
 }
 

@@ -48,7 +48,12 @@ interface UsersSearchScreenProps {
 }
 
 const usersCache = new Map<string, User[]>();
-const normalizeUsername = (value?: string) => (value || '').trim().replace(/\s+/g, '');
+const normalizeUsername = (value?: string) =>
+  (value || '')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .join('');
 
 export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: UsersSearchScreenProps = {}) {
   const { user: currentUser } = useAuth();
