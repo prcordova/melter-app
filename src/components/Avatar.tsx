@@ -45,7 +45,11 @@ export function Avatar({
 
     if (!disableNavigation && user.username) {
       // Navegação global para perfil
-      navigation.navigate('UserProfile', { username: user.username });
+      navigation.navigate({
+        name: 'UserProfile',
+        params: { username: user.username },
+        merge: false,
+      } as never);
     }
   };
 

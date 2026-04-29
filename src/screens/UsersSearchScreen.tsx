@@ -186,7 +186,11 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
   };
 
   const handleUserPress = (user: User) => {
-    navigation.navigate('UserProfile', { username: user.username });
+    navigation.navigate({
+      name: 'UserProfile',
+      params: { username: user.username },
+      merge: false,
+    } as never);
   };
 
   const renderItem = ({ item }: { item: User }) => (
