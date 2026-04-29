@@ -60,10 +60,46 @@ export function UserProfileScreen() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
-  const loadData = async () => {
+  const renderProfileSkeleton = () => (
+    <View style={styles.skeletonContainer}>
+      <View style={styles.skeletonCover} />
+
+      <View style={styles.skeletonHeader}>
+        <View style={styles.skeletonAvatar} />
+        <View style={styles.skeletonHeaderText}>
+          <View style={styles.skeletonLineLg} />
+          <View style={styles.skeletonLineMd} />
+        </View>
+      </View>
+
+      <View style={styles.skeletonStatsRow}>
+        <View style={styles.skeletonStat} />
+        <View style={styles.skeletonStat} />
+        <View style={styles.skeletonStat} />
+      </View>
+
+      <View style={styles.skeletonActions}>
+        <View style={styles.skeletonButtonHalf} />
+        <View style={styles.skeletonButtonHalf} />
+        <View style={styles.skeletonButtonFull} />
+      </View>
+
+      <View style={styles.skeletonLinks}>
+        <View style={styles.skeletonCard} />
+        <View style={styles.skeletonCard} />
+        <View style={styles.skeletonCard} />
+      </View>
+    </View>
+  );
+
+  const loadData = async (options?: { background?: boolean }) => {
+    const isBackground = options?.background === true;
     try {
-      setLoading(true);
+      if (!isBackground) {
+        setLoading(true);
+      }
       const response = await userApi.getUserProfile(username);
 
       if (response.success) {
@@ -175,75 +211,100 @@ export function UserProfileScreen() {
         setIsFollowing(userData.isFollowing);
         setFriendshipStatus(userData.friendshipStatus || 'NONE');
         setFriendshipId(userData.friendshipId || null);
-        
-        // Verificar status de bloqueio
-        try {
-          const blockRes = await userApi.getBlockStatus(username);
-          if (blockRes.success) {
-            setIsBlocked(blockRes.data.isBlocked || false);
-          }
-        } catch (error) {
-          console.error('Erro ao verificar bloqueio:', error);
-        }
-        
-        // Buscar stories do usuário
-        try {
-          const targetUserId = userData._id || userData.id;
-          if (targetUserId) {
-            const storiesRes = await storiesApi.getStoriesByUser(targetUserId);
-            if (storiesRes.success) {
-              const storiesData = storiesRes.data || [];
-              // Se retornar array de stories individuais, criar grupo
-              if (Array.isArray(storiesData) && storiesData.length > 0) {
-                const group: StoriesGroup = {
-                  user: {
-                    _id: targetUserId,
-                    username: userData.username || username,
-                    avatar: userData.avatar,
-                  },
-                  stories: storiesData.map((story: any) => ({
-                    _id: story._id,
-                    userId: {
-                      _id: story.userId?._id || targetUserId,
-                      username: story.userId?.username || userData.username || username,
-                      avatar: story.userId?.avatar || userData.avatar,
-                    },
-                    content: story.content || { type: 'image', mediaUrl: '' },
-                    duration: story.duration || 10,
-                    views: story.views || [],
-                    createdAt: story.createdAt || new Date().toISOString(),
-                  })),
-                };
-                setUserStories(group);
-              }
-            }
-          }
-        } catch (e) {
-          console.error('Erro ao buscar stories:', e);
-        }
 
-        // Se posts estiverem habilitados no perfil
-        if (response.data.profile?.showPosts) {
-          const postsRes = await postsApi.getUserPosts(username, 1, 10);
-          if (postsRes.success) {
-            const postsData = postsRes.data.posts || postsRes.data || [];
-            // Filtrar posts inválidos (sem userId ou sem estrutura básica)
-            const validPosts = postsData.filter((post: any) => 
-              post && 
-              post._id && 
-              post.userId && 
-              typeof post.userId === 'object' &&
-              post.userId.username
-            );
-            setPosts(validPosts);
-          }
-        }
+        const targetUserId = userData._id || userData.id;
+
+        // Carregamentos secundários em paralelo para reduzir tempo total percebido.
+        const secondaryTasks: Promise<void>[] = [];
+
+        secondaryTasks.push(
+          (async () => {
+            try {
+              const blockRes = await userApi.getBlockStatus(username);
+              if (blockRes.success) {
+                setIsBlocked(blockRes.data.isBlocked || false);
+              }
+            } catch (error) {
+              console.error('Erro ao verificar bloqueio:', error);
+            }
+          })()
+        );
+
+        secondaryTasks.push(
+          (async () => {
+            try {
+              if (!targetUserId) return;
+              const storiesRes = await storiesApi.getStoriesByUser(targetUserId);
+              if (!storiesRes.success) return;
+
+              const storiesData = storiesRes.data || [];
+              if (!Array.isArray(storiesData) || storiesData.length === 0) {
+                setUserStories(null);
+                return;
+              }
+
+              const group: StoriesGroup = {
+                user: {
+                  _id: targetUserId,
+                  username: userData.username || username,
+                  avatar: userData.avatar,
+                },
+                stories: storiesData.map((story: any) => ({
+                  _id: story._id,
+                  userId: {
+                    _id: story.userId?._id || targetUserId,
+                    username: story.userId?.username || userData.username || username,
+                    avatar: story.userId?.avatar || userData.avatar,
+                  },
+                  content: story.content || { type: 'image', mediaUrl: '' },
+                  duration: story.duration || 10,
+                  views: story.views || [],
+                  createdAt: story.createdAt || new Date().toISOString(),
+                })),
+              };
+              setUserStories(group);
+            } catch (e) {
+              console.error('Erro ao buscar stories:', e);
+            }
+          })()
+        );
+
+        secondaryTasks.push(
+          (async () => {
+            try {
+              if (!response.data.profile?.showPosts) {
+                setPosts([]);
+                return;
+              }
+
+              const postsRes = await postsApi.getUserPosts(username, 1, 10);
+              if (!postsRes.success) return;
+
+              const postsData = postsRes.data.posts || postsRes.data || [];
+              const validPosts = postsData.filter((post: any) =>
+                post &&
+                post._id &&
+                post.userId &&
+                typeof post.userId === 'object' &&
+                post.userId.username
+              );
+              setPosts(validPosts);
+            } catch (e) {
+              console.error('Erro ao buscar posts:', e);
+            }
+          })()
+        );
+
+        await Promise.allSettled(secondaryTasks);
       }
+      setHasLoadedOnce(true);
     } catch (error) {
       console.error('[UserProfileScreen] Erro:', error);
       Alert.alert('Erro', 'Não foi possível carregar o perfil');
     } finally {
-      setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+      }
     }
   };
 
@@ -251,10 +312,11 @@ export function UserProfileScreen() {
     loadData();
   }, [username]);
 
-  // Recarregar dados ao focar na tela (garante status atualizado)
+  // Recarregar em background ao focar, evitando spinner pesado.
   useFocusEffect(
     useCallback(() => {
-      loadData();
+      if (!hasLoadedOnce) return;
+      loadData({ background: true });
     }, [username])
   );
 
@@ -421,11 +483,7 @@ export function UserProfileScreen() {
   };
 
   if (loading && !refreshing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.secondary.main} />
-      </View>
-    );
+    return renderProfileSkeleton();
   }
 
   if (!user) return null;
@@ -888,6 +946,86 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  skeletonContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background.default,
+  },
+  skeletonCover: {
+    height: 180,
+    backgroundColor: '#e5e7eb',
+  },
+  skeletonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: -30,
+    gap: 12,
+  },
+  skeletonAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#d1d5db',
+    borderWidth: 4,
+    borderColor: COLORS.background.default,
+  },
+  skeletonHeaderText: {
+    flex: 1,
+    gap: 10,
+  },
+  skeletonLineLg: {
+    width: '70%',
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#d1d5db',
+  },
+  skeletonLineMd: {
+    width: '45%',
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#e5e7eb',
+  },
+  skeletonStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  skeletonStat: {
+    width: 70,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#e5e7eb',
+  },
+  skeletonActions: {
+    paddingHorizontal: 16,
+    marginTop: 20,
+    gap: 10,
+  },
+  skeletonButtonHalf: {
+    width: '48%',
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#d1d5db',
+    alignSelf: 'flex-start',
+  },
+  skeletonButtonFull: {
+    width: '100%',
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#d1d5db',
+  },
+  skeletonLinks: {
+    paddingHorizontal: 16,
+    marginTop: 24,
+    gap: 12,
+  },
+  skeletonCard: {
+    width: '100%',
+    height: 68,
+    borderRadius: 16,
+    backgroundColor: '#e5e7eb',
   },
   coverContainer: {
     height: 180,

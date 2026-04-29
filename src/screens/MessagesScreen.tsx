@@ -667,6 +667,20 @@ export function MessagesScreen() {
     );
   };
 
+  const renderConversationsSkeleton = () => (
+    <View style={styles.skeletonList}>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <View key={`conversation-skeleton-${index}`} style={styles.skeletonItem}>
+          <View style={styles.skeletonAvatar} />
+          <View style={styles.skeletonContent}>
+            <View style={styles.skeletonLinePrimary} />
+            <View style={styles.skeletonLineSecondary} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
   return (
     <ImageBackground
       source={require('../../public/assets/imgs/bgMelter.jpg')}
@@ -808,11 +822,7 @@ export function MessagesScreen() {
         /* Lista normal de conversas quando não está pesquisando */
         loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator
-              size="large"
-              color={COLORS.secondary.main}
-              animating={true}
-            />
+            {renderConversationsSkeleton()}
             <Text style={styles.loadingText}>Carregando conversas...</Text>
           </View>
         ) : (
@@ -1012,13 +1022,48 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingTop: 8,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 8,
     fontSize: 14,
     color: COLORS.text.secondary,
+    textAlign: 'center',
+  },
+  skeletonList: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  skeletonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  skeletonAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  skeletonContent: {
+    flex: 1,
+    gap: 8,
+  },
+  skeletonLinePrimary: {
+    width: '52%',
+    height: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  skeletonLineSecondary: {
+    width: '78%',
+    height: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
   },
   modalOverlay: {
     flex: 1,

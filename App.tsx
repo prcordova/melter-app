@@ -9,7 +9,7 @@ import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { AuthStackNavigator } from './src/navigation/AuthStackNavigator';
 import { TabNavigator } from './src/navigation/TabNavigator';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { usePermissions } from './src/hooks/usePermissions';
 import { CustomToast } from './src/components/CustomToast';
 import { usePushNotifications } from './src/hooks/usePushNotifications';
@@ -25,11 +25,11 @@ function Navigation() {
   if (loading || permissions.loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator 
-          size="large" 
-          color="#d946ef"
-          animating={true}
-        />
+        <Text style={styles.loadingLogo}>Melter</Text>
+        <View style={styles.loadingCard}>
+          <View style={styles.loadingLinePrimary} />
+          <View style={styles.loadingLineSecondary} />
+        </View>
       </View>
     );
   }
@@ -77,5 +77,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
+    paddingHorizontal: 24,
+  },
+  loadingLogo: {
+    fontSize: 40,
+    fontWeight: '700',
+    color: '#d946ef',
+    marginBottom: 18,
+  },
+  loadingCard: {
+    width: '100%',
+    maxWidth: 260,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  loadingLinePrimary: {
+    width: '75%',
+    height: 12,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
+  loadingLineSecondary: {
+    width: '55%',
+    height: 10,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
   },
 });

@@ -67,6 +67,7 @@ export function ShopsSearchScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   const handleMyShopPress = () => {
     if (user?.username) {
@@ -100,7 +101,7 @@ export function ShopsSearchScreen() {
   const fetchProducts = async (pageNum = 1) => {
     try {
       if (pageNum === 1) {
-        setLoading(true);
+        if (!hasLoadedOnce) setLoading(true);
       } else {
         setLoadingMore(true);
       }
@@ -150,6 +151,7 @@ export function ShopsSearchScreen() {
           setHasMore(newProducts.length >= 20);
         }
         setPage(pageNum);
+        if (pageNum === 1) setHasLoadedOnce(true);
       }
     } catch (error) {
       console.error('[ShopsSearchScreen] Erro ao buscar produtos:', error);
@@ -220,6 +222,23 @@ export function ShopsSearchScreen() {
       </View>
     );
   };
+
+  const renderShopsSkeleton = () => (
+    <View style={styles.skeletonContainer}>
+      <View style={styles.skeletonTopRow}>
+        <View style={styles.skeletonTitle} />
+        <View style={styles.skeletonMyShopBtn} />
+      </View>
+      <View style={styles.skeletonSearch} />
+      <View style={styles.skeletonFiltersRow}>
+        <View style={styles.skeletonFilter} />
+        <View style={styles.skeletonFilter} />
+      </View>
+      <View style={styles.skeletonCard} />
+      <View style={styles.skeletonCard} />
+      <View style={styles.skeletonCard} />
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -314,14 +333,7 @@ export function ShopsSearchScreen() {
 
         {/* Lista de Produtos */}
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator
-              size="large"
-              color={COLORS.secondary.main}
-              animating={true}
-            />
-            <Text style={styles.loadingText}>Carregando produtos...</Text>
-          </View>
+          renderShopsSkeleton()
         ) : (
           <FlatList
             data={products}
@@ -467,6 +479,50 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: COLORS.text.secondary,
+  },
+  skeletonContainer: {
+    flex: 1,
+    gap: 12,
+  },
+  skeletonTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  skeletonTitle: {
+    width: 120,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#d1d5db',
+  },
+  skeletonMyShopBtn: {
+    width: 110,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#e5e7eb',
+  },
+  skeletonSearch: {
+    width: '100%',
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: '#e5e7eb',
+  },
+  skeletonFiltersRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  skeletonFilter: {
+    flex: 1,
+    height: 54,
+    borderRadius: 10,
+    backgroundColor: '#e5e7eb',
+  },
+  skeletonCard: {
+    width: '100%',
+    height: 230,
+    borderRadius: 12,
+    backgroundColor: '#e5e7eb',
   },
 });
 

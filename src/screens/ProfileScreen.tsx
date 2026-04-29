@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
-  ActivityIndicator,
   Linking,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -368,8 +367,13 @@ export function ProfileScreen() {
           )}
 
           {loadingStatus ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={COLORS.primary.main} />
+            <View style={styles.statusSkeletonContainer}>
+              <View style={styles.statusSkeletonButtonsRow}>
+                <View style={styles.statusSkeletonButton} />
+                <View style={styles.statusSkeletonButton} />
+                <View style={styles.statusSkeletonButton} />
+              </View>
+              <View style={styles.statusSkeletonInput} />
             </View>
           ) : (
             <>
@@ -454,7 +458,7 @@ export function ProfileScreen() {
                       disabled={savingMessage}
                     >
                       {savingMessage ? (
-                        <ActivityIndicator size="small" color="#ffffff" />
+                        <Text style={styles.saveMessageButtonText}>Salvando...</Text>
                       ) : (
                         <>
                           <Ionicons name="checkmark" size={16} color="#ffffff" />
@@ -710,9 +714,24 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     marginBottom: 12,
   },
-  loadingContainer: {
-    paddingVertical: 20,
-    alignItems: 'center',
+  statusSkeletonContainer: {
+    marginTop: 4,
+    gap: 12,
+  },
+  statusSkeletonButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statusSkeletonButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  statusSkeletonInput: {
+    height: 92,
+    borderRadius: 12,
+    backgroundColor: COLORS.background.tertiary,
   },
   statusButtons: {
     flexDirection: 'row',

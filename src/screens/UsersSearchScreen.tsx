@@ -45,6 +45,8 @@ interface UsersSearchScreenProps {
   hideTitle?: boolean;
 }
 
+const usersCache = new Map<string, User[]>();
+
 export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: UsersSearchScreenProps = {}) {
   const { user: currentUser } = useAuth();
   const navigation = useNavigation<any>();
@@ -57,6 +59,9 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
+
+  const getCacheKey = (filter: FilterType, search: string, pageNum: number) =>
+    `${filter}::${search.trim().toLowerCase()}::${pageNum}`;
 
   // Verificar se o componente está montado
   useEffect(() => {
@@ -94,8 +99,19 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
     if (!isMounted) return;
 
     try {
+      const cacheKey = getCacheKey(selectedFilter, searchQuery, pageNum);
+      const cachedUsers = usersCache.get(cacheKey);
+
+      if (cachedUsers && pageNum === 1) {
+        setUsers(cachedUsers);
+        setLoading(false);
+      }
+
       if (pageNum === 1) {
-        setLoading(true);
+        // Evita spinner pesado quando já temos dados na tela.
+        if (!cachedUsers && users.length === 0) {
+          setLoading(true);
+        }
       } else {
         setLoadingMore(true);
       }
@@ -126,6 +142,7 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
 
         if (pageNum === 1) {
           setUsers(processedUsers);
+          usersCache.set(cacheKey, processedUsers);
         } else {
           // Evitar duplicatas
           setUsers((prev) => {

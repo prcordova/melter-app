@@ -130,11 +130,10 @@ export function LoginScreen() {
 
                   <Button
                     onPress={handleSubmit}
-                    loading={Boolean(loading)}
                     disabled={Boolean(twoFactorCode.length !== 6 || loading)}
                     style={styles.submitButton}
                   >
-                    Verificar
+                    {loading ? 'Verificando...' : 'Verificar'}
                   </Button>
 
                   <Button
@@ -181,11 +180,10 @@ export function LoginScreen() {
 
                   <Button
                     onPress={handleSubmit}
-                    loading={Boolean(loading)}
                     disabled={Boolean(!isFormValid || loading)}
                     style={styles.submitButton}
                   >
-                    Acessar
+                    {loading ? 'Entrando...' : 'Acessar'}
                   </Button>
 
                   <TouchableOpacity 

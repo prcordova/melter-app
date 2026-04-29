@@ -43,6 +43,7 @@ export function FeedScreen() {
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [showStoryCreate, setShowStoryCreate] = useState(false);
   const [selectedStoryGroupIndex, setSelectedStoryGroupIndex] = useState(0);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -62,12 +63,13 @@ export function FeedScreen() {
 
   const loadInitialData = async () => {
     try {
-      setLoading(true);
+      if (!hasLoadedOnce) setLoading(true);
       await Promise.all([
         fetchPosts(1),
         fetchStories(),
         fetchAds(),
       ]);
+      setHasLoadedOnce(true);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       showToast.error('Erro', 'Não foi possível carregar o feed');
@@ -398,13 +400,12 @@ export function FeedScreen() {
   // Loading inicial
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator 
-          size="large" 
-          color="#d946ef"
-          animating={true}
-        />
-        <Text style={styles.loadingText}>Carregando feed...</Text>
+      <View style={styles.feedSkeletonContainer}>
+        <View style={styles.feedSkeletonHeader} />
+        <View style={styles.feedSkeletonStories} />
+        <View style={styles.feedSkeletonCreate} />
+        <View style={styles.feedSkeletonPost} />
+        <View style={styles.feedSkeletonPost} />
       </View>
     );
   }
@@ -534,5 +535,32 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#64748b',
+  },
+  feedSkeletonContainer: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    gap: 12,
+  },
+  feedSkeletonHeader: {
+    height: 72,
+    borderRadius: 12,
+    backgroundColor: '#e5e7eb',
+  },
+  feedSkeletonStories: {
+    height: 90,
+    borderRadius: 12,
+    backgroundColor: '#e5e7eb',
+  },
+  feedSkeletonCreate: {
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#d1d5db',
+  },
+  feedSkeletonPost: {
+    height: 260,
+    borderRadius: 14,
+    backgroundColor: '#e5e7eb',
   },
 });
