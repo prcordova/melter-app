@@ -16,12 +16,15 @@ import { Header } from '../components/Header';
 import { MenuCard } from '../components/MenuCard';
 import { StoryViewerModal } from '../components/StoryViewerModal';
 import { Button } from '../components/Button';
+import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { COLORS } from '../theme/colors';
-import { storiesApi, userApi } from '../services/api';
+import { linksApi, storiesApi, userApi } from '../services/api';
 import { StoriesGroup } from '../types/feed';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
+import { ModalBottom } from '../components/ModalBottom';
+import { SelectRow } from '../components/SelectRow';
 
 type UserStatus = 'online' | 'busy' | 'offline';
 
@@ -30,6 +33,7 @@ import { Avatar } from '../components/Avatar';
 export function ProfileScreen() {
   const { user, logout } = useAuth();
   const navigation = useNavigation();
+  const { modalProps, showConfirm, hideModal } = useCustomModal();
 
   const [status, setStatus] = useState<UserStatus>('online');
   const [statusMessage, setStatusMessage] = useState('');
@@ -41,6 +45,47 @@ export function ProfileScreen() {
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const statusMessageInputRef = useRef<TextInput>(null);
   const [userLinks, setUserLinks] = useState<any[]>([]);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [editingLink, setEditingLink] = useState<any | null>(null);
+  const [savingLink, setSavingLink] = useState(false);
+  const [linksSortMode, setLinksSortMode] = useState<'custom' | 'date' | 'name' | 'likes'>('custom');
+  const [linkForm, setLinkForm] = useState({
+    title: '',
+    url: '',
+    visible: true,
+  });
+  const currentPlanType = user?.plan?.type || 'FREE';
+  const maxLinksByPlan: Record<string, number> = {
+    FREE: 3,
+    STARTER: 10,
+    PRO: 50,
+    PRO_PLUS: 50,
+  };
+  const maxLinksAllowed = maxLinksByPlan[currentPlanType] || 3;
+  const hasReachedLinksLimit = userLinks.length >= maxLinksAllowed;
+
+  const loadUserLinks = useCallback(async () => {
+    try {
+      if (!user?.id) return;
+      const response = await userApi.getMyProfile();
+      if (response.success && response.data) {
+        const links = response.data.links || [];
+        const profileSortMode = response.data.profile?.sortMode || 'custom';
+        setLinksSortMode(profileSortMode);
+        if (profileSortMode === 'custom') {
+          setUserLinks([...links].sort((a, b) => (a.order || 0) - (b.order || 0)));
+        } else if (profileSortMode === 'date') {
+          setUserLinks([...links].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+        } else if (profileSortMode === 'name') {
+          setUserLinks([...links].sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''))));
+        } else {
+          setUserLinks([...links].sort((a, b) => (b.likes || 0) - (a.likes || 0)));
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao buscar links:', e);
+    }
+  }, [user?.id]);
 
   // Função para carregar status
   const loadStatus = useCallback(async () => {
@@ -114,37 +159,134 @@ export function ProfileScreen() {
 
   // Carregar links do usuário
   React.useEffect(() => {
-    const fetchUserLinks = async () => {
-      try {
-        if (!user?.id) return;
-        const response = await userApi.getMyProfile();
-        if (response.success && response.data) {
-          setUserLinks(response.data.links || []);
-        }
-      } catch (e) {
-        console.error('Erro ao buscar links:', e);
-      }
-    };
-    if (user?.id) fetchUserLinks();
-  }, [user?.id]);
+    if (user?.id) loadUserLinks();
+  }, [user?.id, loadUserLinks]);
 
   // Recarregar links quando voltar da tela de links
   useFocusEffect(
     useCallback(() => {
-      const fetchUserLinks = async () => {
-        try {
-          if (!user?.id) return;
-          const response = await userApi.getMyProfile();
-          if (response.success && response.data) {
-            setUserLinks(response.data.links || []);
-          }
-        } catch (e) {
-          console.error('Erro ao buscar links:', e);
-        }
-      };
-      if (user?.id) fetchUserLinks();
-    }, [user?.id])
+      if (user?.id) loadUserLinks();
+    }, [user?.id, loadUserLinks])
   );
+
+  const openAddLinkModal = () => {
+    setEditingLink(null);
+    setLinkForm({ title: '', url: '', visible: true });
+    setShowLinkModal(true);
+  };
+
+  const openEditLinkModal = (link: any) => {
+    setEditingLink(link);
+    setLinkForm({
+      title: link.title || '',
+      url: link.url || '',
+      visible: link.visible !== false,
+    });
+    setShowLinkModal(true);
+  };
+
+  const closeLinkModal = () => {
+    if (savingLink) return;
+    setShowLinkModal(false);
+    setEditingLink(null);
+    setLinkForm({ title: '', url: '', visible: true });
+  };
+
+  const handleSaveLink = async () => {
+    const title = linkForm.title.trim();
+    const url = linkForm.url.trim();
+    if (!title || !url) {
+      showToast.error('Erro', 'Preencha título e URL');
+      return;
+    }
+    if (!editingLink && hasReachedLinksLimit) {
+      showToast.info('Limite atingido', `Seu plano ${currentPlanType} permite até ${maxLinksAllowed} links.`);
+      return;
+    }
+    try {
+      setSavingLink(true);
+      if (editingLink?._id) {
+        await linksApi.updateLink(editingLink._id, {
+          title,
+          url,
+          visible: linkForm.visible,
+        });
+        showToast.success('Sucesso', 'Link atualizado');
+      } else {
+        await linksApi.createLink({
+          title,
+          url,
+          visible: linkForm.visible,
+        });
+        showToast.success('Sucesso', 'Link adicionado');
+      }
+      await loadUserLinks();
+      closeLinkModal();
+    } catch (error) {
+      console.error('Erro ao salvar link:', error);
+      showToast.error('Erro', 'Não foi possível salvar o link');
+    } finally {
+      setSavingLink(false);
+    }
+  };
+
+  const handleDeleteLink = (link: any) => {
+    showConfirm(
+      'Excluir link',
+      `Deseja excluir "${link.title}"?`,
+      async () => {
+        try {
+          await linksApi.deleteLink(link._id);
+          setUserLinks((prev) => prev.filter((item) => item._id !== link._id));
+          showToast.success('Sucesso', 'Link excluído');
+        } catch (error) {
+          console.error('Erro ao excluir link:', error);
+          showToast.error('Erro', 'Não foi possível excluir o link');
+        }
+      },
+      {
+        confirmText: 'Excluir',
+        cancelText: 'Cancelar',
+        destructive: true,
+      }
+    );
+  };
+
+  const handleMoveLink = async (index: number, direction: 'up' | 'down') => {
+    if (linksSortMode !== 'custom') return;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= userLinks.length) return;
+
+    const updated = [...userLinks];
+    const temp = updated[index];
+    updated[index] = updated[targetIndex];
+    updated[targetIndex] = temp;
+
+    setUserLinks(updated);
+    try {
+      const orderedIds = updated.map((item: any) => item._id);
+      await linksApi.reorderLinks(orderedIds);
+    } catch (error) {
+      console.error('Erro ao reordenar links:', error);
+      showToast.error('Erro', 'Não foi possível atualizar a ordem');
+      await loadUserLinks();
+    }
+  };
+
+  const handleLinksSortChange = (mode: 'custom' | 'date' | 'name' | 'likes') => {
+    setLinksSortMode(mode);
+    const sorted = [...userLinks];
+    if (mode === 'custom') {
+      sorted.sort((a, b) => (a.order || 0) - (b.order || 0));
+    } else if (mode === 'date') {
+      sorted.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    } else if (mode === 'name') {
+      sorted.sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
+    } else {
+      sorted.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    }
+    setUserLinks(sorted);
+  };
 
   // Handlers (declarados antes para evitar erros de referência)
   const handleMenuPress = (screen: string) => {
@@ -475,9 +617,53 @@ export function ProfileScreen() {
 
         {/* Links do Usuário */}
         <View style={styles.linksSection}>
-          <Text style={styles.sectionTitle}>Links</Text>
+          <View style={styles.linksHeaderRow}>
+            <Text style={styles.sectionTitle}>Links</Text>
+          </View>
+          <View style={styles.linksSortRow}>
+            <View style={styles.linksSortLeft}>
+              <Text style={styles.linksSortLabel}>Ordenar por</Text>
+              <View style={styles.linksSortSelect}>
+                <SelectRow
+                  label="Ordenar links"
+                  value={linksSortMode}
+                  options={[
+                    { label: 'Personalizado', value: 'custom' },
+                    { label: 'Data', value: 'date' },
+                    { label: 'Nome', value: 'name' },
+                    { label: 'Likes', value: 'likes' },
+                  ]}
+                  onChange={(value) => handleLinksSortChange(value as 'custom' | 'date' | 'name' | 'likes')}
+                />
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.inlineAddLinkButton,
+                hasReachedLinksLimit && styles.inlineAddLinkButtonDisabled,
+              ]}
+              onPress={openAddLinkModal}
+              activeOpacity={0.8}
+              disabled={hasReachedLinksLimit}
+            >
+              <Ionicons name="add" size={16} color="#ffffff" />
+              <Text style={styles.inlineAddLinkText}>Novo</Text>
+            </TouchableOpacity>
+          </View>
+          {hasReachedLinksLimit && (
+            <TouchableOpacity
+              style={styles.linksLimitCta}
+              onPress={() => handleMenuPress('plans')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="lock-closed-outline" size={14} color={COLORS.secondary.main} />
+              <Text style={styles.linksLimitCtaText}>
+                Limite do plano atingido ({userLinks.length}/{maxLinksAllowed}) • Adicionar plano
+              </Text>
+            </TouchableOpacity>
+          )}
           {userLinks.length > 0 ? (
-            userLinks.map((link) => (
+            userLinks.map((link, index) => (
               <TouchableOpacity
                 key={link._id}
                 style={styles.linkCard}
@@ -494,19 +680,64 @@ export function ProfileScreen() {
                   </View>
                 )}
                 <Text style={styles.linkTitle}>{link.title}</Text>
-                <Ionicons name="chevron-forward" size={18} color={COLORS.text.tertiary} />
+                <View style={styles.linkActions}>
+                  {linksSortMode === 'custom' && (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.linkActionButton, index === 0 && styles.linkActionButtonDisabled]}
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          handleMoveLink(index, 'up');
+                        }}
+                        disabled={index === 0}
+                      >
+                        <Ionicons name="chevron-up" size={16} color={COLORS.secondary.main} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.linkActionButton, index === userLinks.length - 1 && styles.linkActionButtonDisabled]}
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          handleMoveLink(index, 'down');
+                        }}
+                        disabled={index === userLinks.length - 1}
+                      >
+                        <Ionicons name="chevron-down" size={16} color={COLORS.secondary.main} />
+                      </TouchableOpacity>
+                    </>
+                  )}
+                  <TouchableOpacity
+                    style={styles.linkActionButton}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      openEditLinkModal(link);
+                    }}
+                  >
+                    <Ionicons name="create-outline" size={16} color={COLORS.secondary.main} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.linkActionButton}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      handleDeleteLink(link);
+                    }}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={COLORS.secondary.main} />
+                  </TouchableOpacity>
+                </View>
               </TouchableOpacity>
             ))
           ) : (
-            <TouchableOpacity
-              style={styles.addLinkButton}
-              onPress={() => {
-                (navigation as any).navigate('LinksSettings');
-              }}
-            >
-              <Ionicons name="add-circle-outline" size={24} color={COLORS.primary.main} />
-              <Text style={styles.addLinkText}>Cadastrar Link</Text>
-            </TouchableOpacity>
+            hasReachedLinksLimit ? (
+              <View style={styles.addLinkButtonDisabled}>
+                <Ionicons name="lock-closed-outline" size={20} color={COLORS.text.tertiary} />
+                <Text style={styles.addLinkTextDisabled}>Limite de links atingido</Text>
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.addLinkButton} onPress={openAddLinkModal}>
+                <Ionicons name="add-circle-outline" size={24} color={COLORS.primary.main} />
+                <Text style={styles.addLinkText}>Cadastrar Link</Text>
+              </TouchableOpacity>
+            )
           )}
         </View>
 
@@ -554,6 +785,62 @@ export function ProfileScreen() {
           initialGroupIndex={0}
         />
       )}
+
+      <ModalBottom visible={showLinkModal} onClose={closeLinkModal} maxHeight="65%">
+        <View style={styles.linkModalHeader}>
+          <Text style={styles.linkModalTitle}>{editingLink ? 'Editar Link' : 'Adicionar Link'}</Text>
+          <TouchableOpacity onPress={closeLinkModal} disabled={savingLink}>
+            <Ionicons name="close" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.linkModalContent}>
+          <Text style={styles.linkModalLabel}>Título</Text>
+          <TextInput
+            style={styles.linkModalInput}
+            value={linkForm.title}
+            onChangeText={(text) => setLinkForm((prev) => ({ ...prev, title: text }))}
+            placeholder="Ex: Meu Instagram"
+            placeholderTextColor={COLORS.text.tertiary}
+          />
+          <Text style={styles.linkModalLabel}>URL</Text>
+          <TextInput
+            style={styles.linkModalInput}
+            value={linkForm.url}
+            onChangeText={(text) => setLinkForm((prev) => ({ ...prev, url: text }))}
+            placeholder="https://..."
+            autoCapitalize="none"
+            keyboardType="url"
+            placeholderTextColor={COLORS.text.tertiary}
+          />
+          <TouchableOpacity
+            style={styles.linkVisibilityRow}
+            onPress={() => setLinkForm((prev) => ({ ...prev, visible: !prev.visible }))}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={linkForm.visible ? 'eye-outline' : 'eye-off-outline'}
+              size={18}
+              color={COLORS.secondary.main}
+            />
+            <Text style={styles.linkVisibilityText}>{linkForm.visible ? 'Link visível no perfil' : 'Link oculto'}</Text>
+          </TouchableOpacity>
+          <View style={styles.linkModalActions}>
+            <Button variant="outline" size="md" onPress={closeLinkModal} style={styles.linkModalButton}>
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onPress={handleSaveLink}
+              loading={savingLink}
+              style={styles.linkModalButton}
+            >
+              {editingLink ? 'Salvar' : 'Adicionar'}
+            </Button>
+          </View>
+        </View>
+      </ModalBottom>
+      <CustomModal {...modalProps} onClose={hideModal} />
     </View>
   );
 }
@@ -847,6 +1134,66 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 12,
   },
+  linksHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  linksSortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  linksSortLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  linksSortLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    minWidth: 72,
+  },
+  linksSortSelect: {
+    width: 150,
+  },
+  linksLimitCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.secondary.main,
+    backgroundColor: `${COLORS.secondary.main}10`,
+  },
+  linksLimitCtaText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.secondary.main,
+  },
+  inlineAddLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.secondary.main,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  inlineAddLinkButtonDisabled: {
+    opacity: 0.5,
+  },
+  inlineAddLinkText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   linkCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -874,6 +1221,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.primary,
   },
+  linkActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  linkActionButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: COLORS.background.tertiary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  linkActionButtonDisabled: {
+    opacity: 0.35,
+  },
   addLinkButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -890,5 +1253,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.primary.main,
+  },
+  addLinkButtonDisabled: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    padding: 18,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+  },
+  addLinkTextDisabled: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+  },
+  linkModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border.light,
+  },
+  linkModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  linkModalContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 10,
+  },
+  linkModalLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  linkModalInput: {
+    backgroundColor: COLORS.background.default,
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    color: COLORS.text.primary,
+  },
+  linkVisibilityRow: {
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  linkVisibilityText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+  linkModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  linkModalButton: {
+    flex: 1,
   },
 });
