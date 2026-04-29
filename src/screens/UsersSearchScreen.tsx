@@ -186,6 +186,10 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
   };
 
   const handleUserPress = (user: User) => {
+    if (typeof navigation.push === 'function') {
+      navigation.push('CommunityUserProfile', { username: user.username });
+      return;
+    }
     navigation.navigate({
       name: 'UserProfile',
       params: { username: user.username },

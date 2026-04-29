@@ -60,6 +60,10 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
     if (onPress) {
       onPress();
     } else {
+      if (typeof navigation.push === 'function') {
+        navigation.push('UserProfile', { username: user.username });
+        return;
+      }
       navigation.navigate({
         name: 'UserProfile',
         params: { username: user.username },

@@ -106,6 +106,7 @@ export function CommunityScreen() {
       <UserCard 
         user={userData} 
         showFriendsSince={isFriendsTab}
+        onPress={() => navigation.push('CommunityUserProfile', { username: userData.username })}
       />
     );
   };

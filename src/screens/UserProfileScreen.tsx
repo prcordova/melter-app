@@ -62,6 +62,7 @@ export function UserProfileScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   const renderProfileSkeleton = () => (
     <View style={styles.skeletonContainer}>
@@ -104,6 +105,7 @@ export function UserProfileScreen() {
       const response = await userApi.getUserProfile(username);
 
       if (response.success) {
+        setProfileError(null);
         // Validar e normalizar dados do perfil antes de definir o estado
         const userData = response.data;
         if (userData.profile) {
@@ -297,10 +299,23 @@ export function UserProfileScreen() {
         );
 
         await Promise.allSettled(secondaryTasks);
+      } else {
+        const apiMessage = response.message || 'Perfil indisponível no momento';
+        setProfileError(apiMessage);
+        if (!isBackground) {
+          setUser(null);
+          setPosts([]);
+          setLinks([]);
+        }
+        console.warn('[UserProfileScreen] Perfil não carregado:', {
+          username,
+          message: apiMessage,
+        });
       }
       setHasLoadedOnce(true);
     } catch (error) {
       console.error('[UserProfileScreen] Erro:', error);
+      setProfileError('Não foi possível carregar o perfil');
       Alert.alert('Erro', 'Não foi possível carregar o perfil');
     } finally {
       if (!isBackground) {
@@ -487,7 +502,19 @@ export function UserProfileScreen() {
     return renderProfileSkeleton();
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorTitle}>Não foi possível abrir este perfil</Text>
+        <Text style={styles.errorMessage}>
+          {profileError || 'Este usuário pode estar com perfil privado ou indisponível.'}
+        </Text>
+        <TouchableOpacity style={styles.errorButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.errorButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const profile = user.profile || {};
   const avatarSource = getAvatarUrl(user.avatar);
@@ -1371,6 +1398,38 @@ const styles = StyleSheet.create({
     marginTop: 12,
     color: COLORS.text.tertiary,
     fontSize: 15,
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: COLORS.background.default,
+    gap: 10,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  errorButton: {
+    marginTop: 8,
+    backgroundColor: COLORS.secondary.main,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  errorButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });
 
