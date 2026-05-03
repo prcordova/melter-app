@@ -260,20 +260,12 @@ export function MyShopScreen() {
         }
 
         if (shopVisibility === 'followers') {
-          // Verificar se o usuário segue o dono da loja
           try {
-            const followersResponse = await userApi.getFollowers(username);
-            if (followersResponse.success) {
-              const followers = followersResponse.data || [];
-              const isFollower = followers.some(
-                (follower: any) => (follower?._id === user?.id) || (follower?.id === user?.id)
-              );
-
-              if (!isFollower) {
-                showToast.error('Erro', 'Esta loja é restrita apenas para seguidores');
-                navigation.goBack();
-                return;
-              }
+            const statusResponse = await userApi.getFollowStatus(username);
+            if (statusResponse.success && !statusResponse.data?.isFollowing) {
+              showToast.error('Erro', 'Esta loja é restrita apenas para seguidores');
+              navigation.goBack();
+              return;
             }
           } catch (error) {
             console.error('[MyShopScreen] Erro ao verificar seguidores:', error);

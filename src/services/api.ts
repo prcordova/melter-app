@@ -334,8 +334,15 @@ export const userApi = {
     const response = await api.get<ApiResponse<any>>(`/api/users/${username}`);
     return response.data;
   },
-  getFollowers: async (username: string) => {
-    const response = await api.get<ApiResponse<any[]>>(`/api/users/${username}/followers`);
+  /** Lista paginada: `data.items`, `data.hasMore`, `data.page` */
+  getFollowers: async (username: string, params?: { page?: number; limit?: number }) => {
+    const search = new URLSearchParams();
+    if (params?.page != null) search.set('page', String(params.page));
+    if (params?.limit != null) search.set('limit', String(params.limit));
+    const qs = search.toString();
+    const response = await api.get<ApiResponse<any>>(
+      `/api/users/${encodeURIComponent(username)}/followers${qs ? `?${qs}` : ''}`
+    );
     return response.data;
   },
   blockUser: async (username: string, reason?: string) => {
