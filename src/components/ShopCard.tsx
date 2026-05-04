@@ -33,6 +33,7 @@ interface Product {
   isAdultContent?: boolean;
   paymentMode?: 'UNICO' | 'ASSINATURA';
   status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REQUIRES_CHANGES' | 'INACTIVE';
+  subscriptionPlanId?: string;
   subscriptionPlan?: {
     _id: string;
     name: string;
@@ -46,6 +47,11 @@ interface ShopCardProps {
   product: Product;
   onPress?: () => void;
   showPendingBadge?: boolean; // Se true, mostra badge de pendente apenas para dono
+  showRequiresChangesBadge?: boolean;
+  /** Chip de estado para visitante (ex.: Comprado, Ativo) */
+  statusChip?: { label: string };
+  /** Botão de ação principal abaixo do card (Comprar / Assinar / Entrar / Editar) */
+  footerAction?: { label: string; onPress: () => void };
 }
 
 const PRODUCT_TYPE_LABELS: Record<string, string> = {
@@ -64,7 +70,14 @@ const PRODUCT_TYPE_ICONS: Record<string, string> = {
   PHYSICAL_PRODUCT: 'cube-outline',
 };
 
-export function ShopCard({ product, onPress, showPendingBadge = false }: ShopCardProps) {
+export function ShopCard({
+  product,
+  onPress,
+  showPendingBadge = false,
+  showRequiresChangesBadge = false,
+  statusChip,
+  footerAction,
+}: ShopCardProps) {
   // Usar bgMelter.jpg como fallback quando não tem coverImage
   const imageSource = product.coverImage
     ? { uri: getImageUrl(product.coverImage) }
@@ -83,10 +96,17 @@ export function ShopCard({ product, onPress, showPendingBadge = false }: ShopCar
   };
 
   const isPending = showPendingBadge && product.status === 'PENDING';
+  const isRequiresChanges = showRequiresChangesBadge && product.status === 'REQUIRES_CHANGES';
+
+  const displayPrice =
+    product.paymentMode === 'ASSINATURA' && product.subscriptionPlan?.price != null
+      ? product.subscriptionPlan.price
+      : product.price;
 
   return (
+    <View style={[styles.card, isPending && styles.cardPending]}>
     <TouchableOpacity
-      style={[styles.card, isPending && styles.cardPending]}
+      style={styles.cardTouchable}
       onPress={onPress}
       activeOpacity={0.7}
       disabled={!onPress}
@@ -120,6 +140,15 @@ export function ShopCard({ product, onPress, showPendingBadge = false }: ShopCar
           ]}>
             <Ionicons name="time-outline" size={12} color="#FFFFFF" />
             <Text style={styles.pendingBadgeText}>Pendente</Text>
+          </View>
+        )}
+        {isRequiresChanges && (
+          <View style={[
+            styles.changesBadge,
+            product.userId?.avatar && styles.pendingBadgeWithAvatar
+          ]}>
+            <Ionicons name="build-outline" size={12} color="#FFFFFF" />
+            <Text style={styles.pendingBadgeText}>Alterações</Text>
           </View>
         )}
 
@@ -166,9 +195,21 @@ export function ShopCard({ product, onPress, showPendingBadge = false }: ShopCar
           </View>
         )}
 
+        {statusChip && (
+          <View style={styles.statusChip}>
+            <Text style={styles.statusChipText}>{statusChip.label}</Text>
+          </View>
+        )}
+
+        {product.paymentMode === 'ASSINATURA' && product.subscriptionPlan?.name && (
+          <Text style={styles.subPlanName} numberOfLines={1}>
+            Plano: {product.subscriptionPlan.name}
+          </Text>
+        )}
+
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.price}>{formatPrice(product.price)}</Text>
+          <Text style={styles.price}>{formatPrice(displayPrice)}</Text>
 
           {product.salesCount !== undefined && product.salesCount > 0 && (
             <View style={styles.sales}>
@@ -188,6 +229,13 @@ export function ShopCard({ product, onPress, showPendingBadge = false }: ShopCar
         </View>
       )}
     </TouchableOpacity>
+    {footerAction && (
+      <TouchableOpacity style={styles.footerAction} onPress={footerAction.onPress} activeOpacity={0.85}>
+        <Ionicons name="play" size={14} color="#fff" />
+        <Text style={styles.footerActionText}>{footerAction.label}</Text>
+      </TouchableOpacity>
+    )}
+    </View>
   );
 }
 
@@ -202,6 +250,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  cardTouchable: {
+    overflow: 'hidden',
   },
   imageContainer: {
     width: '100%',
@@ -366,8 +417,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
+  changesBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: COLORS.states.info,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   pendingBadgeWithAvatar: {
     left: 48, // Ajustar posição quando tem avatar
+  },
+  statusChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  statusChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.states.success,
+  },
+  subPlanName: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginBottom: 6,
+  },
+  footerAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.secondary.main,
+    paddingVertical: 12,
+  },
+  footerActionText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   pendingBadgeText: {
     color: '#FFFFFF',

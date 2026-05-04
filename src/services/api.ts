@@ -1414,6 +1414,17 @@ export const shopsApi = {
   },
 };
 
+// Pedidos / checkout de produto único (saldo na carteira)
+export const ordersApi = {
+  checkoutProduct: async (productId: string, quantity: number = 1) => {
+    const response = await api.post<ApiResponse<any>>('/api/orders/checkout', {
+      productId,
+      quantity,
+    });
+    return response.data;
+  },
+};
+
 // API de Configurações da Loja
 export const shopApi = {
   getSettings: async () => {
@@ -1622,10 +1633,22 @@ export const subscriptionPlansApi = {
     const response = await api.get<ApiResponse<any[]>>(`/api/subscription-plans/${planId}/products`);
     return response.data;
   },
-  purchasePlan: async (planId: string, duration: 'oneMonth' | 'twoMonths' | 'threeMonths' | 'sixMonths' | 'oneYear') => {
-    const response = await api.post<ApiResponse<any>>(`/api/subscription-plans/${planId}/purchase`, {
-      duration,
-    });
+  /** Compra de assinatura de plano da loja (corpo: durationMonths 1 | 2 | 3 | 6 | 12) */
+  purchasePlanWithDuration: async (planId: string, durationMonths: 1 | 2 | 3 | 6 | 12) => {
+    const response = await api.post<ApiResponse<any>>(
+      `/api/subscriptions/plans/${planId}/purchase`,
+      { durationMonths }
+    );
+    return response.data;
+  },
+  getMySubscriptionStatusForPlan: async (planId: string) => {
+    const response = await api.get<ApiResponse<{
+      hasActiveSubscription: boolean;
+      isCancelled?: boolean;
+      daysRemaining?: number;
+      expiresAt?: string | null;
+      orderId?: string | null;
+    }>>(`/api/subscriptions/plans/${planId}/status`);
     return response.data;
   },
 };

@@ -17,10 +17,10 @@ const Stack = createNativeStackNavigator();
 
 function Navigation() {
   const { user, loading } = useAuth();
-  const permissions = usePermissions();
+  usePermissions();
 
-  // Mostrar loading enquanto carrega auth ou permissões
-  if (loading || permissions.loading) {
+  // Só bloqueia na sessão (token → perfil). Permissões de câmera/galeria rodam em segundo plano.
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingLogo}>Melter</Text>

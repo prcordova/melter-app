@@ -17,7 +17,7 @@ export function usePermissions() {
     mediaLibrary: false,
     notifications: false,
     allGranted: false,
-    loading: true,
+    loading: false,
   });
 
   // Verificar se é Expo Go (onde notificações push android não funcionam mais no SDK 54)
@@ -99,14 +99,10 @@ export function usePermissions() {
   useEffect(() => {
     const init = async () => {
       const hasPermissions = await checkPermissions();
-      
       if (!hasPermissions) {
-        setTimeout(() => {
-          requestPermissions();
-        }, 1000);
+        requestPermissions();
       }
     };
-
     init();
   }, []);
 

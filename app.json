@@ -4,10 +4,10 @@
     "slug": "melter-app",
     "version": "1.0.10",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/bee.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/logo.png",
+      "image": "./assets/bee.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -32,7 +32,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/logo.png",
+          "icon": "./assets/bee.png",
           "color": "#B63385"
         }
       ],
@@ -52,7 +52,7 @@
       "package": "com.melter.app",
       "versionCode": 12,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
+        "foregroundImage": "./assets/bee.png",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [
@@ -71,7 +71,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/logo.png"
+      "favicon": "./assets/bee.png"
     },
     "extra": {
       "eas": {

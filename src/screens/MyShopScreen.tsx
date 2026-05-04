@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,7 +15,7 @@ import { Header } from '../components/Header';
 import { COLORS } from '../theme/colors';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { shopApi, sellerVerificationApi, userApi, productsApi } from '../services/api';
+import { shopApi, sellerVerificationApi, userApi, productsApi, categoriesApi } from '../services/api';
 import { SellerVerificationStatusCard } from '../components/shop/SellerVerificationStatusCard';
 import { AppealModal } from '../components/shop/AppealModal';
 import { ProductCreationWizard } from '../components/shop/ProductCreationWizard';
@@ -24,6 +24,8 @@ import { SubscriptionPlansContent } from '../components/shop/SubscriptionPlansCo
 import { ShopSettingsModal } from '../components/shop/ShopSettingsModal';
 import { ShopAnalyticsContent } from '../components/shop/ShopAnalyticsContent';
 import { ShopCommunityContent } from '../components/shop/ShopCommunityContent';
+import { ShopSubscriptionPlansSection } from '../components/shop/ShopSubscriptionPlansSection';
+import { ProductCheckoutModal, type CheckoutProduct } from '../components/shop/ProductCheckoutModal';
 import { PlanLocker } from '../components/PlanLocker';
 import { BackArrow } from '../components/BackArrow';
 import { getFeatureLimit, hasFeatureAccess } from '../config/plan-features';
@@ -63,7 +65,7 @@ interface RouteParams {
 export function MyShopScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
 
   // Estados principais
@@ -72,14 +74,20 @@ export function MyShopScreen() {
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('products');
   const [isPreview, setIsPreview] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [checkoutProduct, setCheckoutProduct] = useState<CheckoutProduct | null>(null);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [planAutoOpenConsumed, setPlanAutoOpenConsumed] = useState(false);
+  const [pendingOpenPlanId, setPendingOpenPlanId] = useState<string | null>(null);
   const [showVerificationForm, setShowVerificationForm] = useState(false);
   const [showAppealModal, setShowAppealModal] = useState(false);
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [visitorShopApproved, setVisitorShopApproved] = useState<boolean | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [pendingProductsCount, setPendingProductsCount] = useState(0);
 
@@ -102,57 +110,44 @@ export function MyShopScreen() {
     }
   }, [route.params?.tab]);
 
-  // Carregar dados da loja
+  // Carregar dados da loja (recarrega ao mudar username / dono)
   useEffect(() => {
     if (authLoading || !username) return;
 
-    if (!dataLoaded) {
-      setDataLoaded(true);
-      fetchShopData();
+    let cancelled = false;
+
+    (async () => {
+      await fetchShopData();
+      if (cancelled) return;
       if (isOwner) {
-        fetchShopSettings();
-      } else {
-        // Se não é dono, buscar produtos da loja para exibir
-        fetchProducts();
+        await fetchShopSettings();
       }
-    }
-  }, [authLoading, username, isOwner, dataLoaded]);
+    })();
 
-  // Verificar se deve abrir modais de produto ou plano (quando não é dono)
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, username, isOwner]);
+
+  // Deep link: abrir checkout do produto quando a lista já carregou
   useEffect(() => {
-    if (!dataLoaded || loading || !products.length) return;
-
+    if (loading || loadingProducts || !products.length) return;
     const openProductId = route.params?.openProduct;
-    const openPlanId = route.params?.openPlan;
-
-    if (openProductId) {
-      // Buscar o produto e abrir modal de compra
-      const product = products.find((p: any) => p._id === openProductId);
-      if (product) {
-        // TODO: Abrir modal de compra
-        showToast.info('Produto', `Abrindo modal de compra para ${product.title}`);
-      }
-    } else if (openPlanId) {
-      // TODO: Abrir modal de assinatura do plano
-      showToast.info('Plano', `Abrindo modal de assinatura do plano ${openPlanId}`);
+    if (!openProductId || isOwner) return;
+    const product = products.find((p: any) => p._id === openProductId);
+    if (!product) return;
+    const subId = product.subscriptionPlanId || product.subscriptionPlan?._id;
+    if (product.paymentMode === 'ASSINATURA' && subId) {
+      setPlanAutoOpenConsumed(false);
+      return;
     }
-  }, [dataLoaded, loading, products, route.params?.openProduct, route.params?.openPlan]);
+    setCheckoutProduct(product as CheckoutProduct);
+    setShowCheckoutModal(true);
+  }, [loading, loadingProducts, products, route.params?.openProduct, isOwner]);
 
-  // Verificar se loja está aprovada (para visitantes)
   useEffect(() => {
-    if (!isOwner && shopOwner) {
-      // Tentar verificar se a loja está aprovada buscando settings
-      shopApi.getSettings().then((response) => {
-        if (response.success && response.data) {
-          const verification = response.data.sellerVerification;
-          setVisitorShopApproved(verification?.status === 'approved');
-        }
-      }).catch(() => {
-        // Se falhar, assumir que não está aprovada se não houver produtos
-        setVisitorShopApproved(products.length > 0);
-      });
-    }
-  }, [isOwner, shopOwner, products.length]);
+    setPlanAutoOpenConsumed(false);
+  }, [route.params?.openPlan, username]);
 
   // Buscar configurações da loja (apenas para dono)
   const fetchShopSettings = async () => {
@@ -161,10 +156,7 @@ export function MyShopScreen() {
 
       if (response.success && response.data) {
         setShopSettings(response.data);
-        // Se a loja está aprovada, buscar produtos
-        if (response.data.sellerVerification?.status === 'approved') {
-          fetchProducts();
-        }
+        fetchProducts();
       } else {
         setShopSettings(null);
       }
@@ -203,8 +195,24 @@ export function MyShopScreen() {
           );
         }
         
+        if (user) {
+          productsData = await Promise.all(
+            productsData.map(async (p: any) => {
+              try {
+                const st = await productsApi.getPurchaseStatus(p._id);
+                if (st.success && st.data) {
+                  return { ...p, purchaseStatus: st.data };
+                }
+              } catch {
+                /* ignore */
+              }
+              return p;
+            })
+          );
+        }
+
         setProducts(productsData);
-        
+
         // Contar produtos pendentes (apenas para dono)
         if (isOwner) {
           const pendingCount = productsData.filter((p: any) => p.status === 'PENDING').length;
@@ -240,6 +248,17 @@ export function MyShopScreen() {
 
       const owner = userResponse.data;
       setShopOwner(owner);
+
+      try {
+        const catRes = await categoriesApi.getCategories(username);
+        if (catRes.success && Array.isArray(catRes.data)) {
+          setCategories(catRes.data.filter((c: any) => (c.productsCount ?? 0) > 0));
+        } else {
+          setCategories([]);
+        }
+      } catch {
+        setCategories([]);
+      }
 
       // Verificações de acesso (apenas para visitantes)
       if (!isOwner && !isAdmin) {
@@ -398,7 +417,107 @@ export function MyShopScreen() {
     if (planType === 'PRO') return 'PRO_PLUS';
     return 'PRO_PLUS'; // Se já é PRO_PLUS, não há upgrade
   };
-  
+
+  const ownerApproved = sellerVerification?.status === 'approved';
+  const showTabs = isAdmin || (isOwner && ownerApproved);
+
+  const filteredProducts = useMemo(() => {
+    let list =
+      selectedCategory === 'all'
+        ? products.filter((p: any) => {
+            if (!isOwner) return p.status === 'APPROVED';
+            return (
+              p.status === 'APPROVED' ||
+              p.status === 'PENDING' ||
+              p.status === 'REQUIRES_CHANGES'
+            );
+          })
+        : products.filter((p: any) => {
+            const catId =
+              typeof p.categoryId === 'object' && p.categoryId ? p.categoryId._id : p.categoryId;
+            const match = catId === selectedCategory;
+            if (!isOwner) return match && p.status === 'APPROVED';
+            return (
+              match &&
+              (p.status === 'APPROVED' || p.status === 'PENDING' || p.status === 'REQUIRES_CHANGES')
+            );
+          });
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((p: any) => (p.title || '').toLowerCase().includes(q));
+    }
+    return [...list].sort((a: any, b: any) => {
+      const ta = new Date(a.createdAt || 0).getTime();
+      const tb = new Date(b.createdAt || 0).getTime();
+      return sortOrder === 'newest' ? tb - ta : ta - tb;
+    });
+  }, [products, selectedCategory, searchQuery, sortOrder, isOwner]);
+
+  const openPlanIdParam =
+    (route.params?.openPlan && !planAutoOpenConsumed ? route.params.openPlan : null) ||
+    pendingOpenPlanId;
+
+  const handleProductPrimaryAction = (product: any, mode: 'visitor' | 'owner') => {
+    const isVisitorMode = mode === 'visitor';
+    const hasPurchased = product.purchaseStatus?.hasPurchased === true;
+    const hasAccessViaPlan = product.purchaseStatus?.accessVia === 'SUBSCRIPTION_PLAN';
+
+    if (!isVisitorMode && isOwner) {
+      navigation.navigate('Product', { productId: product._id });
+      return;
+    }
+
+    if (hasPurchased) {
+      if (product.type === 'DIGITAL_PACK' && product.purchaseStatus?.isActive) {
+        navigation.navigate('Product', { productId: product._id });
+      } else {
+        navigation.navigate('Purchases');
+      }
+      return;
+    }
+    if (hasAccessViaPlan) {
+      navigation.navigate('Product', { productId: product._id });
+      return;
+    }
+    if (!user) {
+      showToast.info('Login', 'Entre na sua conta para comprar ou assinar.');
+      return;
+    }
+    const subscriptionPlanId = product.subscriptionPlanId || product.subscriptionPlan?._id;
+    if (product.paymentMode === 'ASSINATURA' && subscriptionPlanId) {
+      setPlanAutoOpenConsumed(false);
+      setPendingOpenPlanId(subscriptionPlanId);
+      return;
+    }
+    setCheckoutProduct(product as CheckoutProduct);
+    setShowCheckoutModal(true);
+  };
+
+  const handleProductCardPress = (product: any, mode: 'visitor' | 'owner') => {
+    const hasPurchased = product.purchaseStatus?.hasPurchased === true;
+    const hasAccessViaPlan = product.purchaseStatus?.accessVia === 'SUBSCRIPTION_PLAN';
+    const canAccess =
+      (mode === 'owner' && isOwner) || isAdmin || hasPurchased || hasAccessViaPlan;
+    if (canAccess) {
+      navigation.navigate('Product', { productId: product._id });
+    }
+  };
+
+  const primaryLabel = (product: any, mode: 'visitor' | 'owner') => {
+    if (mode === 'owner' && isOwner) return 'Editar';
+    const hasPurchased = product.purchaseStatus?.hasPurchased === true;
+    const hasAccessViaPlan = product.purchaseStatus?.accessVia === 'SUBSCRIPTION_PLAN';
+    if (hasPurchased || hasAccessViaPlan) return 'Entrar';
+    if (product.paymentMode === 'ASSINATURA') return 'Assinar';
+    return 'Comprar';
+  };
+
+  const purchaseStatusChip = (product: any) => {
+    if (!product.purchaseStatus?.hasPurchased) return undefined;
+    const label = product.purchaseStatus?.isActive ? 'Ativo' : 'Comprado';
+    return { label };
+  };
+
   if (loading || authLoading) {
     return (
       <View style={styles.container}>
@@ -410,13 +529,6 @@ export function MyShopScreen() {
       </View>
     );
   }
-
-  const isShopApproved = isOwner 
-    ? sellerVerification?.status === 'approved' 
-    : visitorShopApproved !== null 
-      ? visitorShopApproved 
-      : products.length > 0; // Se não souber, assumir aprovada se tiver produtos
-  const showTabs = (isOwner && isShopApproved) || isAdmin || (!isOwner && isShopApproved);
 
   const handleBackToProfile = () => {
     // Navegar para o perfil do dono da loja
@@ -609,61 +721,98 @@ export function MyShopScreen() {
           </View>
         )}
 
-        {/* Conteúdo das Tabs */}
+        {/* Conteúdo: com abas (dono aprovado ou admin) ou loja pública / dono em análise */}
         {showTabs ? (
           <View style={styles.tabContent}>
             {activeTab === 'products' && (
               <View style={styles.productsContent}>
-                {/* Card de Status da Verificação (apenas para dono não aprovado) */}
-                {isOwner && sellerVerification && sellerVerification.status !== 'approved' && (
-                  <SellerVerificationStatusCard
-                    sellerVerification={sellerVerification}
-                    onOpenForm={() => {
-                      // Buscar dados completos antes de abrir o formulário
-                      fetchVerificationData();
-                      setShowVerificationForm(true);
-                    }}
-                    onOpenAppeal={() => setShowAppealModal(true)}
-                    onRefresh={fetchShopSettings}
-                  />
+                {isOwner && ownerApproved && shopSettings && !shopSettings.isEnabled && (
+                  <View style={styles.shopDisabledBanner}>
+                    <Ionicons name="storefront-outline" size={22} color={COLORS.states.warning} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.shopDisabledTitle}>Loja desativada</Text>
+                      <Text style={styles.shopDisabledText}>
+                        Visitantes não veem sua vitrine. Ative nas configurações para vender.
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={handleSettingsPress} style={styles.shopDisabledBtn}>
+                      <Text style={styles.shopDisabledBtnText}>Configurar</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
 
-                {/* Conteúdo quando loja está aprovada */}
-                {isOwner && isShopApproved && (
-                  <>
-                    {/* Alerta de produtos pendentes */}
-                    {pendingProductsCount > 0 && (
-                      <View style={styles.pendingAlert}>
-                        <View style={styles.pendingAlertContent}>
-                          <Ionicons name="information-circle" size={20} color={COLORS.primary.main} />
-                          <View style={styles.pendingAlertText}>
-                            <Text style={styles.pendingAlertTitle}>
-                              Você tem {pendingProductsCount} produto{pendingProductsCount > 1 ? 's' : ''} pendente{pendingProductsCount > 1 ? 's' : ''}
-                            </Text>
-                            <Text style={styles.pendingAlertDescription}>
-                              Seu{pendingProductsCount > 1 ? 's' : ''} produto{pendingProductsCount > 1 ? 's' : ''} está{pendingProductsCount > 1 ? 'ão' : ''} sob análise e em breve estará{pendingProductsCount > 1 ? 'ão' : ''} ativo{pendingProductsCount > 1 ? 's' : ''} em sua loja.
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    )}
-
-                    {loadingProducts ? (
-                      <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={COLORS.secondary.main} />
-                        <Text style={styles.loadingText}>Carregando produtos...</Text>
-                      </View>
-                    ) : products.length === 0 ? (
-                      // Sem produtos - mostrar botão "Criar Primeiro Produto"
-                      <View style={styles.emptyProductsContainer}>
-                        <View style={styles.emptyProductsIcon}>
-                          <Text style={styles.emptyProductsEmoji}>📦</Text>
-                        </View>
-                        <Text style={styles.emptyProductsTitle}>
-                          Esta loja ainda não tem produtos
+                {isOwner && ownerApproved && pendingProductsCount > 0 && (
+                  <View style={styles.pendingAlert}>
+                    <View style={styles.pendingAlertContent}>
+                      <Ionicons name="information-circle" size={20} color={COLORS.primary.main} />
+                      <View style={styles.pendingAlertText}>
+                        <Text style={styles.pendingAlertTitle}>
+                          Você tem {pendingProductsCount} produto
+                          {pendingProductsCount > 1 ? 's' : ''} pendente
+                          {pendingProductsCount > 1 ? 's' : ''}
                         </Text>
-                        <Text style={styles.emptyProductsText}>
-                          Comece criando seu primeiro produto!
+                        <Text style={styles.pendingAlertDescription}>
+                          Em análise; em breve ficam ativos na loja.
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {loadingProducts ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                    <Text style={styles.loadingText}>Carregando produtos...</Text>
+                  </View>
+                ) : products.length === 0 ? (
+                  <View style={styles.emptyProductsContainer}>
+                    <View style={styles.emptyProductsIcon}>
+                      <Text style={styles.emptyProductsEmoji}>📦</Text>
+                    </View>
+                    <Text style={styles.emptyProductsTitle}>Esta loja ainda não tem produtos</Text>
+                    <Text style={styles.emptyProductsText}>
+                      {isOwner
+                        ? 'Comece criando seu primeiro produto!'
+                        : 'O dono desta loja ainda não adicionou itens.'}
+                    </Text>
+                    {isOwner && (
+                      !canCreateProduct() ? (
+                        <PlanLocker
+                          requiredPlan={getRequiredPlan()}
+                          currentPlan={(user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS'}
+                        >
+                          <TouchableOpacity
+                            style={[styles.createProductButton, styles.createProductButtonDisabled]}
+                            disabled
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
+                            <Text style={styles.createProductButtonText}>Criar Primeiro Produto</Text>
+                          </TouchableOpacity>
+                        </PlanLocker>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.createProductButton}
+                          onPress={() => {
+                            setEditingProduct(null);
+                            setShowCreateProductModal(true);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
+                          <Text style={styles.createProductButtonText}>Criar Primeiro Produto</Text>
+                        </TouchableOpacity>
+                      )
+                    )}
+                  </View>
+                ) : (
+                  <>
+                    {isOwner && products.length > 0 && (
+                      <View style={styles.productsHeader}>
+                        <Text style={styles.productsCount}>
+                          {products.length} {products.length === 1 ? 'produto' : 'produtos'}
+                          {pendingProductsCount > 0 &&
+                            ` (${pendingProductsCount} pendente${pendingProductsCount > 1 ? 's' : ''})`}
                         </Text>
                         {!canCreateProduct() ? (
                           <PlanLocker
@@ -671,59 +820,8 @@ export function MyShopScreen() {
                             currentPlan={(user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS'}
                           >
                             <TouchableOpacity
-                              style={[styles.createProductButton, styles.createProductButtonDisabled]}
-                              disabled={true}
-                              activeOpacity={0.7}
-                            >
-                              <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
-                              <Text style={styles.createProductButtonText}>Criar Primeiro Produto</Text>
-                            </TouchableOpacity>
-                          </PlanLocker>
-                        ) : (
-                          <TouchableOpacity
-                            style={styles.createProductButton}
-                            onPress={() => {
-                              setEditingProduct(null);
-                              setShowCreateProductModal(true);
-                            }}
-                            activeOpacity={0.7}
-                          >
-                            <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
-                            <Text style={styles.createProductButtonText}>Criar Primeiro Produto</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    ) : (
-                      // Há produtos - mostrar botão "Novo Produto" e lista
-                      <>
-                        <View style={styles.productsHeader}>
-                          <Text style={styles.productsCount}>
-                            {products.length} {products.length === 1 ? 'produto' : 'produtos'}
-                            {pendingProductsCount > 0 && ` (${pendingProductsCount} pendente${pendingProductsCount > 1 ? 's' : ''})`}
-                          </Text>
-                          {!canCreateProduct() ? (
-                            <PlanLocker
-                              requiredPlan={getRequiredPlan()}
-                              currentPlan={(user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS'}
-                            >
-                              <TouchableOpacity
-                                style={[styles.newProductButton, styles.newProductButtonDisabled]}
-                                disabled={true}
-                                activeOpacity={0.7}
-                              >
-                                <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
-                                <Text style={styles.newProductButtonText}>
-                                  Novo ({getProductLimits().current}/{getProductLimits().max})
-                                </Text>
-                              </TouchableOpacity>
-                            </PlanLocker>
-                          ) : (
-                            <TouchableOpacity
-                              style={styles.newProductButton}
-                              onPress={() => {
-                                setEditingProduct(null);
-                                setShowCreateProductModal(true);
-                              }}
+                              style={[styles.newProductButton, styles.newProductButtonDisabled]}
+                              disabled
                               activeOpacity={0.7}
                             >
                               <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
@@ -731,111 +829,151 @@ export function MyShopScreen() {
                                 Novo ({getProductLimits().current}/{getProductLimits().max})
                               </Text>
                             </TouchableOpacity>
-                          )}
-                        </View>
-                        {/* Lista de Produtos */}
-                        <ScrollView 
-                          style={styles.productsList}
-                          showsVerticalScrollIndicator={false}
+                          </PlanLocker>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.newProductButton}
+                            onPress={() => {
+                              setEditingProduct(null);
+                              setShowCreateProductModal(true);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
+                            <Text style={styles.newProductButtonText}>
+                              Novo ({getProductLimits().current}/{getProductLimits().max})
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+
+                    {!isOwner && (
+                      <ShopSubscriptionPlansSection
+                        username={username}
+                        planIdToOpen={openPlanIdParam}
+                        onPlanOpened={() => {
+                          setPlanAutoOpenConsumed(true);
+                          setPendingOpenPlanId(null);
+                        }}
+                      />
+                    )}
+
+                    {products.length > 0 && (
+                      <View style={styles.filtersRow}>
+                        <TextInput
+                          style={styles.searchInput}
+                          placeholder="Pesquisar..."
+                          placeholderTextColor={COLORS.text.tertiary}
+                          value={searchQuery}
+                          onChangeText={setSearchQuery}
+                        />
+                        <TouchableOpacity
+                          style={styles.sortChip}
+                          onPress={() =>
+                            setSortOrder((s) => (s === 'newest' ? 'oldest' : 'newest'))
+                          }
                         >
-                          {products.map((product) => (
+                          <Ionicons name="swap-vertical" size={16} color={COLORS.secondary.main} />
+                          <Text style={styles.sortChipText}>
+                            {sortOrder === 'newest' ? 'Recentes' : 'Antigos'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {categories.length > 0 && (
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.categoriesScroll}
+                        contentContainerStyle={styles.categoriesContent}
+                      >
+                        <TouchableOpacity
+                          style={[
+                            styles.catChip,
+                            selectedCategory === 'all' && styles.catChipActive,
+                          ]}
+                          onPress={() => setSelectedCategory('all')}
+                        >
+                          <Text
+                            style={[
+                              styles.catChipText,
+                              selectedCategory === 'all' && styles.catChipTextActive,
+                            ]}
+                          >
+                            Todos
+                          </Text>
+                        </TouchableOpacity>
+                        {categories.map((cat: any) => (
+                          <TouchableOpacity
+                            key={cat._id}
+                            style={[
+                              styles.catChip,
+                              selectedCategory === cat._id && styles.catChipActive,
+                            ]}
+                            onPress={() => setSelectedCategory(cat._id)}
+                          >
+                            <Text
+                              style={[
+                                styles.catChipText,
+                                selectedCategory === cat._id && styles.catChipTextActive,
+                              ]}
+                            >
+                              {cat.name} ({cat.productsCount ?? 0})
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    )}
+
+                    {filteredProducts.length === 0 ? (
+                      <View style={styles.emptyProductsContainer}>
+                        <Text style={styles.emptyProductsTitle}>
+                          Nenhum produto nesta categoria ou busca
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.productsList}>
+                        {filteredProducts.map((product: any) => {
+                          const mode = isOwner ? 'owner' : 'visitor';
+                          const hasPurchased = product.purchaseStatus?.hasPurchased === true;
+                          const hasAccessViaPlan =
+                            product.purchaseStatus?.accessVia === 'SUBSCRIPTION_PLAN';
+                          const canAccess =
+                            (mode === 'owner' && isOwner) ||
+                            isAdmin ||
+                            hasPurchased ||
+                            hasAccessViaPlan;
+                          return (
                             <ShopCard
                               key={product._id}
                               product={product}
                               showPendingBadge={isOwner}
-                              onPress={() => {
-                                // Se é dono, navegar para tela de visualização do produto
-                                if (isOwner) {
-                                  navigation.navigate('Product', {
-                                    productId: product._id,
-                                  });
-                                } else {
-                                  // Se não é dono, mostrar toast (comportamento de compra)
-                                  showToast.info('Produto', `Abrindo ${product.title}`);
-                                }
+                              showRequiresChangesBadge={isOwner}
+                              statusChip={
+                                mode === 'visitor' ? purchaseStatusChip(product) : undefined
+                              }
+                              onPress={
+                                canAccess ? () => handleProductCardPress(product, mode) : undefined
+                              }
+                              footerAction={{
+                                label: primaryLabel(product, mode),
+                                onPress: () => handleProductPrimaryAction(product, mode),
                               }}
                             />
-                          ))}
-                        </ScrollView>
-                      </>
+                          );
+                        })}
+                      </View>
                     )}
                   </>
-                )}
-
-                {/* Mostrar produtos para visitantes (não-donos) quando loja está aprovada */}
-                {!isOwner && isShopApproved && (
-                  <>
-                    {loadingProducts ? (
-                      <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={COLORS.secondary.main} />
-                        <Text style={styles.loadingText}>Carregando produtos...</Text>
-                      </View>
-                    ) : products.length === 0 ? (
-                      <View style={styles.emptyProductsContainer}>
-                        <Text style={styles.emptyProductsTitle}>
-                          Esta loja ainda não tem produtos
-                        </Text>
-                      </View>
-                    ) : (
-                      <ScrollView 
-                        style={styles.productsList}
-                        showsVerticalScrollIndicator={false}
-                      >
-                        {products.map((product: any) => (
-                          <ShopCard
-                            key={product._id}
-                            product={product}
-                            onPress={async () => {
-                              // Verificar se já comprou
-                              if (user) {
-                                try {
-                                  const purchaseStatus = await productsApi.getPurchaseStatus(product._id);
-                                  if (purchaseStatus.success && purchaseStatus.data) {
-                                    const hasPurchased = purchaseStatus.data.hasPurchased || false;
-                                    const hasAccessViaPlan = purchaseStatus.data.accessVia === 'SUBSCRIPTION_PLAN';
-                                    
-                                    if (hasPurchased || hasAccessViaPlan) {
-                                      // TODO: Navegar para tela do produto
-                                      showToast.info('Produto', `Abrindo ${product.title}`);
-                                      return;
-                                    }
-                                  }
-                                } catch (error) {
-                                  console.error('[MyShopScreen] Erro ao verificar compra:', error);
-                                }
-                              }
-
-                              // Se é produto de assinatura, abrir modal de assinatura
-                              const subscriptionPlanId = product.subscriptionPlanId || product.subscriptionPlan?._id;
-                              if (product.paymentMode === 'ASSINATURA' && subscriptionPlanId) {
-                                // TODO: Abrir modal de assinatura
-                                showToast.info('Assinatura', `Abrindo modal de assinatura`);
-                              } else {
-                                // Produto único, abrir modal de compra
-                                // TODO: Abrir modal de compra
-                                showToast.info('Compra', `Abrindo modal de compra para ${product.title}`);
-                              }
-                            }}
-                          />
-                        ))}
-                      </ScrollView>
-                    )}
-                  </>
-                )}
-
-                {/* Placeholder quando não está aprovado e não é dono */}
-                {!isOwner && !isShopApproved && (
-                  <View style={styles.placeholderContent}>
-                    <Text style={styles.placeholderText}>Loja em desenvolvimento</Text>
-                    <Text style={styles.placeholderSubtext}>Esta loja ainda não está disponível</Text>
-                  </View>
                 )}
               </View>
             )}
 
             {activeTab === 'analytics' && (
-              <PlanLocker 
-                requiredPlan="PRO" 
+              <PlanLocker
+                requiredPlan="PRO"
                 currentPlan={(user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS'}
                 isAdmin={isAdmin}
               >
@@ -843,9 +981,7 @@ export function MyShopScreen() {
               </PlanLocker>
             )}
 
-            {activeTab === 'community' && (
-              <ShopCommunityContent />
-            )}
+            {activeTab === 'community' && <ShopCommunityContent />}
 
             {activeTab === 'plans' && isOwner && (
               <SubscriptionPlansContent userPlan={user?.plan?.type as any} />
@@ -853,7 +989,6 @@ export function MyShopScreen() {
           </View>
         ) : (
           <View style={styles.tabContent}>
-            {/* Card de Status da Verificação (quando não há tabs - não aprovado) */}
             {isOwner && (
               <SellerVerificationStatusCard
                 sellerVerification={sellerVerification || null}
@@ -865,10 +1000,132 @@ export function MyShopScreen() {
                 onRefresh={fetchShopSettings}
               />
             )}
-            <View style={styles.placeholderContent}>
-              <Text style={styles.placeholderText}>Conteúdo da Loja</Text>
-              <Text style={styles.placeholderSubtext}>Em desenvolvimento...</Text>
-            </View>
+
+            <ShopSubscriptionPlansSection
+              username={username}
+              planIdToOpen={openPlanIdParam}
+              onPlanOpened={() => {
+                setPlanAutoOpenConsumed(true);
+                setPendingOpenPlanId(null);
+              }}
+            />
+
+            {loadingProducts ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                <Text style={styles.loadingText}>Carregando produtos...</Text>
+              </View>
+            ) : products.length === 0 ? (
+              <View style={styles.emptyProductsContainer}>
+                <Text style={styles.emptyProductsTitle}>Esta loja ainda não tem produtos</Text>
+                <Text style={styles.emptyProductsText}>
+                  {isOwner
+                    ? 'Crie seu primeiro produto após a aprovação do cadastro de vendedor.'
+                    : 'O dono desta loja ainda não adicionou itens.'}
+                </Text>
+              </View>
+            ) : (
+              <>
+                {products.length > 0 && (
+                  <View style={styles.filtersRow}>
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Pesquisar..."
+                      placeholderTextColor={COLORS.text.tertiary}
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                    />
+                    <TouchableOpacity
+                      style={styles.sortChip}
+                      onPress={() => setSortOrder((s) => (s === 'newest' ? 'oldest' : 'newest'))}
+                    >
+                      <Ionicons name="swap-vertical" size={16} color={COLORS.secondary.main} />
+                      <Text style={styles.sortChipText}>
+                        {sortOrder === 'newest' ? 'Recentes' : 'Antigos'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {categories.length > 0 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.categoriesScroll}
+                    contentContainerStyle={styles.categoriesContent}
+                  >
+                    <TouchableOpacity
+                      style={[styles.catChip, selectedCategory === 'all' && styles.catChipActive]}
+                      onPress={() => setSelectedCategory('all')}
+                    >
+                      <Text
+                        style={[
+                          styles.catChipText,
+                          selectedCategory === 'all' && styles.catChipTextActive,
+                        ]}
+                      >
+                        Todos
+                      </Text>
+                    </TouchableOpacity>
+                    {categories.map((cat: any) => (
+                      <TouchableOpacity
+                        key={cat._id}
+                        style={[
+                          styles.catChip,
+                          selectedCategory === cat._id && styles.catChipActive,
+                        ]}
+                        onPress={() => setSelectedCategory(cat._id)}
+                      >
+                        <Text
+                          style={[
+                            styles.catChipText,
+                            selectedCategory === cat._id && styles.catChipTextActive,
+                          ]}
+                        >
+                          {cat.name} ({cat.productsCount ?? 0})
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+                {filteredProducts.length === 0 ? (
+                  <View style={styles.emptyProductsContainer}>
+                    <Text style={styles.emptyProductsTitle}>
+                      Nenhum produto nesta categoria ou busca
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.productsList}>
+                    {filteredProducts.map((product: any) => {
+                      const mode = isOwner ? 'owner' : 'visitor';
+                      const hasPurchased = product.purchaseStatus?.hasPurchased === true;
+                      const hasAccessViaPlan =
+                        product.purchaseStatus?.accessVia === 'SUBSCRIPTION_PLAN';
+                      const canAccess =
+                        (mode === 'owner' && isOwner) ||
+                        isAdmin ||
+                        hasPurchased ||
+                        hasAccessViaPlan;
+                      return (
+                        <ShopCard
+                          key={product._id}
+                          product={product}
+                          showPendingBadge={isOwner}
+                          showRequiresChangesBadge={isOwner}
+                          statusChip={!isOwner ? purchaseStatusChip(product) : undefined}
+                          onPress={
+                            canAccess ? () => handleProductCardPress(product, mode) : undefined
+                          }
+                          footerAction={{
+                            label: primaryLabel(product, mode),
+                            onPress: () => handleProductPrimaryAction(product, mode),
+                          }}
+                        />
+                      );
+                    })}
+                  </View>
+                )}
+              </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -893,6 +1150,20 @@ export function MyShopScreen() {
         initialSettings={shopSettings}
         onNavigateToPlans={() => {
           setActiveTab('plans');
+        }}
+      />
+
+      <ProductCheckoutModal
+        visible={showCheckoutModal}
+        product={checkoutProduct}
+        walletBalance={user?.wallet?.balance ?? 0}
+        onClose={() => {
+          setShowCheckoutModal(false);
+          setCheckoutProduct(null);
+        }}
+        onSuccess={async () => {
+          await refreshUser();
+          fetchProducts();
         }}
       />
 
@@ -1246,7 +1517,99 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   productsList: {
+    paddingBottom: 24,
+  },
+  shopDisabledBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: COLORS.states.warning + '18',
+    borderWidth: 1,
+    borderColor: COLORS.states.warning + '55',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 4,
+  },
+  shopDisabledTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  shopDisabledText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    marginTop: 2,
+  },
+  shopDisabledBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.paper,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+  },
+  shopDisabledBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.secondary.main,
+  },
+  filtersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  searchInput: {
     flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: COLORS.text.primary,
+    backgroundColor: COLORS.background.paper,
+  },
+  sortChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    backgroundColor: COLORS.background.paper,
+  },
+  sortChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  categoriesScroll: {
+    marginBottom: 12,
+  },
+  categoriesContent: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  catChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.background.tertiary,
+    marginRight: 8,
+  },
+  catChipActive: {
+    backgroundColor: COLORS.secondary.main,
+  },
+  catChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  catChipTextActive: {
+    color: '#ffffff',
   },
   placeholderContent: {
     paddingVertical: 60,

@@ -20,6 +20,32 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const USER_CACHE_KEY = '@melter_auth_user_cache_v1';
+
+function mapApiToUser(data: any): User {
+  return {
+    id: data._id || data.id,
+    username: data.username,
+    email: data.email,
+    avatar: data.avatar,
+    following: Array.isArray(data.following) ? data.following : [],
+    plan: data.plan,
+    accountType: data.accountType,
+    twoFactor: data.twoFactor,
+    verifiedBadge: data.verifiedBadge,
+    wallet: data.wallet,
+    termsAndPrivacy: data.termsAndPrivacy,
+  };
+}
+
+async function persistUserCache(u: User) {
+  try {
+    await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(u));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,21 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!token) return;
 
       const response = await userApi.getMyProfile();
-      if (response.success) {
-        const userData: User = {
-          id: response.data._id || response.data.id,
-          username: response.data.username,
-          email: response.data.email,
-          avatar: response.data.avatar,
-          following: response.data.following,
-          plan: response.data.plan,
-          accountType: response.data.accountType,
-          twoFactor: response.data.twoFactor,
-          verifiedBadge: response.data.verifiedBadge,
-          wallet: response.data.wallet,
-          termsAndPrivacy: response.data.termsAndPrivacy,
-        };
+      if (response.success && response.data) {
+        const userData = mapApiToUser(response.data);
         setUser(userData);
+        await persistUserCache(userData);
       }
     } catch (error) {
       console.error('Erro ao recarregar usuário:', error);
@@ -63,22 +78,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        const cached = await AsyncStorage.getItem(USER_CACHE_KEY);
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached) as User;
+            if (parsed?.id && parsed?.username) {
+              setUser(parsed);
+              setLoading(false);
+            }
+          } catch {
+            await AsyncStorage.removeItem(USER_CACHE_KEY);
+          }
+        }
+
         const response = await userApi.getMyProfile();
-        
-        if (response.success) {
-        const userData: User = {
-          id: response.data._id || response.data.id,
-          username: response.data.username,
-          email: response.data.email,
-          avatar: response.data.avatar,
-          following: response.data.following,
-          plan: response.data.plan,
-          accountType: response.data.accountType,
-          twoFactor: response.data.twoFactor,
-          verifiedBadge: response.data.verifiedBadge,
-          wallet: response.data.wallet,
-        };
+
+        if (response.success && response.data) {
+          const userData = mapApiToUser(response.data);
           setUser(userData);
+          await persistUserCache(userData);
         }
       } catch (error: any) {
         console.error('Erro ao carregar usuário:', error);
@@ -123,8 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tempToken?: string
   ): Promise<LoginResult | undefined> => {
     try {
-      // Remover token antigo
-      await AsyncStorage.removeItem('token');
+      // Remover token antigo e cache de sessão anterior
+      await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
 
       let response: any;
 
@@ -170,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           wallet: userData.wallet,
         };
         setUser(user);
+        await persistUserCache(user);
 
         return { success: true };
       }
@@ -180,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem('token');
+    await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
     setUser(null);
   };
 
