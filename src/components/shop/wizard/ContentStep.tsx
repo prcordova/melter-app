@@ -16,6 +16,7 @@ import { COLORS } from '../../../theme/colors';
 import { showToast } from '../../CustomToast';
 import { useAuth } from '../../../contexts/AuthContext';
 import { PLAN_LIMITS, validateFileSize, PlanType } from '../../../config/plan-features';
+import { getImageUrl } from '../../../utils/image';
 
 interface ContentStepProps {
   formData: any;
@@ -208,16 +209,27 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
     return formData.files.reduce((total: number, file: any) => total + (file.size || 0), 0);
   };
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) {
+  const getFileIcon = (mimeType?: string | null, fileType?: string | null) => {
+    const m = mimeType || '';
+    if (m.startsWith('image/') || fileType === 'image') {
       return <Ionicons name="image-outline" size={24} color={COLORS.text.secondary} />;
-    } else if (mimeType.startsWith('video/')) {
-      return <Ionicons name="videocam-outline" size={24} color={COLORS.text.secondary} />;
-    } else if (mimeType.includes('pdf')) {
-      return <Ionicons name="document-text-outline" size={24} color={COLORS.text.secondary} />;
-    } else {
-      return <Ionicons name="document-outline" size={24} color={COLORS.text.secondary} />;
     }
+    if (m.startsWith('video/') || fileType === 'video') {
+      return <Ionicons name="videocam-outline" size={24} color={COLORS.text.secondary} />;
+    }
+    if (m.includes('pdf')) {
+      return <Ionicons name="document-text-outline" size={24} color={COLORS.text.secondary} />;
+    }
+    return <Ionicons name="document-outline" size={24} color={COLORS.text.secondary} />;
+  };
+
+  const isImageOrVideoPreview = (file: any) => {
+    const t = file?.type;
+    const ft = file?.fileType;
+    if (typeof t === 'string') {
+      if (t.startsWith('image/') || t.startsWith('video/')) return true;
+    }
+    return ft === 'image' || ft === 'video';
   };
 
   return (
@@ -272,11 +284,19 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
               {formData.files.map((file: any) => (
                 <View key={file.id} style={styles.fileCard}>
                   {/* Preview para imagens e vídeos */}
-                  {file.uri && (file.type.startsWith('image/') || file.type.startsWith('video/')) ? (
-                    <Image source={{ uri: file.uri }} style={styles.fileThumbnail} />
+                  {file.uri && isImageOrVideoPreview(file) ? (
+                    <Image
+                      source={{
+                        uri:
+                          /^https?:\/\//i.test(file.uri) || String(file.uri).startsWith('file:')
+                            ? file.uri
+                            : getImageUrl(file.uri) || file.uri,
+                      }}
+                      style={styles.fileThumbnail}
+                    />
                   ) : (
                     <View style={styles.fileIconContainer}>
-                      {getFileIcon(file.type)}
+                      {getFileIcon(file.type, file.fileType)}
                     </View>
                   )}
                   <View style={styles.fileInfo}>

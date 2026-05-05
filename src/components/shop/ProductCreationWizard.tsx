@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -29,6 +29,34 @@ interface ProductCreationWizardProps {
 
 const steps = ['Conteúdo', 'Detalhes', 'Revisão'];
 
+/** Arquivos da API usam fileType + url; o wizard espera type (MIME), uri e id. */
+function mapApiFilesToWizardFiles(files: any[]): any[] {
+  if (!Array.isArray(files)) return [];
+  return files.map((f: any, index: number) => {
+    const rawUrl = f.url || f.uri || '';
+    const uri = f.uri || rawUrl;
+    const fileType = f.fileType || 'document';
+    const type =
+      f.type ||
+      f.mimeType ||
+      (fileType === 'image'
+        ? 'image/jpeg'
+        : fileType === 'video'
+          ? 'video/mp4'
+          : 'application/octet-stream');
+    return {
+      ...f,
+      id: f.id || f._id || `existing-file-${index}`,
+      uri,
+      url: rawUrl,
+      type,
+      fileType,
+      name: f.name || f.customFileName || f.fileName || 'arquivo',
+      size: f.size ?? f.fileSize ?? 0,
+    };
+  });
+}
+
 export function ProductCreationWizard({
   visible,
   onClose,
@@ -39,6 +67,8 @@ export function ProductCreationWizard({
 }: ProductCreationWizardProps) {
   const insets = useSafeAreaInsets();
   const [activeStep, setActiveStep] = useState(0);
+  /** Dentro de Modal, o Android ignora muito o KAV; padding extra libera rolagem dos links. */
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const [formData, setFormData] = useState({
     // Step 1: Conteúdo
@@ -81,14 +111,29 @@ export function ProductCreationWizard({
   useEffect(() => {
     if (!visible) {
       setActiveStep(0);
+      setKeyboardInset(0);
     }
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardInset(e.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardInset(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
   }, [visible]);
 
   // Preencher dados se estiver editando
   useEffect(() => {
     if (product && visible) {
       setFormData({
-        files: product.digital?.files || [],
+        files: mapApiFilesToWizardFiles(product.digital?.files || []),
         links: product.digital?.downloadUrl
           ? [
               {
@@ -104,12 +149,19 @@ export function ProductCreationWizard({
         description: product.description || '',
         tags: product.tags || '',
         price: product.price || 10,
-        categoryId: product.categoryId || '',
+        categoryId:
+          typeof product.categoryId === 'object' && product.categoryId?._id
+            ? product.categoryId._id
+            : product.categoryId || '',
         coverImage: product.coverImage || null,
         paymentMode: product.paymentMode || 'UNICO',
         subscriptionScope: product.subscriptionScope || undefined,
         subscriptionInterval: product.subscriptionInterval || 30,
-        subscriptionPlanId: product.subscriptionPlanId || undefined,
+        subscriptionPlanId:
+          product.subscriptionPlanId ||
+          (typeof product.subscriptionPlan === 'object' && product.subscriptionPlan?._id
+            ? product.subscriptionPlan._id
+            : undefined),
         allowDownload: product.digital?.allowDownload || false,
         allowCertificate: product.allowCertificate || false,
         allowComments: product.allowComments || 'ALL',
@@ -275,7 +327,14 @@ export function ProductCreationWizard({
           <ContentStep formData={formData} setFormData={setFormData} />
         );
       case 1:
-        return <DetailsStep formData={formData} setFormData={setFormData} />;
+        return (
+          <DetailsStep
+            formData={formData}
+            setFormData={setFormData}
+            lockPaymentAndPlan={Boolean(product?._id)}
+            lockCategory={product?.status === 'APPROVED'}
+          />
+        );
       case 2:
         return (
           <ReviewStep
@@ -304,8 +363,9 @@ export function ProductCreationWizard({
     >
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(insets.top, 12) : 0}
+        enabled={Platform.OS === 'ios'}
       >
         <View style={[styles.overlay, { paddingTop: Math.max(insets.top, 12) }]}>
           <View style={styles.modalContainer}>
@@ -382,10 +442,17 @@ export function ProductCreationWizard({
             <View style={styles.contentWrapper}>
               <ScrollView
                 style={styles.content}
-                contentContainerStyle={styles.contentContainer}
+                contentContainerStyle={[
+                  styles.contentContainer,
+                  {
+                    paddingBottom:
+                      40 + keyboardInset + Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 8),
+                  },
+                ]}
                 showsVerticalScrollIndicator={true}
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled={true}
+                keyboardDismissMode="on-drag"
               >
                 {getStepContent()}
               </ScrollView>

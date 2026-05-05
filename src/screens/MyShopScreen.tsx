@@ -457,13 +457,26 @@ export function MyShopScreen() {
     (route.params?.openPlan && !planAutoOpenConsumed ? route.params.openPlan : null) ||
     pendingOpenPlanId;
 
-  const handleProductPrimaryAction = (product: any, mode: 'visitor' | 'owner') => {
+  const handleProductPrimaryAction = async (product: any, mode: 'visitor' | 'owner') => {
     const isVisitorMode = mode === 'visitor';
     const hasPurchased = product.purchaseStatus?.hasPurchased === true;
     const hasAccessViaPlan = product.purchaseStatus?.accessVia === 'SUBSCRIPTION_PLAN';
 
     if (!isVisitorMode && isOwner) {
-      navigation.navigate('Product', { productId: product._id });
+      try {
+        const res = await productsApi.getProduct(product._id);
+        if (res.success && res.data) {
+          setEditingProduct(res.data);
+          setShowCreateProductModal(true);
+        } else {
+          showToast.error('Produto', res.message || 'Não foi possível abrir para edição');
+        }
+      } catch (e: any) {
+        showToast.error(
+          'Produto',
+          e?.response?.data?.message || e?.message || 'Erro ao carregar o produto'
+        );
+      }
       return;
     }
 
@@ -1169,6 +1182,7 @@ export function MyShopScreen() {
 
       {/* Wizard de Criação de Produto */}
       <ProductCreationWizard
+        key={editingProduct?._id || 'new-product'}
         visible={showCreateProductModal}
         onClose={() => {
           setShowCreateProductModal(false);
@@ -1204,6 +1218,27 @@ export function MyShopScreen() {
                 fileSize: 0,
                 files: wizardData.files || [],
               },
+            };
+
+            const normalizeCategoryId = (v: any) => {
+              if (v == null || v === '') return '';
+              if (typeof v === 'object' && v !== null && '_id' in v) {
+                return String((v as { _id: string })._id);
+              }
+              return String(v);
+            };
+
+            /** PATCH valida com schema parcial: não enviar campos só do wizard nem type inválido no enum legado. */
+            const toUpdatePayload = (data: typeof productData) => {
+              const {
+                links: _l,
+                modules: _m,
+                files: _f,
+                contentValidations: _c,
+                type: _t,
+                ...rest
+              } = data as any;
+              return rest;
             };
 
             // Se há arquivos, criar produto primeiro para obter ID
@@ -1285,11 +1320,32 @@ export function MyShopScreen() {
               // Criar produto sem arquivos
               await productsApi.createProduct(productData);
             } else {
-              // Editar produto existente
-              await productsApi.updateProduct(productId, productData);
+              const pm = editingProduct?.paymentMode || 'UNICO';
+              let patch = toUpdatePayload(productData);
+              patch = {
+                ...patch,
+                paymentMode: pm,
+                subscriptionPlanId:
+                  pm === 'ASSINATURA' ? editingProduct?.subscriptionPlanId : undefined,
+                subscriptionScope:
+                  pm === 'ASSINATURA'
+                    ? editingProduct?.subscriptionScope || 'LOJA'
+                    : undefined,
+                price: pm === 'ASSINATURA' ? 0 : wizardData.price,
+              };
+              if (editingProduct?.status === 'APPROVED') {
+                patch = {
+                  ...patch,
+                  categoryId: normalizeCategoryId(editingProduct.categoryId),
+                };
+              }
+              await productsApi.updateProduct(productId, patch);
             }
 
-            showToast.success('Sucesso', 'Produto criado com sucesso!');
+            showToast.success(
+              'Sucesso',
+              editingProduct?._id ? 'Produto atualizado com sucesso!' : 'Produto criado com sucesso!'
+            );
             fetchProducts();
             setShowCreateProductModal(false);
             setEditingProduct(null);

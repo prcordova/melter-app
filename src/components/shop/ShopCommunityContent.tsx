@@ -237,7 +237,11 @@ export function ShopCommunityContent() {
   const totalLikes = likesByProduct.reduce((sum, p) => sum + p.totalLikes, 0);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled
+    >
       {/* Estatísticas */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>

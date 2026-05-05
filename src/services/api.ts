@@ -1511,7 +1511,7 @@ export const productsApi = {
     return response.data;
   },
   updateProduct: async (productId: string, data: any) => {
-    const response = await api.put<ApiResponse<any>>(`/api/products/${productId}`, data);
+    const response = await api.patch<ApiResponse<any>>(`/api/products/${productId}`, data);
     return response.data;
   },
   deleteProduct: async (productId: string) => {

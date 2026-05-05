@@ -183,7 +183,11 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Planos de Assinatura</Text>
         {!canCreatePlan || !canCreateActivePlan ? (

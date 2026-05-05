@@ -26,9 +26,18 @@ import { FIXED_CATEGORIES } from '../../../constants/categories';
 interface DetailsStepProps {
   formData: any;
   setFormData: (data: any) => void;
+  /** Edição: o backend não permite mudar pagamento único ↔ assinatura nem o plano após criação. */
+  lockPaymentAndPlan?: boolean;
+  /** Produto aprovado: categoria fixa (alinhado ao backend). */
+  lockCategory?: boolean;
 }
 
-export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
+export function DetailsStep({
+  formData,
+  setFormData,
+  lockPaymentAndPlan = false,
+  lockCategory = false,
+}: DetailsStepProps) {
   const { user } = useAuth();
   const [categories, setCategories] = useState<Array<{ _id: string; name: string }>>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
@@ -253,11 +262,20 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
           <Text style={styles.label}>
             Categoria <Text style={styles.required}>*</Text>
           </Text>
+          {lockCategory ? (
+            <Text style={styles.lockedHint}>
+              Produto aprovado: a categoria não pode ser alterada.
+            </Text>
+          ) : null}
           {loadingCategories ? (
             <ActivityIndicator size="small" color={COLORS.secondary.main} />
           ) : (
-            <View style={styles.pickerContainer}>
+            <View
+              style={[styles.pickerContainer, lockCategory && styles.pickerLocked]}
+              pointerEvents={lockCategory ? 'none' : 'auto'}
+            >
               <Picker
+                enabled={!lockCategory}
                 selectedValue={safeFormData.categoryId || ''}
                 onValueChange={(value: string) => {
                   if (value !== undefined && value !== null) {
@@ -369,13 +387,20 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
           <Ionicons name="card-outline" size={20} color={COLORS.text.secondary} />
           <Text style={styles.sectionTitle}>Tipo de Venda</Text>
         </View>
+        {lockPaymentAndPlan ? (
+          <Text style={styles.lockedHint}>
+            Após criar o produto, não é possível mudar entre venda única e assinatura nem trocar o plano
+            vinculado (proteção para quem já comprou).
+          </Text>
+        ) : null}
 
-        <View style={styles.radioGroup}>
+        <View style={[styles.radioGroup, lockPaymentAndPlan && styles.sectionDimmed]}>
           <TouchableOpacity
             style={[
               styles.radioOption,
               safeFormData.paymentMode === 'UNICO' && styles.radioOptionSelected,
             ]}
+            disabled={lockPaymentAndPlan}
             onPress={() => {
               try {
                 setFormData((prev: any) => ({
@@ -410,6 +435,7 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
               styles.radioOption,
               safeFormData.paymentMode === 'ASSINATURA' && styles.radioOptionSelected,
             ]}
+            disabled={lockPaymentAndPlan}
             onPress={() => {
               try {
                 setFormData((prev: any) => ({
@@ -474,8 +500,12 @@ export function DetailsStep({ formData, setFormData }: DetailsStepProps) {
             {loadingPlans ? (
               <ActivityIndicator size="small" color={COLORS.secondary.main} />
             ) : (
-              <View style={styles.pickerContainer}>
+              <View
+                style={[styles.pickerContainer, lockPaymentAndPlan && styles.pickerLocked]}
+                pointerEvents={lockPaymentAndPlan ? 'none' : 'auto'}
+              >
                 <Picker
+                  enabled={!lockPaymentAndPlan}
                   selectedValue={safeFormData.subscriptionPlanId || ''}
                   onValueChange={(value) => {
                     try {
@@ -775,6 +805,18 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     flex: 1,
     marginRight: 12,
+  },
+  lockedHint: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  pickerLocked: {
+    opacity: 0.55,
+  },
+  sectionDimmed: {
+    opacity: 0.65,
   },
 });
 
