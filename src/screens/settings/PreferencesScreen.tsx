@@ -46,11 +46,15 @@ export function PreferencesScreen() {
   const [saving, setSaving] = useState(false);
   const [emailMarketingEnabled, setEmailMarketingEnabled] = useState<boolean | null>(null);
   const [savingEmailPref, setSavingEmailPref] = useState(false);
+  const [emailNotifyFollowers, setEmailNotifyFollowers] = useState(true);
+  const [emailNotifyFriendRequests, setEmailNotifyFriendRequests] = useState(true);
+  const [emailNotifyOfflineMessages, setEmailNotifyOfflineMessages] = useState(true);
+  const [savingTransactional, setSavingTransactional] = useState(false);
   const hasUnsavedChanges = useRef(false);
 
   useEffect(() => {
     fetchPreferences();
-    fetchEmailMarketing();
+    fetchFullProfileEmailPrefs();
   }, []);
 
   const fetchPreferences = async () => {
@@ -71,13 +75,52 @@ export function PreferencesScreen() {
     }
   };
 
-  const fetchEmailMarketing = async () => {
+  const fetchFullProfileEmailPrefs = async () => {
     try {
-      // O email marketing vem do perfil do usuário, não de um endpoint separado
-      // Por enquanto, vamos assumir que está habilitado por padrão
-      setEmailMarketingEnabled(true);
+      const res = await userApi.getMyProfile({ scope: 'full' });
+      if (res.success && res.data) {
+        const d = res.data as {
+          preferences?: {
+            emailNotifyNewFollowers?: boolean;
+            emailNotifyFriendRequests?: boolean;
+            emailNotifyMessagesWhenOffline?: boolean;
+          };
+          termsAndPrivacy?: { emailMarketingConsent?: boolean };
+        };
+        if (d.preferences) {
+          setEmailNotifyFollowers(d.preferences.emailNotifyNewFollowers !== false);
+          setEmailNotifyFriendRequests(d.preferences.emailNotifyFriendRequests !== false);
+          setEmailNotifyOfflineMessages(d.preferences.emailNotifyMessagesWhenOffline !== false);
+        }
+        setEmailMarketingEnabled(d.termsAndPrivacy?.emailMarketingConsent !== false);
+      }
     } catch (error) {
-      console.error('Erro ao buscar preferência de email:', error);
+      console.error('Erro ao buscar preferências de e-mail do perfil:', error);
+    }
+  };
+
+  const patchTransactionalEmails = async (partial: {
+    emailNotifyNewFollowers?: boolean;
+    emailNotifyFriendRequests?: boolean;
+    emailNotifyMessagesWhenOffline?: boolean;
+  }): Promise<boolean> => {
+    try {
+      setSavingTransactional(true);
+      const res = await userApi.updateTransactionalEmailPreferences(partial);
+      if (res.success && res.data) {
+        setEmailNotifyFollowers(res.data.emailNotifyNewFollowers !== false);
+        setEmailNotifyFriendRequests(res.data.emailNotifyFriendRequests !== false);
+        setEmailNotifyOfflineMessages(res.data.emailNotifyMessagesWhenOffline !== false);
+        showToast.success('Sucesso', 'Preferências de e-mail atualizadas.');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Erro ao salvar e-mails transacionais:', e);
+      showToast.error('Erro', 'Não foi possível salvar as preferências de e-mail.');
+      return false;
+    } finally {
+      setSavingTransactional(false);
     }
   };
 
@@ -282,9 +325,80 @@ export function PreferencesScreen() {
           </Button>
         </View>
 
+        {/* E-mails de atividade (API Melter) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📧 Avisos por e-mail</Text>
+          <Text style={styles.sectionDescription}>
+            Novos seguidores: e-mail mesmo com o app aberto. Mensagens: só quando você não estiver com o chat ativo no Melter.
+          </Text>
+
+          <View style={styles.emailItem}>
+            <View style={styles.emailInfo}>
+              <Text style={styles.emailTitle}>Novos seguidores</Text>
+              <Text style={styles.emailDescription}>
+                Aviso quando alguém começar a te seguir.
+              </Text>
+            </View>
+            <Switch
+              value={emailNotifyFollowers}
+              onValueChange={async (checked) => {
+                const prev = emailNotifyFollowers;
+                setEmailNotifyFollowers(checked);
+                const ok = await patchTransactionalEmails({ emailNotifyNewFollowers: checked });
+                if (!ok) setEmailNotifyFollowers(prev);
+              }}
+              disabled={savingTransactional}
+              trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+              thumbColor="#ffffff"
+            />
+          </View>
+
+          <View style={styles.emailItem}>
+            <View style={styles.emailInfo}>
+              <Text style={styles.emailTitle}>Pedidos de amizade</Text>
+              <Text style={styles.emailDescription}>
+                Aviso quando alguém enviar um pedido de amizade.
+              </Text>
+            </View>
+            <Switch
+              value={emailNotifyFriendRequests}
+              onValueChange={async (checked) => {
+                const prev = emailNotifyFriendRequests;
+                setEmailNotifyFriendRequests(checked);
+                const ok = await patchTransactionalEmails({ emailNotifyFriendRequests: checked });
+                if (!ok) setEmailNotifyFriendRequests(prev);
+              }}
+              disabled={savingTransactional}
+              trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+              thumbColor="#ffffff"
+            />
+          </View>
+
+          <View style={styles.emailItem}>
+            <View style={styles.emailInfo}>
+              <Text style={styles.emailTitle}>Mensagens quando ausente</Text>
+              <Text style={styles.emailDescription}>
+                E-mail se um amigo enviar mensagem e você não estiver com o chat ativo.
+              </Text>
+            </View>
+            <Switch
+              value={emailNotifyOfflineMessages}
+              onValueChange={async (checked) => {
+                const prev = emailNotifyOfflineMessages;
+                setEmailNotifyOfflineMessages(checked);
+                const ok = await patchTransactionalEmails({ emailNotifyMessagesWhenOffline: checked });
+                if (!ok) setEmailNotifyOfflineMessages(prev);
+              }}
+              disabled={savingTransactional}
+              trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+              thumbColor="#ffffff"
+            />
+          </View>
+        </View>
+
         {/* Preferências de Email Marketing */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📧 Emails</Text>
+          <Text style={styles.sectionTitle}>📣 Email marketing</Text>
           
           <View style={styles.emailItem}>
             <View style={styles.emailInfo}>

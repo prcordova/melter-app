@@ -410,6 +410,20 @@ export const userApi = {
     });
     return response.data;
   },
+  updateTransactionalEmailPreferences: async (partial: {
+    emailNotifyNewFollowers?: boolean;
+    emailNotifyFriendRequests?: boolean;
+    emailNotifyMessagesWhenOffline?: boolean;
+  }) => {
+    const response = await api.patch<
+      ApiResponse<{
+        emailNotifyNewFollowers: boolean;
+        emailNotifyFriendRequests: boolean;
+        emailNotifyMessagesWhenOffline: boolean;
+      }>
+    >('/api/users/preferences/transactional-emails', partial);
+    return response.data;
+  },
   acceptTerms: async (version: string) => {
     const response = await api.post<ApiResponse<any>>('/api/users/accept-terms', { version });
     return response.data;
