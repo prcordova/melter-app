@@ -276,7 +276,7 @@ export function UserProfileScreen() {
         secondaryTasks.push(
           (async () => {
             try {
-              if (!response.data.profile?.showPosts) {
+              if (response.data.profile?.showPosts === false) {
                 setPosts([]);
                 return;
               }
@@ -885,7 +885,7 @@ export function UserProfileScreen() {
         ) : null}
 
         {/* Posts do Usuário */}
-        {profile.showPosts && (
+        {profile.showPosts !== false && (
           <View style={styles.postsSection}>
             <Text style={[styles.sectionTitle, dynamicStyles.text]}>Posts Recentes</Text>
             {posts.length > 0 ? (
