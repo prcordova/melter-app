@@ -14,6 +14,7 @@ import { userApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { useNavigation } from '@react-navigation/native';
 import { showToast } from './CustomToast';
+import { emitSocialGraphChanged } from '../lib/social-events';
 
 import { Avatar } from './Avatar';
 
@@ -62,6 +63,11 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
   const [followLoading, setFollowLoading] = useState(false);
 
   const isOwnProfile = currentUser?.id === user._id;
+
+  useEffect(() => {
+    setIsFollowing(Boolean(user.isFollowing));
+    setFriendshipStatus(user.friendshipStatus || 'NONE');
+  }, [user._id, user.isFollowing, user.friendshipStatus]);
 
   const handleProfilePress = () => {
     const normalizedUsername = normalizeUsername(user.username);
@@ -167,9 +173,19 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
       if (isFollowing) {
         await userApi.unfollowUser(user.username);
         setIsFollowing(false);
+        emitSocialGraphChanged({
+          username: normalizeUsername(user.username),
+          targetUserId: user._id,
+          isFollowing: false,
+        });
       } else {
         await userApi.followUser(user.username);
         setIsFollowing(true);
+        emitSocialGraphChanged({
+          username: normalizeUsername(user.username),
+          targetUserId: user._id,
+          isFollowing: true,
+        });
       }
     } catch (error) {
       console.error('[UserCard] Erro na ação de seguir:', error);

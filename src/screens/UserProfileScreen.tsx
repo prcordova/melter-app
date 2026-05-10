@@ -28,6 +28,7 @@ import { StoriesGroup } from '../types/feed';
 import { showToast } from '../components/CustomToast';
 import * as Clipboard from 'expo-clipboard';
 import { API_CONFIG } from '../config/api.config';
+import { emitSocialGraphChanged } from '../lib/social-events';
 
 const { width } = Dimensions.get('window');
 const FREE_PLAN_DEFAULT_BG = require('../../public/assets/imgs/bgMelter.jpg');
@@ -348,9 +349,19 @@ export function UserProfileScreen() {
       if (isFollowing) {
         await userApi.unfollowUser(username);
         setIsFollowing(false);
+        emitSocialGraphChanged({
+          username,
+          targetUserId: user?._id,
+          isFollowing: false,
+        });
       } else {
         await userApi.followUser(username);
         setIsFollowing(true);
+        emitSocialGraphChanged({
+          username,
+          targetUserId: user?._id,
+          isFollowing: true,
+        });
       }
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível realizar esta ação');
@@ -370,6 +381,7 @@ export function UserProfileScreen() {
           setFriendshipStatus('PENDING_SENT');
           setFriendshipId(res.data?._id || res.data?.id);
           showToast.success('Sucesso', 'Solicitação de amizade enviada');
+          emitSocialGraphChanged({ username, targetUserId: user?._id, friendshipStatus: 'PENDING_SENT' });
         }
       } else if (friendshipStatus === 'PENDING_RECEIVED') {
         if (!friendshipId) return;
@@ -377,6 +389,7 @@ export function UserProfileScreen() {
         if (res.success) {
           setFriendshipStatus('FRIENDS');
           showToast.success('Sucesso', 'Agora vocês são amigos!');
+          emitSocialGraphChanged({ username, targetUserId: user?._id, friendshipStatus: 'FRIENDS' });
         }
       } else if (friendshipStatus === 'PENDING_SENT') {
         if (!friendshipId) return;
@@ -385,6 +398,7 @@ export function UserProfileScreen() {
           setFriendshipStatus('NONE');
           setFriendshipId(null);
           showToast.success('Sucesso', 'Solicitação cancelada');
+          emitSocialGraphChanged({ username, targetUserId: user?._id, friendshipStatus: 'NONE' });
         }
       } else if (friendshipStatus === 'FRIENDS') {
         Alert.alert(
@@ -401,6 +415,7 @@ export function UserProfileScreen() {
                 if (res.success) {
                   setFriendshipStatus('NONE');
                   setFriendshipId(null);
+                  emitSocialGraphChanged({ username, targetUserId: user?._id, friendshipStatus: 'NONE' });
                 }
               }
             }

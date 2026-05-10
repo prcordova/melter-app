@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
+  DeviceEventEmitter,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { UserCard } from '../components/UserCard';
@@ -17,6 +18,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { SOCIAL_GRAPH_CHANGED, type SocialGraphPayload } from '../lib/social-events';
 
 interface User {
   _id: string;
@@ -55,6 +57,28 @@ const normalizeUsername = (value?: string) =>
     .filter(Boolean)
     .join('');
 
+/** API web usa NONE/PENDING/FRIENDLY; o app usa NONE/PENDING_SENT/PENDING_RECEIVED/FRIENDS */
+function mapUserFromApi(u: any): User | null {
+  if (!u || !u._id) return null
+  const fs = u.friendshipStatus as string | undefined
+  const isReq = Boolean(u.isRequester)
+  const isRec = Boolean(u.isRecipient)
+  let friendshipStatus: User['friendshipStatus'] = 'NONE'
+  if (fs === 'FRIENDLY') friendshipStatus = 'FRIENDS'
+  else if (fs === 'PENDING') {
+    if (isRec) friendshipStatus = 'PENDING_RECEIVED'
+    else if (isReq) friendshipStatus = 'PENDING_SENT'
+  }
+  const fid = u.friendshipId ? String(u.friendshipId) : undefined
+  return {
+    ...u,
+    friendshipStatus,
+    friendshipId: fid,
+    friendRequestId: fs === 'PENDING' && fid ? fid : u.friendRequestId,
+    isFollowing: Boolean(u.isFollowing),
+  }
+}
+
 export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: UsersSearchScreenProps = {}) {
   const { user: currentUser } = useAuth();
   const navigation = useNavigation<any>();
@@ -78,6 +102,32 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
       setIsMounted(false);
     };
   }, []);
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(
+      SOCIAL_GRAPH_CHANGED,
+      (payload: SocialGraphPayload) => {
+        setUsers((prev) =>
+          prev.map((u) => {
+            const byId = payload.targetUserId && String(u._id) === String(payload.targetUserId)
+            const byName =
+              payload.username &&
+              normalizeUsername(u.username) === normalizeUsername(payload.username)
+            if (!byId && !byName) return u
+            return {
+              ...u,
+              ...(payload.isFollowing !== undefined ? { isFollowing: payload.isFollowing } : {}),
+              ...(payload.friendshipStatus !== undefined
+                ? { friendshipStatus: payload.friendshipStatus as User['friendshipStatus'] }
+                : {}),
+            }
+          })
+        )
+        usersCache.clear()
+      }
+    )
+    return () => sub.remove()
+  }, [])
 
   useEffect(() => {
     if (!isMounted) return;
@@ -149,13 +199,7 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
           : (response.data?.featuredUsers || []);
 
         // Enriquecer dados com isFollowing
-        const processedUsers = (rawUsers || []).map((u: any) => {
-          if (!u || !u._id) return null;
-          return {
-            ...u,
-            isFollowing: Boolean(u.isFollowing),
-          };
-        }).filter(Boolean) as User[];
+        const processedUsers = (rawUsers || []).map((u: any) => mapUserFromApi(u)).filter(Boolean) as User[];
 
         if (pageNum === 1) {
           setUsers(processedUsers);
