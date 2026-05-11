@@ -461,6 +461,17 @@ export const userApi = {
     const response = await api.post<ApiResponse<{ backupCodes: string[] }>>('/api/users/2fa/verify', { code });
     return response.data;
   },
+
+  /** Selo verificado (PRO+, 2FA, documentos) — mesmo endpoint do web `VerificationBadge`. */
+  submitAccountVerification: async (formData: FormData) => {
+    const response = await api.post<ApiResponse<any>>('/api/users/verification/submit', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 120000,
+    });
+    return response.data;
+  },
 };
 
 // API de Posts (Feed)

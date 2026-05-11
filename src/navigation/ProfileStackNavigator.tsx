@@ -17,6 +17,7 @@ import { SecurityScreen } from '../screens/settings/SecurityScreen';
 import { PrivacyScreen } from '../screens/settings/PrivacyScreen';
 import { PreferencesScreen } from '../screens/settings/PreferencesScreen';
 import { ReferralScreen } from '../screens/ReferralScreen';
+import { AccountVerificationScreen } from '../screens/AccountVerificationScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -70,6 +71,11 @@ export function ProfileStackNavigator() {
         options={{
           headerShown: false,
         }}
+      />
+      <Stack.Screen
+        name="AccountVerification"
+        component={AccountVerificationScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

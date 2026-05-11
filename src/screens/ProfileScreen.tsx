@@ -18,7 +18,7 @@ import { StoryViewerModal } from '../components/StoryViewerModal';
 import { Button } from '../components/Button';
 import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { COLORS } from '../theme/colors';
-import { linksApi, storiesApi, userApi } from '../services/api';
+import { linksApi, storiesApi, userApi, sellerVerificationApi } from '../services/api';
 import { StoriesGroup } from '../types/feed';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -55,6 +55,8 @@ export function ProfileScreen() {
     url: '',
     visible: true,
   });
+  const [accountVerification, setAccountVerification] = useState<any | null>(null);
+  const [accountVerificationLoading, setAccountVerificationLoading] = useState(true);
   const currentPlanType = user?.plan?.type || 'FREE';
   const maxLinksByPlan: Record<string, number> = {
     FREE: 3,
@@ -85,6 +87,28 @@ export function ProfileScreen() {
       }
     } catch (e) {
       console.error('Erro ao buscar links:', e);
+    }
+  }, [user?.id]);
+
+  const loadAccountVerification = useCallback(async () => {
+    if (!user?.id) {
+      setAccountVerification(null);
+      setAccountVerificationLoading(false);
+      return;
+    }
+    setAccountVerificationLoading(true);
+    try {
+      const res = await sellerVerificationApi.getVerification();
+      if (res.success) {
+        setAccountVerification(res.data ?? null);
+      } else {
+        setAccountVerification(null);
+      }
+    } catch (e) {
+      console.error('Erro ao buscar verificação:', e);
+      setAccountVerification(null);
+    } finally {
+      setAccountVerificationLoading(false);
     }
   }, [user?.id]);
 
@@ -158,16 +182,22 @@ export function ProfileScreen() {
     if (user?.id) fetchMyStories();
   }, [user?.id]);
 
-  // Carregar links do usuário
+  // Carregar links e status de verificação (selo / documentos)
   React.useEffect(() => {
-    if (user?.id) loadUserLinks();
-  }, [user?.id, loadUserLinks]);
+    if (user?.id) {
+      loadUserLinks();
+      loadAccountVerification();
+    }
+  }, [user?.id, loadUserLinks, loadAccountVerification]);
 
-  // Recarregar links quando voltar da tela de links
+  // Recarregar ao focar no perfil
   useFocusEffect(
     useCallback(() => {
-      if (user?.id) loadUserLinks();
-    }, [user?.id, loadUserLinks])
+      if (user?.id) {
+        loadUserLinks();
+        loadAccountVerification();
+      }
+    }, [user?.id, loadUserLinks, loadAccountVerification])
   );
 
   const openAddLinkModal = () => {
@@ -747,6 +777,131 @@ export function ProfileScreen() {
           )}
         </View>
 
+        {/* Selo verificado — mesmo fluxo do web (PRO+, 2FA, POST /api/users/verification/submit) */}
+        <View style={styles.verificationSection}>
+          <View style={styles.linksHeaderRow}>
+            <Text style={styles.sectionTitle}>Conta verificada</Text>
+          </View>
+          {accountVerificationLoading ? (
+            <Text style={styles.verificationMuted}>Carregando status…</Text>
+          ) : shouldShowVerifiedBadgeOnProfile(user) ? (
+            <View style={styles.verificationCard}>
+              <View style={styles.verificationCardHeader}>
+                <Ionicons name="checkmark-circle" size={22} color={COLORS.states.success} />
+                <Text style={styles.verificationCardTitle}>Selo ativo</Text>
+              </View>
+              <Text style={styles.verificationBody}>
+                Sua conta exibe o selo verificado ao lado do nome, alinhado ao que você vê no site.
+              </Text>
+            </View>
+          ) : accountVerification?.status === 'pending' ? (
+            <View style={styles.verificationCard}>
+              <View style={styles.verificationCardHeader}>
+                <Ionicons name="time-outline" size={22} color={COLORS.states.warning} />
+                <Text style={styles.verificationCardTitle}>Em análise</Text>
+              </View>
+              <Text style={styles.verificationBody}>
+                Nossa equipe analisa em até 48 horas. Você será notificado quando a análise terminar.
+              </Text>
+            </View>
+          ) : accountVerification?.status === 'rejected' ? (
+            <View style={styles.verificationCard}>
+              <View style={styles.verificationCardHeader}>
+                <Ionicons name="close-circle-outline" size={22} color={COLORS.states.error} />
+                <Text style={styles.verificationCardTitle}>Solicitação não aprovada</Text>
+              </View>
+              {!!accountVerification?.rejectionReason && (
+                <Text style={styles.verificationRejection}>
+                  Motivo: {accountVerification.rejectionReason}
+                </Text>
+              )}
+              <Text style={styles.verificationBody}>
+                Corrija os pontos indicados e envie novamente. No site o fluxo está em Planos › Verificação de conta.
+              </Text>
+              {currentPlanType === 'PRO_PLUS' && user?.twoFactor?.enabled ? (
+                <TouchableOpacity
+                  style={styles.verificationCtaPrimary}
+                  onPress={() => (navigation as any).navigate('AccountVerification')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="refresh-outline" size={18} color="#ffffff" />
+                  <Text style={styles.verificationCtaPrimaryText}>Tentar novamente</Text>
+                </TouchableOpacity>
+              ) : currentPlanType !== 'PRO_PLUS' ? (
+                <TouchableOpacity
+                  style={styles.verificationCta}
+                  onPress={() => (navigation as any).navigate('Plans')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="lock-closed-outline" size={18} color={COLORS.secondary.main} />
+                  <Text style={styles.verificationCtaText}>Plano PRO+ necessário</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.verificationCta}
+                  onPress={() => (navigation as any).navigate('SecuritySettings')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.secondary.main} />
+                  <Text style={styles.verificationCtaText}>Ativar 2FA em Segurança</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : accountVerification?.status === 'needs_review' ? (
+            <View style={styles.verificationCard}>
+              <Text style={styles.verificationBody}>
+                Ajuste os documentos ou dados solicitados pela equipe. Depois você pode reenviar pela verificação de
+                conta.
+              </Text>
+              {currentPlanType === 'PRO_PLUS' && user?.twoFactor?.enabled ? (
+                <TouchableOpacity
+                  style={styles.verificationCtaPrimary}
+                  onPress={() => (navigation as any).navigate('AccountVerification')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="document-text-outline" size={18} color="#ffffff" />
+                  <Text style={styles.verificationCtaPrimaryText}>Reenviar documentos</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : (
+            <View style={styles.verificationCard}>
+              <Text style={styles.verificationBody}>
+                Obtenha o selo verificado com documentos e análise da equipe. Requisitos: plano PRO+ e 2FA ativo, como
+                no site (Configurações › Segurança).
+              </Text>
+              {currentPlanType !== 'PRO_PLUS' ? (
+                <TouchableOpacity
+                  style={styles.verificationCta}
+                  onPress={() => (navigation as any).navigate('Plans')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="lock-closed-outline" size={18} color={COLORS.secondary.main} />
+                  <Text style={styles.verificationCtaText}>Ver planos PRO+</Text>
+                </TouchableOpacity>
+              ) : !user?.twoFactor?.enabled ? (
+                <TouchableOpacity
+                  style={styles.verificationCta}
+                  onPress={() => (navigation as any).navigate('SecuritySettings')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.secondary.main} />
+                  <Text style={styles.verificationCtaText}>Ativar 2FA</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.verificationCtaPrimary}
+                  onPress={() => (navigation as any).navigate('AccountVerification')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="document-text-outline" size={18} color="#ffffff" />
+                  <Text style={styles.verificationCtaPrimaryText}>Enviar documentos</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+
         {/* Seção de Atalhos */}
         <View style={styles.shortcutsSectionHeader}>
           <Text style={styles.sectionTitle}>Atalhos</Text>
@@ -1142,6 +1297,78 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     width: '100%',
+  },
+  verificationSection: {
+    marginTop: 8,
+    marginBottom: 8,
+    gap: 10,
+  },
+  verificationMuted: {
+    fontSize: 14,
+    color: COLORS.text.tertiary,
+    paddingHorizontal: 4,
+  },
+  verificationCard: {
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    gap: 10,
+  },
+  verificationCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  verificationCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  verificationBody: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+  },
+  verificationRejection: {
+    fontSize: 14,
+    color: COLORS.states.error,
+    lineHeight: 20,
+  },
+  verificationCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.secondary.main,
+    backgroundColor: `${COLORS.secondary.main}12`,
+  },
+  verificationCtaText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.secondary.main,
+  },
+  verificationCtaPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: COLORS.secondary.main,
+  },
+  verificationCtaPrimaryText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
   },
   linksSection: {
     marginTop: 24,
