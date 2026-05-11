@@ -197,7 +197,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     hasAnalytics: true,
     hasShopAnalytics: true,
     hasPrioritySupport: true,
-    hasVerifiedBadge: true, // Selo verificado - DIFERENCIAL EXCLUSIVO PRO_PLUS
+    hasVerifiedBadge: true, // Selo (fluxo com documentos) — elegível também no PRO
     
     // Segurança - GRATUITO PARA TODOS
     hasTwoFactorAuth: true, // 2FA é segurança básica, não deve ser cobrado

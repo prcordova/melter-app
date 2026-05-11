@@ -462,7 +462,7 @@ export const userApi = {
     return response.data;
   },
 
-  /** Selo verificado (PRO+, 2FA, documentos) — mesmo endpoint do web `VerificationBadge`. */
+  /** Selo verificado (PRO ou PRO+, 2FA, documentos) — mesmo endpoint do web `VerificationBadge`. */
   submitAccountVerification: async (formData: FormData) => {
     const response = await api.post<ApiResponse<any>>('/api/users/verification/submit', formData, {
       headers: {

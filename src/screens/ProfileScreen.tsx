@@ -58,6 +58,8 @@ export function ProfileScreen() {
   const [accountVerification, setAccountVerification] = useState<any | null>(null);
   const [accountVerificationLoading, setAccountVerificationLoading] = useState(true);
   const currentPlanType = user?.plan?.type || 'FREE';
+  const canRequestAccountVerification =
+    currentPlanType === 'PRO' || currentPlanType === 'PRO_PLUS';
   const maxLinksByPlan: Record<string, number> = {
     FREE: 3,
     STARTER: 10,
@@ -777,7 +779,7 @@ export function ProfileScreen() {
           )}
         </View>
 
-        {/* Selo verificado — mesmo fluxo do web (PRO+, 2FA, POST /api/users/verification/submit) */}
+        {/* Selo verificado — mesmo fluxo do web (PRO ou PRO+, 2FA, POST /api/users/verification/submit) */}
         <View style={styles.verificationSection}>
           <View style={styles.linksHeaderRow}>
             <Text style={styles.sectionTitle}>Conta verificada</Text>
@@ -818,7 +820,7 @@ export function ProfileScreen() {
               <Text style={styles.verificationBody}>
                 Corrija os pontos indicados e envie novamente. No site o fluxo está em Planos › Verificação de conta.
               </Text>
-              {currentPlanType === 'PRO_PLUS' && user?.twoFactor?.enabled ? (
+              {canRequestAccountVerification && user?.twoFactor?.enabled ? (
                 <TouchableOpacity
                   style={styles.verificationCtaPrimary}
                   onPress={() => (navigation as any).navigate('AccountVerification')}
@@ -827,14 +829,14 @@ export function ProfileScreen() {
                   <Ionicons name="refresh-outline" size={18} color="#ffffff" />
                   <Text style={styles.verificationCtaPrimaryText}>Tentar novamente</Text>
                 </TouchableOpacity>
-              ) : currentPlanType !== 'PRO_PLUS' ? (
+              ) : !canRequestAccountVerification ? (
                 <TouchableOpacity
                   style={styles.verificationCta}
                   onPress={() => (navigation as any).navigate('Plans')}
                   activeOpacity={0.85}
                 >
                   <Ionicons name="lock-closed-outline" size={18} color={COLORS.secondary.main} />
-                  <Text style={styles.verificationCtaText}>Plano PRO+ necessário</Text>
+                  <Text style={styles.verificationCtaText}>Plano PRO ou PRO+ necessário</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -853,7 +855,7 @@ export function ProfileScreen() {
                 Ajuste os documentos ou dados solicitados pela equipe. Depois você pode reenviar pela verificação de
                 conta.
               </Text>
-              {currentPlanType === 'PRO_PLUS' && user?.twoFactor?.enabled ? (
+              {canRequestAccountVerification && user?.twoFactor?.enabled ? (
                 <TouchableOpacity
                   style={styles.verificationCtaPrimary}
                   onPress={() => (navigation as any).navigate('AccountVerification')}
@@ -867,17 +869,17 @@ export function ProfileScreen() {
           ) : (
             <View style={styles.verificationCard}>
               <Text style={styles.verificationBody}>
-                Obtenha o selo verificado com documentos e análise da equipe. Requisitos: plano PRO+ e 2FA ativo, como
-                no site (Configurações › Segurança).
+                Obtenha o selo verificado com documentos e análise da equipe. Requisitos: plano PRO ou PRO+ e 2FA ativo,
+                como no site (Configurações › Segurança).
               </Text>
-              {currentPlanType !== 'PRO_PLUS' ? (
+              {!canRequestAccountVerification ? (
                 <TouchableOpacity
                   style={styles.verificationCta}
                   onPress={() => (navigation as any).navigate('Plans')}
                   activeOpacity={0.85}
                 >
                   <Ionicons name="lock-closed-outline" size={18} color={COLORS.secondary.main} />
-                  <Text style={styles.verificationCtaText}>Ver planos PRO+</Text>
+                  <Text style={styles.verificationCtaText}>Ver planos PRO / PRO+</Text>
                 </TouchableOpacity>
               ) : !user?.twoFactor?.enabled ? (
                 <TouchableOpacity

@@ -85,7 +85,7 @@ export function AccountVerificationScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const planType = user?.plan?.type || 'FREE';
-  const isProPlus = planType === 'PRO_PLUS';
+  const isProOrProPlus = planType === 'PRO' || planType === 'PRO_PLUS';
   const has2FA = !!user?.twoFactor?.enabled;
   const alreadyVerified = shouldShowVerifiedBadgeOnProfile(user);
 
@@ -112,8 +112,8 @@ export function AccountVerificationScreen() {
   );
 
   const handleSubmit = async () => {
-    if (!isProPlus || !has2FA || alreadyVerified) {
-      showToast.error('Indisponível', 'Confira plano PRO+, 2FA e status da conta.');
+    if (!isProOrProPlus || !has2FA || alreadyVerified) {
+      showToast.error('Indisponível', 'Confira plano PRO ou PRO+, 2FA e status da conta.');
       return;
     }
     const name = fullName.trim();
@@ -194,7 +194,7 @@ export function AccountVerificationScreen() {
     );
   }
 
-  if (!isProPlus || !has2FA) {
+  if (!isProOrProPlus || !has2FA) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.headerRow}>
@@ -204,16 +204,16 @@ export function AccountVerificationScreen() {
         </View>
         <View style={styles.block}>
           <Text style={styles.lead}>
-            {!isProPlus
-              ? 'O selo verificado está disponível no plano PRO+.'
+            {!isProOrProPlus
+              ? 'O selo verificado está disponível nos planos PRO ou PRO+.'
               : 'Ative a autenticação em dois fatores (2FA) nas configurações de segurança antes de enviar os documentos.'}
           </Text>
-          {!isProPlus && (
+          {!isProOrProPlus && (
             <Button variant="primary" onPress={() => (navigation as any).navigate('Plans')} style={{ marginTop: 16 }}>
               Ver planos
             </Button>
           )}
-          {isProPlus && !has2FA && (
+          {isProOrProPlus && !has2FA && (
             <Button
               variant="primary"
               onPress={() => (navigation as any).navigate('SecuritySettings')}
