@@ -29,6 +29,7 @@ import { showToast } from '../components/CustomToast';
 import * as Clipboard from 'expo-clipboard';
 import { API_CONFIG } from '../config/api.config';
 import { emitSocialGraphChanged } from '../lib/social-events';
+import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 
 const { width } = Dimensions.get('window');
 const FREE_PLAN_DEFAULT_BG = require('../../public/assets/imgs/bgMelter.jpg');
@@ -342,6 +343,28 @@ export function UserProfileScreen() {
     loadData().finally(() => setRefreshing(false));
   }, [username]);
 
+  /** Mesma regra do web (`profile-content.tsx` → `canViewShop`). */
+  const canViewShop = useCallback(() => {
+    if (!user?.shop) return false;
+    if (!user.shop.isEnabled) return false;
+
+    const isSelf =
+      (currentUser?.id && (currentUser.id === user.id || currentUser.id === user._id)) ||
+      (currentUser?.username && currentUser.username === user.username);
+
+    if (isSelf) return true;
+
+    const visibility = user.shop.visibility || 'preview';
+    if (visibility === 'public') return true;
+    if (visibility === 'followers') return Boolean(isFollowing);
+    if (visibility === 'friends') {
+      return friendshipStatus === 'FRIENDS' || friendshipStatus === 'FRIENDLY';
+    }
+    return false;
+  }, [user, currentUser, isFollowing, friendshipStatus]);
+
+  const donationsEnabled = Boolean((user as any)?.donationsEnabled ?? (user as any)?.donationEnabled);
+
   const handleFollowAction = async () => {
     if (followLoading) return;
     try {
@@ -608,13 +631,22 @@ export function UserProfileScreen() {
   };
 
   const handleShopPress = () => {
-    // Navegar para a tab ShopsTab diretamente
-    const tabNavigator = navigation.getParent()?.getParent();
-    if (tabNavigator) {
-      (tabNavigator as any).navigate('ShopsTab');
-    } else {
-      navigation.navigate('ShopsTab' as never);
+    if (!canViewShop()) {
+      showToast.info('Loja', 'Você não tem permissão para ver esta loja (visibilidade ou loja desativada).');
+      return;
     }
+    const tabNav = navigation.getParent?.();
+    if (tabNav && typeof (tabNav as any).navigate === 'function') {
+      (tabNav as any).navigate('ProfileStack', {
+        screen: 'MyShop',
+        params: { username },
+      });
+      return;
+    }
+    (navigation as any).navigate('ProfileStack', {
+      screen: 'MyShop',
+      params: { username },
+    });
   };
 
   const handleDonatePress = () => {
@@ -682,7 +714,7 @@ export function UserProfileScreen() {
             {/* Nome, plano e 3 pontinhos na mesma linha */}
             <View style={styles.nameRow}>
               <Text style={[styles.username, dynamicStyles.text]}>@{user.username}</Text>
-              {user.verifiedBadge?.isVerified && (
+              {shouldShowVerifiedBadgeOnProfile(user) && (
                 <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
               )}
               <Text style={[styles.planType, { color: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) }]}>
@@ -705,9 +737,9 @@ export function UserProfileScreen() {
         </View>
 
         {/* Ações Rápidas (Loja e Doação) */}
-        {(user.shop?.isEnabled || user.donationEnabled) && (
+        {(canViewShop() || donationsEnabled) && (
           <View style={styles.quickActions}>
-            {user.shop?.isEnabled && (
+            {canViewShop() && (
               <TouchableOpacity 
                 style={[styles.quickActionButton, dynamicStyles.card]} 
                 onPress={handleShopPress}
@@ -716,7 +748,7 @@ export function UserProfileScreen() {
                 <Text style={[styles.quickActionText, dynamicStyles.cardText]}>Loja</Text>
               </TouchableOpacity>
             )}
-            {user.donationEnabled && (
+            {donationsEnabled && (
               <TouchableOpacity 
                 style={[styles.quickActionButton, dynamicStyles.card]} 
                 onPress={handleDonatePress}

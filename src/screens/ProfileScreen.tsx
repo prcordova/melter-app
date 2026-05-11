@@ -29,6 +29,7 @@ import { SelectRow } from '../components/SelectRow';
 type UserStatus = 'online' | 'busy' | 'offline';
 
 import { Avatar } from '../components/Avatar';
+import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 
 export function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -475,9 +476,14 @@ export function ProfileScreen() {
               <Ionicons name="chatbubble-ellipses" size={18} color={COLORS.primary.main} />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={() => handleMenuPress('profile')}>
-            <Text style={styles.username}>@{user?.username}</Text>
-          </TouchableOpacity>
+          <View style={styles.usernameRow}>
+            <TouchableOpacity onPress={() => handleMenuPress('profile')}>
+              <Text style={styles.username}>@{user?.username}</Text>
+            </TouchableOpacity>
+            {shouldShowVerifiedBadgeOnProfile(user) && (
+              <Ionicons name="checkmark-circle" size={20} color="#3b82f6" style={styles.verifiedIcon} />
+            )}
+          </View>
           <View style={styles.planAndEditRow}>
             <Text style={styles.planType}>{user?.plan?.type || 'FREE'}</Text>
             <TouchableOpacity
@@ -951,11 +957,19 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  verifiedIcon: {
+    marginBottom: 2,
+  },
   username: {
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.text.primary,
-    marginBottom: 4,
   },
   planAndEditRow: {
     flexDirection: 'row',

@@ -28,6 +28,7 @@ import { CreatePostModal } from './CreatePostModal';
 import { COLORS } from '../theme/colors';
 import { showToast } from './CustomToast';
 import { Avatar } from './Avatar';
+import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 
 interface PostModalProps {
   postId: string | null;
@@ -267,7 +268,7 @@ export function PostModal({
                       <View style={styles.userDetails}>
                         <View style={styles.usernameRow}>
                           <Text style={styles.username}>{post.userId?.username}</Text>
-                          {post.userId?.verifiedBadge?.isVerified && (
+                          {shouldShowVerifiedBadgeOnProfile(post.userId as any) && (
                             <Ionicons name="checkmark-circle" size={16} color={COLORS.secondary.main} />
                           )}
                         </View>

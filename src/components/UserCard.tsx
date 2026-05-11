@@ -15,6 +15,7 @@ import { COLORS } from '../theme/colors';
 import { useNavigation } from '@react-navigation/native';
 import { showToast } from './CustomToast';
 import { emitSocialGraphChanged } from '../lib/social-events';
+import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 
 import { Avatar } from './Avatar';
 
@@ -25,6 +26,7 @@ interface User {
   bio?: string;
   plan?: {
     type: 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
+    status?: string | null;
   };
   verifiedBadge?: {
     isVerified: boolean;
@@ -283,7 +285,7 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
               <Text style={styles.username} numberOfLines={1}>
                 {user.username}
               </Text>
-              {user.verifiedBadge?.isVerified && (
+              {shouldShowVerifiedBadgeOnProfile(user) && (
                 <Ionicons name="checkmark-circle" size={16} color="#3b82f6" />
               )}
               {user.plan?.type && user.plan.type !== 'FREE' && (

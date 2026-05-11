@@ -23,6 +23,7 @@ import { ShareModal } from './ShareModal';
 import { ReportPostModal } from './ReportPostModal';
 import { PostModal } from './PostModal';
 import { COLORS } from '../theme/colors';
+import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 
 import { Avatar } from './Avatar';
 
@@ -210,7 +211,7 @@ export function PostCard({
           <View style={styles.headerInfo}>
             <View style={styles.headerTitleRow}>
               <Text style={styles.originalUsername}>{originalPost.userId?.username || 'Usuário'}</Text>
-              {originalPost.userId.verifiedBadge?.isVerified && (
+              {shouldShowVerifiedBadgeOnProfile(originalPost.userId as any) && (
                 <Text style={[styles.verifiedBadge, { fontSize: 12 }]}>✓</Text>
               )}
               {originalPost.userId.plan?.type && originalPost.userId.plan.type !== 'FREE' && (
@@ -299,7 +300,7 @@ export function PostCard({
             <Text style={styles.username}>
               {(post.userId?.username && typeof post.userId.username === 'string') ? post.userId.username : 'Usuário'}
             </Text>
-            {post.userId?.verifiedBadge?.isVerified && (
+            {shouldShowVerifiedBadgeOnProfile(post.userId as any) && (
               <Text style={styles.verifiedBadge}>✓</Text>
             )}
             {post.userId?.plan?.type && typeof post.userId.plan.type === 'string' && post.userId.plan.type !== 'FREE' && (

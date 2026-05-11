@@ -295,33 +295,11 @@ export function MyShopScreen() {
         }
 
         if (shopVisibility === 'friends') {
-          // Verificar se o usuário é amigo do dono da loja
-          try {
-            const friendsResponse = await userApi.getMyFriends();
-
-            if (friendsResponse.success) {
-              // A API retorna um array direto ou um objeto com friends
-              const friends = Array.isArray(friendsResponse.data)
-                ? friendsResponse.data
-                : friendsResponse.data?.friends || [];
-              
-              const isFriend = friends.some(
-                (friend: any) =>
-                  (friend?._id === owner?.id) ||
-                  (friend?._id === owner?._id) ||
-                  (friend?.id === owner?.id) ||
-                  (friend?.id === owner?._id)
-              );
-
-              if (!isFriend) {
-                showToast.error('Erro', 'Esta loja é restrita apenas para amigos');
-                navigation.goBack();
-                return;
-              }
-            }
-          } catch (error) {
-            console.error('[MyShopScreen] Erro ao verificar amigos:', error);
-            showToast.error('Erro', 'Erro ao verificar permissões de acesso');
+          // Mesmo critério do web: status de amizade no GET /api/users/:username
+          const fs = owner.friendshipStatus as string | undefined;
+          const isFriend = fs === 'FRIENDS' || fs === 'FRIENDLY';
+          if (!isFriend) {
+            showToast.error('Erro', 'Esta loja é restrita apenas para amigos');
             navigation.goBack();
             return;
           }
