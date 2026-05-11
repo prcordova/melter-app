@@ -1,17 +1,15 @@
 /**
- * Selo ao lado do nome no perfil / feed:
- * - `verifiedBadge.isVerified`: selo oficial (manual, parceiro, ou sincronizado com a API).
- * - Plano PRO+ ativo: mesmo critério comercial do catálogo (plano mais alto com direito a selo no app).
+ * Selo “verificado” ao lado do nome (estilo Meta) — NÃO é e-mail verificado.
+ *
+ * - **emailVerified** (conta): confirmação de e-mail / conta ativa no fluxo de cadastro.
+ * - **verifiedBadge.isVerified** (selo): conta com selo após fluxo de confiança (documentos,
+ *   plano elegível, aprovação admin etc.). A API expõe `verifiedBadge.source`: `plan` | `manual` | `partner`.
+ *
+ * A UI do app deve espelhar o web: só exibir o ícone quando `verifiedBadge.isVerified === true`.
  */
 export function shouldShowVerifiedBadgeOnProfile(publicUser: {
   verifiedBadge?: { isVerified?: boolean | null };
-  plan?: { type?: string; status?: string | null };
 } | null | undefined): boolean {
   if (!publicUser) return false;
-  if (publicUser.verifiedBadge?.isVerified === true) return true;
-  const t = publicUser.plan?.type;
-  const st = publicUser.plan?.status;
-  if (t !== 'PRO_PLUS') return false;
-  if (st === 'INACTIVE' || st === 'EXPIRED' || st === 'CANCELLED') return false;
-  return st === 'ACTIVE' || st === undefined || st === null;
+  return publicUser.verifiedBadge?.isVerified === true;
 }
