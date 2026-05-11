@@ -61,18 +61,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = mapApiToUser(response.data);
         setUser(userData);
         await persistUserCache(userData);
+        return;
       }
-    } catch (error) {
+
+      await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+      setUser(null);
+    } catch (error: any) {
       console.error('Erro ao recarregar usuário:', error);
+      const code = error?.response?.data?.code;
+      if (code === 'TOKEN_VERSION_MISMATCH') {
+        return;
+      }
+      if (error?.response?.status === 401) {
+        await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+        setUser(null);
+      }
     }
   };
 
   // Carregar usuário ao iniciar app
   useEffect(() => {
     const loadUser = async () => {
+      let cachedUser: User | null = null;
+
       try {
         const token = await AsyncStorage.getItem('token');
-        
+
         if (!token) {
           setLoading(false);
           return;
@@ -83,27 +97,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const parsed = JSON.parse(cached) as User;
             if (parsed?.id && parsed?.username) {
-              setUser(parsed);
-              setLoading(false);
+              cachedUser = parsed;
             }
           } catch {
             await AsyncStorage.removeItem(USER_CACHE_KEY);
           }
         }
 
-        const response = await userApi.getMyProfile();
+        try {
+          const response = await userApi.getMyProfile();
 
-        if (response.success && response.data) {
-          const userData = mapApiToUser(response.data);
-          setUser(userData);
-          await persistUserCache(userData);
+          if (response?.success && response.data) {
+            const userData = mapApiToUser(response.data);
+            setUser(userData);
+            await persistUserCache(userData);
+            return;
+          }
+
+          // Resposta 200 com success false = sessão inválida (ex.: token expirado sem throw)
+          await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+          setUser(null);
+        } catch (error: any) {
+          console.error('Erro ao carregar usuário:', error);
+          const errorCode = error?.response?.data?.code;
+          const status = error?.response?.status;
+
+          if (errorCode === 'TOKEN_VERSION_MISMATCH') {
+            // Mesma regra da API: não apagar token aqui; usuário precisa novo login / fluxo dedicado
+            setUser(null);
+            return;
+          }
+
+          if (status === 401) {
+            await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+            setUser(null);
+            return;
+          }
+
+          // Sem resposta (rede/timeout): não “deslogar” à toa — usa cache se existir
+          if (!error?.response && cachedUser) {
+            setUser(cachedUser);
+            return;
+          }
+
+          if (status && status >= 500 && cachedUser) {
+            setUser(cachedUser);
+            return;
+          }
+
+          await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+          setUser(null);
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Erro ao carregar usuário:', error);
-        const errorCode = error?.response?.data?.code;
-        if (errorCode !== 'TOKEN_VERSION_MISMATCH') {
-          await AsyncStorage.removeItem('token');
-        }
+        setUser(null);
       } finally {
         setLoading(false);
       }

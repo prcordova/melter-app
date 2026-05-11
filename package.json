@@ -4,10 +4,11 @@
   "description": "Aplicativo oficial Melter - Conecte-se e compartilhe momentos",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "start": "expo start --offline",
+    "start:online": "expo start",
+    "android": "expo start --offline --android",
+    "ios": "expo start --offline --ios",
+    "web": "expo start --offline --web",
     "build": "eas build -p android --profile production",
     "build:preview": "eas build -p android --profile preview",
     "submit:prod": "eas submit -p android --profile production"
