@@ -1,5 +1,7 @@
 // Tipos para o Feed
 
+import type { UsernameDisplayEffectConfig } from './username-display-effect';
+
 export type ReactionType = 'LIKE' | 'LOVE' | 'HAPPY' | 'FIRE' | 'STRONG' | 'SAD' | 'ANGRY';
 
 export interface PostUser {
@@ -11,6 +13,10 @@ export interface PostUser {
   };
   verifiedBadge?: {
     isVerified: boolean;
+  };
+  /** Populado pela API nos posts (efeito PRO no @). */
+  profile?: {
+    usernameDisplayEffect?: UsernameDisplayEffectConfig | null;
   };
 }
 

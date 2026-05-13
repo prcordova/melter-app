@@ -41,6 +41,7 @@ type UserProfileRouteParams = {
 type UserProfileRouteProp = RouteProp<{ UserProfile: UserProfileRouteParams }, 'UserProfile'>;
 
 import { Avatar } from '../components/Avatar';
+import { UsernameGradientText } from '../components/UsernameGradientText';
 
 export function UserProfileScreen() {
   const route = useRoute<UserProfileRouteProp>();
@@ -713,7 +714,14 @@ export function UserProfileScreen() {
           <View style={styles.userInfo}>
             {/* Nome, plano e 3 pontinhos na mesma linha */}
             <View style={styles.nameRow}>
-              <Text style={[styles.username, dynamicStyles.text]}>@{user.username}</Text>
+              <UsernameGradientText
+                username={user.username}
+                prefix="@"
+                effect={user.profile?.usernameDisplayEffect ?? null}
+                fontSize={22}
+                fontWeight="bold"
+                style={[styles.username, dynamicStyles.text, { flexShrink: 1 }]}
+              />
               {shouldShowVerifiedBadgeOnProfile(user) && (
                 <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
               )}

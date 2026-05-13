@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,12 +18,18 @@ import { StoryViewerModal } from '../components/StoryViewerModal';
 import { StoryCreateModal } from '../components/StoryCreateModal';
 import { PostCard } from '../components/PostCard';
 import { AdCard } from '../components/AdCard';
-import { postsApi, storiesApi, adsApi } from '../services/api';
+import { PlatformFeedInfoSlot } from '../components/PlatformFeedInfoSlot';
+import { postsApi, storiesApi, adsApi, platformFeedInfoApi } from '../services/api';
 import { Post, StoriesGroup, Ad, ReactionType } from '../types/feed';
+import type { PlatformFeedInfoItem } from '../types/platform-feed-info';
+import {
+  loadDismissedPlatformFeedInfoIds,
+  persistDismissedPlatformFeedInfoIds,
+} from '../lib/platform-feed-info-dismiss';
 import { showToast } from '../components/CustomToast';
 
 export function FeedScreen() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
 
@@ -44,6 +50,24 @@ export function FeedScreen() {
   const [showStoryCreate, setShowStoryCreate] = useState(false);
   const [selectedStoryGroupIndex, setSelectedStoryGroupIndex] = useState(0);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [platformFeedRaw, setPlatformFeedRaw] = useState<PlatformFeedInfoItem[]>([]);
+  const [dismissedPlatformIds, setDismissedPlatformIds] = useState<Set<string>>(new Set());
+
+  const platformFeedItems = useMemo(
+    () => platformFeedRaw.filter((i) => !dismissedPlatformIds.has(i.id)),
+    [platformFeedRaw, dismissedPlatformIds]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const ids = await loadDismissedPlatformFeedInfoIds();
+      if (!cancelled) setDismissedPlatformIds(ids);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -152,6 +176,37 @@ export function FeedScreen() {
     }
   };
 
+  const fetchPlatformFeedInfo = useCallback(async () => {
+    if (!user?.id) {
+      setPlatformFeedRaw([]);
+      return;
+    }
+    try {
+      const response = await platformFeedInfoApi.getItems();
+      if (response.success && response.data?.items) {
+        setPlatformFeedRaw(response.data.items);
+      } else {
+        setPlatformFeedRaw([]);
+      }
+    } catch (error) {
+      console.error('[FEED] Erro ao buscar dicas da plataforma:', error);
+      setPlatformFeedRaw([]);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    void fetchPlatformFeedInfo();
+  }, [fetchPlatformFeedInfo]);
+
+  const dismissPlatformInfo = (id: string) => {
+    setDismissedPlatformIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      void persistDismissedPlatformFeedInfoIds(next);
+      return next;
+    });
+  };
+
   // Fetch Ads
   const fetchAds = async () => {
     try {
@@ -172,8 +227,9 @@ export function FeedScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadInitialData();
+    await fetchPlatformFeedInfo();
     setRefreshing(false);
-  }, []);
+  }, [fetchPlatformFeedInfo]);
 
   // Load More
   const loadMore = () => {
@@ -345,6 +401,20 @@ export function FeedScreen() {
             />
           );
         })()}
+
+        {platformFeedItems.length > 0 &&
+          ((index + 1) % 5 === 0 || index === posts.length - 1) && (
+            <View style={{ marginVertical: 8 }} key={`platform-info-${Math.floor((index + 1) / 5)}`}>
+              <PlatformFeedInfoSlot
+                items={platformFeedItems}
+                onDismiss={dismissPlatformInfo}
+                onAfterFollow={() => {
+                  void refreshUser();
+                  void fetchPlatformFeedInfo();
+                }}
+              />
+            </View>
+          )}
       </View>
     );
   };

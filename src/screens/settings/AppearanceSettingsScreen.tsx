@@ -23,6 +23,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../../components/CustomToast';
 import { getImageUrl } from '../../utils/image';
+import type { UsernameDisplayEffectConfig } from '../../types/username-display-effect';
+import {
+  DEFAULT_USERNAME_DISPLAY_EFFECT,
+  normalizeUsernameDisplayEffect,
+} from '../../types/username-display-effect';
+import { UsernameGradientText } from '../../components/UsernameGradientText';
 
 interface ProfileSettings {
   backgroundColor: string;
@@ -52,6 +58,12 @@ interface ProfileSettings {
 interface UserStatus {
   visibility: 'online' | 'busy' | 'offline';
   customMessage: string;
+}
+
+function mergeUsernameDisplayEffect(raw: unknown): UsernameDisplayEffectConfig {
+  const n = normalizeUsernameDisplayEffect(raw);
+  if (!n) return { ...DEFAULT_USERNAME_DISPLAY_EFFECT };
+  return { ...DEFAULT_USERNAME_DISPLAY_EFFECT, ...n };
 }
 
 export function AppearanceSettingsScreen() {
@@ -109,6 +121,9 @@ export function AppearanceSettingsScreen() {
   const [pendingAvatar, setPendingAvatar] = useState<string | null>(null);
   const [pendingBackground, setPendingBackground] = useState<string | null>(null);
   const [profileData, setProfileData] = useState<any>(null);
+  const [usernameEffect, setUsernameEffect] = useState<UsernameDisplayEffectConfig>(() => ({
+    ...DEFAULT_USERNAME_DISPLAY_EFFECT,
+  }));
 
   useEffect(() => {
     loadProfile();
@@ -155,6 +170,8 @@ export function AppearanceSettingsScreen() {
           buttonBackgroundColor: profile.buttonBackgroundColor || null,
           buttonTextColor: profile.buttonTextColor || null,
         }));
+
+        setUsernameEffect(mergeUsernameDisplayEffect(profile.usernameDisplayEffect));
 
         // Carregar status
         const status = data.status || {};
@@ -337,6 +354,10 @@ export function AppearanceSettingsScreen() {
       if (user?.plan?.type === 'STARTER' || user?.plan?.type === 'PRO' || user?.plan?.type === 'PRO_PLUS') {
         profilePayload.buttonBackgroundColor = settings.buttonBackgroundColor || null;
         profilePayload.buttonTextColor = settings.buttonTextColor || null;
+      }
+
+      if (user?.plan?.type === 'PRO' || user?.plan?.type === 'PRO_PLUS') {
+        profilePayload.usernameDisplayEffect = usernameEffect;
       }
 
       // 5. Salvar perfil
@@ -524,6 +545,214 @@ export function AppearanceSettingsScreen() {
               value={settings.buttonTextColor || '#ffffff'}
               onChange={(color) => handleSettingsChange({ buttonTextColor: color })}
             />
+          </PlanLocker>
+        </View>
+
+        {/* Seção: Efeito visual no @ (PRO) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>✨ Nome no feed e perfil</Text>
+          <Text style={styles.helperCaption}>
+            Gradiente e brilho no seu @ onde os posts e o perfil mostram o nome (planos PRO e PRO+).
+          </Text>
+
+          <PlanLocker requiredPlan="PRO" currentPlan={user?.plan?.type}>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Ativar efeito</Text>
+              <Switch
+                value={usernameEffect.enabled}
+                onValueChange={(value) => {
+                  setUsernameEffect((prev) =>
+                    value
+                      ? { ...DEFAULT_USERNAME_DISPLAY_EFFECT, ...prev, enabled: true }
+                      : { ...prev, enabled: false }
+                  );
+                  setHasChanges(true);
+                }}
+                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                thumbColor="#ffffff"
+              />
+            </View>
+
+            {usernameEffect.enabled ? (
+              <>
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>Movimento do gradiente</Text>
+                  <View style={styles.pickerWrapper}>
+                    <Picker
+                      selectedValue={usernameEffect.motionMode}
+                      onValueChange={(value) => {
+                        setUsernameEffect((p) => ({
+                          ...p,
+                          motionMode: value as UsernameDisplayEffectConfig['motionMode'],
+                        }));
+                        setHasChanges(true);
+                      }}
+                      style={styles.picker}
+                      dropdownIconColor={COLORS.text.secondary}
+                    >
+                      <Picker.Item label="Estático" value="static" />
+                      <Picker.Item label="Animado" value="animated" />
+                    </Picker>
+                  </View>
+                </View>
+
+                <ColorPickerField
+                  label="Cor inicial do gradiente"
+                  value={usernameEffect.gradientFrom}
+                  onChange={(color) => {
+                    setUsernameEffect((p) => ({ ...p, gradientFrom: color }));
+                    setHasChanges(true);
+                  }}
+                />
+                <ColorPickerField
+                  label="Cor final do gradiente"
+                  value={usernameEffect.gradientTo}
+                  onChange={(color) => {
+                    setUsernameEffect((p) => ({ ...p, gradientTo: color }));
+                    setHasChanges(true);
+                  }}
+                />
+                <ColorPickerField
+                  label="Cor inicial (hover — web)"
+                  value={usernameEffect.gradientHoverFrom}
+                  onChange={(color) => {
+                    setUsernameEffect((p) => ({ ...p, gradientHoverFrom: color }));
+                    setHasChanges(true);
+                  }}
+                />
+                <ColorPickerField
+                  label="Cor final (hover — web)"
+                  value={usernameEffect.gradientHoverTo}
+                  onChange={(color) => {
+                    setUsernameEffect((p) => ({ ...p, gradientHoverTo: color }));
+                    setHasChanges(true);
+                  }}
+                />
+
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>Intensidade do brilho: {usernameEffect.glowIntensity}</Text>
+                  <View style={styles.sliderContainer}>
+                    <TouchableOpacity
+                      style={styles.sliderButton}
+                      onPress={() => {
+                        const v = Math.max(0, usernameEffect.glowIntensity - 5);
+                        setUsernameEffect((p) => ({ ...p, glowIntensity: v }));
+                        setHasChanges(true);
+                      }}
+                    >
+                      <Ionicons name="remove" size={20} color={COLORS.text.primary} />
+                    </TouchableOpacity>
+                    <View style={styles.sliderTrack}>
+                      <View style={styles.sliderTrackBackground} />
+                      <View
+                        style={[
+                          styles.sliderTrackFill,
+                          {
+                            width: `${Math.max(0, Math.min(100, usernameEffect.glowIntensity))}%`,
+                            backgroundColor: COLORS.primary.main,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      style={styles.sliderButton}
+                      onPress={() => {
+                        const v = Math.min(100, usernameEffect.glowIntensity + 5);
+                        setUsernameEffect((p) => ({ ...p, glowIntensity: v }));
+                        setHasChanges(true);
+                      }}
+                    >
+                      <Ionicons name="add" size={20} color={COLORS.text.primary} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>
+                    Brilho no hover (web): {usernameEffect.hoverGlowIntensity}
+                  </Text>
+                  <View style={styles.sliderContainer}>
+                    <TouchableOpacity
+                      style={styles.sliderButton}
+                      onPress={() => {
+                        const v = Math.max(0, usernameEffect.hoverGlowIntensity - 5);
+                        setUsernameEffect((p) => ({ ...p, hoverGlowIntensity: v }));
+                        setHasChanges(true);
+                      }}
+                    >
+                      <Ionicons name="remove" size={20} color={COLORS.text.primary} />
+                    </TouchableOpacity>
+                    <View style={styles.sliderTrack}>
+                      <View style={styles.sliderTrackBackground} />
+                      <View
+                        style={[
+                          styles.sliderTrackFill,
+                          {
+                            width: `${Math.max(0, Math.min(100, usernameEffect.hoverGlowIntensity))}%`,
+                            backgroundColor: COLORS.primary.main,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      style={styles.sliderButton}
+                      onPress={() => {
+                        const v = Math.min(100, usernameEffect.hoverGlowIntensity + 5);
+                        setUsernameEffect((p) => ({ ...p, hoverGlowIntensity: v }));
+                        setHasChanges(true);
+                      }}
+                    >
+                      <Ionicons name="add" size={20} color={COLORS.text.primary} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Cores alternam ao passar o rato (web)</Text>
+                  <Switch
+                    value={usernameEffect.applyHover}
+                    onValueChange={(value) => {
+                      setUsernameEffect((p) => ({ ...p, applyHover: value }));
+                      setHasChanges(true);
+                    }}
+                    trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>Modo em listagens explorar (web)</Text>
+                  <View style={styles.pickerWrapper}>
+                    <Picker
+                      selectedValue={usernameEffect.explorerMode}
+                      onValueChange={(value) => {
+                        setUsernameEffect((p) => ({
+                          ...p,
+                          explorerMode: value as UsernameDisplayEffectConfig['explorerMode'],
+                        }));
+                        setHasChanges(true);
+                      }}
+                      style={styles.picker}
+                      dropdownIconColor={COLORS.text.secondary}
+                    >
+                      <Picker.Item label="Gradiente sempre visível" value="always" />
+                      <Picker.Item label="Só ao passar o rato (hover)" value="hover_only" />
+                    </Picker>
+                  </View>
+                </View>
+
+                <View style={styles.fieldContainer}>
+                  <Text style={styles.fieldLabel}>Pré-visualização</Text>
+                  <UsernameGradientText
+                    username={user?.username || 'usuario'}
+                    prefix="@"
+                    effect={usernameEffect}
+                    fontSize={18}
+                    fontWeight="700"
+                  />
+                </View>
+              </>
+            ) : null}
           </PlanLocker>
         </View>
 
@@ -839,6 +1068,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.text.primary,
     marginBottom: 16,
+  },
+  helperCaption: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    marginBottom: 16,
+    lineHeight: 18,
   },
   fieldContainer: {
     marginBottom: 16,

@@ -2,6 +2,8 @@ import axios, { AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
 import { Linking } from 'react-native';
+import type { UsernameDisplayEffectConfig } from '../types/username-display-effect';
+import type { PlatformFeedInfoItem } from '../types/platform-feed-info';
 
 // Criar instância do axios
 export const api = axios.create({
@@ -1161,6 +1163,7 @@ export const profileApi = {
       postsLimit?: number;
       buttonBackgroundColor?: string | null;
       buttonTextColor?: string | null;
+      usernameDisplayEffect?: UsernameDisplayEffectConfig | null;
     };
     status?: {
       visibility?: 'online' | 'busy' | 'offline';
@@ -1221,6 +1224,14 @@ export const profileApi = {
       },
     });
     
+    return response.data;
+  },
+};
+
+/** Dicas / campanhas da plataforma no feed (alinhado ao web `usePlatformFeedInfo`). */
+export const platformFeedInfoApi = {
+  getItems: async () => {
+    const response = await api.get<ApiResponse<{ items: PlatformFeedInfoItem[] }>>('/api/platform-feed-info');
     return response.data;
   },
 };

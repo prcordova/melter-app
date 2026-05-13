@@ -26,6 +26,7 @@ import { COLORS } from '../theme/colors';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 
 import { Avatar } from './Avatar';
+import { UsernameGradientText } from './UsernameGradientText';
 
 interface PostCardProps {
   post: Post;
@@ -210,7 +211,13 @@ export function PostCard({
           />
           <View style={styles.headerInfo}>
             <View style={styles.headerTitleRow}>
-              <Text style={styles.originalUsername}>{originalPost.userId?.username || 'Usuário'}</Text>
+              <UsernameGradientText
+                username={originalPost.userId?.username || 'Usuário'}
+                effect={originalPost.userId.profile?.usernameDisplayEffect ?? null}
+                fontSize={14}
+                fontWeight="600"
+                style={{ color: '#1e293b' }}
+              />
               {shouldShowVerifiedBadgeOnProfile(originalPost.userId as any) && (
                 <Text style={[styles.verifiedBadge, { fontSize: 12 }]}>✓</Text>
               )}
@@ -297,9 +304,17 @@ export function PostCard({
             activeOpacity={0.7}
             style={styles.headerTitleRow}
           >
-            <Text style={styles.username}>
-              {(post.userId?.username && typeof post.userId.username === 'string') ? post.userId.username : 'Usuário'}
-            </Text>
+            <UsernameGradientText
+              username={
+                (post.userId?.username && typeof post.userId.username === 'string')
+                  ? post.userId.username
+                  : 'Usuário'
+              }
+              effect={post.userId.profile?.usernameDisplayEffect ?? null}
+              fontSize={15}
+              fontWeight="600"
+              style={{ color: '#1e293b' }}
+            />
             {shouldShowVerifiedBadgeOnProfile(post.userId as any) && (
               <Text style={styles.verifiedBadge}>✓</Text>
             )}
