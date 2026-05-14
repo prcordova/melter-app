@@ -7,6 +7,8 @@ export type ReactionType = 'LIKE' | 'LOVE' | 'HAPPY' | 'FIRE' | 'STRONG' | 'SAD'
 export interface PostUser {
   _id: string;
   username: string;
+  /** Populado na API dos posts como fallback de exibição. */
+  fullName?: string;
   avatar?: string;
   plan?: {
     type: string;

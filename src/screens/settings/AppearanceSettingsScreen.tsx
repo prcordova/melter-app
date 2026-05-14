@@ -100,8 +100,8 @@ export function AppearanceSettingsScreen() {
     likesColor: '#ff0000',
     backgroundImage: null,
     backgroundMode: 'full',
-    backgroundOverlay: true,
-    backgroundOverlayOpacity: 90,
+    backgroundOverlay: false,
+    backgroundOverlayOpacity: 0,
     showLikes: true,
     showViews: true,
     showPosts: false,
@@ -161,7 +161,7 @@ export function AppearanceSettingsScreen() {
           backgroundMode: profile.backgroundMode || prev.backgroundMode,
           backgroundOverlay: profile.backgroundOverlay !== undefined ? profile.backgroundOverlay : prev.backgroundOverlay,
           backgroundOverlayOpacity: profile.backgroundOverlayOpacity !== undefined 
-            ? Math.max(0, Math.min(100, Number(profile.backgroundOverlayOpacity) || 90))
+            ? Math.max(0, Math.min(100, Number(profile.backgroundOverlayOpacity) || 0))
             : prev.backgroundOverlayOpacity,
           showLikes: profile.showLikes !== undefined ? profile.showLikes : prev.showLikes,
           showViews: profile.showViews !== undefined ? profile.showViews : prev.showViews,
@@ -193,7 +193,7 @@ export function AppearanceSettingsScreen() {
       const newSettings = { ...prev, ...updates };
       // Garantir que backgroundOverlayOpacity sempre seja um número válido entre 0 e 100
       if (newSettings.backgroundOverlayOpacity !== undefined) {
-        newSettings.backgroundOverlayOpacity = Math.max(0, Math.min(100, Number(newSettings.backgroundOverlayOpacity) || 90));
+        newSettings.backgroundOverlayOpacity = Math.max(0, Math.min(100, Number(newSettings.backgroundOverlayOpacity) || 0));
       }
       return newSettings;
     });
@@ -338,16 +338,16 @@ export function AppearanceSettingsScreen() {
       // Background mode e overlay (baseado no plano)
       if (user?.plan?.type === 'PRO' || user?.plan?.type === 'PRO_PLUS') {
         profilePayload.backgroundMode = settings.backgroundMode || 'full';
-        profilePayload.backgroundOverlay = settings.backgroundOverlay !== undefined ? settings.backgroundOverlay : true;
-        profilePayload.backgroundOverlayOpacity = settings.backgroundOverlayOpacity ?? 90;
+        profilePayload.backgroundOverlay = settings.backgroundOverlay !== undefined ? settings.backgroundOverlay : false;
+        profilePayload.backgroundOverlayOpacity = settings.backgroundOverlayOpacity ?? 0;
       } else if (user?.plan?.type === 'STARTER') {
         profilePayload.backgroundMode = 'full';
-        profilePayload.backgroundOverlay = true;
-        profilePayload.backgroundOverlayOpacity = settings.backgroundOverlayOpacity ?? 90;
+        profilePayload.backgroundOverlay = false;
+        profilePayload.backgroundOverlayOpacity = 0;
       } else {
         profilePayload.backgroundMode = 'full';
-        profilePayload.backgroundOverlay = true;
-        profilePayload.backgroundOverlayOpacity = 90;
+        profilePayload.backgroundOverlay = false;
+        profilePayload.backgroundOverlayOpacity = 0;
       }
 
       // Cores dos botões (apenas para STARTER, PRO, PRO_PLUS)
@@ -448,18 +448,21 @@ export function AppearanceSettingsScreen() {
             </View>
           </PlanLocker>
 
-          <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
+          <PlanLocker requiredPlan="PRO" currentPlan={user?.plan?.type}>
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>
-                Opacidade do Overlay: {Math.round(settings.backgroundOverlayOpacity ?? 90)}%
+                Opacidade do Overlay: {Math.round(settings.backgroundOverlayOpacity ?? 0)}%
               </Text>
               <View style={styles.sliderContainer}>
                 <TouchableOpacity
                   style={styles.sliderButton}
                   onPress={() => {
-                    const currentValue = settings.backgroundOverlayOpacity ?? 90;
+                    const currentValue = settings.backgroundOverlayOpacity ?? 0;
                     const newValue = Math.max(0, currentValue - 5);
-                    handleSettingsChange({ backgroundOverlayOpacity: newValue });
+                    handleSettingsChange({
+                      backgroundOverlayOpacity: newValue,
+                      ...(newValue > 0 ? { backgroundOverlay: true } : { backgroundOverlay: false }),
+                    });
                   }}
                 >
                   <Ionicons name="remove" size={20} color={COLORS.text.primary} />
@@ -470,7 +473,7 @@ export function AppearanceSettingsScreen() {
                     style={[
                       styles.sliderTrackFill,
                       {
-                        width: `${Math.max(0, Math.min(100, settings.backgroundOverlayOpacity ?? 90))}%`,
+                        width: `${Math.max(0, Math.min(100, settings.backgroundOverlayOpacity ?? 0))}%`,
                         backgroundColor: COLORS.primary.main,
                       },
                     ]}
@@ -479,9 +482,12 @@ export function AppearanceSettingsScreen() {
                 <TouchableOpacity
                   style={styles.sliderButton}
                   onPress={() => {
-                    const currentValue = settings.backgroundOverlayOpacity ?? 90;
+                    const currentValue = settings.backgroundOverlayOpacity ?? 0;
                     const newValue = Math.min(100, currentValue + 5);
-                    handleSettingsChange({ backgroundOverlayOpacity: newValue });
+                    handleSettingsChange({
+                      backgroundOverlayOpacity: newValue,
+                      ...(newValue > 0 ? { backgroundOverlay: true } : { backgroundOverlay: false }),
+                    });
                   }}
                 >
                   <Ionicons name="add" size={20} color={COLORS.text.primary} />

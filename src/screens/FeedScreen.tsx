@@ -116,12 +116,15 @@ export function FeedScreen() {
 
         // Filtrar posts inválidos
         const validPosts = newPosts.filter((p: Post) => {
-          return p && 
-                 p._id && 
-                 p.userId && 
-                 typeof p.userId === 'object' && 
-                 p.userId._id &&
-                 (p.userId.username || typeof p.userId.username === 'string');
+          if (!p?._id || !p.userId || typeof p.userId !== 'object') return false;
+          const uid = (p.userId as any)._id ?? (p.userId as any).id;
+          if (!uid) return false;
+          const u = p.userId.username;
+          const fn = (p.userId as any).fullName;
+          const hasLabel =
+            (typeof u === 'string' && u.trim().length > 0) ||
+            (typeof fn === 'string' && fn.trim().length > 0);
+          return hasLabel;
         });
 
         if (pageNum === 1) {

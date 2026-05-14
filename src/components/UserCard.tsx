@@ -198,6 +198,10 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
   };
 
   const handleMessagePress = () => {
+    if (friendshipStatus !== 'FRIENDS') {
+      showToast.info('Mensagens', 'Apenas amigos podem enviar mensagens.');
+      return;
+    }
     navigation.navigate('MessagesStack', {
       screen: 'Chat',
       params: {
@@ -343,7 +347,7 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
           </View>
 
           {/* Mensagem Icon (só para amigos) */}
-          {friendshipStatus === 'FRIENDS' && !isOwnProfile && (
+          {!isOwnProfile && (
             <TouchableOpacity 
               style={styles.messageIconButton}
               onPress={handleMessagePress}
@@ -359,22 +363,16 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
         <View style={styles.actions}>
           {/* Botão Seguir/Seguindo */}
           <TouchableOpacity
-            style={[
-              styles.actionButton,
-              isFollowing ? styles.actionButtonSecondary : styles.actionButtonPrimary,
-            ]}
+            style={[styles.actionButton, styles.actionButtonPrimary]}
             onPress={handleFollowAction}
             disabled={followLoading}
           >
             <Ionicons 
               name={isFollowing ? "person-remove-outline" : "person-add-outline"} 
               size={18} 
-              color={isFollowing ? COLORS.text.secondary : "#ffffff"} 
+              color="#ffffff" 
             />
-            <Text style={[
-              styles.actionButtonText,
-              !isFollowing && styles.actionButtonTextPrimary
-            ]}>
+            <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>
               {isFollowing ? 'Seguindo' : 'Seguir'}
             </Text>
           </TouchableOpacity>

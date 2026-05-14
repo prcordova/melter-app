@@ -20,7 +20,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { postsApi } from '../services/api';
 import { Post, ReactionType, REACTIONS } from '../types/feed';
-import { getAvatarUrl, getUserInitials } from '../utils/image';
+import { getAvatarUrl } from '../utils/image';
 import { useAuth } from '../contexts/AuthContext';
 import { CommentsModal } from './CommentsModal';
 import { ShareModal } from './ShareModal';
@@ -28,7 +28,14 @@ import { CreatePostModal } from './CreatePostModal';
 import { COLORS } from '../theme/colors';
 import { showToast } from './CustomToast';
 import { Avatar } from './Avatar';
+import { UsernameGradientText } from './UsernameGradientText';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
+import {
+  getPostAuthorDisplayLabel,
+  getPostAuthorObjectId,
+  getPostAuthorUsernameForNav,
+  VERIFIED_BADGE_ICON_COLOR,
+} from '../utils/post-author';
 
 interface PostModalProps {
   postId: string | null;
@@ -139,9 +146,10 @@ export function PostModal({
   };
 
   const handleAvatarPress = () => {
-    if (post?.userId?.username) {
+    const navUser = post ? getPostAuthorUsernameForNav(post.userId) : null;
+    if (navUser) {
       onClose();
-      navigation.navigate('UserProfile', { username: post.userId.username });
+      navigation.navigate('UserProfile', { username: navUser });
     }
   };
 
@@ -218,7 +226,7 @@ export function PostModal({
           >
             {/* Header */}
             <View style={styles.header}>
-              {user?.id === post?.userId?._id && (
+              {user?.id === getPostAuthorObjectId(post?.userId as any) && (
                 <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
                   <Ionicons name="ellipsis-horizontal" size={24} color={COLORS.text.primary} />
                 </TouchableOpacity>
@@ -258,7 +266,7 @@ export function PostModal({
                     >
                       <Avatar
                         user={{
-                          username: post.userId?.username,
+                          username: getPostAuthorDisplayLabel(post.userId),
                           avatar: post.userId?.avatar,
                         }}
                         size={40}
@@ -267,9 +275,23 @@ export function PostModal({
                       />
                       <View style={styles.userDetails}>
                         <View style={styles.usernameRow}>
-                          <Text style={styles.username}>{post.userId?.username}</Text>
+                          <View style={styles.authorNameShrink}>
+                            <UsernameGradientText
+                              username={getPostAuthorDisplayLabel(post.userId)}
+                              effect={post.userId.profile?.usernameDisplayEffect ?? null}
+                              fontSize={16}
+                              fontWeight="700"
+                              style={{ color: COLORS.text.primary }}
+                              numberOfLines={1}
+                            />
+                          </View>
                           {shouldShowVerifiedBadgeOnProfile(post.userId as any) && (
-                            <Ionicons name="checkmark-circle" size={16} color={COLORS.secondary.main} />
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={16}
+                              color={VERIFIED_BADGE_ICON_COLOR}
+                              style={styles.verifiedIconNoShrink}
+                            />
                           )}
                         </View>
                         <View style={styles.metaRow}>
@@ -575,11 +597,20 @@ const styles = StyleSheet.create({
   userDetails: {
     marginLeft: 12,
     flex: 1,
+    minWidth: 0,
   },
   usernameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    minWidth: 0,
+  },
+  authorNameShrink: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  verifiedIconNoShrink: {
+    flexShrink: 0,
   },
   username: {
     fontSize: 16,

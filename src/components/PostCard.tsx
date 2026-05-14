@@ -24,6 +24,12 @@ import { ReportPostModal } from './ReportPostModal';
 import { PostModal } from './PostModal';
 import { COLORS } from '../theme/colors';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
+import {
+  getPostAuthorDisplayLabel,
+  getPostAuthorObjectId,
+  getPostAuthorUsernameForNav,
+  VERIFIED_BADGE_ICON_COLOR,
+} from '../utils/post-author';
 
 import { Avatar } from './Avatar';
 import { UsernameGradientText } from './UsernameGradientText';
@@ -54,16 +60,15 @@ export function PostCard({
   const [showOriginalPostModal, setShowOriginalPostModal] = useState(false);
 
   // Verificação de segurança
-  if (!post || !post.userId || typeof post.userId !== 'object') {
+  const authorId = getPostAuthorObjectId(post.userId);
+  if (!post || !post.userId || typeof post.userId !== 'object' || !authorId) {
     return null;
   }
 
-  // Verificar se userId tem _id
-  if (!post.userId._id) {
-    return null;
-  }
+  const authorLabel = getPostAuthorDisplayLabel(post.userId);
+  const authorNavUsername = getPostAuthorUsernameForNav(post.userId);
 
-  const isOwnPost = user?.id === post.userId._id;
+  const isOwnPost = user?.id === authorId;
 
   const handleReactionPress = (reactionType: ReactionType) => {
     if (post?._id) {
@@ -115,8 +120,8 @@ export function PostCard({
   };
 
   const handleUserPress = () => {
-    if (post?.userId?.username) {
-      navigation.navigate('UserProfile', { username: post.userId.username });
+    if (authorNavUsername) {
+      navigation.navigate('UserProfile', { username: authorNavUsername });
     }
   };
 
@@ -205,24 +210,36 @@ export function PostCard({
       <View style={styles.originalPostContainer}>
         <View style={styles.originalHeader}>
           <Avatar 
-            user={{ username: originalPost.userId?.username || '', avatar: originalPost.userId?.avatar }} 
+            user={{
+              username: getPostAuthorDisplayLabel(originalPost.userId as any),
+              avatar: originalPost.userId?.avatar,
+            }} 
             size={32}
             style={styles.originalAvatar}
           />
           <View style={styles.headerInfo}>
             <View style={styles.headerTitleRow}>
-              <UsernameGradientText
-                username={originalPost.userId?.username || 'Usuário'}
-                effect={originalPost.userId.profile?.usernameDisplayEffect ?? null}
-                fontSize={14}
-                fontWeight="600"
-                style={{ color: '#1e293b' }}
-              />
+              <View style={styles.authorNameShrink}>
+                <UsernameGradientText
+                  username={getPostAuthorDisplayLabel(originalPost.userId as any)}
+                  effect={originalPost.userId.profile?.usernameDisplayEffect ?? null}
+                  fontSize={14}
+                  fontWeight="600"
+                  style={{ color: '#1e293b' }}
+                  numberOfLines={1}
+                />
+              </View>
               {shouldShowVerifiedBadgeOnProfile(originalPost.userId as any) && (
-                <Text style={[styles.verifiedBadge, { fontSize: 12 }]}>✓</Text>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={14}
+                  color={VERIFIED_BADGE_ICON_COLOR}
+                  style={styles.verifiedIcon}
+                />
               )}
               {originalPost.userId.plan?.type && originalPost.userId.plan.type !== 'FREE' && (
                 <View style={[
+                  { flexShrink: 0 },
                   styles.planBadge,
                   { paddingVertical: 1, paddingHorizontal: 4 },
                   originalPost.userId.plan.type === 'STARTER' && styles.planSTARTER,
@@ -292,8 +309,8 @@ export function PostCard({
       <View style={styles.header}>
         <Avatar 
           user={{ 
-            username: (post.userId?.username && typeof post.userId.username === 'string') ? post.userId.username : '', 
-            avatar: post.userId?.avatar 
+            username: authorLabel,
+            avatar: post.userId?.avatar,
           }} 
           size={40}
           style={styles.avatar}
@@ -304,22 +321,27 @@ export function PostCard({
             activeOpacity={0.7}
             style={styles.headerTitleRow}
           >
-            <UsernameGradientText
-              username={
-                (post.userId?.username && typeof post.userId.username === 'string')
-                  ? post.userId.username
-                  : 'Usuário'
-              }
-              effect={post.userId.profile?.usernameDisplayEffect ?? null}
-              fontSize={15}
-              fontWeight="600"
-              style={{ color: '#1e293b' }}
-            />
+            <View style={styles.authorNameShrink}>
+              <UsernameGradientText
+                username={authorLabel}
+                effect={post.userId.profile?.usernameDisplayEffect ?? null}
+                fontSize={15}
+                fontWeight="600"
+                style={{ color: '#1e293b' }}
+                numberOfLines={1}
+              />
+            </View>
             {shouldShowVerifiedBadgeOnProfile(post.userId as any) && (
-              <Text style={styles.verifiedBadge}>✓</Text>
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={VERIFIED_BADGE_ICON_COLOR}
+                style={styles.verifiedIcon}
+              />
             )}
             {post.userId?.plan?.type && typeof post.userId.plan.type === 'string' && post.userId.plan.type !== 'FREE' && (
               <View style={[
+                { flexShrink: 0 },
                 styles.planBadge,
                 post.userId.plan.type === 'STARTER' && styles.planSTARTER,
                 post.userId.plan.type === 'PRO' && styles.planPRO,
@@ -619,15 +641,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    minWidth: 0,
+  },
+  authorNameShrink: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  verifiedIcon: {
+    flexShrink: 0,
   },
   username: {
     fontSize: 15,
     fontWeight: '600',
     color: '#1e293b',
-  },
-  verifiedBadge: {
-    fontSize: 14,
-    color: '#3b82f6',
   },
   planBadge: {
     paddingHorizontal: 6,

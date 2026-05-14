@@ -151,7 +151,7 @@ export function UserProfileScreen() {
 
           // Garantir que backgroundOverlayOpacity seja um número válido
           if (userData.profile.backgroundOverlayOpacity !== undefined && userData.profile.backgroundOverlayOpacity !== null) {
-            userData.profile.backgroundOverlayOpacity = Math.max(0, Math.min(100, Number(userData.profile.backgroundOverlayOpacity) || 50));
+            userData.profile.backgroundOverlayOpacity = Math.max(0, Math.min(100, Number(userData.profile.backgroundOverlayOpacity) || 0));
           }
           // Garantir que backgroundOverlay seja um booleano
           if (userData.profile.backgroundOverlay !== undefined && userData.profile.backgroundOverlay !== null) {
@@ -287,13 +287,17 @@ export function UserProfileScreen() {
               if (!postsRes.success) return;
 
               const postsData = postsRes.data.posts || postsRes.data || [];
-              const validPosts = postsData.filter((post: any) =>
-                post &&
-                post._id &&
-                post.userId &&
-                typeof post.userId === 'object' &&
-                post.userId.username
-              );
+              const validPosts = postsData.filter((post: any) => {
+                if (!post?._id || !post.userId || typeof post.userId !== 'object') return false;
+                const uid = post.userId._id ?? post.userId.id;
+                if (!uid) return false;
+                const u = post.userId.username;
+                const fn = post.userId.fullName;
+                return (
+                  (typeof u === 'string' && u.trim().length > 0) ||
+                  (typeof fn === 'string' && fn.trim().length > 0)
+                );
+              });
               setPosts(validPosts);
             } catch (e) {
               console.error('Erro ao buscar posts:', e);
@@ -456,7 +460,7 @@ export function UserProfileScreen() {
 
   const handleMessagePress = () => {
     if (friendshipStatus !== 'FRIENDS') {
-      showToast.error('Aviso', 'Você só pode enviar mensagens para seus amigos.');
+      showToast.info('Mensagens', 'Apenas amigos podem enviar mensagens.');
       return;
     }
     navigation.navigate('MessagesStack', {
@@ -590,12 +594,12 @@ export function UserProfileScreen() {
       : null;
 
   // Validar backgroundOverlayOpacity para garantir que seja um número válido entre 0 e 100
-  const safeOverlayOpacity = profile.backgroundOverlayOpacity !== undefined && profile.backgroundOverlayOpacity !== null
-    ? Math.max(0, Math.min(100, Number(profile.backgroundOverlayOpacity) || 50))
-    : 50;
-  
-  // Validar backgroundOverlay para garantir que seja um booleano
-  const hasOverlay = profile.backgroundOverlay === true || profile.backgroundOverlay === 'true';
+  const safeOverlayOpacity =
+    profile.backgroundOverlayOpacity !== undefined && profile.backgroundOverlayOpacity !== null
+      ? Math.max(0, Math.min(100, Number(profile.backgroundOverlayOpacity) || 0))
+      : 0
+
+  const showCoverColorOverlay = profile.backgroundOverlay !== false && safeOverlayOpacity > 0
 
   // Validar cardStyle para garantir que seja um valor válido
   const safeCardStyle = profile.cardStyle === 'rounded' || profile.cardStyle === 'square' || profile.cardStyle === 'pill'
@@ -671,7 +675,7 @@ export function UserProfileScreen() {
           ) : (
             <View style={[styles.coverPlaceholder, { backgroundColor: getSafeColor(profile.backgroundColor, COLORS.primary.main) }]} />
           )}
-          {hasOverlay && (
+          {showCoverColorOverlay && (
             <View style={[styles.overlay, { opacity: safeOverlayOpacity / 100 }]} />
           )}
         </View>
@@ -810,12 +814,7 @@ export function UserProfileScreen() {
             <View style={styles.actionRow}>
               {/* Botão Seguir */}
               <TouchableOpacity
-                style={[
-                  styles.actionButton, 
-                  isFollowing 
-                    ? { backgroundColor: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) + '80', opacity: 0.7 }
-                    : dynamicStyles.button
-                ]}
+                style={[styles.actionButton, dynamicStyles.button]}
                 onPress={handleFollowAction}
                 disabled={followLoading}
               >
@@ -861,10 +860,8 @@ export function UserProfileScreen() {
               style={[
                 styles.messageButtonFull,
                 dynamicStyles.button,
-                friendshipStatus !== 'FRIENDS' && { opacity: 0.5 }
               ]} 
               onPress={handleMessagePress}
-              disabled={friendshipStatus !== 'FRIENDS'}
             >
               <Ionicons 
                 name="chatbubble-ellipses" 
