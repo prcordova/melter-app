@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 import { authApi, userApi } from '../services/api';
+import { getBiometricLoginEnabled } from '../services/biometricLogin';
 import { User } from '../types';
 
 interface LoginResult {
@@ -13,6 +14,9 @@ interface LoginResult {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  /** True após restaurar sessão com token e login biométrico ativo — mostrar modal até desbloquear. */
+  biometricUnlockRequired: boolean;
+  clearBiometricUnlockRequirement: () => void;
   login: (username: string, password: string, twoFactorCode?: string, tempToken?: string) => Promise<LoginResult | undefined>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -49,6 +53,11 @@ async function persistUserCache(u: User) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [biometricUnlockRequired, setBiometricUnlockRequired] = useState(false);
+
+  const clearBiometricUnlockRequirement = () => {
+    setBiometricUnlockRequired(false);
+  };
 
   // Recarregar dados do usuário
   const refreshUser = async () => {
@@ -111,6 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const userData = mapApiToUser(response.data);
             setUser(userData);
             await persistUserCache(userData);
+            try {
+              if (await getBiometricLoginEnabled()) {
+                setBiometricUnlockRequired(true);
+              }
+            } catch {
+              /* ignore */
+            }
             return;
           }
 
@@ -236,6 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         setUser(user);
         await persistUserCache(user);
+        setBiometricUnlockRequired(false);
 
         return { success: true };
       }
@@ -247,11 +264,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+    setBiometricUnlockRequired(false);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        biometricUnlockRequired,
+        clearBiometricUnlockRequirement,
+        login,
+        logout,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

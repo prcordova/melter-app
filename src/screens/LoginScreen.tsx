@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,22 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Image,
   StyleSheet,
+  Switch,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { AxiosError } from 'axios';
 import { showToast } from '../components/CustomToast';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import {
+  isBiometricLoginSupported,
+  hasBiometricLoginConfigured,
+  saveCredentialsWithBiometricConfirmation,
+  getCredentialsWithBiometric,
+} from '../services/biometricLogin';
 
 export function LoginScreen() {
   const { login } = useAuth();
@@ -26,11 +33,31 @@ export function LoginScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+  const [canUseBiometric, setCanUseBiometric] = useState(false);
+  const [hasBioLogin, setHasBioLogin] = useState(false);
+  const [saveWithBiometric, setSaveWithBiometric] = useState(false);
+  const [bioLoginLoading, setBioLoginLoading] = useState(false);
+
   // 2FA State
   const [requires2FA, setRequires2FA] = useState(false);
   const [tempToken, setTempToken] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      setCanUseBiometric(await isBiometricLoginSupported());
+    })();
+  }, []);
+
+  const refreshBioConfigured = useCallback(async () => {
+    setHasBioLogin(await hasBiometricLoginConfigured());
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshBioConfigured();
+    }, [refreshBioConfigured])
+  );
 
   const handleSubmit = async () => {
     setError('');
@@ -53,7 +80,19 @@ export function LoginScreen() {
         return;
       }
 
-      // Login bem-sucedido
+      // Login bem-sucedido — opcionalmente guardar credenciais para biometria
+      if (result?.success && saveWithBiometric && canUseBiometric) {
+        try {
+          await saveCredentialsWithBiometricConfirmation(formData.username, formData.password);
+          showToast.success('Biometria', 'Acesso guardado. Pode usar impressão digital ou rosto para entrar.');
+          await refreshBioConfigured();
+        } catch (e: any) {
+          if (e?.code !== 'BIOMETRIC_CANCELLED') {
+            showToast.error('Biometria', e?.message || 'Não foi possível guardar o acesso biométrico.');
+          }
+        }
+      }
+
       // A navegação será tratada automaticamente pelo AuthContext
     } catch (error) {
       const err = error as AxiosError<{ message: string; requiresVerification?: boolean; email?: string }>;
@@ -81,6 +120,28 @@ export function LoginScreen() {
   };
 
   const isFormValid = formData.username.length >= 3 && formData.password.length >= 6;
+
+  const handleBiometricQuickLogin = async () => {
+    setError('');
+    setBioLoginLoading(true);
+    try {
+      const { username, password } = await getCredentialsWithBiometric();
+      const result = await login(username, password);
+      if (result?.requires2FA && result?.tempToken) {
+        setFormData((prev) => ({ ...prev, username, password }));
+        setRequires2FA(true);
+        setTempToken(result.tempToken);
+        showToast.info('2FA', 'Conta com 2FA: digite o código do autenticador.');
+      }
+    } catch (e: any) {
+      if (e?.code === 'BIOMETRIC_CANCELLED') {
+        return;
+      }
+      setError(e?.message || 'Não foi possível entrar com biometria.');
+    } finally {
+      setBioLoginLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -177,6 +238,38 @@ export function LoginScreen() {
                     }
                     onRightIconPress={() => setShowPassword(!showPassword)}
                   />
+
+                  {canUseBiometric ? (
+                    <View style={styles.bioRow}>
+                      <View style={styles.bioRowTextWrap}>
+                        <Text style={styles.bioRowTitle}>Guardar acesso com biometria</Text>
+                        <Text style={styles.bioRowHint}>
+                          Após entrar, confirme com digital ou rosto para guardar utilizador e senha neste aparelho.
+                        </Text>
+                      </View>
+                      <Switch
+                        value={saveWithBiometric}
+                        onValueChange={setSaveWithBiometric}
+                        disabled={Boolean(loading)}
+                        trackColor={{ false: '#e2e8f0', true: '#f9a8d4' }}
+                        thumbColor={saveWithBiometric ? '#d946ef' : '#f4f4f5'}
+                      />
+                    </View>
+                  ) : null}
+
+                  {hasBioLogin && canUseBiometric ? (
+                    <TouchableOpacity
+                      style={[styles.bioQuickBtn, bioLoginLoading && styles.btnMuted]}
+                      onPress={handleBiometricQuickLogin}
+                      disabled={bioLoginLoading || loading}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="finger-print" size={22} color="#d946ef" />
+                      <Text style={styles.bioQuickBtnText}>
+                        {bioLoginLoading ? 'A autenticar…' : 'Entrar com biometria'}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
 
                   <Button
                     onPress={handleSubmit}
@@ -327,6 +420,48 @@ const styles = StyleSheet.create({
     color: '#d946ef',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  bioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  bioRowTextWrap: {
+    flex: 1,
+  },
+  bioRowTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  bioRowHint: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  bioQuickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#e9d5ff',
+    backgroundColor: '#faf5ff',
+  },
+  bioQuickBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#a21caf',
+  },
+  btnMuted: {
+    opacity: 0.6,
   },
 });
 

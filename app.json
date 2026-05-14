@@ -45,7 +45,8 @@
         "NSCameraUsageDescription": "O Melter precisa acessar sua câmera para tirar fotos e postar no feed.",
         "NSPhotoLibraryUsageDescription": "O Melter precisa acessar sua galeria para você escolher fotos e postar no feed.",
         "NSPhotoLibraryAddUsageDescription": "O Melter precisa salvar fotos na sua galeria.",
-        "NSMicrophoneUsageDescription": "O Melter precisa acessar seu microfone para gravar vídeos."
+        "NSMicrophoneUsageDescription": "O Melter precisa acessar seu microfone para gravar vídeos.",
+        "NSFaceIDUsageDescription": "O Melter usa Face ID para desbloquear o app e confirmar o acesso guardado com biometria."
       }
     },
     "android": {

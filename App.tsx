@@ -12,14 +12,14 @@ import { TabNavigator } from './src/navigation/TabNavigator';
 import { View, Text, StyleSheet } from 'react-native';
 import { usePermissions } from './src/hooks/usePermissions';
 import { CustomToast } from './src/components/CustomToast';
+import { BiometricUnlockModal } from './src/components/BiometricUnlockModal';
 
 const Stack = createNativeStackNavigator();
 
 function Navigation() {
-  const { user, loading } = useAuth();
+  const { user, loading, biometricUnlockRequired, clearBiometricUnlockRequirement, logout } = useAuth();
   usePermissions();
 
-  // Só bloqueia na sessão (token → perfil). Permissões de câmera/galeria rodam em segundo plano.
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -32,23 +32,23 @@ function Navigation() {
     );
   }
 
-         return (
-           <Stack.Navigator>
-             {user ? (
-               <Stack.Screen 
-                 name="Main" 
-                 component={TabNavigator}
-                 options={{ headerShown: false }}
-               />
-             ) : (
-               <Stack.Screen 
-                 name="Auth" 
-                 component={AuthStackNavigator}
-                 options={{ headerShown: false }}
-               />
-             )}
-           </Stack.Navigator>
-         );
+  return (
+    <>
+      <Stack.Navigator>
+        {user ? (
+          <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
+        ) : (
+          <Stack.Screen name="Auth" component={AuthStackNavigator} options={{ headerShown: false }} />
+        )}
+      </Stack.Navigator>
+
+      <BiometricUnlockModal
+        visible={Boolean(user && biometricUnlockRequired)}
+        onUnlocked={clearBiometricUnlockRequirement}
+        onLogout={logout}
+      />
+    </>
+  );
 }
 
 export default function App() {
