@@ -2,7 +2,7 @@
   "expo": {
     "name": "melter-app",
     "slug": "melter-app",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "orientation": "portrait",
     "icon": "./assets/bee.png",
     "userInterfaceStyle": "light",
@@ -51,7 +51,7 @@
     "android": {
       "package": "com.melter.app",
       "softwareKeyboardLayoutMode": "resize",
-      "versionCode": 13,
+      "versionCode": 14,
       "adaptiveIcon": {
         "foregroundImage": "./assets/bee.png",
         "backgroundColor": "#FFFFFF"
