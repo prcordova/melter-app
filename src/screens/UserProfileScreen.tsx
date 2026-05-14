@@ -1235,7 +1235,8 @@ export function UserProfileScreen() {
           <View style={styles.shareSheetContainer}>
             <Text style={styles.shareSheetHeading}>Copiar para área de transferência</Text>
             <Text style={styles.shareSheetHint}>
-              O feed público inclui apenas posts com visibilidade pública (útil para FiveM, sites externos, etc.).
+              O link do perfil abre sempre. O da lista pública (/user/…/posts) também é válido mesmo sem posts
+              públicos — a página e a API mostram lista vazia. Só entram posts com visibilidade pública.
             </Text>
             <TouchableOpacity
               style={styles.shareSheetRow}
