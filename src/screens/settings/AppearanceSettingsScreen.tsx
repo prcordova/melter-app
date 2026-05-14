@@ -107,7 +107,7 @@ export function AppearanceSettingsScreen() {
     backgroundOverlayOpacity: 0,
     showLikes: true,
     showViews: true,
-    showPosts: false,
+    showPosts: true,
     postsLimit: 5,
     buttonBackgroundColor: null,
     buttonTextColor: null,
@@ -175,7 +175,7 @@ export function AppearanceSettingsScreen() {
             : prev.backgroundOverlayOpacity,
           showLikes: profile.showLikes !== undefined ? profile.showLikes : prev.showLikes,
           showViews: profile.showViews !== undefined ? profile.showViews : prev.showViews,
-          showPosts: profile.showPosts !== undefined ? profile.showPosts : prev.showPosts,
+          showPosts: profile.showPosts !== undefined ? profile.showPosts : (prev.showPosts ?? true),
           postsLimit: profile.postsLimit || prev.postsLimit,
           buttonBackgroundColor: profile.buttonBackgroundColor || null,
           buttonTextColor: profile.buttonTextColor || null,
@@ -437,6 +437,142 @@ export function AppearanceSettingsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Seção: Avatar e Bio */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>👤 Avatar e Bio</Text>
+          
+          <View style={styles.avatarContainer}>
+            <EditableAvatar
+              src={avatarPreview || user?.avatar || null}
+              username={user?.username}
+              planType={user?.plan?.type}
+              editable
+              onAvatarChange={handleAvatarChange}
+              size={96}
+            />
+          </View>
+
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Biografia</Text>
+            <TextInput
+              style={styles.bioInput}
+              value={bio}
+              onChangeText={handleBioChange}
+              placeholder="Escreva uma biografia..."
+              placeholderTextColor={COLORS.text.tertiary}
+              multiline
+              numberOfLines={3}
+              maxLength={500}
+            />
+            <Text style={styles.charCount}>{bio.length}/500</Text>
+          </View>
+
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Status de Visibilidade</Text>
+            <View style={styles.statusContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.statusOption,
+                  userStatus.visibility === 'online' && styles.statusOptionActive,
+                ]}
+                onPress={() => handleStatusChange({ visibility: 'online' })}
+              >
+                <View style={[styles.statusDot, { backgroundColor: '#4caf50' }]} />
+                <Text style={styles.statusText}>Online</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.statusOption,
+                  userStatus.visibility === 'busy' && styles.statusOptionActive,
+                ]}
+                onPress={() => handleStatusChange({ visibility: 'busy' })}
+              >
+                <View style={[styles.statusDot, { backgroundColor: '#f44336' }]} />
+                <Text style={styles.statusText}>Ausente</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.statusOption,
+                  userStatus.visibility === 'offline' && styles.statusOptionActive,
+                ]}
+                onPress={() => handleStatusChange({ visibility: 'offline' })}
+              >
+                <View style={[styles.statusDot, { backgroundColor: '#9e9e9e' }]} />
+                <Text style={styles.statusText}>Offline</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.fieldContainer}>
+            <Text style={styles.fieldLabel}>Mensagem Personalizada</Text>
+            <TextInput
+              style={styles.bioInput}
+              value={userStatus.customMessage}
+              onChangeText={(text) => handleStatusChange({ customMessage: text.slice(0, 100) })}
+              placeholder="Ex: Trabalhando..."
+              placeholderTextColor={COLORS.text.tertiary}
+              maxLength={100}
+            />
+            <Text style={styles.charCount}>{userStatus.customMessage.length}/100</Text>
+          </View>
+
+          <Text style={[styles.fieldLabel, { marginTop: 8 }]}>Aparência do balão de status</Text>
+          <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginBottom: 12 }}>
+            Cores do balão no perfil público (STARTER ou superior).
+          </Text>
+          <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
+            <ColorPickerField
+              label="Cor do texto da mensagem"
+              value={settings.statusMessageTextColor || settings.textColor}
+              onChange={(color) => handleSettingsChange({ statusMessageTextColor: color })}
+            />
+            <ColorPickerField
+              label="Fundo do balão (externo)"
+              value={settings.statusMessageContainerBg || settings.cardColor}
+              onChange={(color) => handleSettingsChange({ statusMessageContainerBg: color })}
+            />
+            <ColorPickerField
+              label="Fundo interno (área do texto)"
+              value={settings.statusMessageBubbleBg || settings.cardColor}
+              onChange={(color) => handleSettingsChange({ statusMessageBubbleBg: color })}
+            />
+            <TouchableOpacity
+              onPress={() =>
+                handleSettingsChange({
+                  statusMessageTextColor: null,
+                  statusMessageContainerBg: null,
+                  statusMessageBubbleBg: null,
+                })
+              }
+            >
+              <Text style={{ fontSize: 14, color: COLORS.primary.main, marginTop: 8 }}>
+                Restaurar cores padrão
+              </Text>
+            </TouchableOpacity>
+          </PlanLocker>
+
+          <View style={styles.fieldContainer}>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Mostrar Visualizações</Text>
+              <Switch
+                value={settings.showViews}
+                onValueChange={(value) => handleSettingsChange({ showViews: value })}
+                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                thumbColor="#ffffff"
+              />
+            </View>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Mostrar Likes</Text>
+              <Switch
+                value={settings.showLikes}
+                onValueChange={(value) => handleSettingsChange({ showLikes: value })}
+                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                thumbColor="#ffffff"
+              />
+            </View>
+          </View>
+        </View>
+
         {/* Seção: Background */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🎨 Background</Text>
@@ -611,142 +747,6 @@ export function AppearanceSettingsScreen() {
             previewUsername={userStatus.customMessage?.trim() || 'Olá!'}
             previewPrefix=""
           />
-        </View>
-
-        {/* Seção: Avatar e Bio */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👤 Avatar e Bio</Text>
-          
-          <View style={styles.avatarContainer}>
-            <EditableAvatar
-              src={avatarPreview || user?.avatar || null}
-              username={user?.username}
-              planType={user?.plan?.type}
-              editable
-              onAvatarChange={handleAvatarChange}
-              size={96}
-            />
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Biografia</Text>
-            <TextInput
-              style={styles.bioInput}
-              value={bio}
-              onChangeText={handleBioChange}
-              placeholder="Escreva uma biografia..."
-              placeholderTextColor={COLORS.text.tertiary}
-              multiline
-              numberOfLines={3}
-              maxLength={500}
-            />
-            <Text style={styles.charCount}>{bio.length}/500</Text>
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Status de Visibilidade</Text>
-            <View style={styles.statusContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.statusOption,
-                  userStatus.visibility === 'online' && styles.statusOptionActive,
-                ]}
-                onPress={() => handleStatusChange({ visibility: 'online' })}
-              >
-                <View style={[styles.statusDot, { backgroundColor: '#4caf50' }]} />
-                <Text style={styles.statusText}>Online</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.statusOption,
-                  userStatus.visibility === 'busy' && styles.statusOptionActive,
-                ]}
-                onPress={() => handleStatusChange({ visibility: 'busy' })}
-              >
-                <View style={[styles.statusDot, { backgroundColor: '#f44336' }]} />
-                <Text style={styles.statusText}>Ausente</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.statusOption,
-                  userStatus.visibility === 'offline' && styles.statusOptionActive,
-                ]}
-                onPress={() => handleStatusChange({ visibility: 'offline' })}
-              >
-                <View style={[styles.statusDot, { backgroundColor: '#9e9e9e' }]} />
-                <Text style={styles.statusText}>Offline</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Mensagem Personalizada</Text>
-            <TextInput
-              style={styles.bioInput}
-              value={userStatus.customMessage}
-              onChangeText={(text) => handleStatusChange({ customMessage: text.slice(0, 100) })}
-              placeholder="Ex: Trabalhando..."
-              placeholderTextColor={COLORS.text.tertiary}
-              maxLength={100}
-            />
-            <Text style={styles.charCount}>{userStatus.customMessage.length}/100</Text>
-          </View>
-
-          <Text style={[styles.fieldLabel, { marginTop: 8 }]}>Aparência do balão de status</Text>
-          <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginBottom: 12 }}>
-            Cores do balão no perfil público (STARTER ou superior).
-          </Text>
-          <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
-            <ColorPickerField
-              label="Cor do texto da mensagem"
-              value={settings.statusMessageTextColor || settings.textColor}
-              onChange={(color) => handleSettingsChange({ statusMessageTextColor: color })}
-            />
-            <ColorPickerField
-              label="Fundo do balão (externo)"
-              value={settings.statusMessageContainerBg || settings.cardColor}
-              onChange={(color) => handleSettingsChange({ statusMessageContainerBg: color })}
-            />
-            <ColorPickerField
-              label="Fundo interno (área do texto)"
-              value={settings.statusMessageBubbleBg || settings.cardColor}
-              onChange={(color) => handleSettingsChange({ statusMessageBubbleBg: color })}
-            />
-            <TouchableOpacity
-              onPress={() =>
-                handleSettingsChange({
-                  statusMessageTextColor: null,
-                  statusMessageContainerBg: null,
-                  statusMessageBubbleBg: null,
-                })
-              }
-            >
-              <Text style={{ fontSize: 14, color: COLORS.primary.main, marginTop: 8 }}>
-                Restaurar cores padrão
-              </Text>
-            </TouchableOpacity>
-          </PlanLocker>
-
-          <View style={styles.fieldContainer}>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Mostrar Visualizações</Text>
-              <Switch
-                value={settings.showViews}
-                onValueChange={(value) => handleSettingsChange({ showViews: value })}
-                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
-                thumbColor="#ffffff"
-              />
-            </View>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Mostrar Likes</Text>
-              <Switch
-                value={settings.showLikes}
-                onValueChange={(value) => handleSettingsChange({ showLikes: value })}
-                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
-                thumbColor="#ffffff"
-              />
-            </View>
-          </View>
         </View>
 
         {/* Seção: Cards */}
