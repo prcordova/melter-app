@@ -10,7 +10,11 @@ yarn-error.log*
 dist/
 web-build/
 
-# Native
+# Native (geradas por `expo prebuild` / EAS; fonte de verdade é app.json + plugins)
+android/
+ios/
+
+# Native — segredos / artefatos locais
 *.orig.*
 *.jks
 *.p8
