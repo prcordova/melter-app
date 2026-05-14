@@ -20,9 +20,10 @@ import { Header } from '../components/Header';
 import { PostCard } from '../components/PostCard';
 import { StoryViewerModal } from '../components/StoryViewerModal';
 import { ReportUserModal } from '../components/ReportUserModal';
+import { DonationModal } from '../components/DonationModal';
 import { userApi, postsApi, storiesApi } from '../services/api';
 import { COLORS } from '../theme/colors';
-import { getAvatarUrl, getUserInitials } from '../utils/image';
+import { getAvatarUrl, getUserInitials, getImageUrl } from '../utils/image';
 import { useAuth } from '../contexts/AuthContext';
 import { StoriesGroup } from '../types/feed';
 import { showToast } from '../components/CustomToast';
@@ -46,7 +47,7 @@ import { UsernameGradientText } from '../components/UsernameGradientText';
 export function UserProfileScreen() {
   const route = useRoute<UserProfileRouteProp>();
   const navigation = useNavigation<any>();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refreshUser } = useAuth();
   const { username } = route.params;
 
   const [user, setUser] = useState<any>(null);
@@ -66,6 +67,7 @@ export function UserProfileScreen() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [donationModalVisible, setDonationModalVisible] = useState(false);
 
   const renderProfileSkeleton = () => (
     <View style={styles.skeletonContainer}>
@@ -369,6 +371,12 @@ export function UserProfileScreen() {
   }, [user, currentUser, isFollowing, friendshipStatus]);
 
   const donationsEnabled = Boolean((user as any)?.donationsEnabled ?? (user as any)?.donationEnabled);
+  const isSelfProfile = Boolean(
+    currentUser &&
+      user &&
+      (String(currentUser.id) === String((user as any)._id || (user as any).id) ||
+        (currentUser.username && user.username && currentUser.username === user.username))
+  );
 
   const handleFollowAction = async () => {
     if (followLoading) return;
@@ -601,6 +609,10 @@ export function UserProfileScreen() {
 
   const showCoverColorOverlay = profile.backgroundOverlay !== false && safeOverlayOpacity > 0
 
+  /** Alinhado ao web: `full` = imagem em toda a área rolável; `top` = só na faixa do cover. */
+  const backgroundMode = profile.backgroundMode === 'top' ? 'top' : 'full'
+  const isFullPageBackground = backgroundMode === 'full' && !!bgImageSource
+
   // Validar cardStyle para garantir que seja um valor válido
   const safeCardStyle = profile.cardStyle === 'rounded' || profile.cardStyle === 'square' || profile.cardStyle === 'pill'
     ? profile.cardStyle
@@ -655,28 +667,80 @@ export function UserProfileScreen() {
   };
 
   const handleDonatePress = () => {
-    Alert.alert('Doação', `Sistema de doação para @${username} será implementado.`);
+    if (!currentUser) {
+      showToast.info('Conta', 'Entre na sua conta para enviar uma doação.');
+      return;
+    }
+    if (isSelfProfile) {
+      showToast.info('Doação', 'Você não pode enviar doação para o próprio perfil.');
+      return;
+    }
+    setDonationModalVisible(true);
   };
 
   return (
-    <View style={[styles.container, dynamicStyles.container]}>
+    <View style={{ flex: 1 }}>
+      {isFullPageBackground && bgImageSource ? (
+        <Image
+          source={bgImageSource}
+          style={[StyleSheet.absoluteFillObject, styles.fullPageBgImage]}
+          resizeMode="cover"
+        />
+      ) : null}
+      {isFullPageBackground && bgImageSource && showCoverColorOverlay ? (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              zIndex: 1,
+              backgroundColor: getSafeColor(profile.backgroundColor, COLORS.primary.main),
+              opacity: safeOverlayOpacity / 100,
+            },
+          ]}
+        />
+      ) : null}
+
+      <View
+        style={[
+          styles.container,
+          isFullPageBackground && bgImageSource
+            ? { backgroundColor: 'transparent' }
+            : dynamicStyles.container,
+          { zIndex: 2, flex: 1 },
+        ]}
+      >
       <Header onLogoPress={() => navigation.navigate('FeedTab')} />
       
       <ScrollView
+        style={isFullPageBackground && bgImageSource ? styles.scrollTransparent : undefined}
+        contentContainerStyle={
+          isFullPageBackground && bgImageSource ? styles.scrollContentTransparent : undefined
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main)} />
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Background do Perfil */}
+        {/* Background do Perfil: modo top = faixa com imagem; modo full = imagem fixa atrás (só espaçador aqui) */}
         <View style={styles.coverContainer}>
-          {bgImageSource ? (
+          {!isFullPageBackground && bgImageSource ? (
             <Image source={bgImageSource} style={styles.coverImage} resizeMode="cover" />
-          ) : (
+          ) : !isFullPageBackground ? (
             <View style={[styles.coverPlaceholder, { backgroundColor: getSafeColor(profile.backgroundColor, COLORS.primary.main) }]} />
+          ) : (
+            <View style={[styles.coverPlaceholder, { backgroundColor: 'transparent' }]} />
           )}
-          {showCoverColorOverlay && (
-            <View style={[styles.overlay, { opacity: safeOverlayOpacity / 100 }]} />
+          {!isFullPageBackground && showCoverColorOverlay && (
+            <View
+              style={[
+                styles.overlay,
+                {
+                  backgroundColor: getSafeColor(profile.backgroundColor, COLORS.primary.main),
+                  opacity: safeOverlayOpacity / 100,
+                },
+              ]}
+            />
           )}
         </View>
 
@@ -749,7 +813,7 @@ export function UserProfileScreen() {
         </View>
 
         {/* Ações Rápidas (Loja e Doação) */}
-        {(canViewShop() || donationsEnabled) && (
+        {(canViewShop() || (donationsEnabled && !isSelfProfile)) && (
           <View style={styles.quickActions}>
             {canViewShop() && (
               <TouchableOpacity 
@@ -760,7 +824,7 @@ export function UserProfileScreen() {
                 <Text style={[styles.quickActionText, dynamicStyles.cardText]}>Loja</Text>
               </TouchableOpacity>
             )}
-            {donationsEnabled && (
+            {donationsEnabled && !isSelfProfile && (
               <TouchableOpacity 
                 style={[styles.quickActionButton, dynamicStyles.card]} 
                 onPress={handleDonatePress}
@@ -876,22 +940,88 @@ export function UserProfileScreen() {
         {/* Links do Usuário */}
         {links.length > 0 ? (
           <View style={styles.linksSection}>
-            {links.map((link) => (
-              <TouchableOpacity
-                key={link._id}
-                style={[styles.linkCard, dynamicStyles.card]}
-                onPress={() => handleLinkPress(link.url)}
-                activeOpacity={0.8}
-              >
-                {link.icon && (
-                  <View style={styles.linkIconContainer}>
-                    <Text style={styles.linkIconEmoji}>{link.icon}</Text>
+            {links.map((link) => {
+              const thumbUri = link.imageUrl ? getImageUrl(link.imageUrl) : undefined;
+              const hasThumb = Boolean(thumbUri);
+              const desc =
+                typeof link.description === 'string' && link.description.trim()
+                  ? link.description.trim()
+                  : '';
+
+              if (hasThumb) {
+                return (
+                  <TouchableOpacity
+                    key={link._id}
+                    style={[styles.linkCard, styles.linkCardStacked, dynamicStyles.card]}
+                    onPress={() => handleLinkPress(link.url)}
+                    activeOpacity={0.8}
+                  >
+                    <Image source={{ uri: thumbUri }} style={styles.linkThumb} resizeMode="cover" />
+                    <View style={styles.linkStackedFooter}>
+                      <View style={styles.linkMainRow}>
+                        {link.icon ? (
+                          <View style={styles.linkIconContainerSmall}>
+                            <Text style={styles.linkIconEmojiSmall}>{link.icon}</Text>
+                          </View>
+                        ) : null}
+                        <Text
+                          style={[styles.linkTitle, dynamicStyles.cardText, styles.linkTitleFlex]}
+                          numberOfLines={2}
+                        >
+                          {link.title}
+                        </Text>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={18}
+                          color={getSafeColor(profile.cardTextColor, COLORS.text.tertiary)}
+                        />
+                      </View>
+                      {desc ? (
+                        <Text
+                          style={[styles.linkDescription, dynamicStyles.cardText]}
+                          numberOfLines={2}
+                        >
+                          {desc}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+
+              return (
+                <TouchableOpacity
+                  key={link._id}
+                  style={[styles.linkCard, dynamicStyles.card]}
+                  onPress={() => handleLinkPress(link.url)}
+                  activeOpacity={0.8}
+                >
+                  {link.icon ? (
+                    <View style={styles.linkIconContainer}>
+                      <Text style={styles.linkIconEmoji}>{link.icon}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.linkRowNoThumb}>
+                    <Text style={[styles.linkTitle, dynamicStyles.cardText]} numberOfLines={2}>
+                      {link.title}
+                    </Text>
+                    {desc ? (
+                      <Text
+                        style={[styles.linkDescriptionInline, dynamicStyles.cardText]}
+                        numberOfLines={2}
+                      >
+                        {desc}
+                      </Text>
+                    ) : null}
                   </View>
-                )}
-                <Text style={[styles.linkTitle, dynamicStyles.cardText]}>{link.title}</Text>
-                <Ionicons name="chevron-forward" size={18} color={getSafeColor(profile.cardTextColor, COLORS.text.tertiary)} />
-              </TouchableOpacity>
-            ))}
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={getSafeColor(profile.cardTextColor, COLORS.text.tertiary)}
+                  />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         ) : currentUser?.id === (user.id || user._id) ? (
           <View style={styles.linksSection}>
@@ -962,6 +1092,15 @@ export function UserProfileScreen() {
         targetUsername={username}
       />
 
+      <DonationModal
+        visible={donationModalVisible}
+        onClose={() => setDonationModalVisible(false)}
+        recipientUsername={username}
+        onSuccess={() => {
+          void refreshUser();
+        }}
+      />
+
       {/* Menu de 3 pontinhos */}
       <Modal
         visible={showMenu}
@@ -1020,6 +1159,7 @@ export function UserProfileScreen() {
         </TouchableOpacity>
       </Modal>
     </View>
+    </View>
   );
 }
 
@@ -1027,6 +1167,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background.default,
+  },
+  fullPageBgImage: {
+    zIndex: 0,
+  },
+  scrollTransparent: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  scrollContentTransparent: {
+    flexGrow: 1,
+    backgroundColor: 'transparent',
   },
   loadingContainer: {
     flex: 1,
@@ -1400,6 +1551,57 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    overflow: 'hidden',
+  },
+  linkCardStacked: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    padding: 0,
+  },
+  linkThumb: {
+    width: '100%',
+    height: 148,
+    backgroundColor: COLORS.border.light,
+  },
+  linkStackedFooter: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 14,
+  },
+  linkMainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  linkIconContainerSmall: {
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  linkIconEmojiSmall: {
+    fontSize: 20,
+  },
+  linkTitleFlex: {
+    flex: 1,
+    minWidth: 0,
+  },
+  linkRowNoThumb: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
+  },
+  linkDescription: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 18,
+    opacity: 0.72,
+  },
+  linkDescriptionInline: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 18,
+    opacity: 0.72,
   },
   linkIconContainer: {
     width: 32,

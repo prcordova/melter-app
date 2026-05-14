@@ -218,17 +218,17 @@ export function PostCard({
             style={styles.originalAvatar}
           />
           <View style={styles.headerInfo}>
-            <View style={styles.headerTitleRow}>
+            <View style={[styles.headerTitleRow, styles.headerTitleTouchable]}>
               <View style={styles.authorNameShrink}>
-                <UsernameGradientText
-                  username={getPostAuthorDisplayLabel(originalPost.userId as any)}
-                  effect={originalPost.userId.profile?.usernameDisplayEffect ?? null}
-                  fontSize={14}
-                  fontWeight="600"
-                  style={{ color: '#1e293b' }}
-                  numberOfLines={1}
-                />
-              </View>
+              <UsernameGradientText
+                username={getPostAuthorDisplayLabel(originalPost.userId as any)}
+                effect={originalPost.userId.profile?.usernameDisplayEffect ?? null}
+                fontSize={14}
+                fontWeight="600"
+                style={{ color: '#1e293b' }}
+                numberOfLines={1}
+              />
+            </View>
               {shouldShowVerifiedBadgeOnProfile(originalPost.userId as any) && (
                 <Ionicons
                   name="checkmark-circle"
@@ -319,7 +319,7 @@ export function PostCard({
           <TouchableOpacity 
             onPress={handleUserPress}
             activeOpacity={0.7}
-            style={styles.headerTitleRow}
+            style={[styles.headerTitleRow, styles.headerTitleTouchable]}
           >
             <View style={styles.authorNameShrink}>
               <UsernameGradientText
@@ -632,6 +632,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
     justifyContent: 'center',
+    minWidth: 0,
   },
   menuButton: {
     padding: 8,
@@ -643,9 +644,17 @@ const styles = StyleSheet.create({
     gap: 6,
     minWidth: 0,
   },
-  authorNameShrink: {
-    flexShrink: 1,
+  headerTitleTouchable: {
+    flex: 1,
     minWidth: 0,
+  },
+  /** Não usar flexShrink:1+minWidth:0 aqui — o flex pode encolher a largura a 0 e sumir o nome. */
+  authorNameShrink: {
+    flexGrow: 0,
+    flexShrink: 0,
+    minWidth: 0,
+    alignSelf: 'flex-start',
+    maxWidth: '78%',
   },
   verifiedIcon: {
     flexShrink: 0,

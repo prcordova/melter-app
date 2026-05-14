@@ -8,6 +8,7 @@ import {
   Alert,
   TextInput,
   Linking,
+  Image,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
@@ -30,6 +31,7 @@ type UserStatus = 'online' | 'busy' | 'offline';
 
 import { Avatar } from '../components/Avatar';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
+import { getImageUrl } from '../utils/image';
 
 export function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -701,23 +703,15 @@ export function ProfileScreen() {
             </TouchableOpacity>
           )}
           {userLinks.length > 0 ? (
-            userLinks.map((link, index) => (
-              <TouchableOpacity
-                key={link._id}
-                style={styles.linkCard}
-                onPress={() => {
-                  if (link.url) {
-                    Linking.openURL(link.url.startsWith('http') ? link.url : `https://${link.url}`);
-                  }
-                }}
-                activeOpacity={0.8}
-              >
-                {link.icon && (
-                  <View style={styles.linkIconContainer}>
-                    <Text style={styles.linkIconEmoji}>{link.icon}</Text>
-                  </View>
-                )}
-                <Text style={styles.linkTitle}>{link.title}</Text>
+            userLinks.map((link, index) => {
+              const thumbUri = link.imageUrl ? getImageUrl(link.imageUrl) : undefined;
+              const hasThumb = Boolean(thumbUri);
+              const desc =
+                typeof link.description === 'string' && link.description.trim()
+                  ? link.description.trim()
+                  : '';
+
+              const linkActions = (
                 <View style={styles.linkActions}>
                   {linksSortMode === 'custom' && (
                     <>
@@ -732,7 +726,10 @@ export function ProfileScreen() {
                         <Ionicons name="chevron-up" size={16} color={COLORS.secondary.main} />
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[styles.linkActionButton, index === userLinks.length - 1 && styles.linkActionButtonDisabled]}
+                        style={[
+                          styles.linkActionButton,
+                          index === userLinks.length - 1 && styles.linkActionButtonDisabled,
+                        ]}
                         onPress={(event) => {
                           event.stopPropagation();
                           handleMoveLink(index, 'down');
@@ -762,8 +759,73 @@ export function ProfileScreen() {
                     <Ionicons name="trash-outline" size={16} color={COLORS.secondary.main} />
                   </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
-            ))
+              );
+
+              if (hasThumb) {
+                return (
+                  <TouchableOpacity
+                    key={link._id}
+                    style={[styles.linkCard, styles.linkCardStacked]}
+                    onPress={() => {
+                      if (link.url) {
+                        Linking.openURL(link.url.startsWith('http') ? link.url : `https://${link.url}`);
+                      }
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Image source={{ uri: thumbUri }} style={styles.linkThumb} resizeMode="cover" />
+                    <View style={styles.linkStackedFooter}>
+                      <View style={styles.linkStackedTitleRow}>
+                        {link.icon ? (
+                          <View style={styles.linkIconContainerSmall}>
+                            <Text style={styles.linkIconEmoji}>{link.icon}</Text>
+                          </View>
+                        ) : null}
+                        <Text style={[styles.linkTitle, styles.linkTitleInStack]} numberOfLines={2}>
+                          {link.title}
+                        </Text>
+                        {linkActions}
+                      </View>
+                      {desc ? (
+                        <Text style={styles.linkDescriptionOwn} numberOfLines={2}>
+                          {desc}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+
+              return (
+                <TouchableOpacity
+                  key={link._id}
+                  style={styles.linkCard}
+                  onPress={() => {
+                    if (link.url) {
+                      Linking.openURL(link.url.startsWith('http') ? link.url : `https://${link.url}`);
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  {link.icon ? (
+                    <View style={styles.linkIconContainer}>
+                      <Text style={styles.linkIconEmoji}>{link.icon}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.linkRowNoThumbOwn}>
+                    <Text style={styles.linkTitle} numberOfLines={2}>
+                      {link.title}
+                    </Text>
+                    {desc ? (
+                      <Text style={styles.linkDescriptionInlineOwn} numberOfLines={2}>
+                        {desc}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {linkActions}
+                </TouchableOpacity>
+              );
+            })
           ) : (
             hasReachedLinksLimit ? (
               <View style={styles.addLinkButtonDisabled}>
@@ -1446,6 +1508,56 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: COLORS.border.light,
+    overflow: 'hidden',
+  },
+  linkCardStacked: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    padding: 0,
+    gap: 0,
+  },
+  linkThumb: {
+    width: '100%',
+    height: 140,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  linkStackedFooter: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 14,
+    gap: 8,
+  },
+  linkStackedTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  linkIconContainerSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.background.tertiary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  linkTitleInStack: {
+    flex: 1,
+    minWidth: 0,
+  },
+  linkRowNoThumbOwn: {
+    flex: 1,
+    minWidth: 0,
+  },
+  linkDescriptionOwn: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.text.secondary,
+  },
+  linkDescriptionInlineOwn: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.text.secondary,
   },
   linkIconContainer: {
     width: 40,

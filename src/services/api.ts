@@ -1408,6 +1408,17 @@ export const walletApi = {
     }>>('/api/public/fees');
     return response.data;
   },
+  donate: async (data: { recipientUsername: string; amount: number; message?: string }) => {
+    const response = await api.post<ApiResponse<{
+      grossAmount: number;
+      platformFee: number;
+      netAmount: number;
+      feePercentage: number;
+      recipient: string;
+      newBalance: number;
+    }>>('/api/wallet/donate', data);
+    return response.data;
+  },
 };
 
 // API de Lojas (Shops)

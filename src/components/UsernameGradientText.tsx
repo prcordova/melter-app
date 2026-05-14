@@ -40,14 +40,25 @@ export function UsernameGradientText({
 }: Props) {
   const label = `${prefix}${username}`;
   const normalized = normalizeUsernameDisplayEffect(effect ?? null);
-  const textStyle: TextStyle = { fontSize, fontWeight };
+  /** Web (`UsernameGradientName`): 600 sem efeito, 700 com gradiente. */
+  const resolvedFontWeight: TextStyle['fontWeight'] =
+    normalized?.enabled ? '700' : (fontWeight ?? DEFAULT_WEIGHT);
+  const textStyle: TextStyle = { fontSize, fontWeight: resolvedFontWeight };
 
   if (!normalized?.enabled) {
-    return (
-      <Text style={[textStyle, style]} numberOfLines={numberOfLines}>
+    const plain = (
+      <Text
+        style={[textStyle, style]}
+        numberOfLines={numberOfLines}
+        ellipsizeMode="tail"
+      >
         {label}
       </Text>
     );
+    if (containerStyle) {
+      return <View style={containerStyle}>{plain}</View>;
+    }
+    return plain;
   }
 
   const {
@@ -89,13 +100,17 @@ export function UsernameGradientText({
       : ([gradientFrom, gradientTo] as const);
 
   const mask = (
-    <Text style={[textStyle, styles.maskText, style]} numberOfLines={numberOfLines}>
+    <Text
+      style={[textStyle, style, styles.maskText]}
+      numberOfLines={numberOfLines}
+      ellipsizeMode="tail"
+    >
       {label}
     </Text>
   );
 
-  return (
-    <View style={[styles.wrap, containerStyle]}>
+  const gradientInner = (
+    <View style={styles.wrap}>
       <MaskedView style={[styles.masked, { height: fontSize + 6 }]} maskElement={mask}>
         <Animated.View style={[styles.gradientTrack, animatedGradientStyle]}>
           <LinearGradient
@@ -120,17 +135,25 @@ export function UsernameGradientText({
           },
         ]}
         numberOfLines={numberOfLines}
+        ellipsizeMode="tail"
       >
         {label}
       </Text>
     </View>
   );
+
+  if (containerStyle) {
+    return <View style={containerStyle}>{gradientInner}</View>;
+  }
+
+  return gradientInner;
 }
 
 const styles = StyleSheet.create({
   wrap: {
     position: 'relative',
     alignSelf: 'flex-start',
+    alignItems: 'flex-start',
     maxWidth: '100%',
   },
   masked: {

@@ -593,6 +593,7 @@ const styles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     flex: 1,
+    minWidth: 0,
   },
   userDetails: {
     marginLeft: 12,
@@ -606,8 +607,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   authorNameShrink: {
-    flexShrink: 1,
+    flexGrow: 0,
+    flexShrink: 0,
     minWidth: 0,
+    alignSelf: 'flex-start',
+    maxWidth: '78%',
   },
   verifiedIconNoShrink: {
     flexShrink: 0,
