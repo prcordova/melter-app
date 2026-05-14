@@ -16,6 +16,8 @@ export interface PlanLimits {
   canCustomizeColors: boolean; // textColor, cardColor, cardTextColor
   canCustomizeLikesColor: boolean;
   canCustomizeButtonColors: boolean; // buttonBackgroundColor, buttonTextColor
+  /** Ocultar listas de seguidores/seguindo — apenas PRO e PRO+ */
+  canControlFollowListsPrivacy: boolean;
   
   // Links
   maxLinks: number;
@@ -58,6 +60,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canCustomizeColors: false, // Cores padrão apenas
     canCustomizeLikesColor: false,
     canCustomizeButtonColors: false,
+    canControlFollowListsPrivacy: false,
     
     // Links
     maxLinks: 3,
@@ -99,6 +102,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canCustomizeColors: true, // Pode personalizar cores
     canCustomizeLikesColor: true,
     canCustomizeButtonColors: true,
+    canControlFollowListsPrivacy: false,
     
     // Links
     maxLinks: 10,
@@ -140,6 +144,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canCustomizeColors: true, // Pode personalizar cores
     canCustomizeLikesColor: true,
     canCustomizeButtonColors: true,
+    canControlFollowListsPrivacy: true,
     
     // Links
     maxLinks: 20,
@@ -181,6 +186,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canCustomizeColors: true,
     canCustomizeLikesColor: true,
     canCustomizeButtonColors: true,
+    canControlFollowListsPrivacy: true,
     
     // Links
     maxLinks: 100, // 2x mais que PRO

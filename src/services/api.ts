@@ -347,6 +347,16 @@ export const userApi = {
     );
     return response.data;
   },
+  getFollowing: async (username: string, params?: { page?: number; limit?: number }) => {
+    const search = new URLSearchParams();
+    if (params?.page != null) search.set('page', String(params.page));
+    if (params?.limit != null) search.set('limit', String(params.limit));
+    const qs = search.toString();
+    const response = await api.get<ApiResponse<any>>(
+      `/api/users/${encodeURIComponent(username)}/following${qs ? `?${qs}` : ''}`
+    );
+    return response.data;
+  },
   blockUser: async (username: string, reason?: string) => {
     const response = await api.post<ApiResponse<any>>('/api/blocks', { targetUsername: username, reason });
     return response.data;

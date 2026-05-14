@@ -5,6 +5,7 @@ import { FeedScreen } from '../screens/FeedScreen';
 import { ProfileStackNavigator } from './ProfileStackNavigator';
 import { MessagesStackNavigator } from './MessagesStackNavigator';
 import { UserProfileScreen } from '../screens/UserProfileScreen';
+import { FollowListScreen } from '../screens/FollowListScreen';
 import { ShopsSearchScreen } from '../screens/ShopsSearchScreen';
 import { CommunityStackNavigator } from './CommunityStackNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -139,6 +140,13 @@ export function TabNavigator() {
       <Tab.Screen
         name="UserProfile"
         component={UserProfileScreen}
+        options={{
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
+      <Tab.Screen
+        name="FollowList"
+        component={FollowListScreen}
         options={{
           tabBarItemStyle: { display: 'none' },
         }}

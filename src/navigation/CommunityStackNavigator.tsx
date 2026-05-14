@@ -2,11 +2,16 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CommunityScreen } from '../screens/CommunityScreen';
 import { UserProfileScreen } from '../screens/UserProfileScreen';
+import { FollowListScreen } from '../screens/FollowListScreen';
 
 export type CommunityStackParamList = {
   Community: undefined;
   CommunityUserProfile: {
     username: string;
+  };
+  FollowList: {
+    username: string;
+    list: 'followers' | 'following';
   };
 };
 
@@ -22,6 +27,7 @@ export function CommunityStackNavigator() {
     >
       <Stack.Screen name="Community" component={CommunityScreen} />
       <Stack.Screen name="CommunityUserProfile" component={UserProfileScreen} />
+      <Stack.Screen name="FollowList" component={FollowListScreen} />
     </Stack.Navigator>
   );
 }

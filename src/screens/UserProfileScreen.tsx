@@ -31,6 +31,7 @@ import * as Clipboard from 'expo-clipboard';
 import { API_CONFIG } from '../config/api.config';
 import { emitSocialGraphChanged } from '../lib/social-events';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
+import { PLAN_LIMITS, type PlanType } from '../config/plan-features';
 
 const { width } = Dimensions.get('window');
 const FREE_PLAN_DEFAULT_BG = require('../../public/assets/imgs/bgMelter.jpg');
@@ -378,6 +379,12 @@ export function UserProfileScreen() {
       (String(currentUser.id) === String((user as any)._id || (user as any).id) ||
         (currentUser.username && user.username && currentUser.username === user.username))
   );
+
+  const ownerPlanType = (((user as any)?.plan?.type ?? 'FREE') as PlanType);
+  const planCanHideFollowLists = PLAN_LIMITS[ownerPlanType].canControlFollowListsPrivacy;
+  const followListsPublic = !planCanHideFollowLists || (user as any)?.profile?.showFollowersFollowing !== false;
+  const isAdminModerator = currentUser?.accountType === 'admin';
+  const canOpenFollowLists = isSelfProfile || followListsPublic || Boolean(isAdminModerator);
 
   const handleFollowAction = async () => {
     if (followLoading) return;
@@ -883,22 +890,48 @@ export function UserProfileScreen() {
 
         {/* Stats (Seguidores, Seguindo, Posts, Likes, Views) */}
         <View style={styles.statsRow}>
-            <View style={styles.statItem}>
+            <TouchableOpacity
+              style={styles.statItem}
+              activeOpacity={0.75}
+              onPress={() => {
+                if (!canOpenFollowLists) {
+                  showToast.error(
+                    'Privacidade',
+                    'Este perfil não permite ver a lista de seguidores.'
+                  );
+                  return;
+                }
+                navigation.navigate('FollowList', { username, list: 'followers' });
+              }}
+            >
               <Text style={[styles.statValue, dynamicStyles.text]}>
                 {user.followersCount !== undefined && user.followersCount !== null 
                   ? String(user.followersCount) 
                   : '0'}
               </Text>
               <Text style={[styles.statLabel, dynamicStyles.text, { opacity: 0.7 }]}>Seguidores</Text>
-            </View>
-            <View style={styles.statItem}>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.statItem}
+              activeOpacity={0.75}
+              onPress={() => {
+                if (!canOpenFollowLists) {
+                  showToast.error(
+                    'Privacidade',
+                    'Este perfil não permite ver a lista de contas que segue.'
+                  );
+                  return;
+                }
+                navigation.navigate('FollowList', { username, list: 'following' });
+              }}
+            >
               <Text style={[styles.statValue, dynamicStyles.text]}>
                 {user.followingCount !== undefined && user.followingCount !== null 
                   ? String(user.followingCount) 
                   : '0'}
               </Text>
               <Text style={[styles.statLabel, dynamicStyles.text, { opacity: 0.7 }]}>Seguindo</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, dynamicStyles.text]}>{user.postsCount || 0}</Text>
               <Text style={[styles.statLabel, dynamicStyles.text, { opacity: 0.7 }]}>Posts</Text>

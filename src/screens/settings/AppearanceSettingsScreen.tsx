@@ -23,6 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../../components/CustomToast';
 import { getImageUrl } from '../../utils/image';
+import { PLAN_LIMITS, type PlanType } from '../../config/plan-features';
 import type { UsernameDisplayEffectConfig } from '../../types/username-display-effect';
 import {
   DEFAULT_USERNAME_DISPLAY_EFFECT,
@@ -50,6 +51,8 @@ interface ProfileSettings {
   showLikes: boolean;
   showViews: boolean;
   showPosts: boolean;
+  /** false = outros não abrem listas de seguidores/seguindo */
+  showFollowersFollowing: boolean;
   postsLimit: number;
   buttonBackgroundColor: string | null;
   buttonTextColor: string | null;
@@ -108,6 +111,7 @@ export function AppearanceSettingsScreen() {
     showLikes: true,
     showViews: true,
     showPosts: true,
+    showFollowersFollowing: true,
     postsLimit: 5,
     buttonBackgroundColor: null,
     buttonTextColor: null,
@@ -147,6 +151,9 @@ export function AppearanceSettingsScreen() {
       if (response.success) {
         const data = response.data;
         setProfileData(data);
+
+        const planType = (data.plan?.type || 'FREE') as PlanType;
+        const followListPrivacyAllowed = PLAN_LIMITS[planType].canControlFollowListsPrivacy;
         
         // Carregar bio
         setBio(data.bio || '');
@@ -176,6 +183,11 @@ export function AppearanceSettingsScreen() {
           showLikes: profile.showLikes !== undefined ? profile.showLikes : prev.showLikes,
           showViews: profile.showViews !== undefined ? profile.showViews : prev.showViews,
           showPosts: profile.showPosts !== undefined ? profile.showPosts : (prev.showPosts ?? true),
+          showFollowersFollowing: followListPrivacyAllowed
+            ? (profile.showFollowersFollowing !== undefined
+                ? profile.showFollowersFollowing
+                : (prev.showFollowersFollowing ?? true))
+            : true,
           postsLimit: profile.postsLimit || prev.postsLimit,
           buttonBackgroundColor: profile.buttonBackgroundColor || null,
           buttonTextColor: profile.buttonTextColor || null,
@@ -344,6 +356,7 @@ export function AppearanceSettingsScreen() {
         showLikes: settings.showLikes,
         showViews: settings.showViews,
         showPosts: settings.showPosts,
+        showFollowersFollowing: settings.showFollowersFollowing,
         postsLimit: settings.postsLimit,
       };
 
@@ -550,7 +563,14 @@ export function AppearanceSettingsScreen() {
               </Text>
             </TouchableOpacity>
           </PlanLocker>
+        </View>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>👁 Visibilidade do perfil</Text>
+          <Text style={styles.helperCaption}>
+            Defina o que os visitantes veem no seu perfil público: estatísticas dos links, posts recentes e listas de
+            seguidores.
+          </Text>
           <View style={styles.fieldContainer}>
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Mostrar Visualizações</Text>
@@ -570,7 +590,40 @@ export function AppearanceSettingsScreen() {
                 thumbColor="#ffffff"
               />
             </View>
+            <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={styles.switchLabel}>Mostrar Posts Recentes</Text>
+                <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
+                  Mostrar seus últimos posts no perfil público
+                </Text>
+              </View>
+              <Switch
+                value={settings.showPosts}
+                onValueChange={(value) => handleSettingsChange({ showPosts: value, postsLimit: value ? 5 : 0 })}
+                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                thumbColor="#ffffff"
+              />
+            </View>
           </View>
+          <PlanLocker requiredPlan="PRO" currentPlan={user?.plan?.type}>
+            <View style={[styles.fieldContainer, { marginBottom: 0 }]}>
+              <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={styles.switchLabel}>Permitir que outros vejam as listas de seguidores e seguindo</Text>
+                  <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
+                    Disponível nos planos PRO e PRO+. Se desativar, os números continuam no perfil, mas as listas só
+                    abrem para você (e admins).
+                  </Text>
+                </View>
+                <Switch
+                  value={settings.showFollowersFollowing}
+                  onValueChange={(value) => handleSettingsChange({ showFollowersFollowing: value })}
+                  trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                  thumbColor="#ffffff"
+                />
+              </View>
+            </View>
+          </PlanLocker>
         </View>
 
         {/* Seção: Background */}
@@ -851,22 +904,6 @@ export function AppearanceSettingsScreen() {
           )}
         </View>
 
-        {/* Seção: Posts */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📝 Posts</Text>
-          
-          <View style={styles.fieldContainer}>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Mostrar Posts Recentes</Text>
-              <Switch
-                value={settings.showPosts}
-                onValueChange={(value) => handleSettingsChange({ showPosts: value, postsLimit: value ? 5 : 0 })}
-                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
-                thumbColor="#ffffff"
-              />
-            </View>
-          </View>
-        </View>
       </ScrollView>
 
       {/* Botão Salvar */}
