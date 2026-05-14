@@ -775,16 +775,18 @@ export function ProfileScreen() {
                   >
                     <Image source={{ uri: thumbUri }} style={styles.linkThumb} resizeMode="cover" />
                     <View style={styles.linkStackedFooter}>
-                      <View style={styles.linkStackedTitleRow}>
-                        {link.icon ? (
+                      {link.icon ? (
+                        <View style={styles.linkIconRowCenteredOwn}>
                           <View style={styles.linkIconContainerSmall}>
                             <Text style={styles.linkIconEmoji}>{link.icon}</Text>
                           </View>
-                        ) : null}
-                        <Text style={[styles.linkTitle, styles.linkTitleInStack]} numberOfLines={2}>
+                        </View>
+                      ) : null}
+                      <View style={styles.linkTitleRowCenteredOwn}>
+                        <Text style={[styles.linkTitle, styles.linkTitleStackedCenterOwn]} numberOfLines={2}>
                           {link.title}
                         </Text>
-                        {linkActions}
+                        <View style={styles.linkActionsStackedAbs}>{linkActions}</View>
                       </View>
                       {desc ? (
                         <Text style={styles.linkDescriptionOwn} numberOfLines={2}>
@@ -1527,10 +1529,30 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     gap: 8,
   },
-  linkStackedTitleRow: {
-    flexDirection: 'row',
+  linkIconRowCenteredOwn: {
+    width: '100%',
     alignItems: 'center',
-    gap: 10,
+    marginBottom: 6,
+  },
+  linkTitleRowCenteredOwn: {
+    position: 'relative',
+    width: '100%',
+    paddingHorizontal: 12,
+    paddingRight: 112,
+    minHeight: 32,
+    justifyContent: 'center',
+  },
+  linkTitleStackedCenterOwn: {
+    flex: 0,
+    width: '100%',
+    textAlign: 'center',
+  },
+  linkActionsStackedAbs: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   linkIconContainerSmall: {
     width: 36,
@@ -1539,10 +1561,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  linkTitleInStack: {
-    flex: 1,
-    minWidth: 0,
   },
   linkRowNoThumbOwn: {
     flex: 1,

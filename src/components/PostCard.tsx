@@ -708,12 +708,15 @@ const styles = StyleSheet.create({
   },
   linkInfo: {
     padding: 12,
+    alignItems: 'center',
   },
   linkTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1e293b',
     marginBottom: 4,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
   linkDescription: {
     fontSize: 13,

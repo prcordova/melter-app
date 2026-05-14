@@ -958,23 +958,27 @@ export function UserProfileScreen() {
                   >
                     <Image source={{ uri: thumbUri }} style={styles.linkThumb} resizeMode="cover" />
                     <View style={styles.linkStackedFooter}>
-                      <View style={styles.linkMainRow}>
-                        {link.icon ? (
+                      {link.icon ? (
+                        <View style={styles.linkIconRowCentered}>
                           <View style={styles.linkIconContainerSmall}>
                             <Text style={styles.linkIconEmojiSmall}>{link.icon}</Text>
                           </View>
-                        ) : null}
+                        </View>
+                      ) : null}
+                      <View style={styles.linkTitleRowCentered}>
                         <Text
-                          style={[styles.linkTitle, dynamicStyles.cardText, styles.linkTitleFlex]}
+                          style={[styles.linkTitle, styles.linkTitleStackedCenter, dynamicStyles.cardText]}
                           numberOfLines={2}
                         >
                           {link.title}
                         </Text>
-                        <Ionicons
-                          name="chevron-forward"
-                          size={18}
-                          color={getSafeColor(profile.cardTextColor, COLORS.text.tertiary)}
-                        />
+                        <View style={styles.linkChevronHit}>
+                          <Ionicons
+                            name="chevron-forward"
+                            size={18}
+                            color={getSafeColor(profile.cardTextColor, COLORS.text.tertiary)}
+                          />
+                        </View>
                       </View>
                       {desc ? (
                         <Text
@@ -1568,10 +1572,31 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 14,
   },
-  linkMainRow: {
-    flexDirection: 'row',
+  linkIconRowCentered: {
+    width: '100%',
     alignItems: 'center',
-    gap: 10,
+    marginBottom: 6,
+  },
+  linkTitleRowCentered: {
+    position: 'relative',
+    width: '100%',
+    paddingHorizontal: 36,
+    minHeight: 26,
+    justifyContent: 'center',
+  },
+  linkTitleStackedCenter: {
+    flex: 0,
+    width: '100%',
+    textAlign: 'center',
+  },
+  linkChevronHit: {
+    position: 'absolute',
+    right: 2,
+    top: 0,
+    bottom: 0,
+    width: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   linkIconContainerSmall: {
     width: 28,
@@ -1581,10 +1606,6 @@ const styles = StyleSheet.create({
   },
   linkIconEmojiSmall: {
     fontSize: 20,
-  },
-  linkTitleFlex: {
-    flex: 1,
-    minWidth: 0,
   },
   linkRowNoThumb: {
     flex: 1,

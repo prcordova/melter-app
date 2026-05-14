@@ -18,6 +18,8 @@ import { emitSocialGraphChanged } from '../lib/social-events';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 
 import { Avatar } from './Avatar';
+import { UsernameGradientText } from './UsernameGradientText';
+import type { UsernameDisplayEffectConfig } from '../types/username-display-effect';
 
 interface User {
   _id: string;
@@ -41,6 +43,9 @@ interface User {
   lastLoginAt?: string | Date | null;
   isFollowing?: boolean;
   friendsSince?: string | Date;
+  profile?: {
+    usernameDisplayEffect?: UsernameDisplayEffectConfig | null;
+  } | null;
 }
 
 interface UserCardProps {
@@ -286,9 +291,16 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
           {/* Info */}
           <View style={styles.info}>
             <View style={styles.nameRow}>
-              <Text style={styles.username} numberOfLines={1}>
-                {user.username}
-              </Text>
+              <View style={styles.usernameGradientSlot}>
+                <UsernameGradientText
+                  username={user.username}
+                  effect={user.profile?.usernameDisplayEffect ?? null}
+                  fontSize={18}
+                  fontWeight="700"
+                  style={styles.usernameGradientText}
+                  numberOfLines={1}
+                />
+              </View>
               {shouldShowVerifiedBadgeOnProfile(user) && (
                 <Ionicons name="checkmark-circle" size={16} color="#3b82f6" />
               )}
@@ -474,12 +486,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginBottom: 4,
+    minWidth: 0,
   },
-  username: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
+  usernameGradientSlot: {
     flex: 1,
+    minWidth: 0,
+    alignSelf: 'stretch',
+  },
+  usernameGradientText: {
+    color: COLORS.text.primary,
   },
   planBadge: {
     paddingHorizontal: 6,
