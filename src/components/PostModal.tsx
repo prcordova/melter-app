@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Modal,
   View,
@@ -72,6 +72,13 @@ export function PostModal({
       setError(null);
     }
   }, [visible, postId]);
+
+  const headerAuthorUsername = useMemo(() => {
+    if (!post?.userId || typeof post.userId !== 'object') return '';
+    const u = post.userId.username;
+    if (typeof u === 'string' && u.trim()) return u.trim();
+    return getPostAuthorDisplayLabel(post.userId);
+  }, [post]);
 
   const fetchPost = async () => {
     if (!postId) return;
@@ -266,7 +273,7 @@ export function PostModal({
                     >
                       <Avatar
                         user={{
-                          username: getPostAuthorDisplayLabel(post.userId),
+                          username: headerAuthorUsername,
                           avatar: post.userId?.avatar,
                         }}
                         size={40}
@@ -277,7 +284,7 @@ export function PostModal({
                         <View style={styles.usernameRow}>
                           <View style={styles.authorNameShrink}>
                             <UsernameGradientText
-                              username={getPostAuthorDisplayLabel(post.userId)}
+                              username={headerAuthorUsername}
                               effect={post.userId.profile?.usernameDisplayEffect ?? null}
                               fontSize={16}
                               fontWeight="700"
@@ -608,10 +615,11 @@ const styles = StyleSheet.create({
   },
   authorNameShrink: {
     flexGrow: 0,
-    flexShrink: 0,
+    flexShrink: 1,
     minWidth: 0,
+    maxWidth: '100%',
+    alignItems: 'flex-start',
     alignSelf: 'flex-start',
-    maxWidth: '78%',
   },
   verifiedIconNoShrink: {
     flexShrink: 0,

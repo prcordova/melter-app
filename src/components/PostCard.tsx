@@ -67,6 +67,11 @@ export function PostCard({
 
   const authorLabel = getPostAuthorDisplayLabel(post.userId);
   const authorNavUsername = getPostAuthorUsernameForNav(post.userId);
+  /** Web (`PostCard`): mostra `post.userId.username` no gradiente; fallback só se vier vazio. */
+  const authorUsernameForHeader =
+    typeof post.userId.username === 'string' && post.userId.username.trim()
+      ? post.userId.username.trim()
+      : authorLabel;
 
   const isOwnPost = user?.id === authorId;
 
@@ -211,7 +216,11 @@ export function PostCard({
         <View style={styles.originalHeader}>
           <Avatar 
             user={{
-              username: getPostAuthorDisplayLabel(originalPost.userId as any),
+              username:
+                typeof (originalPost.userId as any).username === 'string' &&
+                String((originalPost.userId as any).username).trim()
+                  ? String((originalPost.userId as any).username).trim()
+                  : getPostAuthorDisplayLabel(originalPost.userId as any),
               avatar: originalPost.userId?.avatar,
             }} 
             size={32}
@@ -221,7 +230,12 @@ export function PostCard({
             <View style={[styles.headerTitleRow, styles.headerTitleTouchable]}>
               <View style={styles.authorNameShrink}>
               <UsernameGradientText
-                username={getPostAuthorDisplayLabel(originalPost.userId as any)}
+                username={
+                  typeof (originalPost.userId as any).username === 'string' &&
+                  String((originalPost.userId as any).username).trim()
+                    ? String((originalPost.userId as any).username).trim()
+                    : getPostAuthorDisplayLabel(originalPost.userId as any)
+                }
                 effect={originalPost.userId.profile?.usernameDisplayEffect ?? null}
                 fontSize={14}
                 fontWeight="600"
@@ -309,7 +323,7 @@ export function PostCard({
       <View style={styles.header}>
         <Avatar 
           user={{ 
-            username: authorLabel,
+            username: authorUsernameForHeader,
             avatar: post.userId?.avatar,
           }} 
           size={40}
@@ -323,7 +337,7 @@ export function PostCard({
           >
             <View style={styles.authorNameShrink}>
               <UsernameGradientText
-                username={authorLabel}
+                username={authorUsernameForHeader}
                 effect={post.userId.profile?.usernameDisplayEffect ?? null}
                 fontSize={15}
                 fontWeight="600"
@@ -648,13 +662,17 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  /** Não usar flexShrink:1+minWidth:0 aqui — o flex pode encolher a largura a 0 e sumir o nome. */
+  /**
+   * Não usar flex:1 aqui: em row isso dá largura total ao View e o MaskedView herda a barra inteira.
+   * flexShrink:1 + minWidth:0 permite truncar nome longo; o gradiente fica só na largura do texto.
+   */
   authorNameShrink: {
     flexGrow: 0,
-    flexShrink: 0,
+    flexShrink: 1,
     minWidth: 0,
+    maxWidth: '100%',
+    alignItems: 'flex-start',
     alignSelf: 'flex-start',
-    maxWidth: '78%',
   },
   verifiedIcon: {
     flexShrink: 0,
