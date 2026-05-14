@@ -88,13 +88,12 @@ export function RegisterScreen() {
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       setAvatarUri(asset.uri);
-      
-      // Para React Native, vamos usar FormData diretamente
-      // O avatar será enviado como URI e o backend precisará lidar com isso
+      const mime = asset.mimeType || 'image/jpeg';
+      const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
       setAvatarFile({
         uri: asset.uri,
-        type: 'image/jpeg',
-        name: 'avatar.jpg',
+        type: mime,
+        name: `avatar.${ext}`,
       });
     }
   };
@@ -152,6 +151,11 @@ export function RegisterScreen() {
       return;
     }
 
+    if (!avatarFile) {
+      showToast.error('Erro', 'Envie uma foto de perfil para concluir o cadastro.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -163,7 +167,7 @@ export function RegisterScreen() {
         fullName: formData.fullName,
         birthDate: `${birthDateParts[2]}-${birthDateParts[1]}-${birthDateParts[0]}`,
         termsAccepted: acceptedTerms,
-        avatar: avatarFile || undefined,
+        avatar: avatarFile,
         referralCode: referralCode || undefined,
       });
 
@@ -187,14 +191,34 @@ export function RegisterScreen() {
         }
       }
     } catch (error) {
-      const err = error as AxiosError<{ message: string }>;
-      showToast.error('Erro', err.response?.data?.message || 'Erro ao criar conta');
+      const err = error as AxiosError<{
+        message?: string;
+        code?: string;
+        errors?: { path: string; message: string }[];
+      }>;
+      const data = err.response?.data;
+      let msg =
+        data?.errors?.map((e) => e.message).join(' · ') ||
+        data?.message ||
+        'Erro ao criar conta';
+      if (data?.code === 'AVATAR_REQUIRED') {
+        msg = 'Foto de perfil é obrigatória.';
+      } else if (data?.code === 'AVATAR_INVALID_TYPE') {
+        msg = 'A foto de perfil deve ser uma imagem.';
+      } else if (data?.code === 'AVATAR_TOO_LARGE') {
+        msg = 'A foto de perfil deve ter no máximo 5 MB.';
+      } else if (data?.code === 'AVATAR_UPLOAD_FAILED') {
+        msg = 'Não foi possível enviar a foto de perfil. Tente novamente.';
+      } else if (data?.code === 'MULTIPART_REQUIRED') {
+        msg = 'O cadastro precisa incluir a foto de perfil. Atualize o app e tente de novo.';
+      }
+      showToast.error('Erro', msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const isFormValid = 
+  const isFormValid =
     formData.username.length >= 3 &&
     formData.email.includes('@') &&
     formData.password.length >= 6 &&
@@ -202,7 +226,8 @@ export function RegisterScreen() {
     formData.phone.replace(/\D/g, '').length >= 10 &&
     formData.fullName.length >= 3 &&
     formData.birthDate.length === 10 &&
-    acceptedTerms;
+    acceptedTerms &&
+    !!avatarFile;
 
   return (
     <KeyboardAvoidingView
@@ -246,7 +271,7 @@ export function RegisterScreen() {
                 ) : (
                   <TouchableOpacity onPress={handlePickAvatar} style={styles.avatarPlaceholder}>
                     <Ionicons name="camera" size={32} color={COLORS.text.secondary} />
-                    <Text style={styles.avatarPlaceholderText}>Foto (opcional)</Text>
+                    <Text style={styles.avatarPlaceholderText}>Foto de perfil *</Text>
                   </TouchableOpacity>
                 )}
               </View>

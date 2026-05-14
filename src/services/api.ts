@@ -196,7 +196,7 @@ export const authApi = {
     language?: string;
     termsAccepted: boolean;
     referralCode?: string;
-    avatar?: { uri: string; type: string; name: string };
+    avatar: { uri: string; type: string; name: string };
   }): Promise<ApiResponse<any>> => {
     const formData = new FormData();
     formData.append('username', userData.username);
@@ -210,19 +210,14 @@ export const authApi = {
     if (userData.city) formData.append('city', userData.city);
     if (userData.language) formData.append('language', userData.language);
     if (userData.referralCode) formData.append('referralCode', userData.referralCode);
-    if (userData.avatar) {
-      formData.append('avatar', {
-        uri: userData.avatar.uri,
-        type: userData.avatar.type,
-        name: userData.avatar.name,
-      } as any);
-    }
+    formData.append('avatar', {
+      uri: userData.avatar.uri,
+      type: userData.avatar.type,
+      name: userData.avatar.name,
+    } as any);
 
-    const response = await api.post<ApiResponse<any>>('/api/auth/register', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // Não definir Content-Type manualmente: o axios precisa incluir o boundary do multipart.
+    const response = await api.post<ApiResponse<any>>('/api/auth/register', formData);
     return response.data;
   },
   forgotPassword: async (email: string): Promise<ApiResponse<any>> => {
