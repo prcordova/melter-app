@@ -96,6 +96,7 @@ export interface Story {
     }> | null;
   };
   duration: number;
+  visibility?: 'public' | 'followers' | 'friends' | string;
   views: Array<{
     userId: {
       _id: string;

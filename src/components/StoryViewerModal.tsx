@@ -19,6 +19,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { StoriesGroup, Story } from '../types/feed';
 import { storiesApi, userApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { getAdminSessionToken } from '../lib/admin-session';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { COLORS } from '../theme/colors';
 import { showToast } from './CustomToast';
@@ -72,6 +73,8 @@ export function StoryViewerModal({
   const isOwnStory = currentStory?.userId?._id === currentUser?.id || 
                      (typeof currentStory?.userId === 'string' && currentStory?.userId === currentUser?.id) ||
                      (currentGroup?.user?._id === currentUser?.id);
+  const isAdminModerator = currentUser?.accountType === 'admin';
+  const canModerateStory = isOwnStory || Boolean(isAdminModerator);
 
   // Função para truncar texto em 2 linhas (aproximadamente 60 caracteres por linha)
   const getTruncatedText = (text: string, maxLength: number = 120) => {
@@ -120,6 +123,58 @@ export function StoryViewerModal({
       console.error('Erro ao compartilhar story:', error);
       showToast.error('Erro', 'Não foi possível copiar o link');
     }
+  };
+
+  const applyStoryVisibility = async (v: 'public' | 'followers' | 'friends') => {
+    if (!currentStory) return;
+    try {
+      const needsAdminSession = Boolean(isAdminModerator && !isOwnStory);
+      let adminTok: string | null = null;
+      if (needsAdminSession) {
+        adminTok = await getAdminSessionToken();
+        if (!adminTok) {
+          showToast.error(
+            'Sessão admin',
+            'Confirme a senha de administrador no detalhe de um post (⋯) antes de alterar stories de outros.'
+          );
+          return;
+        }
+      }
+      const res = await storiesApi.patchStoryVisibility(
+        currentStory._id,
+        v,
+        needsAdminSession && adminTok ? { adminSessionToken: adminTok } : undefined
+      );
+      if (res.success) {
+        showToast.success('Sucesso', 'Visibilidade do story atualizada');
+      } else {
+        showToast.error('Erro', res.message || 'Não foi possível atualizar');
+      }
+    } catch (e: any) {
+      showToast.error('Erro', e?.response?.data?.message || 'Não foi possível atualizar');
+    }
+  };
+
+  const openStoryVisibilityPicker = async () => {
+    setShowMenu(false);
+    if (!currentStory) return;
+    const needsAdminSession = Boolean(isAdminModerator && !isOwnStory);
+    if (needsAdminSession) {
+      const tok = await getAdminSessionToken();
+      if (!tok) {
+        showToast.error(
+          'Sessão admin',
+          'Confirme a senha de administrador no detalhe de um post (⋯) antes de alterar stories de outros.'
+        );
+        return;
+      }
+    }
+    Alert.alert('Visibilidade do story', 'Quem pode ver?', [
+      { text: 'Público', onPress: () => void applyStoryVisibility('public') },
+      { text: 'Seguidores', onPress: () => void applyStoryVisibility('followers') },
+      { text: 'Amigos', onPress: () => void applyStoryVisibility('friends') },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
   };
   
   const nextStory = useCallback(() => {
@@ -234,7 +289,26 @@ export function StoryViewerModal({
             onPress: async () => {
               try {
                 setDeleting(true);
-                const response = await storiesApi.deleteStory(currentStory._id);
+                const authorId = currentStory.userId?._id;
+                const needsAdminSession =
+                  Boolean(currentUser?.accountType === 'admin' && authorId && currentUser?.id && String(authorId) !== String(currentUser.id));
+                let adminTok: string | null = null;
+                if (needsAdminSession) {
+                  adminTok = await getAdminSessionToken();
+                  if (!adminTok) {
+                    showToast.error(
+                      'Sessão admin',
+                      'Confirme a senha de administrador no detalhe de um post (⋯) ou na web antes de eliminar stories de outros.'
+                    );
+                    setShowDeleteConfirm(false);
+                    setDeleting(false);
+                    return;
+                  }
+                }
+                const response = await storiesApi.deleteStory(
+                  currentStory._id,
+                  needsAdminSession && adminTok ? { adminSessionToken: adminTok } : undefined
+                );
                 if (response.success) {
                   showToast.success('Sucesso', 'Story excluído com sucesso');
                   setShowDeleteConfirm(false);
@@ -273,6 +347,12 @@ export function StoryViewerModal({
     const checkFriendship = async () => {
       if (!currentStory || !currentUser || currentStory.userId._id === currentUser.id) {
         setIsFriend(false);
+        return;
+      }
+
+      if (currentUser.accountType === 'admin') {
+        setIsFriend(false);
+        setLoadingFriendship(false);
         return;
       }
 
@@ -572,8 +652,8 @@ export function StoryViewerModal({
             </View>
           )}
 
-          {/* Linha 2: Visualizações (apenas para dono) - bottom esquerdo */}
-          {isOwnStory && (
+          {/* Linha 2: Visualizações (dono ou admin moderador) - bottom esquerdo */}
+          {canModerateStory && (
             <View style={[styles.bottomActionButtons, { bottom: insets.bottom + 8 }]}>
               <TouchableOpacity 
                 style={styles.viewersIconButton}
@@ -665,14 +745,28 @@ export function StoryViewerModal({
                   </Text>
                 </TouchableOpacity>
 
-                {isOwnStory ? (
+                {canModerateStory && (
                   <TouchableOpacity
                     style={styles.menuItem}
-                  onPress={() => {
-                    setShowMenu(false);
-                    setIsPaused(true); // Pausar story ao tentar excluir
-                    setShowDeleteConfirm(true);
-                  }}
+                    onPress={() => {
+                      void openStoryVisibilityPicker();
+                    }}
+                  >
+                    <Ionicons name="eye-outline" size={20} color={COLORS.primary.main} />
+                    <Text style={[styles.menuItemText, { color: COLORS.primary.main }]}>
+                      Alterar visibilidade
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {canModerateStory ? (
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setShowMenu(false);
+                      setIsPaused(true); // Pausar story ao tentar excluir
+                      setShowDeleteConfirm(true);
+                    }}
                   >
                     <Ionicons name="trash-outline" size={20} color={COLORS.states.error} />
                     <Text style={[styles.menuItemText, { color: COLORS.states.error }]}>
@@ -682,11 +776,11 @@ export function StoryViewerModal({
                 ) : (
                   <TouchableOpacity
                     style={styles.menuItem}
-                  onPress={() => {
-                    setShowMenu(false);
-                    setIsPaused(true); // Pausar story ao denunciar
-                    setShowReportModal(true);
-                  }}
+                    onPress={() => {
+                      setShowMenu(false);
+                      setIsPaused(true); // Pausar story ao denunciar
+                      setShowReportModal(true);
+                    }}
                   >
                     <Ionicons name="flag-outline" size={20} color={COLORS.states.warning} />
                     <Text style={[styles.menuItemText, { color: COLORS.states.warning }]}>

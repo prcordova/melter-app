@@ -507,13 +507,21 @@ export const postsApi = {
     return response.data;
   },
 
-  updatePost: async (postId: string, data: {
-    content?: string;
-    imageUrl?: string | null;
-    visibility?: string;
-    category?: string;
-  }) => {
-    const response = await api.put<ApiResponse<any>>(`/api/posts/${postId}`, data);
+  updatePost: async (
+    postId: string,
+    data: {
+      content?: string;
+      imageUrl?: string | null;
+      visibility?: string;
+      category?: string;
+    },
+    options?: { adminSessionToken?: string | null }
+  ) => {
+    const headers: Record<string, string> = {};
+    if (options?.adminSessionToken) {
+      headers['x-admin-session-token'] = options.adminSessionToken;
+    }
+    const response = await api.put<ApiResponse<any>>(`/api/posts/${postId}`, data, { headers });
     return response.data;
   },
 
@@ -548,9 +556,12 @@ export const postsApi = {
     return response.data;
   },
 
-  deletePost: async (postId: string) => {
-    // Usamos POST como fallback para garantir compatibilidade em mobile
-    const response = await api.post<ApiResponse<any>>(`/api/posts/${postId}/delete`);
+  deletePost: async (postId: string, options?: { adminSessionToken?: string | null }) => {
+    const headers: Record<string, string> = {};
+    if (options?.adminSessionToken) {
+      headers['x-admin-session-token'] = options.adminSessionToken;
+    }
+    const response = await api.post<ApiResponse<any>>(`/api/posts/${postId}/delete`, {}, { headers });
     return response.data;
   },
 
@@ -989,8 +1000,29 @@ export const storiesApi = {
     return response.data;
   },
 
-  deleteStory: async (storyId: string) => {
-    const response = await api.delete<ApiResponse<any>>(`/api/stories/${storyId}`);
+  deleteStory: async (storyId: string, options?: { adminSessionToken?: string | null }) => {
+    const headers: Record<string, string> = {};
+    if (options?.adminSessionToken) {
+      headers['x-admin-session-token'] = options.adminSessionToken;
+    }
+    const response = await api.delete<ApiResponse<any>>(`/api/stories/${storyId}`, { headers });
+    return response.data;
+  },
+
+  patchStoryVisibility: async (
+    storyId: string,
+    visibility: 'public' | 'followers' | 'friends',
+    options?: { adminSessionToken?: string | null }
+  ) => {
+    const headers: Record<string, string> = {};
+    if (options?.adminSessionToken) {
+      headers['x-admin-session-token'] = options.adminSessionToken;
+    }
+    const response = await api.patch<ApiResponse<any>>(
+      `/api/stories/${storyId}`,
+      { visibility },
+      { headers }
+    );
     return response.data;
   },
 

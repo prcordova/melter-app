@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,6 +18,8 @@ interface ColorPickerFieldProps {
   value: string;
   onChange: (color: string) => void;
   compact?: boolean;
+  /** Estilo extra no contentor externo (ex.: `flex: 1`, `marginBottom: 0` em grelhas). */
+  fieldContainerStyle?: StyleProp<ViewStyle>;
 }
 
 // Converter HEX para RGB
@@ -45,7 +49,13 @@ const PRESET_COLORS = [
   '#FFC0CB', '#A52A2A', '#808080', '#000080', '#008000',
 ];
 
-export function ColorPickerField({ label, value, onChange, compact = false }: ColorPickerFieldProps) {
+export function ColorPickerField({
+  label,
+  value,
+  onChange,
+  compact = false,
+  fieldContainerStyle,
+}: ColorPickerFieldProps) {
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
   // Garantir que value sempre seja uma string válida
@@ -118,7 +128,7 @@ export function ColorPickerField({ label, value, onChange, compact = false }: Co
 
   return (
     <>
-      <View style={styles.fieldContainer}>
+      <View style={[styles.fieldContainer, fieldContainerStyle]}>
         <Text style={styles.label}>{label}</Text>
         <TouchableOpacity
           style={styles.colorButton}

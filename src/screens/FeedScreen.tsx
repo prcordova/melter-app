@@ -20,6 +20,7 @@ import { PostCard } from '../components/PostCard';
 import { AdCard } from '../components/AdCard';
 import { PlatformFeedInfoSlot } from '../components/PlatformFeedInfoSlot';
 import { postsApi, storiesApi, adsApi, platformFeedInfoApi } from '../services/api';
+import { getAdminSessionToken } from '../lib/admin-session';
 import { Post, StoriesGroup, Ad, ReactionType } from '../types/feed';
 import type { PlatformFeedInfoItem } from '../types/platform-feed-info';
 import {
@@ -305,15 +306,34 @@ export function FeedScreen() {
 
   const handleDelete = async (postId: string) => {
     try {
-      // Atualização otimista
+      const post = posts.find((p) => p._id === postId);
+      const authorId =
+        post?.userId && typeof post.userId === 'object' ? (post.userId as { _id?: string })._id : undefined;
+      const isOtherAuthor =
+        Boolean(user?.id && authorId && String(authorId) !== String(user.id));
+      const needsAdminSession = user?.accountType === 'admin' && isOtherAuthor;
+      let adminTok: string | null = null;
+      if (needsAdminSession) {
+        adminTok = await getAdminSessionToken();
+        if (!adminTok) {
+          showToast.error(
+            'Sessão admin',
+            'Confirme a senha de administrador no detalhe do post (⋯) antes de eliminar posts de outros utilizadores.'
+          );
+          return;
+        }
+      }
+
       setPosts((prevPosts) => prevPosts.filter((p) => p._id !== postId));
 
-      await postsApi.deletePost(postId);
+      await postsApi.deletePost(
+        postId,
+        needsAdminSession && adminTok ? { adminSessionToken: adminTok } : undefined
+      );
       showToast.success('Sucesso', 'Post deletado com sucesso');
     } catch (error) {
       console.error('Erro ao deletar post:', error);
       showToast.error('Erro', 'Não foi possível deletar o post');
-      // Reverter em caso de erro
       fetchPosts(1);
     }
   };

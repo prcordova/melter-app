@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -28,6 +29,7 @@ import { CreatePostModal } from './CreatePostModal';
 import { COLORS } from '../theme/colors';
 import { showToast } from './CustomToast';
 import { Avatar } from './Avatar';
+import { AdminPasswordModal } from './AdminPasswordModal';
 import { UsernameGradientText } from './UsernameGradientText';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 import {
@@ -36,6 +38,7 @@ import {
   getPostAuthorUsernameForNav,
   VERIFIED_BADGE_ICON_COLOR,
 } from '../utils/post-author';
+import { getAdminSessionToken } from '../lib/admin-session';
 
 interface PostModalProps {
   postId: string | null;
@@ -63,6 +66,8 @@ export function PostModal({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
+  const [adminPasswordIntent, setAdminPasswordIntent] = useState<'delete' | 'visibility' | null>(null);
 
   useEffect(() => {
     if (visible && postId) {
@@ -177,7 +182,22 @@ export function PostModal({
   const handleDelete = async () => {
     if (!post) return;
     try {
-      await postsApi.deletePost(post._id);
+      const authorId = getPostAuthorObjectId(post.userId as any);
+      const isOwner = Boolean(user?.id && authorId && String(user.id) === String(authorId));
+      const needsAdminSession = user?.accountType === 'admin' && !isOwner;
+      let adminTok: string | null = null;
+      if (needsAdminSession) {
+        adminTok = await getAdminSessionToken();
+        if (!adminTok) {
+          setAdminPasswordIntent('delete');
+          setShowAdminPasswordModal(true);
+          return;
+        }
+      }
+      await postsApi.deletePost(
+        post._id,
+        needsAdminSession && adminTok ? { adminSessionToken: adminTok } : undefined
+      );
       showToast.success('Post deletado com sucesso');
       onClose();
       if (onPostDeleted) {
@@ -185,6 +205,63 @@ export function PostModal({
       }
     } catch (error: any) {
       showToast.error(error.response?.data?.message || 'Erro ao deletar post');
+    }
+  };
+
+  const applyVisibility = async (v: 'PUBLIC' | 'FOLLOWERS' | 'FRIENDS') => {
+    if (!post) return;
+    try {
+      const authorId = getPostAuthorObjectId(post.userId as any);
+      const isOwner = Boolean(user?.id && authorId && String(user.id) === String(authorId));
+      const needsAdminSession = user?.accountType === 'admin' && !isOwner;
+      const adminTok = needsAdminSession ? await getAdminSessionToken() : null;
+      const res = await postsApi.updatePost(
+        post._id,
+        { visibility: v },
+        needsAdminSession && adminTok ? { adminSessionToken: adminTok } : undefined
+      );
+      if (res.success) {
+        showToast.success('Visibilidade atualizada');
+        setPost((p) => (p ? { ...p, visibility: v } : p));
+        if (onPostShared) onPostShared();
+      } else {
+        showToast.error(res.message || 'Erro ao atualizar visibilidade');
+      }
+    } catch (error: any) {
+      showToast.error(error.response?.data?.message || 'Erro ao atualizar visibilidade');
+    }
+  };
+
+  const openVisibilityPicker = async () => {
+    setShowMenu(false);
+    if (!post) return;
+    const authorId = getPostAuthorObjectId(post.userId as any);
+    const isOwner = Boolean(user?.id && authorId && String(user.id) === String(authorId));
+    const needsAdminSession = user?.accountType === 'admin' && !isOwner;
+    if (needsAdminSession) {
+      const tok = await getAdminSessionToken();
+      if (!tok) {
+        setAdminPasswordIntent('visibility');
+        setShowAdminPasswordModal(true);
+        return;
+      }
+    }
+    Alert.alert('Visibilidade do post', 'Quem pode ver?', [
+      { text: 'Público', onPress: () => void applyVisibility('PUBLIC') },
+      { text: 'Seguidores', onPress: () => void applyVisibility('FOLLOWERS') },
+      { text: 'Amigos', onPress: () => void applyVisibility('FRIENDS') },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
+
+  const handleAdminPasswordSuccess = () => {
+    setShowAdminPasswordModal(false);
+    const intent = adminPasswordIntent;
+    setAdminPasswordIntent(null);
+    if (intent === 'visibility') {
+      void openVisibilityPicker();
+    } else if (intent === 'delete') {
+      void handleDelete();
     }
   };
 
@@ -233,7 +310,9 @@ export function PostModal({
           >
             {/* Header */}
             <View style={styles.header}>
-              {user?.id === getPostAuthorObjectId(post?.userId as any) && (
+              {post &&
+                (user?.id === getPostAuthorObjectId(post.userId as any) ||
+                  user?.accountType === 'admin') && (
                 <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
                   <Ionicons name="ellipsis-horizontal" size={24} color={COLORS.text.primary} />
                 </TouchableOpacity>
@@ -470,20 +549,37 @@ export function PostModal({
       >
         <Pressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
           <View style={styles.menuContainer}>
-            {user?.id === post?.userId?._id && (
+            {post && (
               <>
-                <TouchableOpacity style={styles.menuItem} onPress={handleEditPress}>
-                  <Ionicons name="create-outline" size={22} color={COLORS.text.primary} />
-                  <Text style={styles.menuItemText}>Editar</Text>
-                </TouchableOpacity>
-                <View style={styles.menuDivider} />
-                <TouchableOpacity
-                  style={[styles.menuItem, styles.menuItemDanger]}
-                  onPress={handleDeletePress}
-                >
-                  <Ionicons name="trash-outline" size={22} color={COLORS.states.error} />
-                  <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>Deletar</Text>
-                </TouchableOpacity>
+                {user?.id === getPostAuthorObjectId(post.userId as any) && (
+                  <>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleEditPress}>
+                      <Ionicons name="create-outline" size={22} color={COLORS.text.primary} />
+                      <Text style={styles.menuItemText}>Editar</Text>
+                    </TouchableOpacity>
+                    <View style={styles.menuDivider} />
+                  </>
+                )}
+                {(user?.id === getPostAuthorObjectId(post.userId as any) ||
+                  user?.accountType === 'admin') && (
+                  <>
+                    <TouchableOpacity style={styles.menuItem} onPress={() => void openVisibilityPicker()}>
+                      <Ionicons name="eye-outline" size={22} color={COLORS.text.primary} />
+                      <Text style={styles.menuItemText}>Alterar visibilidade</Text>
+                    </TouchableOpacity>
+                    <View style={styles.menuDivider} />
+                  </>
+                )}
+                {(user?.id === getPostAuthorObjectId(post.userId as any) ||
+                  user?.accountType === 'admin') && (
+                  <TouchableOpacity
+                    style={[styles.menuItem, styles.menuItemDanger]}
+                    onPress={handleDeletePress}
+                  >
+                    <Ionicons name="trash-outline" size={22} color={COLORS.states.error} />
+                    <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>Deletar</Text>
+                  </TouchableOpacity>
+                )}
               </>
             )}
           </View>
@@ -511,6 +607,14 @@ export function PostModal({
           }}
         />
       )}
+      <AdminPasswordModal
+        visible={showAdminPasswordModal}
+        onClose={() => {
+          setShowAdminPasswordModal(false);
+          setAdminPasswordIntent(null);
+        }}
+        onSuccess={handleAdminPasswordSuccess}
+      />
     </>
   );
 }

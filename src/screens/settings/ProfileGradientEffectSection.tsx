@@ -78,38 +78,46 @@ export function ProfileGradientEffectSection({
               </View>
             </View>
 
-            <ColorPickerField
-              label="Cor inicial do gradiente"
-              value={effect.gradientFrom}
-              onChange={(color) => {
-                setEffect((p) => ({ ...p, gradientFrom: color }));
-                setHasChanges(true);
-              }}
-            />
-            <ColorPickerField
-              label="Cor final do gradiente"
-              value={effect.gradientTo}
-              onChange={(color) => {
-                setEffect((p) => ({ ...p, gradientTo: color }));
-                setHasChanges(true);
-              }}
-            />
-            <ColorPickerField
-              label="Cor inicial (hover — web)"
-              value={effect.gradientHoverFrom}
-              onChange={(color) => {
-                setEffect((p) => ({ ...p, gradientHoverFrom: color }));
-                setHasChanges(true);
-              }}
-            />
-            <ColorPickerField
-              label="Cor final (hover — web)"
-              value={effect.gradientHoverTo}
-              onChange={(color) => {
-                setEffect((p) => ({ ...p, gradientHoverTo: color }));
-                setHasChanges(true);
-              }}
-            />
+            <View style={styles.colorPairRow}>
+              <ColorPickerField
+                label="Cor inicial do gradiente"
+                value={effect.gradientFrom}
+                onChange={(color) => {
+                  setEffect((p) => ({ ...p, gradientFrom: color }));
+                  setHasChanges(true);
+                }}
+                fieldContainerStyle={styles.colorPairField}
+              />
+              <ColorPickerField
+                label="Cor final do gradiente"
+                value={effect.gradientTo}
+                onChange={(color) => {
+                  setEffect((p) => ({ ...p, gradientTo: color }));
+                  setHasChanges(true);
+                }}
+                fieldContainerStyle={styles.colorPairField}
+              />
+            </View>
+            <View style={styles.colorPairRow}>
+              <ColorPickerField
+                label="Cor inicial (hover — web)"
+                value={effect.gradientHoverFrom}
+                onChange={(color) => {
+                  setEffect((p) => ({ ...p, gradientHoverFrom: color }));
+                  setHasChanges(true);
+                }}
+                fieldContainerStyle={styles.colorPairField}
+              />
+              <ColorPickerField
+                label="Cor final (hover — web)"
+                value={effect.gradientHoverTo}
+                onChange={(color) => {
+                  setEffect((p) => ({ ...p, gradientHoverTo: color }));
+                  setHasChanges(true);
+                }}
+                fieldContainerStyle={styles.colorPairField}
+              />
+            </View>
 
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>Intensidade do brilho: {effect.glowIntensity}</Text>
@@ -250,6 +258,17 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     marginBottom: 16,
     lineHeight: 18,
+  },
+  colorPairRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+    alignItems: 'flex-start',
+  },
+  colorPairField: {
+    flex: 1,
+    marginBottom: 0,
+    minWidth: 0,
   },
   fieldContainer: {
     marginBottom: 16,
