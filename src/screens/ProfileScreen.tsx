@@ -32,6 +32,8 @@ type UserStatus = 'online' | 'busy' | 'offline';
 import { Avatar } from '../components/Avatar';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 import { getImageUrl } from '../utils/image';
+import { UsernameGradientText } from '../components/UsernameGradientText';
+import { normalizeUsernameDisplayEffect } from '../types/username-display-effect';
 
 export function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -48,6 +50,7 @@ export function ProfileScreen() {
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const statusMessageInputRef = useRef<TextInput>(null);
   const [userLinks, setUserLinks] = useState<any[]>([]);
+  const [publicProfile, setPublicProfile] = useState<Record<string, any> | null>(null);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [editingLink, setEditingLink] = useState<any | null>(null);
   const [savingLink, setSavingLink] = useState(false);
@@ -71,11 +74,25 @@ export function ProfileScreen() {
   const maxLinksAllowed = maxLinksByPlan[currentPlanType] || 3;
   const hasReachedLinksLimit = userLinks.length >= maxLinksAllowed;
 
+  const isValidColor = (color: unknown): boolean => {
+    if (!color || typeof color !== 'string') return false;
+    const trimmed = color.trim();
+    if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(trimmed)) return true;
+    if (/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\)$/.test(trimmed)) return true;
+    return false;
+  };
+
+  const getSafeColor = (color: unknown, fallback: string): string => {
+    if (isValidColor(color)) return String(color).trim();
+    return fallback;
+  };
+
   const loadUserLinks = useCallback(async () => {
     try {
       if (!user?.id) return;
       const response = await userApi.getMyProfile({ scope: 'full' });
       if (response.success && response.data) {
+        setPublicProfile(response.data.profile || null);
         const links = response.data.links || [];
         const profileSortMode = response.data.profile?.sortMode || 'custom';
         setLinksSortMode(profileSortMode);
@@ -439,6 +456,17 @@ export function ProfileScreen() {
     }
   };
 
+  const pp = publicProfile || {};
+  const statusBalloonOuterBg = getSafeColor(pp.statusMessageContainerBg, COLORS.background.paper);
+  const statusBalloonInnerBg =
+    typeof pp.statusMessageBubbleBg === 'string' && pp.statusMessageBubbleBg.trim()
+      ? getSafeColor(pp.statusMessageBubbleBg, COLORS.background.paper)
+      : null;
+  const statusMessageSolidColor = getSafeColor(pp.statusMessageTextColor, COLORS.text.primary);
+  const statusMessageGradientOn = Boolean(
+    normalizeUsernameDisplayEffect(pp.statusMessageDisplayEffect ?? null)?.enabled
+  );
+
   return (
     <View style={styles.container}>
       {/* Header fixo */}
@@ -486,13 +514,37 @@ export function ProfileScreen() {
               {/* Balão de status (mensagem de status) */}
               {statusMessage && statusMessage.trim() && (
                 <View style={styles.statusBalloonContainer}>
-                  <View style={styles.statusBalloon}>
-                    <Text style={styles.statusBalloonText} numberOfLines={2}>
-                      {statusMessage}
-                    </Text>
+                  <View style={[styles.statusBalloon, { backgroundColor: statusBalloonOuterBg }]}>
+                    <View
+                      style={
+                        statusBalloonInnerBg
+                          ? {
+                              backgroundColor: statusBalloonInnerBg,
+                              borderRadius: 10,
+                              paddingHorizontal: 10,
+                              paddingVertical: 8,
+                            }
+                          : {}
+                      }
+                    >
+                      <UsernameGradientText
+                        username={statusMessage}
+                        prefix=""
+                        effect={pp.statusMessageDisplayEffect ?? null}
+                        fontSize={13}
+                        fontWeight="600"
+                        numberOfLines={2}
+                        style={
+                          statusMessageGradientOn
+                            ? undefined
+                            : { color: statusMessageSolidColor }
+                        }
+                      />
+                    </View>
                   </View>
-                  {/* Seta do balão apontando para o avatar */}
-                  <View style={styles.statusBalloonArrow} />
+                  <View
+                    style={[styles.statusBalloonArrow, { borderRightColor: statusBalloonOuterBg }]}
+                  />
                 </View>
               )}
             </View>
@@ -1133,9 +1185,8 @@ const styles = StyleSheet.create({
   },
   statusBalloon: {
     maxWidth: 200,
-    backgroundColor: COLORS.background.paper,
     borderRadius: 12,
-    padding: 12,
+    padding: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

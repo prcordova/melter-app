@@ -28,7 +28,7 @@ import {
   DEFAULT_USERNAME_DISPLAY_EFFECT,
   normalizeUsernameDisplayEffect,
 } from '../../types/username-display-effect';
-import { UsernameGradientText } from '../../components/UsernameGradientText';
+import { ProfileGradientEffectSection } from './ProfileGradientEffectSection';
 
 interface ProfileSettings {
   backgroundColor: string;
@@ -53,6 +53,9 @@ interface ProfileSettings {
   postsLimit: number;
   buttonBackgroundColor: string | null;
   buttonTextColor: string | null;
+  statusMessageTextColor: string | null;
+  statusMessageContainerBg: string | null;
+  statusMessageBubbleBg: string | null;
 }
 
 interface UserStatus {
@@ -108,6 +111,9 @@ export function AppearanceSettingsScreen() {
     postsLimit: 5,
     buttonBackgroundColor: null,
     buttonTextColor: null,
+    statusMessageTextColor: null,
+    statusMessageContainerBg: null,
+    statusMessageBubbleBg: null,
   });
 
   const [userStatus, setUserStatus] = useState<UserStatus>({
@@ -122,6 +128,10 @@ export function AppearanceSettingsScreen() {
   const [pendingBackground, setPendingBackground] = useState<string | null>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [usernameEffect, setUsernameEffect] = useState<UsernameDisplayEffectConfig>(() => ({
+    ...DEFAULT_USERNAME_DISPLAY_EFFECT,
+  }));
+
+  const [statusMessageEffect, setStatusMessageEffect] = useState<UsernameDisplayEffectConfig>(() => ({
     ...DEFAULT_USERNAME_DISPLAY_EFFECT,
   }));
 
@@ -169,9 +179,22 @@ export function AppearanceSettingsScreen() {
           postsLimit: profile.postsLimit || prev.postsLimit,
           buttonBackgroundColor: profile.buttonBackgroundColor || null,
           buttonTextColor: profile.buttonTextColor || null,
+          statusMessageTextColor:
+            profile.statusMessageTextColor !== undefined && profile.statusMessageTextColor !== null
+              ? profile.statusMessageTextColor
+              : null,
+          statusMessageContainerBg:
+            profile.statusMessageContainerBg !== undefined && profile.statusMessageContainerBg !== null
+              ? profile.statusMessageContainerBg
+              : null,
+          statusMessageBubbleBg:
+            profile.statusMessageBubbleBg !== undefined && profile.statusMessageBubbleBg !== null
+              ? profile.statusMessageBubbleBg
+              : null,
         }));
 
         setUsernameEffect(mergeUsernameDisplayEffect(profile.usernameDisplayEffect));
+        setStatusMessageEffect(mergeUsernameDisplayEffect(profile.statusMessageDisplayEffect));
 
         // Carregar status
         const status = data.status || {};
@@ -358,9 +381,18 @@ export function AppearanceSettingsScreen() {
 
       if (user?.plan?.type === 'PRO' || user?.plan?.type === 'PRO_PLUS') {
         profilePayload.usernameDisplayEffect = usernameEffect;
+        profilePayload.statusMessageDisplayEffect = statusMessageEffect;
       }
 
-      // 5. Salvar perfil
+      if (
+        user?.plan?.type === 'STARTER' ||
+        user?.plan?.type === 'PRO' ||
+        user?.plan?.type === 'PRO_PLUS'
+      ) {
+        profilePayload.statusMessageTextColor = settings.statusMessageTextColor;
+        profilePayload.statusMessageContainerBg = settings.statusMessageContainerBg;
+        profilePayload.statusMessageBubbleBg = settings.statusMessageBubbleBg;
+      }
       const updateResponse = await profileApi.updateProfile({
         bio,
         profile: profilePayload,
@@ -556,210 +588,29 @@ export function AppearanceSettingsScreen() {
 
         {/* Seção: Efeito visual no @ (PRO) */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>✨ Nome no feed e perfil</Text>
-          <Text style={styles.helperCaption}>
-            Gradiente e brilho no seu @ onde os posts e o perfil mostram o nome (planos PRO e PRO+).
-          </Text>
+          <ProfileGradientEffectSection
+            title="✨ Nome no feed e perfil"
+            caption="Gradiente e brilho no seu @ onde os posts e o perfil mostram o nome (planos PRO e PRO+)."
+            planType={user?.plan?.type}
+            effect={usernameEffect}
+            setEffect={setUsernameEffect}
+            setHasChanges={setHasChanges}
+            previewUsername={user?.username || 'usuario'}
+            previewPrefix="@"
+          />
+        </View>
 
-          <PlanLocker requiredPlan="PRO" currentPlan={user?.plan?.type}>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Ativar efeito</Text>
-              <Switch
-                value={usernameEffect.enabled}
-                onValueChange={(value) => {
-                  setUsernameEffect((prev) =>
-                    value
-                      ? { ...DEFAULT_USERNAME_DISPLAY_EFFECT, ...prev, enabled: true }
-                      : { ...prev, enabled: false }
-                  );
-                  setHasChanges(true);
-                }}
-                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
-                thumbColor="#ffffff"
-              />
-            </View>
-
-            {usernameEffect.enabled ? (
-              <>
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Movimento do gradiente</Text>
-                  <View style={styles.pickerWrapper}>
-                    <Picker
-                      selectedValue={usernameEffect.motionMode}
-                      onValueChange={(value) => {
-                        setUsernameEffect((p) => ({
-                          ...p,
-                          motionMode: value as UsernameDisplayEffectConfig['motionMode'],
-                        }));
-                        setHasChanges(true);
-                      }}
-                      style={styles.picker}
-                      dropdownIconColor={COLORS.text.secondary}
-                    >
-                      <Picker.Item label="Estático" value="static" />
-                      <Picker.Item label="Animado" value="animated" />
-                    </Picker>
-                  </View>
-                </View>
-
-                <ColorPickerField
-                  label="Cor inicial do gradiente"
-                  value={usernameEffect.gradientFrom}
-                  onChange={(color) => {
-                    setUsernameEffect((p) => ({ ...p, gradientFrom: color }));
-                    setHasChanges(true);
-                  }}
-                />
-                <ColorPickerField
-                  label="Cor final do gradiente"
-                  value={usernameEffect.gradientTo}
-                  onChange={(color) => {
-                    setUsernameEffect((p) => ({ ...p, gradientTo: color }));
-                    setHasChanges(true);
-                  }}
-                />
-                <ColorPickerField
-                  label="Cor inicial (hover — web)"
-                  value={usernameEffect.gradientHoverFrom}
-                  onChange={(color) => {
-                    setUsernameEffect((p) => ({ ...p, gradientHoverFrom: color }));
-                    setHasChanges(true);
-                  }}
-                />
-                <ColorPickerField
-                  label="Cor final (hover — web)"
-                  value={usernameEffect.gradientHoverTo}
-                  onChange={(color) => {
-                    setUsernameEffect((p) => ({ ...p, gradientHoverTo: color }));
-                    setHasChanges(true);
-                  }}
-                />
-
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Intensidade do brilho: {usernameEffect.glowIntensity}</Text>
-                  <View style={styles.sliderContainer}>
-                    <TouchableOpacity
-                      style={styles.sliderButton}
-                      onPress={() => {
-                        const v = Math.max(0, usernameEffect.glowIntensity - 5);
-                        setUsernameEffect((p) => ({ ...p, glowIntensity: v }));
-                        setHasChanges(true);
-                      }}
-                    >
-                      <Ionicons name="remove" size={20} color={COLORS.text.primary} />
-                    </TouchableOpacity>
-                    <View style={styles.sliderTrack}>
-                      <View style={styles.sliderTrackBackground} />
-                      <View
-                        style={[
-                          styles.sliderTrackFill,
-                          {
-                            width: `${Math.max(0, Math.min(100, usernameEffect.glowIntensity))}%`,
-                            backgroundColor: COLORS.primary.main,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <TouchableOpacity
-                      style={styles.sliderButton}
-                      onPress={() => {
-                        const v = Math.min(100, usernameEffect.glowIntensity + 5);
-                        setUsernameEffect((p) => ({ ...p, glowIntensity: v }));
-                        setHasChanges(true);
-                      }}
-                    >
-                      <Ionicons name="add" size={20} color={COLORS.text.primary} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>
-                    Brilho no hover (web): {usernameEffect.hoverGlowIntensity}
-                  </Text>
-                  <View style={styles.sliderContainer}>
-                    <TouchableOpacity
-                      style={styles.sliderButton}
-                      onPress={() => {
-                        const v = Math.max(0, usernameEffect.hoverGlowIntensity - 5);
-                        setUsernameEffect((p) => ({ ...p, hoverGlowIntensity: v }));
-                        setHasChanges(true);
-                      }}
-                    >
-                      <Ionicons name="remove" size={20} color={COLORS.text.primary} />
-                    </TouchableOpacity>
-                    <View style={styles.sliderTrack}>
-                      <View style={styles.sliderTrackBackground} />
-                      <View
-                        style={[
-                          styles.sliderTrackFill,
-                          {
-                            width: `${Math.max(0, Math.min(100, usernameEffect.hoverGlowIntensity))}%`,
-                            backgroundColor: COLORS.primary.main,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <TouchableOpacity
-                      style={styles.sliderButton}
-                      onPress={() => {
-                        const v = Math.min(100, usernameEffect.hoverGlowIntensity + 5);
-                        setUsernameEffect((p) => ({ ...p, hoverGlowIntensity: v }));
-                        setHasChanges(true);
-                      }}
-                    >
-                      <Ionicons name="add" size={20} color={COLORS.text.primary} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Cores alternam ao passar o rato (web)</Text>
-                  <Switch
-                    value={usernameEffect.applyHover}
-                    onValueChange={(value) => {
-                      setUsernameEffect((p) => ({ ...p, applyHover: value }));
-                      setHasChanges(true);
-                    }}
-                    trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
-                    thumbColor="#ffffff"
-                  />
-                </View>
-
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Modo em listagens explorar (web)</Text>
-                  <View style={styles.pickerWrapper}>
-                    <Picker
-                      selectedValue={usernameEffect.explorerMode}
-                      onValueChange={(value) => {
-                        setUsernameEffect((p) => ({
-                          ...p,
-                          explorerMode: value as UsernameDisplayEffectConfig['explorerMode'],
-                        }));
-                        setHasChanges(true);
-                      }}
-                      style={styles.picker}
-                      dropdownIconColor={COLORS.text.secondary}
-                    >
-                      <Picker.Item label="Gradiente sempre visível" value="always" />
-                      <Picker.Item label="Só ao passar o rato (hover)" value="hover_only" />
-                    </Picker>
-                  </View>
-                </View>
-
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>Pré-visualização</Text>
-                  <UsernameGradientText
-                    username={user?.username || 'usuario'}
-                    prefix="@"
-                    effect={usernameEffect}
-                    fontSize={18}
-                    fontWeight="700"
-                  />
-                </View>
-              </>
-            ) : null}
-          </PlanLocker>
+        <View style={styles.section}>
+          <ProfileGradientEffectSection
+            title="✨ Mensagem de status (PRO)"
+            caption="Gradiente e brilho no texto da mensagem ao lado do avatar, com as mesmas opções do @."
+            planType={user?.plan?.type}
+            effect={statusMessageEffect}
+            setEffect={setStatusMessageEffect}
+            setHasChanges={setHasChanges}
+            previewUsername={userStatus.customMessage?.trim() || 'Olá!'}
+            previewPrefix=""
+          />
         </View>
 
         {/* Seção: Avatar e Bio */}
@@ -840,6 +691,41 @@ export function AppearanceSettingsScreen() {
             />
             <Text style={styles.charCount}>{userStatus.customMessage.length}/100</Text>
           </View>
+
+          <Text style={[styles.fieldLabel, { marginTop: 8 }]}>Aparência do balão de status</Text>
+          <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginBottom: 12 }}>
+            Cores do balão no perfil público (STARTER ou superior).
+          </Text>
+          <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
+            <ColorPickerField
+              label="Cor do texto da mensagem"
+              value={settings.statusMessageTextColor || settings.textColor}
+              onChange={(color) => handleSettingsChange({ statusMessageTextColor: color })}
+            />
+            <ColorPickerField
+              label="Fundo do balão (externo)"
+              value={settings.statusMessageContainerBg || settings.cardColor}
+              onChange={(color) => handleSettingsChange({ statusMessageContainerBg: color })}
+            />
+            <ColorPickerField
+              label="Fundo interno (área do texto)"
+              value={settings.statusMessageBubbleBg || settings.cardColor}
+              onChange={(color) => handleSettingsChange({ statusMessageBubbleBg: color })}
+            />
+            <TouchableOpacity
+              onPress={() =>
+                handleSettingsChange({
+                  statusMessageTextColor: null,
+                  statusMessageContainerBg: null,
+                  statusMessageBubbleBg: null,
+                })
+              }
+            >
+              <Text style={{ fontSize: 14, color: COLORS.primary.main, marginTop: 8 }}>
+                Restaurar cores padrão
+              </Text>
+            </TouchableOpacity>
+          </PlanLocker>
 
           <View style={styles.fieldContainer}>
             <View style={styles.switchRow}>

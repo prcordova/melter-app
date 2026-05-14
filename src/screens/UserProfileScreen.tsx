@@ -43,6 +43,7 @@ type UserProfileRouteProp = RouteProp<{ UserProfile: UserProfileRouteParams }, '
 
 import { Avatar } from '../components/Avatar';
 import { UsernameGradientText } from '../components/UsernameGradientText';
+import { normalizeUsernameDisplayEffect } from '../types/username-display-effect';
 
 export function UserProfileScreen() {
   const route = useRoute<UserProfileRouteProp>();
@@ -609,6 +610,22 @@ export function UserProfileScreen() {
 
   const showCoverColorOverlay = profile.backgroundOverlay !== false && safeOverlayOpacity > 0
 
+  const statusBalloonOuterBg = getSafeColor(
+    profile.statusMessageContainerBg,
+    COLORS.background.paper
+  );
+  const statusBalloonInnerBg =
+    typeof profile.statusMessageBubbleBg === 'string' && profile.statusMessageBubbleBg.trim()
+      ? getSafeColor(profile.statusMessageBubbleBg, COLORS.background.paper)
+      : null;
+  const statusMessageSolidColor = getSafeColor(
+    profile.statusMessageTextColor,
+    getSafeColor(profile.textColor, COLORS.text.primary)
+  );
+  const statusMessageGradientOn = Boolean(
+    normalizeUsernameDisplayEffect(profile.statusMessageDisplayEffect ?? null)?.enabled
+  );
+
   /** Alinhado ao web: `full` = imagem em toda a área rolável; `top` = só na faixa do cover. */
   const backgroundMode = profile.backgroundMode === 'top' ? 'top' : 'full'
   const isFullPageBackground = backgroundMode === 'full' && !!bgImageSource
@@ -770,10 +787,38 @@ export function UserProfileScreen() {
             
             {/* Balão de status à direita do avatar, um pouco acima da metade */}
             {user.status?.customMessage && user.status.customMessage.trim() && (
-              <View style={styles.statusBalloon}>
-                <Text style={[styles.statusBalloonText, dynamicStyles.text]} numberOfLines={2}>
-                  {user.status.customMessage}
-                </Text>
+              <View
+                style={[
+                  styles.statusBalloon,
+                  { backgroundColor: statusBalloonOuterBg, borderColor: COLORS.border.light },
+                ]}
+              >
+                <View
+                  style={
+                    statusBalloonInnerBg
+                      ? {
+                          backgroundColor: statusBalloonInnerBg,
+                          borderRadius: 10,
+                          paddingHorizontal: 10,
+                          paddingVertical: 8,
+                        }
+                      : { paddingVertical: 2 }
+                  }
+                >
+                  <UsernameGradientText
+                    username={user.status.customMessage}
+                    prefix=""
+                    effect={profile.statusMessageDisplayEffect ?? null}
+                    fontSize={13}
+                    fontWeight="600"
+                    numberOfLines={2}
+                    style={
+                      statusMessageGradientOn
+                        ? { maxWidth: 200 }
+                        : { color: statusMessageSolidColor, maxWidth: 200 }
+                    }
+                  />
+                </View>
               </View>
             )}
           </View>
@@ -1316,9 +1361,8 @@ const styles = StyleSheet.create({
     left: 110, // À direita do avatar (100px + 10px de gap)
     top: -30, // Na metade superior do avatar (sobreposto ao cover background)
     maxWidth: 200,
-    backgroundColor: COLORS.background.paper,
     borderRadius: 12,
-    padding: 12,
+    padding: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

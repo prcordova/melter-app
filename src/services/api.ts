@@ -1164,6 +1164,10 @@ export const profileApi = {
       buttonBackgroundColor?: string | null;
       buttonTextColor?: string | null;
       usernameDisplayEffect?: UsernameDisplayEffectConfig | null;
+      statusMessageTextColor?: string | null;
+      statusMessageContainerBg?: string | null;
+      statusMessageBubbleBg?: string | null;
+      statusMessageDisplayEffect?: UsernameDisplayEffectConfig | null;
     };
     status?: {
       visibility?: 'online' | 'busy' | 'offline';
