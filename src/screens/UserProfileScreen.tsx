@@ -70,6 +70,7 @@ export function UserProfileScreen() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [donationModalVisible, setDonationModalVisible] = useState(false);
+  const [shareLinksModalVisible, setShareLinksModalVisible] = useState(false);
 
   const renderProfileSkeleton = () => (
     <View style={styles.skeletonContainer}>
@@ -489,12 +490,21 @@ export function UserProfileScreen() {
     });
   };
 
-  const handleShareProfile = async () => {
+  const shareSiteBase = (API_CONFIG.APP_URL || 'https://melter.com.br').replace(/\/$/, '');
+  const shareProfileUrl = `${shareSiteBase}/user/${encodeURIComponent(username)}`;
+  const sharePublicFeedUrl = `${shareSiteBase}/user/${encodeURIComponent(username)}/posts`;
+  const shareHandleLine = `@${username}.melter.com.br`;
+
+  const openShareLinksModal = () => {
+    setShowMenu(false);
+    setShareLinksModalVisible(true);
+  };
+
+  const copyShareLine = async (text: string, description: string) => {
     try {
-      const profileUrl = `https://melter.com.br/user/${username}`;
-      await Clipboard.setStringAsync(profileUrl);
-      showToast.success('Copiado!', 'Link do perfil copiado para a área de transferência');
-      setShowMenu(false);
+      await Clipboard.setStringAsync(text);
+      showToast.success('Copiado!', description);
+      setShareLinksModalVisible(false);
     } catch (error) {
       console.error('Erro ao copiar link:', error);
       showToast.error('Erro', 'Não foi possível copiar o link');
@@ -845,6 +855,18 @@ export function UserProfileScreen() {
               {shouldShowVerifiedBadgeOnProfile(user) && (
                 <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
               )}
+              <TouchableOpacity
+                onPress={() => setShareLinksModalVisible(true)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Copiar links do perfil e feed público"
+              >
+                <Ionicons
+                  name="share-outline"
+                  size={20}
+                  color={getSafeColor(profile.textColor, COLORS.primary.main)}
+                />
+              </TouchableOpacity>
               <Text style={[styles.planType, { color: getSafeColor(profile.buttonBackgroundColor, COLORS.secondary.main) }]}>
                 {user.plan?.type || 'FREE'}
               </Text>
@@ -1136,7 +1158,23 @@ export function UserProfileScreen() {
         {/* Posts do Usuário */}
         {profile.showPosts !== false && (
           <View style={styles.postsSection}>
-            <Text style={[styles.sectionTitle, dynamicStyles.text]}>Posts Recentes</Text>
+            <View style={styles.postsSectionHeader}>
+              <Text style={[styles.sectionTitle, dynamicStyles.text, styles.postsSectionTitleFlex]}>
+                Posts Recentes
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShareLinksModalVisible(true)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Copiar links do perfil e feed público"
+              >
+                <Ionicons
+                  name="share-outline"
+                  size={22}
+                  color={getSafeColor(profile.textColor, COLORS.primary.main)}
+                />
+              </TouchableOpacity>
+            </View>
             {posts.length > 0 ? (
               posts.map(post => (
                 <PostCard 
@@ -1183,6 +1221,68 @@ export function UserProfileScreen() {
         }}
       />
 
+      <Modal
+        visible={shareLinksModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShareLinksModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.menuOverlay}
+          activeOpacity={1}
+          onPress={() => setShareLinksModalVisible(false)}
+        >
+          <View style={styles.shareSheetContainer}>
+            <Text style={styles.shareSheetHeading}>Copiar para área de transferência</Text>
+            <Text style={styles.shareSheetHint}>
+              O feed público inclui apenas posts com visibilidade pública (útil para FiveM, sites externos, etc.).
+            </Text>
+            <TouchableOpacity
+              style={styles.shareSheetRow}
+              onPress={() => void copyShareLine(shareProfileUrl, 'URL do perfil')}
+            >
+              <Ionicons name="person-outline" size={22} color={COLORS.primary.main} />
+              <View style={styles.shareSheetRowText}>
+                <Text style={styles.shareSheetRowTitle}>URL do perfil</Text>
+                <Text style={styles.shareSheetRowUrl} numberOfLines={1}>
+                  {shareProfileUrl}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.shareSheetRow}
+              onPress={() => void copyShareLine(sharePublicFeedUrl, 'URL do feed público')}
+            >
+              <Ionicons name="newspaper-outline" size={22} color={COLORS.primary.main} />
+              <View style={styles.shareSheetRowText}>
+                <Text style={styles.shareSheetRowTitle}>Feed público (só posts públicos)</Text>
+                <Text style={styles.shareSheetRowUrl} numberOfLines={1}>
+                  {sharePublicFeedUrl}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.shareSheetRow}
+              onPress={() => void copyShareLine(shareHandleLine, 'Identificador @usuario.melter.com.br')}
+            >
+              <Ionicons name="at-outline" size={22} color={COLORS.primary.main} />
+              <View style={styles.shareSheetRowText}>
+                <Text style={styles.shareSheetRowTitle}>Identificador estilo Mastodon</Text>
+                <Text style={styles.shareSheetRowUrl} numberOfLines={1}>
+                  {shareHandleLine}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.shareSheetCancel}
+              onPress={() => setShareLinksModalVisible(false)}
+            >
+              <Text style={styles.shareSheetCancelText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Menu de 3 pontinhos */}
       <Modal
         visible={showMenu}
@@ -1198,11 +1298,11 @@ export function UserProfileScreen() {
           <View style={styles.menuContainer}>
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={handleShareProfile}
+              onPress={openShareLinksModal}
             >
               <Ionicons name="share-outline" size={20} color={COLORS.primary.main} />
               <Text style={[styles.menuItemText, { color: COLORS.primary.main }]}>
-                Compartilhar Perfil
+                Copiar links do perfil
               </Text>
             </TouchableOpacity>
 
@@ -1451,6 +1551,58 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: COLORS.border.light,
     marginVertical: 8,
+  },
+  shareSheetContainer: {
+    backgroundColor: COLORS.background.paper,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    gap: 4,
+  },
+  shareSheetHeading: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  shareSheetHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  shareSheetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.border.light,
+  },
+  shareSheetRowText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  shareSheetRowTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  shareSheetRowUrl: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginTop: 2,
+  },
+  shareSheetCancel: {
+    marginTop: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  shareSheetCancelText: {
+    fontSize: 16,
+    color: COLORS.primary.main,
+    fontWeight: '600',
   },
   avatarWrapperWithStory: {
     borderWidth: 3,
@@ -1735,6 +1887,17 @@ const styles = StyleSheet.create({
   },
   postsSection: {
     padding: 16,
+  },
+  postsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    gap: 8,
+  },
+  postsSectionTitleFlex: {
+    marginBottom: 0,
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 18,
