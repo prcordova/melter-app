@@ -111,8 +111,8 @@ export function FeedScreen() {
 
       const response = await postsApi.getPosts(pageNum, 20);
 
-      if (response.success) {
-        const newPosts = response.data.posts || [];
+      if (response.success && response.data) {
+        const newPosts = response.data.posts ?? [];
 
         // Filtrar posts inválidos
         const validPosts = newPosts.filter((p: Post) => {

@@ -117,10 +117,15 @@ export function ShopsSearchScreen() {
       });
 
       if (response.success) {
-        // A API pode retornar { data: [...], pagination: {...} } ou apenas [...]
-        const productsData = Array.isArray(response.data) 
-          ? response.data 
-          : (response.data?.data || []);
+        // API atual: { success, data: Product[], pagination } — versões antigas / wrappers: data.products, data.data
+        const raw = response.data as any
+        const productsData = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.products)
+            ? raw.products
+            : Array.isArray(raw?.data)
+              ? raw.data
+              : [];
         
         const newProducts = productsData.map((p: any) => ({
           ...p,
@@ -143,8 +148,8 @@ export function ShopsSearchScreen() {
           });
         }
 
-        // Verificar se há mais produtos baseado na paginação ou no tamanho da resposta
-        const pagination = response.data?.pagination;
+        // Paginação vem no mesmo nível que `data` na API /shops/products
+        const pagination = (response as any).pagination ?? raw?.pagination;
         if (pagination) {
           setHasMore(pageNum < pagination.pages);
         } else {
