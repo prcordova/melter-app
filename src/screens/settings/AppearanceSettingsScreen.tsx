@@ -53,6 +53,8 @@ interface ProfileSettings {
   showPosts: boolean;
   /** false = outros não abrem listas de seguidores/seguindo */
   showFollowersFollowing: boolean;
+  /** true = não apareço nas listas de seguidores/seguindo em perfis de terceiros (dono do perfil e admins veem) */
+  hideFromOthersFollowLists: boolean;
   postsLimit: number;
   buttonBackgroundColor: string | null;
   buttonTextColor: string | null;
@@ -112,6 +114,7 @@ export function AppearanceSettingsScreen() {
     showViews: true,
     showPosts: true,
     showFollowersFollowing: true,
+    hideFromOthersFollowLists: false,
     postsLimit: 5,
     buttonBackgroundColor: null,
     buttonTextColor: null,
@@ -160,6 +163,7 @@ export function AppearanceSettingsScreen() {
 
         // Carregar settings do perfil
         const profile = data.profile || {};
+        const hasHideFromOthersKey = Object.prototype.hasOwnProperty.call(profile as object, 'hideFromOthersFollowLists');
         setSettings((prev) => ({
           ...prev,
           backgroundColor: profile.backgroundColor || prev.backgroundColor,
@@ -188,6 +192,11 @@ export function AppearanceSettingsScreen() {
                 ? profile.showFollowersFollowing
                 : (prev.showFollowersFollowing ?? true))
             : true,
+          hideFromOthersFollowLists: followListPrivacyAllowed
+            ? hasHideFromOthersKey
+              ? profile.hideFromOthersFollowLists === true
+              : (prev.hideFromOthersFollowLists ?? false)
+            : false,
           postsLimit: profile.postsLimit || prev.postsLimit,
           buttonBackgroundColor: profile.buttonBackgroundColor || null,
           buttonTextColor: profile.buttonTextColor || null,
@@ -339,6 +348,11 @@ export function AppearanceSettingsScreen() {
         }
       }
 
+      const planType = (user?.plan?.type || 'FREE') as PlanType;
+      const followPrivacyAllowed = PLAN_LIMITS[planType].canControlFollowListsPrivacy;
+      const snapshotHideFromOthers =
+        followPrivacyAllowed && settings.hideFromOthersFollowLists === true;
+
       // 4. Preparar payload do perfil
       const profilePayload: any = {
         backgroundColor: settings.backgroundColor || '#ffffff',
@@ -357,6 +371,7 @@ export function AppearanceSettingsScreen() {
         showViews: settings.showViews,
         showPosts: settings.showPosts,
         showFollowersFollowing: settings.showFollowersFollowing,
+        hideFromOthersFollowLists: snapshotHideFromOthers,
         postsLimit: settings.postsLimit,
       };
 
@@ -609,15 +624,30 @@ export function AppearanceSettingsScreen() {
             <View style={[styles.fieldContainer, { marginBottom: 0 }]}>
               <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
                 <View style={{ flex: 1, paddingRight: 12 }}>
-                  <Text style={styles.switchLabel}>Permitir que outros vejam as listas de seguidores e seguindo</Text>
+                  <Text style={styles.switchLabel}>Permitir que outros abram as listas no meu perfil</Text>
                   <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
-                    Disponível nos planos PRO e PRO+. Se desativar, os números continuam no perfil, mas as listas só
-                    abrem para você (e admins).
+                    PRO e PRO+. Se desativar, os números continuam, mas as listas de seguidores/seguindo não abrem para
+                    visitantes (só você e admins).
                   </Text>
                 </View>
                 <Switch
                   value={settings.showFollowersFollowing}
                   onValueChange={(value) => handleSettingsChange({ showFollowersFollowing: value })}
+                  trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                  thumbColor="#ffffff"
+                />
+              </View>
+              <View style={[styles.switchRow, { alignItems: 'flex-start', marginTop: 16 }]}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={styles.switchLabel}>Ocultar-me nas listas dos perfis de outras pessoas</Text>
+                  <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
+                    PRO e PRO+. Quando ativo, você não aparece nas listas quando alguém visita o perfil de outra conta.
+                    O dono desse perfil continua a ver você na lista dele.
+                  </Text>
+                </View>
+                <Switch
+                  value={settings.hideFromOthersFollowLists}
+                  onValueChange={(value) => handleSettingsChange({ hideFromOthersFollowLists: value })}
                   trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
                   thumbColor="#ffffff"
                 />
