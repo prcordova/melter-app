@@ -1,19 +1,23 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 
-// Configurar como as notificações devem ser tratadas quando recebidas
+// Em foreground o utilizador já está na app — não mostrar popup/banner/som (push só “fora” da app).
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async () => {
+    const isForeground = AppState.currentState === 'active';
+    const silent = isForeground;
+    return {
+      shouldShowAlert: !silent,
+      shouldPlaySound: !silent,
+      shouldSetBadge: true,
+      shouldShowBanner: !silent,
+      shouldShowList: !silent,
+    };
+  },
 });
 
 // Configurar canais de notificação para Android (deve ser feito antes de usar)

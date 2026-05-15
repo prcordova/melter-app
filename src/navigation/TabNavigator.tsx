@@ -13,12 +13,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../theme/colors';
 import { messageApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 const Tab = createBottomTabNavigator();
 
 export function TabNavigator() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  usePushNotifications();
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
   // Buscar contador de mensagens não lidas
