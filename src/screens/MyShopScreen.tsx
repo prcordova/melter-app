@@ -18,6 +18,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { shopApi, sellerVerificationApi, userApi, productsApi, categoriesApi } from '../services/api';
 import { SellerVerificationStatusCard } from '../components/shop/SellerVerificationStatusCard';
 import { AppealModal } from '../components/shop/AppealModal';
+import {
+  SellerVerificationFormModal,
+  type SellerVerificationFormData,
+} from '../components/shop/SellerVerificationFormModal';
+import { SellerGrowthPromoCard } from '../components/shop/SellerGrowthPromoCard';
+import type { SellerGrowthPromoNavigateAction } from '../components/shop/SellerGrowthPromoCard';
 import { ProductCreationWizard } from '../components/shop/ProductCreationWizard';
 import { ShopCard } from '../components/ShopCard';
 import { SubscriptionPlansContent } from '../components/shop/SubscriptionPlansContent';
@@ -40,8 +46,20 @@ interface SellerVerification {
   _id?: string;
   status: 'pending' | 'approved' | 'rejected' | 'disabled' | 'needs_review' | 'appeal' | null;
   submittedAt?: string;
-  rejectionReason?: string;
+  cpf?: string;
+  birthDate?: string;
+  ageConfirmed?: boolean;
+  contentOwnershipConfirmed?: boolean;
+  adultContentAware?: boolean;
+  contentType?: string;
+  isAdultContent?: boolean;
+  documentFront?: string;
+  documentBack?: string;
+  selfieWithDocument?: string;
+  rejectionReason?: string | null;
   needsReviewReason?: string;
+  needsReviewReasons?: string[];
+  fieldsToReview?: string[];
   appealReason?: string;
   appealSubmittedAt?: string;
   appealBlockedUntil?: string;
@@ -83,6 +101,9 @@ export function MyShopScreen() {
   const [planAutoOpenConsumed, setPlanAutoOpenConsumed] = useState(false);
   const [pendingOpenPlanId, setPendingOpenPlanId] = useState<string | null>(null);
   const [showVerificationForm, setShowVerificationForm] = useState(false);
+  const [verificationFormData, setVerificationFormData] = useState<
+    SellerVerificationFormData | undefined
+  >(undefined);
   const [showAppealModal, setShowAppealModal] = useState(false);
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
@@ -398,6 +419,73 @@ export function MyShopScreen() {
 
   const ownerApproved = sellerVerification?.status === 'approved';
   const showTabs = isAdmin || (isOwner && ownerApproved);
+
+  const mapVerificationToFormData = (
+    data: SellerVerification | null | undefined
+  ): SellerVerificationFormData | undefined => {
+    if (!data) return undefined;
+    return {
+      cpf: data.cpf,
+      birthDate: data.birthDate,
+      ageConfirmed: data.ageConfirmed,
+      contentOwnershipConfirmed: data.contentOwnershipConfirmed,
+      adultContentAware: data.adultContentAware,
+      contentType: data.contentType,
+      isAdultContent: data.isAdultContent,
+      documentFront: data.documentFront,
+      documentBack: data.documentBack,
+      selfieWithDocument: data.selfieWithDocument,
+      status: data.status ?? undefined,
+      needsReviewReasons: data.needsReviewReasons,
+      needsReviewReason: data.needsReviewReason,
+      rejectionReason: data.rejectionReason,
+      fieldsToReview: data.fieldsToReview || [],
+    };
+  };
+
+  const openVerificationForm = async () => {
+    const fresh = await fetchVerificationData();
+    setVerificationFormData(mapVerificationToFormData(fresh ?? sellerVerification));
+    setShowVerificationForm(true);
+  };
+
+  const handleGrowthPromoAction = (action: SellerGrowthPromoNavigateAction) => {
+    if (action === 'openVerificationForm') {
+      void openVerificationForm();
+      return;
+    }
+    if (action === 'links') {
+      navigation.navigate('ProfileStack' as never, { screen: 'LinksSettings' } as never);
+      return;
+    }
+    if (action === 'appearance') {
+      navigation.navigate('ProfileStack' as never, { screen: 'AppearanceSettings' } as never);
+      return;
+    }
+    if (action === 'feed') {
+      navigation.navigate('FeedTab' as never);
+      return;
+    }
+    if (action === 'explorer') {
+      navigation.navigate('ShopsSearch' as never);
+    }
+  };
+
+  const handleVerificationSuccess = (updated: SellerVerificationFormData) => {
+    setShopSettings((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        sellerVerification: {
+          ...(prev.sellerVerification || { status: null }),
+          ...updated,
+          status: (updated.status as SellerVerification['status']) ?? 'pending',
+        },
+      };
+    });
+    setShowVerificationForm(false);
+    void fetchShopSettings();
+  };
 
   const filteredProducts = useMemo(() => {
     let list =
@@ -981,15 +1069,22 @@ export function MyShopScreen() {
         ) : (
           <View style={styles.tabContent}>
             {isOwner && (
-              <SellerVerificationStatusCard
-                sellerVerification={sellerVerification || null}
-                onOpenForm={async () => {
-                  await fetchVerificationData();
-                  setShowVerificationForm(true);
-                }}
-                onOpenAppeal={() => setShowAppealModal(true)}
-                onRefresh={fetchShopSettings}
-              />
+              <>
+                <SellerVerificationStatusCard
+                  sellerVerification={sellerVerification || null}
+                  onOpenForm={() => {
+                    void openVerificationForm();
+                  }}
+                  onOpenAppeal={() => setShowAppealModal(true)}
+                  onRefresh={fetchShopSettings}
+                />
+                <SellerGrowthPromoCard
+                  variant="large"
+                  placement="shop"
+                  sellerStatus={sellerVerification?.status ?? null}
+                  onAction={handleGrowthPromoAction}
+                />
+              </>
             )}
 
             <ShopSubscriptionPlansSection
@@ -1130,8 +1225,17 @@ export function MyShopScreen() {
         }}
       />
 
-      {/* Modal de Formulário de Verificação (será implementado) */}
-      {/* TODO: Implementar SellerVerificationFormModal */}
+      <SellerVerificationFormModal
+        key={
+          verificationFormData
+            ? `${verificationFormData.status}-${(verificationFormData.fieldsToReview ?? []).join(',')}`
+            : 'new'
+        }
+        visible={showVerificationForm}
+        onClose={() => setShowVerificationForm(false)}
+        onSuccess={handleVerificationSuccess}
+        existingData={verificationFormData}
+      />
 
       {/* Modal de Configurações da Loja */}
       <ShopSettingsModal

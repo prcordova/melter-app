@@ -12,9 +12,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 interface SellerVerification {
   status: 'pending' | 'approved' | 'rejected' | 'disabled' | 'needs_review' | 'appeal' | null;
   submittedAt?: string;
-  rejectionReason?: string;
+  rejectionReason?: string | null;
   needsReviewReason?: string;
   needsReviewReasons?: string[];
+  fieldsToReview?: string[];
   appealReason?: string;
   appealSubmittedAt?: string;
   appealBlockedUntil?: string;

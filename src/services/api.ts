@@ -1548,6 +1548,15 @@ export const sellerVerificationApi = {
     const response = await api.post<ApiResponse<any>>('/api/users/seller-verification', data);
     return response.data;
   },
+  submitVerification: async (formData: FormData) => {
+    const response = await api.post<ApiResponse<any>>('/api/users/seller-verification', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
+    return response.data;
+  },
   updateVerification: async (data: any) => {
     const response = await api.put<ApiResponse<any>>('/api/users/seller-verification', data);
     return response.data;

@@ -1,0 +1,81 @@
+export function digitsOnly(value: string): string {
+  return value.replace(/\D/g, '');
+}
+
+export function formatCpf(value: string): string {
+  const numbers = digitsOnly(value).slice(0, 11);
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+  if (numbers.length <= 9) {
+    return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+  }
+  return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
+}
+
+export function isValidCpf(cpf: string): boolean {
+  const clean = digitsOnly(cpf);
+  if (clean.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(clean)) return false;
+
+  let sum = 0;
+  for (let i = 1; i <= 9; i++) {
+    sum += parseInt(clean.substring(i - 1, i), 10) * (11 - i);
+  }
+  let remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(clean.substring(9, 10), 10)) return false;
+
+  sum = 0;
+  for (let i = 1; i <= 10; i++) {
+    sum += parseInt(clean.substring(i - 1, i), 10) * (12 - i);
+  }
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  return remainder === parseInt(clean.substring(10, 11), 10);
+}
+
+/** Aceita DD/MM/AAAA ou AAAA-MM-DD; retorna Date ou null. */
+export function parseBirthDateInput(value: string): Date | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const br = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) {
+    const day = parseInt(br[1], 10);
+    const month = parseInt(br[2], 10) - 1;
+    const year = parseInt(br[3], 10);
+    const d = new Date(year, month, day);
+    if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) {
+      return d;
+    }
+    return null;
+  }
+
+  const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const d = new Date(trimmed);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+export function formatBirthDateForDisplay(isoOrDate: string | Date): string {
+  const d = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
+  if (Number.isNaN(d.getTime())) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+export function getAgeFromBirthDate(birth: Date): number {
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
