@@ -79,7 +79,8 @@
       "eas": {
         "projectId": "c44694f4-1756-444a-b7fd-5163b30d5482"
       },
-      "EXPO_PUBLIC_API_URL": "https://melter.com.br"
+      "EXPO_PUBLIC_API_URL": "https://melter.com.br",
+      "EXPO_PUBLIC_SUPPORT_HIDE_BUG_LIST": "false"
     },
     "owner": "prcordova"
   }

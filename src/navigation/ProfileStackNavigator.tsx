@@ -18,6 +18,7 @@ import { PrivacyScreen } from '../screens/settings/PrivacyScreen';
 import { PreferencesScreen } from '../screens/settings/PreferencesScreen';
 import { ReferralScreen } from '../screens/ReferralScreen';
 import { AccountVerificationScreen } from '../screens/AccountVerificationScreen';
+import { SupportTicketsScreen } from '../screens/SupportTicketsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -77,6 +78,7 @@ export function ProfileStackNavigator() {
         component={AccountVerificationScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen name="SupportTickets" component={SupportTicketsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
