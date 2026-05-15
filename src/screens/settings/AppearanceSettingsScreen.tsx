@@ -115,7 +115,7 @@ export function AppearanceSettingsScreen() {
     showPosts: true,
     showFollowersFollowing: true,
     hideFromOthersFollowLists: false,
-    postsLimit: 5,
+    postsLimit: 3,
     buttonBackgroundColor: null,
     buttonTextColor: null,
     statusMessageTextColor: null,
@@ -197,7 +197,10 @@ export function AppearanceSettingsScreen() {
               ? profile.hideFromOthersFollowLists === true
               : (prev.hideFromOthersFollowLists ?? false)
             : false,
-          postsLimit: profile.postsLimit || prev.postsLimit,
+          postsLimit:
+            profile.postsLimit !== undefined && profile.postsLimit !== null
+              ? Math.min(3, Math.max(1, Math.round(Number(profile.postsLimit)) || 3))
+              : Math.min(3, Math.max(1, prev.postsLimit ?? 3)),
           buttonBackgroundColor: profile.buttonBackgroundColor || null,
           buttonTextColor: profile.buttonTextColor || null,
           statusMessageTextColor:
@@ -372,7 +375,7 @@ export function AppearanceSettingsScreen() {
         showPosts: settings.showPosts,
         showFollowersFollowing: settings.showFollowersFollowing,
         hideFromOthersFollowLists: snapshotHideFromOthers,
-        postsLimit: settings.postsLimit,
+        postsLimit: Math.min(3, Math.max(1, Math.round(Number(settings.postsLimit)) || 3)),
       };
 
       // Background image (apenas para STARTER, PRO, PRO_PLUS)
@@ -614,7 +617,9 @@ export function AppearanceSettingsScreen() {
               </View>
               <Switch
                 value={settings.showPosts}
-                onValueChange={(value) => handleSettingsChange({ showPosts: value, postsLimit: value ? 5 : 0 })}
+                onValueChange={(value) =>
+                  handleSettingsChange({ showPosts: value, postsLimit: value ? 3 : 1 })
+                }
                 trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
                 thumbColor="#ffffff"
               />
