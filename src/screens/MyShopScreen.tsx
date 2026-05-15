@@ -60,6 +60,7 @@ interface SellerVerification {
   needsReviewReason?: string;
   needsReviewReasons?: string[];
   fieldsToReview?: string[];
+  rejectionReasonCodes?: string[];
   appealReason?: string;
   appealSubmittedAt?: string;
   appealBlockedUntil?: string;
@@ -439,6 +440,7 @@ export function MyShopScreen() {
       needsReviewReasons: data.needsReviewReasons,
       needsReviewReason: data.needsReviewReason,
       rejectionReason: data.rejectionReason,
+      rejectionReasonCodes: data.rejectionReasonCodes,
       fieldsToReview: data.fieldsToReview || [],
     };
   };

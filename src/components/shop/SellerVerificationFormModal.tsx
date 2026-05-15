@@ -23,6 +23,7 @@ import {
   SELLER_VERIFICATION_UPLOAD_HELPER_TEXT,
 } from '../../config/seller-verification.config';
 import { getSellerVerificationFieldLabel } from '../../utils/seller-verification-fields';
+import { getSellerRejectionNotice } from '../../utils/seller-verification-rejection';
 import {
   digitsOnly,
   formatBirthDateForDisplay,
@@ -47,6 +48,7 @@ export type SellerVerificationFormData = {
   needsReviewReasons?: string[];
   needsReviewReason?: string;
   rejectionReason?: string | null;
+  rejectionReasonCodes?: string[];
   fieldsToReview?: string[];
 };
 
@@ -244,8 +246,18 @@ export function SellerVerificationFormModal({
   const showCorrectionAlert =
     displayData?.status === 'needs_review' && fieldsToReview.length === 0
       ? true
-      : pendingFieldsToReview.length > 0 &&
-        (displayData?.status === 'rejected' || displayData?.status === 'needs_review');
+      : (displayData?.status === 'rejected' && fieldsToReview.length > 0) ||
+        (pendingFieldsToReview.length > 0 &&
+          (displayData?.status === 'rejected' || displayData?.status === 'needs_review'));
+
+  const rejectionNotice = useMemo(() => {
+    if (displayData?.status !== 'rejected') return null;
+    return getSellerRejectionNotice({
+      rejectionReasonCodes: displayData.rejectionReasonCodes,
+      rejectionReason: displayData.rejectionReason,
+      fieldsToReview: displayData.fieldsToReview,
+    });
+  }, [displayData]);
 
   useEffect(() => {
     if (!isCorrectionOnlyMode || !displayData) return;
@@ -504,10 +516,24 @@ export function SellerVerificationFormModal({
                     ? 'Cadastro não aprovado — corrija os itens abaixo'
                     : 'Revisão necessária'}
                 </Text>
-                {(displayData?.rejectionReason || displayData?.needsReviewReason) ? (
-                  <Text style={styles.alertBody}>
-                    {displayData.rejectionReason || displayData.needsReviewReason}
-                  </Text>
+                {displayData?.status === 'rejected' && rejectionNotice ? (
+                  <>
+                    <Text style={styles.alertBody}>{rejectionNotice.summary}</Text>
+                    {rejectionNotice.items.length > 0 ? (
+                      <>
+                        <Text style={styles.alertHint}>
+                          Itens que você deve corrigir e reenviar:
+                        </Text>
+                        {rejectionNotice.items.map((label) => (
+                          <Text key={label} style={styles.alertListItem}>
+                            • {label}
+                          </Text>
+                        ))}
+                      </>
+                    ) : null}
+                  </>
+                ) : displayData?.needsReviewReason ? (
+                  <Text style={styles.alertBody}>{displayData.needsReviewReason}</Text>
                 ) : null}
                 {pendingFieldsToReview.length > 0 ? (
                   <>

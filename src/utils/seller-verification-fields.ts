@@ -14,3 +14,7 @@ const FIELD_LABEL_MAP = Object.fromEntries(
 export function getSellerVerificationFieldLabel(fieldKey: string): string {
   return FIELD_LABEL_MAP[fieldKey] ?? fieldKey;
 }
+
+export function getSellerVerificationFieldLabels(fields: string[]): string[] {
+  return fields.map(getSellerVerificationFieldLabel);
+}
