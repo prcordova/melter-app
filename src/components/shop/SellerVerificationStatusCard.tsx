@@ -26,6 +26,7 @@ interface SellerVerificationStatusCardProps {
   onOpenForm: () => void;
   onOpenAppeal: () => void;
   onRefresh?: () => void;
+  onOpenSupport?: () => void;
 }
 
 export function SellerVerificationStatusCard({
@@ -33,6 +34,7 @@ export function SellerVerificationStatusCard({
   onOpenForm,
   onOpenAppeal,
   onRefresh,
+  onOpenSupport,
 }: SellerVerificationStatusCardProps) {
   const getStatusConfig = () => {
     if (!sellerVerification) {
@@ -274,6 +276,17 @@ export function SellerVerificationStatusCard({
           </TouchableOpacity>
         )}
 
+        {onOpenSupport ? (
+          <TouchableOpacity
+            style={styles.supportButton}
+            onPress={onOpenSupport}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="chatbubbles-outline" size={18} color={COLORS.secondary.main} />
+            <Text style={styles.supportButtonText}>Precisa de ajuda? Falar com o suporte</Text>
+          </TouchableOpacity>
+        ) : null}
+
         {/* Botão de refresh (opcional) */}
         {onRefresh && (
           <TouchableOpacity
@@ -389,6 +402,26 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  supportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.secondary.main,
+    backgroundColor: COLORS.background.paper,
+  },
+  supportButtonText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.secondary.main,
+    textAlign: 'center',
   },
   refreshButton: {
     flexDirection: 'row',

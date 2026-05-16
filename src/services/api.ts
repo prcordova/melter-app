@@ -1567,7 +1567,7 @@ export const sellerVerificationApi = {
     });
     return response.data;
   },
-  getPresignedUploadUrl: async (fileName: string, fileType: string, fileSize: number, documentType: 'front' | 'back' | 'selfie') => {
+  getPresignedUploadUrl: async (fileName: string, fileType: string, fileSize: number, documentType: 'front' | 'back' | 'selfie' | 'videoProof') => {
     const response = await api.get<ApiResponse<{
       presignedUrl: string;
       fileKey: string;

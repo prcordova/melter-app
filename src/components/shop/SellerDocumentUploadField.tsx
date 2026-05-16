@@ -7,9 +7,14 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
-import { SELLER_VERIFICATION_DOC_PREVIEW_HEIGHT } from '../../config/seller-verification.config';
+import {
+  SELLER_VERIFICATION_DOC_PREVIEW_HEIGHT,
+  SELLER_VERIFICATION_VIDEO_PROOF_PREVIEW_HEIGHT,
+  SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT,
+} from '../../config/seller-verification.config';
 
 type Props = {
   label: string;
@@ -22,6 +27,8 @@ type Props = {
   onPick?: () => void;
   onClear?: () => void;
   picking?: boolean;
+  /** `video` usa player de prévia em vez de imagem. */
+  variant?: 'image' | 'video';
 };
 
 export function SellerDocumentUploadField({
@@ -35,9 +42,18 @@ export function SellerDocumentUploadField({
   onPick,
   onClear,
   picking,
+  variant = 'image',
 }: Props) {
   const showPreview = Boolean(previewUri);
   const interactive = !viewOnly && onPick;
+  const previewHeight =
+    variant === 'video'
+      ? SELLER_VERIFICATION_VIDEO_PROOF_PREVIEW_HEIGHT
+      : SELLER_VERIFICATION_DOC_PREVIEW_HEIGHT;
+  const areaHeight =
+    variant === 'video'
+      ? SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT
+      : previewHeight + 16;
 
   return (
     <View style={[styles.wrap, highlight && styles.wrapHighlight]}>
@@ -58,6 +74,7 @@ export function SellerDocumentUploadField({
           styles.area,
           viewOnly && styles.areaViewOnly,
           showPreview && !viewOnly && styles.areaWithPreview,
+          { minHeight: areaHeight, maxHeight: areaHeight },
         ]}
         onPress={interactive ? onPick : undefined}
         disabled={!interactive || picking}
@@ -66,15 +83,25 @@ export function SellerDocumentUploadField({
         {picking ? (
           <ActivityIndicator color={COLORS.secondary.main} />
         ) : showPreview ? (
-          <Image
-            source={{ uri: previewUri! }}
-            style={styles.preview}
-            resizeMode="contain"
-          />
+          variant === 'video' ? (
+            <Video
+              source={{ uri: previewUri! }}
+              style={{ width: '100%', height: previewHeight }}
+              resizeMode={ResizeMode.CONTAIN}
+              useNativeControls
+              isLooping={false}
+            />
+          ) : (
+            <Image
+              source={{ uri: previewUri! }}
+              style={{ width: '100%', height: previewHeight }}
+              resizeMode="contain"
+            />
+          )
         ) : (
           <View style={styles.placeholder}>
             <Ionicons
-              name="cloud-upload-outline"
+              name={variant === 'video' ? 'videocam-outline' : 'cloud-upload-outline'}
               size={28}
               color={viewOnly ? COLORS.text.tertiary : COLORS.text.secondary}
             />
@@ -125,8 +152,6 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: COLORS.border.medium,
     borderRadius: 10,
-    minHeight: SELLER_VERIFICATION_DOC_PREVIEW_HEIGHT + 16,
-    maxHeight: SELLER_VERIFICATION_DOC_PREVIEW_HEIGHT + 16,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -140,10 +165,6 @@ const styles = StyleSheet.create({
   },
   areaWithPreview: {
     borderColor: COLORS.states.success,
-  },
-  preview: {
-    width: '100%',
-    height: SELLER_VERIFICATION_DOC_PREVIEW_HEIGHT,
   },
   placeholder: {
     alignItems: 'center',

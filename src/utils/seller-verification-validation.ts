@@ -79,3 +79,8 @@ export function getAgeFromBirthDate(birth: Date): number {
   }
   return age;
 }
+
+/** Mesma regra do cadastro no app (`RegisterScreen`). */
+export function isBirthDateAtLeast18YearsOld(birth: Date): boolean {
+  return getAgeFromBirthDate(birth) >= 18;
+}

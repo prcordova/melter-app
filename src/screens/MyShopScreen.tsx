@@ -56,6 +56,8 @@ interface SellerVerification {
   documentFront?: string;
   documentBack?: string;
   selfieWithDocument?: string;
+  videoProof?: string;
+  documentIsCopyOnly?: boolean;
   rejectionReason?: string | null;
   needsReviewReason?: string;
   needsReviewReasons?: string[];
@@ -436,6 +438,8 @@ export function MyShopScreen() {
       documentFront: data.documentFront,
       documentBack: data.documentBack,
       selfieWithDocument: data.selfieWithDocument,
+      videoProof: data.videoProof,
+      documentIsCopyOnly: data.documentIsCopyOnly,
       status: data.status ?? undefined,
       needsReviewReasons: data.needsReviewReasons,
       needsReviewReason: data.needsReviewReason,
@@ -1079,6 +1083,9 @@ export function MyShopScreen() {
                   }}
                   onOpenAppeal={() => setShowAppealModal(true)}
                   onRefresh={fetchShopSettings}
+                  onOpenSupport={() => {
+                    navigation.navigate('ProfileStack' as never, { screen: 'SupportTickets' } as never);
+                  }}
                 />
                 <SellerGrowthPromoCard
                   variant="large"
@@ -1237,6 +1244,7 @@ export function MyShopScreen() {
         onClose={() => setShowVerificationForm(false)}
         onSuccess={handleVerificationSuccess}
         existingData={verificationFormData}
+        viewerUsername={username}
       />
 
       {/* Modal de Configurações da Loja */}

@@ -2,6 +2,7 @@ export const SELLER_VERIFICATION_REVIEW_FIELDS = [
   { key: 'documentFront', label: 'Documento (frente)' },
   { key: 'documentBack', label: 'Documento (verso)' },
   { key: 'selfieWithDocument', label: 'Selfie com documento' },
+  { key: 'videoProof', label: 'Vídeo prova' },
   { key: 'cpf', label: 'CPF' },
   { key: 'birthDate', label: 'Data de nascimento' },
   { key: 'contentType', label: 'Tipo de conteúdo' },
