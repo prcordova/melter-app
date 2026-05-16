@@ -16,6 +16,40 @@ export function shouldShowSellerGrowthPromo(status: SellerVerificationStatusValu
   return status !== 'approved';
 }
 
+export function isSellerVerificationApproved(status: SellerVerificationStatusValue): boolean {
+  return status === 'approved';
+}
+
+export function getSellerShopApprovedContent(
+  placement: SellerGrowthPromoPlacement,
+  variant: SellerGrowthPromoVariant = 'large'
+): SellerGrowthPromoContent {
+  const compact = variant === 'small';
+
+  if (compact && placement !== 'shop') {
+    return {
+      title: 'Sua loja está ativa',
+      description: 'Acesse sua vitrine para gerenciar produtos e vendas.',
+      primaryCta: { label: 'Minha loja', action: 'shop' },
+    };
+  }
+
+  if (placement === 'shop') {
+    return {
+      title: 'Loja aprovada',
+      description:
+        'Sua loja está pronta. Acesse a vitrine para publicar produtos e acompanhar vendas.',
+      primaryCta: { label: 'Minha loja', action: 'shop' },
+    };
+  }
+
+  return {
+    title: 'Sua loja está ativa',
+    description: 'Gerencie produtos, vendas e a vitrine da sua loja.',
+    primaryCta: { label: 'Minha loja', action: 'shop' },
+  };
+}
+
 export type SellerGrowthPromoCta = {
   label: string;
   action: 'shop' | 'links' | 'appearance' | 'feed' | 'explorer';

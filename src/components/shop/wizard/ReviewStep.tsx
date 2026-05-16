@@ -52,12 +52,15 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Resumo do Produto */}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Revisão final</Text>
+        <Text style={styles.pageSubtitle}>
+          Confira os dados e aceite as declarações para publicar o produto.
+        </Text>
+      </View>
+
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="document-text-outline" size={20} color={COLORS.text.secondary} />
-          <Text style={styles.sectionTitle}>Resumo do Produto</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Resumo do produto</Text>
 
         <View style={styles.summaryGrid}>
           <View style={styles.summaryItem}>
@@ -103,10 +106,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
 
       {/* Conteúdo Adicionado */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="folder-outline" size={20} color={COLORS.text.secondary} />
-          <Text style={styles.sectionTitle}>Conteúdo Adicionado</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Conteúdo adicionado</Text>
 
         <View style={styles.chipsContainer}>
           <View
@@ -140,8 +140,8 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
             </Text>
           </View>
           {!formData.links?.length && !formData.files?.length && (
-            <View style={[styles.chip, styles.chipWarning]}>
-              <Text style={[styles.chipText, styles.chipTextWarning]}>Produto Vazio</Text>
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>Nenhum conteúdo</Text>
             </View>
           )}
         </View>
@@ -151,11 +151,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
             <Text style={styles.contentListTitle}>Links Externos:</Text>
             {formData.links.map((link: any, index: number) => (
               <View key={link.id} style={styles.contentItem}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={16}
-                  color={COLORS.states.success}
-                />
+                <View style={styles.contentBullet} />
                 <View style={styles.contentItemText}>
                   <Text style={styles.contentItemTitle}>
                     {link.title || `Link ${index + 1}`}
@@ -174,11 +170,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
             <Text style={styles.contentListTitle}>Arquivos:</Text>
             {formData.files.map((file: any, index: number) => (
               <View key={file.id} style={styles.contentItem}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={16}
-                  color={COLORS.states.success}
-                />
+                <View style={styles.contentBullet} />
                 <View style={styles.contentItemText}>
                   <Text style={styles.contentItemTitle}>{file.name}</Text>
                   <Text style={styles.contentItemSubtitle}>
@@ -193,10 +185,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
 
       {/* Validações de Conteúdo */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.text.secondary} />
-          <Text style={styles.sectionTitle}>Validações de Conteúdo</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Declarações de conteúdo</Text>
 
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
@@ -247,7 +236,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
         {!canProceed && !allValidationsChecked && (
           <View style={styles.warningBox}>
             <Text style={styles.warningText}>
-              ⚠️ Você deve confirmar todas as validações para continuar
+              Você deve confirmar todas as validações para continuar
             </Text>
           </View>
         )}
@@ -290,19 +279,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  pageHeader: {
+    gap: 4,
+    marginBottom: 20,
+  },
+  pageTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.text.secondary,
+  },
   section: {
     marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
+    marginBottom: 16,
   },
   summaryGrid: {
     gap: 12,
@@ -340,12 +338,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border.light,
   },
   chipActive: {
-    backgroundColor: COLORS.secondary.main + '20',
-    borderColor: COLORS.secondary.main,
-  },
-  chipWarning: {
-    backgroundColor: COLORS.states.warning + '20',
-    borderColor: COLORS.states.warning,
+    borderColor: COLORS.border.medium,
+    backgroundColor: COLORS.background.paper,
   },
   chipText: {
     fontSize: 12,
@@ -353,10 +347,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   chipTextActive: {
-    color: COLORS.secondary.main,
-  },
-  chipTextWarning: {
-    color: COLORS.states.warning,
+    color: COLORS.text.primary,
   },
   contentList: {
     marginTop: 12,
@@ -369,11 +360,18 @@ const styles = StyleSheet.create({
   },
   contentItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    alignItems: 'flex-start',
+    gap: 10,
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border.light,
+  },
+  contentBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.text.tertiary,
+    marginTop: 6,
   },
   contentItemText: {
     flex: 1,
@@ -389,28 +387,28 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   infoBox: {
-    backgroundColor: COLORS.states.info + '20',
+    backgroundColor: COLORS.background.tertiary,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.states.info,
+    borderColor: COLORS.border.light,
   },
   infoText: {
     fontSize: 12,
     color: COLORS.text.secondary,
   },
   warningBox: {
-    backgroundColor: COLORS.states.warning + '20',
+    backgroundColor: COLORS.background.tertiary,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.states.warning,
+    borderColor: COLORS.border.medium,
   },
   warningText: {
     fontSize: 14,
-    color: COLORS.states.warning,
+    color: COLORS.text.primary,
     fontWeight: '600',
   },
   validationsList: {
@@ -457,12 +455,12 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   finalWarningBox: {
-    backgroundColor: COLORS.states.warning + '20',
+    backgroundColor: COLORS.background.tertiary,
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: COLORS.states.warning,
+    borderColor: COLORS.border.light,
   },
   finalWarningText: {
     fontSize: 11,

@@ -561,8 +561,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.secondary.main,
   },
   stepCircleCompleted: {
-    backgroundColor: COLORS.states.success,
-    borderColor: COLORS.states.success,
+    backgroundColor: COLORS.secondary.main,
+    borderColor: COLORS.secondary.main,
   },
   stepNumber: {
     fontSize: 14,
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   stepLabelCompleted: {
-    color: COLORS.states.success,
+    color: COLORS.text.secondary,
     fontWeight: '600',
   },
   stepLine: {
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   stepLineCompleted: {
-    backgroundColor: COLORS.states.success,
+    backgroundColor: COLORS.secondary.main,
   },
   progressContainer: {
     paddingHorizontal: 20,

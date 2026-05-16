@@ -4,6 +4,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
 import {
   getSellerGrowthPromoContent,
+  getSellerShopApprovedContent,
+  isSellerVerificationApproved,
   shouldShowSellerGrowthPromo,
   type SellerGrowthPromoContent,
   type SellerGrowthPromoCta,
@@ -56,10 +58,12 @@ function PromoActions({
   content,
   onAction,
   placement,
+  isApprovedShop,
 }: {
   content: SellerGrowthPromoContent;
   onAction: (action: SellerGrowthPromoNavigateAction) => void;
   placement: SellerGrowthPromoPlacement;
+  isApprovedShop: boolean;
 }) {
   const ctas: Array<{ cta: SellerGrowthPromoCta; variant: 'primary' | 'outline' }> = [];
   if (content.primaryCta) ctas.push({ cta: content.primaryCta, variant: 'primary' });
@@ -68,8 +72,11 @@ function PromoActions({
 
   if (ctas.length === 0) return null;
 
-  const resolvePress = (action: SellerGrowthPromoCta['action']) => {
-    if (action === 'shop' && placement === 'shop') {
+  const resolvePress = (
+    action: SellerGrowthPromoCta['action'],
+    isApprovedShop: boolean
+  ) => {
+    if (action === 'shop' && placement === 'shop' && !isApprovedShop) {
       onAction('openVerificationForm');
       return;
     }
@@ -83,7 +90,7 @@ function PromoActions({
           key={`${cta.action}-${cta.label}`}
           cta={cta}
           variant={variant}
-          onPress={() => resolvePress(cta.action)}
+          onPress={() => resolvePress(cta.action, isApprovedShop)}
         />
       ))}
     </View>
@@ -96,21 +103,48 @@ export function SellerGrowthPromoCard({
   sellerStatus,
   onAction,
 }: Props) {
-  const content = useMemo(
-    () => getSellerGrowthPromoContent(sellerStatus, placement),
-    [sellerStatus, placement]
-  );
+  const isApprovedShop = isSellerVerificationApproved(sellerStatus);
+  const showGrowthPromo = shouldShowSellerGrowthPromo(sellerStatus);
 
-  if (!shouldShowSellerGrowthPromo(sellerStatus)) {
+  const content = useMemo(() => {
+    if (isApprovedShop) {
+      return getSellerShopApprovedContent(placement, variant);
+    }
+    return getSellerGrowthPromoContent(sellerStatus, placement);
+  }, [isApprovedShop, sellerStatus, placement, variant]);
+
+  if (!showGrowthPromo && !isApprovedShop) {
     return null;
   }
 
-  const showShopTips = variant === 'large' && placement === 'shop';
+  const showShopTips = !isApprovedShop && variant === 'large' && placement === 'shop';
+
+  if (
+    isApprovedShop &&
+    variant === 'small' &&
+    placement === 'marketplace' &&
+    content.primaryCta
+  ) {
+    return (
+      <TouchableOpacity
+        style={[styles.cta, styles.ctaPrimary, styles.inlineCta]}
+        onPress={() => resolvePress(content.primaryCta!.action, true, placement, onAction)}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="storefront-outline" size={18} color="#fff" />
+        <Text style={styles.ctaText}>{content.primaryCta.label}</Text>
+      </TouchableOpacity>
+    );
+  }
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, isApprovedShop && styles.cardApproved]}>
       <View style={styles.headerRow}>
-        <Ionicons name="storefront-outline" size={variant === 'small' ? 22 : 28} color={COLORS.secondary.main} />
+        <Ionicons
+          name="storefront-outline"
+          size={variant === 'small' ? 22 : 28}
+          color={COLORS.secondary.main}
+        />
         <View style={styles.headerText}>
           <Text style={variant === 'large' ? styles.titleLg : styles.title}>{content.title}</Text>
           <Text style={styles.description}>{content.description}</Text>
@@ -135,9 +169,27 @@ export function SellerGrowthPromoCard({
         </View>
       ) : null}
 
-      <PromoActions content={content} onAction={onAction} placement={placement} />
+      <PromoActions
+        content={content}
+        onAction={onAction}
+        placement={placement}
+        isApprovedShop={isApprovedShop}
+      />
     </View>
   );
+}
+
+function resolvePress(
+  action: SellerGrowthPromoCta['action'],
+  isApprovedShop: boolean,
+  placement: SellerGrowthPromoPlacement,
+  onAction: (action: SellerGrowthPromoNavigateAction) => void
+) {
+  if (action === 'shop' && placement === 'shop' && !isApprovedShop) {
+    onAction('openVerificationForm');
+    return;
+  }
+  onAction(action);
 }
 
 const styles = StyleSheet.create({
@@ -149,6 +201,18 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     gap: 12,
+  },
+  cardApproved: {
+    borderColor: COLORS.border.medium,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  inlineCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    alignSelf: 'flex-end',
+    marginBottom: 16,
   },
   headerRow: {
     flexDirection: 'row',

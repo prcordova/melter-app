@@ -235,13 +235,15 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="folder-outline" size={24} color={COLORS.secondary.main} />
-        <Text style={styles.title}>Adicionar Conteúdo</Text>
+        <Text style={styles.title}>Adicionar conteúdo</Text>
+        <Text style={styles.subtitle}>
+          Inclua pelo menos um link externo ou arquivo para continuar.
+        </Text>
       </View>
 
       {fileSizeErrors.length > 0 && (
         <View style={styles.alertWarning}>
-          <Text style={styles.alertWarningTitle}>🚀 Limite de tamanho atingido!</Text>
+          <Text style={styles.alertWarningTitle}>Limite de tamanho atingido</Text>
           <Text style={styles.alertWarningText}>
             Faça upgrade do seu plano para ter acesso a mais espaço de armazenamento.
           </Text>
@@ -256,7 +258,7 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
       {/* Arquivos */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>📁 Arquivos</Text>
+          <Text style={styles.sectionTitle}>Arquivos</Text>
           <TouchableOpacity
             style={styles.addButton}
             onPress={handlePickFiles}
@@ -267,7 +269,7 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
               <ActivityIndicator size="small" color={COLORS.secondary.main} />
             ) : (
               <>
-                <Ionicons name="cloud-upload-outline" size={18} color={COLORS.secondary.main} />
+                <Ionicons name="cloud-upload-outline" size={18} color={COLORS.text.secondary} />
                 <Text style={styles.addButtonText}>Adicionar Arquivo</Text>
               </>
             )}
@@ -330,7 +332,8 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
             {/* Resumo do tamanho total */}
             <View style={styles.summaryBox}>
               <Text style={styles.summaryText}>
-                📊 Total: {formatFileSize(getTotalFileSize())} / {PLAN_LIMITS[(user?.plan?.type || 'FREE') as PlanType].maxTotalFileSize}MB
+                Total: {formatFileSize(getTotalFileSize())} /{' '}
+                {PLAN_LIMITS[(user?.plan?.type || 'FREE') as PlanType].maxTotalFileSize}MB
               </Text>
             </View>
           </>
@@ -340,9 +343,9 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
       {/* Links (Opcional) */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>🔗 Links Externos (Opcional)</Text>
+          <Text style={styles.sectionTitle}>Links externos</Text>
           <TouchableOpacity style={styles.addButton} onPress={handleAddLink} activeOpacity={0.7}>
-            <Ionicons name="link-outline" size={18} color={COLORS.secondary.main} />
+            <Ionicons name="link-outline" size={18} color={COLORS.text.secondary} />
             <Text style={styles.addButtonText}>Adicionar Link</Text>
           </TouchableOpacity>
         </View>
@@ -416,15 +419,18 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
     marginBottom: 8,
+    gap: 4,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.text.primary,
+  },
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.text.secondary,
   },
   section: {
     marginBottom: 24,
@@ -454,7 +460,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: COLORS.text.primary,
   },
   emptyBox: {
     backgroundColor: COLORS.background.tertiary,
@@ -567,17 +573,17 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   alertWarning: {
-    backgroundColor: COLORS.states.warning + '20',
+    backgroundColor: COLORS.background.tertiary,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.states.warning,
+    borderColor: COLORS.border.medium,
   },
   alertWarningTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.warning,
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   alertWarningText: {
@@ -607,17 +613,17 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   summaryBox: {
-    backgroundColor: COLORS.states.info + '20',
+    backgroundColor: COLORS.background.tertiary,
     borderRadius: 8,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: COLORS.states.info,
+    borderColor: COLORS.border.light,
   },
   summaryText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.info,
+    color: COLORS.text.secondary,
   },
 });
 

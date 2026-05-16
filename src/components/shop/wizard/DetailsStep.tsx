@@ -206,12 +206,15 @@ export function DetailsStep({
 
   return (
     <View style={styles.container}>
-      {/* Informações Básicas */}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Detalhes do produto</Text>
+        <Text style={styles.pageSubtitle}>
+          Configure informações básicas, preço e preferências de exibição.
+        </Text>
+      </View>
+
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="information-circle-outline" size={20} color={COLORS.text.secondary} />
-          <Text style={styles.sectionTitle}>Informações Básicas</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Informações básicas</Text>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>
@@ -326,10 +329,7 @@ export function DetailsStep({
 
       {/* Imagem de Capa */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="image-outline" size={20} color={COLORS.text.secondary} />
-          <Text style={styles.sectionTitle}>Imagem de Capa</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Imagem de capa</Text>
 
         <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
           {safeFormData.coverImage && (
@@ -370,7 +370,7 @@ export function DetailsStep({
               <ActivityIndicator size="small" color={COLORS.secondary.main} />
             ) : (
               <>
-                <Ionicons name="cloud-upload-outline" size={18} color={COLORS.secondary.main} />
+                <Ionicons name="cloud-upload-outline" size={18} color={COLORS.text.secondary} />
                 <Text style={styles.imageUploadText}>
                   {safeFormData.coverImage ? 'Trocar Capa' : 'Adicionar Capa'}
                 </Text>
@@ -383,10 +383,7 @@ export function DetailsStep({
 
       {/* Tipo de Venda */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="card-outline" size={20} color={COLORS.text.secondary} />
-          <Text style={styles.sectionTitle}>Tipo de Venda</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Tipo de venda</Text>
         {lockPaymentAndPlan ? (
           <Text style={styles.lockedHint}>
             Após criar o produto, não é possível mudar entre venda única e assinatura nem trocar o plano
@@ -538,10 +535,7 @@ export function DetailsStep({
 
       {/* Configurações */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="settings-outline" size={20} color={COLORS.text.secondary} />
-          <Text style={styles.sectionTitle}>Configurações</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Configurações</Text>
 
         <View style={styles.switchGroup}>
           <Text style={styles.switchLabel}>Permitir download dos arquivos</Text>
@@ -629,19 +623,28 @@ const styles = StyleSheet.create({
   container: {
     gap: 24,
   },
+  pageHeader: {
+    gap: 4,
+    marginBottom: 4,
+  },
+  pageTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.text.secondary,
+  },
   section: {
     marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
+    marginBottom: 16,
   },
   imagePreviewContainer: {
     position: 'relative',
