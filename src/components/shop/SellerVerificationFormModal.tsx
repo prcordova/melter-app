@@ -10,10 +10,10 @@ import {
   TextInput,
   Switch,
   useWindowDimensions,
-  Image,
   Pressable,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../CustomToast';
@@ -26,8 +26,8 @@ import {
   SELLER_VERIFICATION_MAX_VIDEO_SIZE_BYTES,
   SELLER_VERIFICATION_VIDEO_UPLOAD_HELPER_TEXT,
   SELLER_VERIFICATION_MAX_VIDEO_DURATION_SEC,
-  SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_IMAGE_URL,
-  SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_IMAGE_TITLE,
+  SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_VIDEO_URL,
+  SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_TITLE,
   SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT,
   SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_THUMB_WIDTH,
 } from '../../config/seller-verification.config';
@@ -910,19 +910,24 @@ export function SellerVerificationFormModal({
                         twoColumnVideoProof && styles.videoProofExampleAsideWide,
                       ]}
                     >
-                      <Text style={styles.videoExampleCaption}>Exemplo — toque para ampliar</Text>
+                      <Text style={styles.videoExampleCaption}>Exemplo — toque para ampliar e assistir</Text>
                       <TouchableOpacity
                         activeOpacity={0.85}
                         onPress={() => setVideoProofExampleViewerOpen(true)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Ampliar: ${SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_IMAGE_TITLE}`}
+                        accessibilityLabel={`Ampliar e reproduzir: ${SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_TITLE}`}
                         style={styles.videoProofExampleThumbWrap}
                       >
-                        <Image
-                          source={{ uri: SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_IMAGE_URL }}
+                        <Video
+                          source={{ uri: SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_VIDEO_URL }}
                           style={styles.videoProofExampleThumb}
-                          resizeMode="cover"
+                          resizeMode={ResizeMode.COVER}
+                          isMuted
+                          shouldPlay={false}
                         />
+                        <View style={styles.videoProofExamplePlayOverlay} pointerEvents="none">
+                          <Ionicons name="play-circle" size={44} color="#fff" />
+                        </View>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1042,29 +1047,37 @@ export function SellerVerificationFormModal({
         animationType="fade"
         onRequestClose={() => setVideoProofExampleViewerOpen(false)}
       >
-        <View style={styles.videoProofExampleModalRoot}>
-          <View style={styles.videoProofExampleModalBar}>
-            <Text style={styles.videoProofExampleModalTitle} numberOfLines={1}>
-              {SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_IMAGE_TITLE}
-            </Text>
+        <Pressable
+          style={styles.videoProofExampleBackdrop}
+          onPress={() => setVideoProofExampleViewerOpen(false)}
+        >
+          <Pressable
+            style={styles.videoProofExampleCard}
+            onPress={(e) => e.stopPropagation()}
+          >
             <TouchableOpacity
+              style={styles.videoProofExampleCloseBtn}
               onPress={() => setVideoProofExampleViewerOpen(false)}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Fechar"
             >
-              <Ionicons name="close" size={28} color="#fff" />
+              <Ionicons name="close" size={22} color="#fff" />
             </TouchableOpacity>
-          </View>
-          <Pressable
-            style={styles.videoProofExampleModalBody}
-            onPress={() => setVideoProofExampleViewerOpen(false)}
-          >
-            <Image
-              source={{ uri: SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_IMAGE_URL }}
-              style={styles.videoProofExampleModalImage}
-              resizeMode="contain"
-            />
+            <Text style={styles.videoProofExampleModalTitle} numberOfLines={2}>
+              {SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_TITLE}
+            </Text>
+            <View style={styles.videoProofExampleModalBody}>
+              <Video
+                source={{ uri: SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_VIDEO_URL }}
+                style={styles.videoProofExampleModalVideo}
+                resizeMode={ResizeMode.CONTAIN}
+                useNativeControls
+                shouldPlay
+              />
+            </View>
           </Pressable>
-        </View>
+        </Pressable>
       </Modal>
     </>
   );
@@ -1185,48 +1198,72 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   videoProofExampleThumbWrap: {
+    position: 'relative',
     width: '100%',
     height: SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT,
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border.light,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: '#000',
   },
   videoProofExampleThumb: {
     width: '100%',
     height: '100%',
   },
-  videoProofExampleModalRoot: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
-  },
-  videoProofExampleModalBar: {
-    flexDirection: 'row',
+  videoProofExamplePlayOverlay: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
-  videoProofExampleModalTitle: {
+  videoProofExampleBackdrop: {
     flex: 1,
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 12,
-  },
-  videoProofExampleModalBody: {
-    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
   },
-  videoProofExampleModalImage: {
+  videoProofExampleCard: {
     width: '100%',
-    height: '100%',
-    maxHeight: '90%',
+    maxWidth: 400,
+    maxHeight: '85%',
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  videoProofExampleCloseBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoProofExampleModalTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingRight: 44,
+  },
+  videoProofExampleModalBody: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 8,
+  },
+  videoProofExampleModalVideo: {
+    width: '100%',
+    aspectRatio: 3 / 4,
+    maxHeight: 480,
+    backgroundColor: '#000',
+    borderRadius: 8,
   },
   sectionHighlight: {
     borderWidth: 2,
