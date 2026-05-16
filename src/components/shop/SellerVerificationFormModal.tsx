@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -44,6 +44,12 @@ import {
 
 function hasStoredSellerVideoProof(url?: string | null): boolean {
   return typeof url === 'string' && url.trim().length > 0;
+}
+
+function isRemoteSellerVerificationAssetUrl(url?: string | null): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  return trimmed.startsWith('http://') || trimmed.startsWith('https://');
 }
 
 export type SellerVerificationFormData = {
@@ -223,11 +229,46 @@ export function SellerVerificationFormModal({
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
   const [videoProofFile, setVideoProofFile] = useState<PickedImage | null>(null);
   const [videoProofPreview, setVideoProofPreview] = useState<string | null>(null);
+  const videoProofDraftRef = useRef<{ file: PickedImage; preview: string } | null>(null);
+  const videoProofLocalFileRef = useRef(false);
+  const lastHydratedSyncKeyRef = useRef<string | null>(null);
   const [pickingDoc, setPickingDoc] = useState<PickingKey | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [videoProofExampleViewerOpen, setVideoProofExampleViewerOpen] = useState(false);
 
-  const hydrateFromDisplayData = useCallback((data?: SellerVerificationFormData) => {
+  const displayDataSyncKey = useMemo(() => {
+    if (!displayData) return 'empty';
+    return [
+      displayData.status ?? '',
+      (displayData.fieldsToReview ?? []).join(','),
+      displayData.documentIsCopyOnly ? '1' : '0',
+    ].join('|');
+  }, [displayData]);
+
+  const clearVideoProofLocal = useCallback(() => {
+    videoProofLocalFileRef.current = false;
+    setVideoProofFile(null);
+    setVideoProofPreview(null);
+  }, []);
+
+  const saveVideoProofDraft = useCallback(() => {
+    if (videoProofFile && videoProofPreview) {
+      videoProofDraftRef.current = { file: videoProofFile, preview: videoProofPreview };
+    }
+  }, [videoProofFile, videoProofPreview]);
+
+  const restoreVideoProofDraft = useCallback(() => {
+    const draft = videoProofDraftRef.current;
+    if (!draft) return false;
+    videoProofLocalFileRef.current = true;
+    setVideoProofFile(draft.file);
+    setVideoProofPreview(draft.preview);
+    videoProofDraftRef.current = null;
+    return true;
+  }, []);
+
+  const hydrateFromDisplayData = useCallback(
+    (data?: SellerVerificationFormData, options?: { preserveLocalVideo?: boolean }) => {
     if (!data) {
       setCpf('');
       setBirthDateInput('');
@@ -279,17 +320,26 @@ export function SellerVerificationFormModal({
     setSelfiePreview(
       mustResubmit('selfieWithDocument') ? null : data.selfieWithDocument || null
     );
-    setVideoProofFile(null);
-    setVideoProofPreview(mustResubmit('videoProof') ? null : data.videoProof || null);
-    setDocumentIsCopyOnly(
-      Boolean(data.documentIsCopyOnly) ||
-        (!mustResubmit('videoProof') && hasStoredSellerVideoProof(data.videoProof))
-    );
-  }, []);
+    if (!options?.preserveLocalVideo) {
+      setVideoProofFile(null);
+      setVideoProofPreview(mustResubmit('videoProof') ? null : data.videoProof || null);
+    }
+    setDocumentIsCopyOnly(Boolean(data.documentIsCopyOnly));
+  },
+    []
+  );
 
   useEffect(() => {
-    if (visible) hydrateFromDisplayData(displayData);
-  }, [visible, displayData, hydrateFromDisplayData]);
+    if (!visible) {
+      lastHydratedSyncKeyRef.current = null;
+      return;
+    }
+    if (lastHydratedSyncKeyRef.current === displayDataSyncKey) return;
+    hydrateFromDisplayData(displayData, {
+      preserveLocalVideo: videoProofLocalFileRef.current,
+    });
+    lastHydratedSyncKeyRef.current = displayDataSyncKey;
+  }, [visible, displayDataSyncKey, displayData, hydrateFromDisplayData]);
 
   const isFieldStillPendingCorrection = useCallback(
     (field: string): boolean => {
@@ -309,6 +359,9 @@ export function SellerVerificationFormModal({
         case 'videoProof':
           if (!documentIsCopyOnly && !fieldsToReview.includes('videoProof')) {
             return false;
+          }
+          if (fieldsToReview.includes('videoProof')) {
+            return !videoProofFile;
           }
           return !videoProofFile && !videoProofPreview;
         case 'cpf':
@@ -459,6 +512,8 @@ export function SellerVerificationFormModal({
     try {
       const picked = await pickSellerVideo();
       if (!picked) return;
+      videoProofDraftRef.current = null;
+      videoProofLocalFileRef.current = true;
       setVideoProofFile(picked);
       setVideoProofPreview(picked.uri);
     } finally {
@@ -493,8 +548,8 @@ export function SellerVerificationFormModal({
       showToast.error('Bloqueado', 'Este item já estava correto e não pode ser removido.');
       return;
     }
-    setVideoProofFile(null);
-    setVideoProofPreview(null);
+    videoProofDraftRef.current = null;
+    clearVideoProofLocal();
   };
 
   const appendFile = (formData: FormData, key: string, file: PickedImage, fallbackName: string) => {
@@ -582,7 +637,17 @@ export function SellerVerificationFormModal({
     if (!hasDocument('selfieWithDocument', selfieFile, selfiePreview)) {
       missingDocs.push('selfie com documento');
     }
-    if (!hasDocument('videoProof', videoProofFile, videoProofPreview)) {
+    const hasVideoProofForSubmit = () => {
+      if (!requiresField('videoProof')) return true;
+      if (mustResubmitField('videoProof')) {
+        return Boolean(videoProofFile);
+      }
+      return Boolean(
+        videoProofFile || isRemoteSellerVerificationAssetUrl(videoProofPreview)
+      );
+    };
+
+    if (!hasVideoProofForSubmit()) {
       missingDocs.push('vídeo prova');
     }
     if (missingDocs.length > 0) {
@@ -590,9 +655,9 @@ export function SellerVerificationFormModal({
         'Documentos',
         isReviewMode
           ? `Envie novamente: ${missingDocs.join(', ')}.`
-          : missingDocs.includes('vídeo prova') && documentIsCopyOnly
+          : missingDocs.includes('vídeo prova')
             ? 'Como você indicou possuir apenas cópia do documento, o vídeo prova é obrigatório.'
-            : 'Envie frente, verso e selfie. Marque a opção de cópia do RG se for o caso — aí o vídeo prova também é obrigatório.'
+            : `Envie: ${missingDocs.join(', ')}.`
       );
       return;
     }
@@ -619,6 +684,12 @@ export function SellerVerificationFormModal({
           videoProofFile,
           videoProofFile.fileName || 'video-proof.mp4'
         );
+      } else if (
+        requiresField('videoProof') &&
+        !mustResubmitField('videoProof') &&
+        isRemoteSellerVerificationAssetUrl(displayData?.videoProof)
+      ) {
+        formData.append('videoProofUrl', displayData!.videoProof!);
       }
 
       const response = await sellerVerificationApi.submitVerification(formData);
@@ -851,13 +922,18 @@ export function SellerVerificationFormModal({
                     onValueChange={(next) => {
                       setDocumentIsCopyOnly(next);
                       if (!next) {
-                        setVideoProofFile(null);
-                        setVideoProofPreview(null);
-                      } else if (
-                        displayData?.videoProof &&
-                        !mustResubmitField('videoProof')
-                      ) {
-                        setVideoProofPreview(displayData.videoProof);
+                        if (!mustResubmitField('videoProof')) {
+                          saveVideoProofDraft();
+                          clearVideoProofLocal();
+                        }
+                      } else if (!restoreVideoProofDraft()) {
+                        if (
+                          displayData?.videoProof &&
+                          !mustResubmitField('videoProof')
+                        ) {
+                          setVideoProofFile(null);
+                          setVideoProofPreview(displayData.videoProof);
+                        }
                       }
                     }}
                     disabled={submitting}
