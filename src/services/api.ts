@@ -115,6 +115,18 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+/** Resposta de POST /api/friendships/requests (autoAccepted vem no topo, não em data). */
+export interface SendFriendRequestApiResponse {
+  success: boolean;
+  message?: string;
+  autoAccepted?: boolean;
+  data?: {
+    _id?: string;
+    id?: string;
+    status?: string;
+  };
+}
+
 interface AuthResponse {
   token: string;
   user: {
@@ -276,8 +288,10 @@ export const userApi = {
     const response = await api.get<ApiResponse<any>>(`/api/users?${queryParams.toString()}`);
     return response.data;
   },
-  sendFriendRequest: async (userId: string) => {
-    const response = await api.post<ApiResponse<any>>('/api/friendships/requests', { recipientId: userId });
+  sendFriendRequest: async (userId: string): Promise<SendFriendRequestApiResponse> => {
+    const response = await api.post<SendFriendRequestApiResponse>('/api/friendships/requests', {
+      recipientId: userId,
+    });
     return response.data;
   },
   acceptFriendRequest: async (requestId: string) => {

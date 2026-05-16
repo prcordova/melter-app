@@ -121,11 +121,17 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
       setLoading(true);
 
       switch (friendshipStatus) {
-        case 'NONE':
-          await userApi.sendFriendRequest(user._id);
-          setFriendshipStatus('PENDING_SENT');
-          showToast.success('Sucesso', 'Solicitação de amizade enviada');
+        case 'NONE': {
+          const res = await userApi.sendFriendRequest(user._id);
+          if (res.autoAccepted) {
+            setFriendshipStatus('FRIENDS');
+            showToast.success('Sucesso', 'Agora vocês são amigos!');
+          } else {
+            setFriendshipStatus('PENDING_SENT');
+            showToast.success('Sucesso', 'Solicitação de amizade enviada');
+          }
           break;
+        }
 
         case 'PENDING_SENT':
           if (user.friendRequestId) {
@@ -135,13 +141,26 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
           }
           break;
 
-        case 'PENDING_RECEIVED':
+        case 'PENDING_RECEIVED': {
+          let accepted = false;
           if (user.friendRequestId) {
-            await userApi.acceptFriendRequest(user.friendRequestId);
+            try {
+              const res = await userApi.acceptFriendRequest(user.friendRequestId);
+              accepted = !!res.success;
+            } catch {
+              // pedido cruzado — tenta auto-aceitar
+            }
+          }
+          if (!accepted) {
+            const res = await userApi.sendFriendRequest(user._id);
+            accepted = !!(res.success && res.autoAccepted);
+          }
+          if (accepted) {
             setFriendshipStatus('FRIENDS');
             showToast.success('Sucesso', 'Agora vocês são amigos!');
           }
           break;
+        }
 
         case 'FRIENDS':
           Alert.alert(

@@ -421,17 +421,43 @@ export function UserProfileScreen() {
 
     try {
       if (friendshipStatus === 'NONE') {
-        const res = await userApi.sendFriendRequest(user.id || user._id);
+        const targetId = user.id || user._id;
+        const res = await userApi.sendFriendRequest(targetId);
         if (res.success) {
-          setFriendshipStatus('PENDING_SENT');
-          setFriendshipId(res.data?._id || res.data?.id);
-          showToast.success('Sucesso', 'Solicitação de amizade enviada');
-          emitSocialGraphChanged({ username, targetUserId: user?._id, friendshipStatus: 'PENDING_SENT' });
+          if (res.autoAccepted) {
+            setFriendshipStatus('FRIENDS');
+            setFriendshipId(res.data?._id || res.data?.id || friendshipId);
+            showToast.success('Sucesso', 'Agora vocês são amigos!');
+            emitSocialGraphChanged({ username, targetUserId: user?._id, friendshipStatus: 'FRIENDS' });
+          } else {
+            setFriendshipStatus('PENDING_SENT');
+            setFriendshipId(res.data?._id || res.data?.id || null);
+            showToast.success('Sucesso', 'Solicitação de amizade enviada');
+            emitSocialGraphChanged({ username, targetUserId: user?._id, friendshipStatus: 'PENDING_SENT' });
+          }
         }
       } else if (friendshipStatus === 'PENDING_RECEIVED') {
-        if (!friendshipId) return;
-        const res = await userApi.acceptFriendRequest(friendshipId);
-        if (res.success) {
+        const targetId = user.id || user._id;
+        if (!targetId) return;
+
+        let accepted = false;
+        if (friendshipId) {
+          try {
+            const res = await userApi.acceptFriendRequest(friendshipId);
+            accepted = !!res.success;
+          } catch {
+            // id pode ser do pedido enviado (pedidos cruzados) — tenta auto-aceitar via envio
+          }
+        }
+
+        if (!accepted) {
+          const res = await userApi.sendFriendRequest(targetId);
+          if (res.success && (res.autoAccepted || res.data?.status === 'FRIENDLY')) {
+            accepted = true;
+          }
+        }
+
+        if (accepted) {
           setFriendshipStatus('FRIENDS');
           showToast.success('Sucesso', 'Agora vocês são amigos!');
           emitSocialGraphChanged({ username, targetUserId: user?._id, friendshipStatus: 'FRIENDS' });
