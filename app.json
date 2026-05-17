@@ -41,6 +41,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.melter.app",
+      "buildNumber": "16",
       "infoPlist": {
         "NSCameraUsageDescription": "O Melter precisa acessar sua câmera para tirar fotos e postar no feed.",
         "NSPhotoLibraryUsageDescription": "O Melter precisa acessar sua galeria para você escolher fotos e postar no feed.",

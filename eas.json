@@ -24,7 +24,8 @@
       "node": "20.19.4",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://melter.com.br"
-      }
+      },
+      "autoIncrement": false
     },
     "development": {
       "developmentClient": true,

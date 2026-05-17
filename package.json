@@ -1,6 +1,6 @@
 {
   "name": "melter-app",
-  "version": "1.0.9",
+  "version": "1.0.16",
   "description": "Aplicativo oficial Melter - Conecte-se e compartilhe momentos",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "web": "expo start --offline --web",
     "build": "eas build -p android --profile production",
     "build:preview": "eas build -p android --profile preview",
-    "submit:prod": "eas submit -p android --profile production"
+    "submit:prod": "eas submit -p android --profile production --latest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
