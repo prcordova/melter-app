@@ -20,6 +20,7 @@ import { Image } from 'react-native';
 import { COLORS } from '../theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Select } from '../components/ui/Select';
 
 export function RegisterScreen() {
   const navigation = useNavigation();
@@ -437,6 +438,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 6,
+    marginTop: 4,
+  },
   formTitle: {
     fontSize: 24,
     fontWeight: '600',
@@ -506,6 +514,32 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 16,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+    backgroundColor: COLORS.background.default,
+  },
+  chipActive: {
+    borderColor: COLORS.secondary.main,
+    backgroundColor: COLORS.secondary.main,
+  },
+  chipText: {
+    fontSize: 13,
+    color: COLORS.text.primary,
+  },
+  chipTextActive: {
+    color: '#fff',
+    fontWeight: '600',
   },
   termsContainer: {
     flexDirection: 'row',

@@ -1,6 +1,10 @@
 import axios, { AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
+import type {
+  UserGenderIdentity,
+  UserInterestedIn,
+} from '../constants/user-demographics';
 import { Linking } from 'react-native';
 import type { UsernameDisplayEffectConfig } from '../types/username-display-effect';
 import type { PlatformFeedInfoItem } from '../types/platform-feed-info';
@@ -429,6 +433,39 @@ export const userApi = {
     const response = await api.patch<ApiResponse<any>>('/api/users/preferences/email-marketing', {
       enabled,
     });
+    return response.data;
+  },
+  updateUserGender: async (gender: UserGenderIdentity) => {
+    const response = await api.patch<ApiResponse<{ gender: UserGenderIdentity }>>(
+      '/api/users/preferences/gender',
+      { gender }
+    );
+    return response.data;
+  },
+  getUserDemographics: async () => {
+    const response = await api.get<
+      ApiResponse<{
+        gender: UserGenderIdentity | null;
+        interestedIn: UserInterestedIn[];
+        platformPurposes: string[];
+        sexualOrientation: string | null;
+      }>
+    >('/api/users/preferences/demographics');
+    return response.data;
+  },
+  updateUserDemographics: async (payload: {
+    gender: UserGenderIdentity;
+    interestedIn: UserInterestedIn[];
+    platformPurposes: string[];
+  }) => {
+    const response = await api.patch<
+      ApiResponse<{
+        gender: UserGenderIdentity | null;
+        interestedIn: UserInterestedIn[];
+        platformPurposes: string[];
+        sexualOrientation: string | null;
+      }>
+    >('/api/users/preferences/demographics', { ...payload, sexualOrientation: null });
     return response.data;
   },
   updateTransactionalEmailPreferences: async (partial: {

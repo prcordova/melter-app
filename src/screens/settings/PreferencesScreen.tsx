@@ -17,6 +17,21 @@ import { FIXED_CATEGORIES } from '../../constants/categories';
 import { Button } from '../../components/Button';
 import { useCustomModal } from '../../components/CustomModal';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Select } from '../../components/ui/Select';
+import {
+  USER_GENDER_IDENTITY_VALUES,
+  USER_GENDER_LABELS,
+  USER_INTERESTED_IN_VALUES,
+  USER_INTERESTED_IN_LABELS,
+  type UserGenderIdentity,
+  type UserInterestedIn,
+} from '../../constants/user-demographics';
+import {
+  USER_PLATFORM_PURPOSE_VALUES,
+  USER_PLATFORM_PURPOSE_LABELS,
+  parsePlatformPurposesInput,
+  type UserPlatformPurpose,
+} from '../../constants/user-platform-purposes';
 
 interface CategoryPreferences {
   categoryInteractions: { [key: string]: number };
@@ -51,6 +66,10 @@ export function PreferencesScreen() {
   const [emailNotifyOfflineMessages, setEmailNotifyOfflineMessages] = useState(true);
   const [savingTransactional, setSavingTransactional] = useState(false);
   const hasUnsavedChanges = useRef(false);
+  const [gender, setGender] = useState<UserGenderIdentity | ''>('');
+  const [interestedIn, setInterestedIn] = useState<UserInterestedIn[]>([]);
+  const [platformPurposes, setPlatformPurposes] = useState<UserPlatformPurpose[]>([]);
+  const [savingDemographics, setSavingDemographics] = useState(false);
 
   useEffect(() => {
     fetchPreferences();
@@ -77,9 +96,13 @@ export function PreferencesScreen() {
 
   const fetchFullProfileEmailPrefs = async () => {
     try {
-      const res = await userApi.getMyProfile({ scope: 'full' });
-      if (res.success && res.data) {
-        const d = res.data as {
+      const [profileRes, demographicsRes] = await Promise.all([
+        userApi.getMyProfile({ scope: 'full' }),
+        userApi.getUserDemographics(),
+      ]);
+
+      if (profileRes.success && profileRes.data) {
+        const d = profileRes.data as {
           preferences?: {
             emailNotifyNewFollowers?: boolean;
             emailNotifyFriendRequests?: boolean;
@@ -93,6 +116,25 @@ export function PreferencesScreen() {
           setEmailNotifyOfflineMessages(d.preferences.emailNotifyMessagesWhenOffline !== false);
         }
         setEmailMarketingEnabled(d.termsAndPrivacy?.emailMarketingConsent !== false);
+      }
+
+      if (demographicsRes.success && demographicsRes.data) {
+        const d = demographicsRes.data;
+        if (d.gender && USER_GENDER_IDENTITY_VALUES.includes(d.gender as UserGenderIdentity)) {
+          setGender(d.gender as UserGenderIdentity);
+        }
+        const raw = Array.isArray(d.interestedIn) ? d.interestedIn : [];
+        const normalized: UserInterestedIn[] = [];
+        for (const v of raw) {
+          if (USER_INTERESTED_IN_VALUES.includes(v as UserInterestedIn)) {
+            normalized.push(v as UserInterestedIn);
+          } else if ((v as string) === 'TRANS') {
+            if (!normalized.includes('TRANS_MEN')) normalized.push('TRANS_MEN');
+            if (!normalized.includes('TRANS_WOMEN')) normalized.push('TRANS_WOMEN');
+          }
+        }
+        setInterestedIn(normalized);
+        setPlatformPurposes(parsePlatformPurposesInput(d.platformPurposes));
       }
     } catch (error) {
       console.error('Erro ao buscar preferências de e-mail do perfil:', error);
@@ -242,6 +284,105 @@ export function PreferencesScreen() {
         <Text style={styles.description}>
           Personalize suas preferências de conteúdo e notificações.
         </Text>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>👤 Conta</Text>
+          <Text style={styles.sectionDescription}>
+            Gênero, interesses e orientação sexual são opcionais (exceto se quiser definir seu gênero).
+          </Text>
+          <Text style={styles.fieldLabel}>Sexo</Text>
+          <Select
+            selectedValue={gender}
+            onValueChange={(v) => setGender(v as UserGenderIdentity)}
+            placeholder="Selecione"
+            disabled={savingDemographics}
+            items={USER_GENDER_IDENTITY_VALUES.map((value) => ({
+              value,
+              label: USER_GENDER_LABELS[value],
+            }))}
+          />
+          {!gender ? (
+            <Text style={styles.helperMuted}>Não informado</Text>
+          ) : null}
+
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Tenho interesse em conhecer</Text>
+          <View style={styles.chipsContainer}>
+            {USER_INTERESTED_IN_VALUES.map((value) => {
+              const active = interestedIn.includes(value);
+              return (
+                <TouchableOpacity
+                  key={value}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() =>
+                    setInterestedIn((prev) =>
+                      active ? prev.filter((v) => v !== value) : [...prev, value]
+                    )
+                  }
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {USER_INTERESTED_IN_LABELS[value]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>O que você busca na Melter?</Text>
+          <Text style={styles.helperMuted}>Marque tudo que se aplica.</Text>
+          <View style={styles.chipsContainer}>
+            {USER_PLATFORM_PURPOSE_VALUES.map((value) => {
+              const active = platformPurposes.includes(value);
+              return (
+                <TouchableOpacity
+                  key={value}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() =>
+                    setPlatformPurposes((prev) =>
+                      active ? prev.filter((v) => v !== value) : [...prev, value]
+                    )
+                  }
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {USER_PLATFORM_PURPOSE_LABELS[value]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Button
+            onPress={async () => {
+              if (!gender) {
+                showToast.error('Erro', 'Selecione como você se identifica');
+                return;
+              }
+              if (platformPurposes.length < 1) {
+                showToast.error('Erro', 'Selecione pelo menos um objetivo na plataforma');
+                return;
+              }
+              try {
+                setSavingDemographics(true);
+                const res = await userApi.updateUserDemographics({
+                  gender,
+                  interestedIn,
+                  platformPurposes,
+                });
+                if (res.success) {
+                  showToast.success('Sucesso', 'Perfil atualizado.');
+                }
+              } catch {
+                showToast.error('Erro', 'Não foi possível salvar.');
+              } finally {
+                setSavingDemographics(false);
+              }
+            }}
+            disabled={savingDemographics}
+            loading={savingDemographics}
+            style={{ marginTop: 12 }}
+          >
+            Salvar perfil
+          </Button>
+        </View>
 
         {/* Ranking de Categorias */}
         {preferences && preferences.categoryRanking.length > 0 && (
@@ -505,6 +646,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 20,
   },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+  },
+  helperMuted: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginTop: 8,
+    marginBottom: 4,
+  },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -512,16 +665,23 @@ const styles = StyleSheet.create({
   },
   chip: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary.light,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.primary.main,
+    borderColor: COLORS.border.medium,
+    backgroundColor: COLORS.background.default,
+  },
+  chipActive: {
+    borderColor: COLORS.secondary.main,
+    backgroundColor: COLORS.secondary.main,
   },
   chipText: {
-    fontSize: 12,
-    color: COLORS.primary.main,
-    fontWeight: '500',
+    fontSize: 13,
+    color: COLORS.text.primary,
+  },
+  chipTextActive: {
+    color: '#fff',
+    fontWeight: '600',
   },
   categoriesList: {
     gap: 12,
