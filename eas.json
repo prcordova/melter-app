@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 5.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "preview": {
@@ -25,7 +25,7 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://melter.com.br"
       },
-      "autoIncrement": true
+      "autoIncrement": false
     },
     "development": {
       "developmentClient": true,
