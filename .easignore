@@ -10,6 +10,10 @@ yarn-error.log*
 # Lock files - EAS usa yarn, então ignoramos package-lock.json
 package-lock.json
 
+# Pastas nativas locais (geradas por prebuild) — EAS deve usar app.json, não cópias antigas
+android/
+ios/
+
 # Build outputs
 .expo/
 dist/

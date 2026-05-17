@@ -11,7 +11,8 @@
     "web": "expo start --offline --web",
     "build": "eas build -p android --profile production",
     "build:preview": "eas build -p android --profile preview",
-    "submit:prod": "eas submit -p android --profile production --latest"
+    "submit:prod": "eas submit -p android --profile production --latest",
+    "version:sync": "eas build:version:sync"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
