@@ -457,6 +457,7 @@ export const userApi = {
     gender: UserGenderIdentity;
     interestedIn: UserInterestedIn[];
     platformPurposes: string[];
+    sexualOrientation?: string | null;
   }) => {
     const response = await api.patch<
       ApiResponse<{
@@ -465,7 +466,7 @@ export const userApi = {
         platformPurposes: string[];
         sexualOrientation: string | null;
       }>
-    >('/api/users/preferences/demographics', { ...payload, sexualOrientation: null });
+    >('/api/users/preferences/demographics', payload);
     return response.data;
   },
   updateTransactionalEmailPreferences: async (partial: {
