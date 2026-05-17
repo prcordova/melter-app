@@ -493,82 +493,73 @@ export function ProfileScreen() {
       >
         {/* Avatar e Info do Usuário */}
         <View style={styles.userSection}>
-          <View style={styles.avatarWrapper}>
-            <View style={styles.avatarContainer}>
-              <View style={[
-                styles.avatarInnerContainer,
-                userStories && styles.avatarContainerWithStory
-              ]}>
-                <Avatar 
-                  user={{ username: user?.username, avatar: user?.avatar }} 
-                  size={80}
-                  onPress={() => {
-                    if (userStories) {
-                      setShowStoryViewer(true);
-                    } else {
-                      handleMenuPress('profile');
-                    }
-                  }}
-                />
-              </View>
-              {/* Botão de compartilhar */}
-              <TouchableOpacity
-                style={styles.shareButton}
-                onPress={handleShareProfile}
-              >
-                <Ionicons name="share-outline" size={20} color="#ffffff" />
-              </TouchableOpacity>
-              
-              {/* Balão de status (mensagem de status) */}
-              {statusMessage && statusMessage.trim() && (
-                <View style={styles.statusBalloonContainer}>
-                  <View style={[styles.statusBalloon, { backgroundColor: statusBalloonOuterBg }]}>
-                    <View
-                      style={
-                        statusBalloonInnerBg
-                          ? {
-                              backgroundColor: statusBalloonInnerBg,
-                              borderRadius: 10,
-                              paddingHorizontal: 10,
-                              paddingVertical: 8,
-                            }
-                          : {}
+          <View style={styles.avatarStatusRow}>
+            <View style={styles.avatarWrapper}>
+              <View style={styles.avatarContainer}>
+                <View
+                  style={[
+                    styles.avatarInnerContainer,
+                    userStories && styles.avatarContainerWithStory,
+                  ]}
+                >
+                  <Avatar
+                    user={{ username: user?.username, avatar: user?.avatar }}
+                    size={80}
+                    onPress={() => {
+                      if (userStories) {
+                        setShowStoryViewer(true);
+                      } else {
+                        handleMenuPress('profile');
                       }
-                    >
-                      <UsernameGradientText
-                        username={statusMessage}
-                        prefix=""
-                        effect={pp.statusMessageDisplayEffect ?? null}
-                        fontSize={13}
-                        fontWeight="600"
-                        numberOfLines={2}
-                        style={
-                          statusMessageGradientOn
-                            ? undefined
-                            : { color: statusMessageSolidColor }
-                        }
-                      />
-                    </View>
-                  </View>
-                  <View
-                    style={[styles.statusBalloonArrow, { borderRightColor: statusBalloonOuterBg }]}
+                    }}
                   />
                 </View>
-              )}
+                <TouchableOpacity style={styles.shareButton} onPress={handleShareProfile}>
+                  <Ionicons name="share-outline" size={20} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                style={styles.editStatusButton}
+                onPress={() => {
+                  setTimeout(() => {
+                    statusMessageInputRef.current?.focus();
+                  }, 100);
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chatbubble-ellipses" size={18} color={COLORS.primary.main} />
+              </TouchableOpacity>
             </View>
-            {/* Botão de editar status (estilo balão de fala) */}
-            <TouchableOpacity
-              style={styles.editStatusButton}
-              onPress={() => {
-                // Focar no campo de mensagem de status
-                setTimeout(() => {
-                  statusMessageInputRef.current?.focus();
-                }, 100);
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chatbubble-ellipses" size={18} color={COLORS.primary.main} />
-            </TouchableOpacity>
+
+            {statusMessage && statusMessage.trim() ? (
+              <View style={styles.statusBalloonContainer}>
+                <View style={[styles.statusBalloon, { backgroundColor: statusBalloonOuterBg }]}>
+                  <View
+                    style={[
+                      styles.statusBalloonInner,
+                      statusBalloonInnerBg ? { backgroundColor: statusBalloonInnerBg } : null,
+                    ]}
+                  >
+                    <UsernameGradientText
+                      username={statusMessage}
+                      prefix=""
+                      effect={pp.statusMessageDisplayEffect ?? null}
+                      fontSize={13}
+                      fontWeight="600"
+                      numberOfLines={4}
+                      style={
+                        statusMessageGradientOn
+                          ? styles.statusMessageText
+                          : { color: statusMessageSolidColor, ...styles.statusMessageText }
+                      }
+                    />
+                  </View>
+                </View>
+                <View
+                  style={[styles.statusBalloonArrow, { borderRightColor: statusBalloonOuterBg }]}
+                />
+              </View>
+            ) : null}
           </View>
           <View style={styles.usernameRow}>
             <TouchableOpacity onPress={() => handleMenuPress('profile')}>
@@ -1141,7 +1132,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   userSection: {
-    alignItems: 'center',
+    alignItems: 'stretch',
     backgroundColor: COLORS.background.paper,
     borderRadius: 16,
     padding: 24,
@@ -1152,14 +1143,21 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  avatarStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+    minWidth: 0,
+    marginBottom: 12,
+  },
   avatarWrapper: {
     position: 'relative',
-    marginBottom: 12,
+    flexShrink: 0,
   },
   avatarContainer: {
     position: 'relative',
     alignItems: 'center',
-    marginBottom: 0,
   },
   avatarInnerContainer: {
     position: 'relative',
@@ -1184,17 +1182,18 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
   },
   statusBalloonContainer: {
-    position: 'absolute',
-    left: 100, // Avatar width (80) + padding (20)
-    top: '50%',
-    marginTop: -20, // Aproximadamente metade da altura do balão
+    flexGrow: 0,
+    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    maxWidth: '72%',
   },
   statusBalloon: {
-    maxWidth: 200,
+    flexGrow: 0,
+    flexShrink: 1,
     borderRadius: 12,
-    padding: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1202,6 +1201,13 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: COLORS.border.light,
+  },
+  statusBalloonInner: {
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  statusMessageText: {
+    flexShrink: 1,
   },
   statusBalloonText: {
     fontSize: 13,

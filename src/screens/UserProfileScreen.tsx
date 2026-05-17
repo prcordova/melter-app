@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
+  TextInput,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -43,6 +44,7 @@ type UserProfileRouteParams = {
 type UserProfileRouteProp = RouteProp<{ UserProfile: UserProfileRouteParams }, 'UserProfile'>;
 
 import { Avatar } from '../components/Avatar';
+import { Button } from '../components/Button';
 import { UsernameGradientText } from '../components/UsernameGradientText';
 import { normalizeUsernameDisplayEffect } from '../types/username-display-effect';
 
@@ -71,6 +73,9 @@ export function UserProfileScreen() {
   const [profileError, setProfileError] = useState<string | null>(null);
   const [donationModalVisible, setDonationModalVisible] = useState(false);
   const [shareLinksModalVisible, setShareLinksModalVisible] = useState(false);
+  const [isEditingStatus, setIsEditingStatus] = useState(false);
+  const [statusDraft, setStatusDraft] = useState('');
+  const [isSavingStatusMessage, setIsSavingStatusMessage] = useState(false);
 
   const renderProfileSkeleton = () => (
     <View style={styles.skeletonContainer}>
@@ -738,6 +743,57 @@ export function UserProfileScreen() {
     setDonationModalVisible(true);
   };
 
+  const handleOpenAppearanceSettings = () => {
+    const tabNav = navigation.getParent()?.getParent();
+    if (tabNav && typeof (tabNav as any).navigate === 'function') {
+      (tabNav as any).navigate('ProfileStack', { screen: 'AppearanceSettings' });
+      return;
+    }
+    (navigation as any).navigate('ProfileStack', { screen: 'AppearanceSettings' });
+  };
+
+  const handleCancelStatusEdit = () => {
+    setIsEditingStatus(false);
+    setStatusDraft(user?.status?.customMessage || '');
+  };
+
+  const handleSaveStatusMessage = async () => {
+    if (!user || isSavingStatusMessage) return;
+    setIsSavingStatusMessage(true);
+    try {
+      const response = await userApi.updateStatus({
+        visibility: user.status?.visibility || 'online',
+        customMessage: statusDraft.trim(),
+      });
+      if (response.success) {
+        const trimmed = statusDraft.trim();
+        setUser((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                status: {
+                  ...prev.status,
+                  customMessage: trimmed,
+                },
+              }
+            : prev
+        );
+        setIsEditingStatus(false);
+        await refreshUser();
+        showToast.success('Sucesso', 'Status atualizado');
+      } else {
+        showToast.error('Erro', 'Não foi possível atualizar o status');
+      }
+    } catch {
+      showToast.error('Erro', 'Não foi possível atualizar o status');
+    } finally {
+      setIsSavingStatusMessage(false);
+    }
+  };
+
+  const showStatusBalloon =
+    Boolean(user?.status?.customMessage?.trim()) || isSelfProfile;
+
   return (
     <View style={{ flex: 1 }}>
       {isFullPageBackground && bgImageSource ? (
@@ -806,67 +862,109 @@ export function UserProfileScreen() {
 
         {/* Info do Usuário */}
         <View style={styles.profileHeader}>
-          {/* Avatar à esquerda */}
-          <View style={styles.avatarContainer}>
-            <View 
+          <View style={styles.avatarStatusRow}>
+            <View
               style={[
                 styles.avatarWrapper,
-                userStories && styles.avatarWrapperWithStory
+                userStories && styles.avatarWrapperWithStory,
               ]}
             >
-              <Avatar 
-                user={{ username: user.username, avatar: user.avatar }} 
+              <Avatar
+                user={{ username: user.username, avatar: user.avatar }}
                 size={100}
                 onPress={() => userStories && setShowStoryViewer(true)}
-                disableNavigation // Já estamos no perfil
+                disableNavigation
               />
               <View
                 style={[
                   styles.statusIndicator,
-                  { backgroundColor: user.status?.isOnline ? '#10b981' : '#94a3b8' }
+                  { backgroundColor: user.status?.isOnline ? '#10b981' : '#94a3b8' },
                 ]}
               />
             </View>
-            
-            {/* Balão de status à direita do avatar, um pouco acima da metade */}
-            {user.status?.customMessage && user.status.customMessage.trim() && (
-              <View
+
+            {showStatusBalloon ? (
+              <TouchableOpacity
+                activeOpacity={isSelfProfile && !isEditingStatus ? 0.85 : 1}
+                disabled={!isSelfProfile || isEditingStatus}
+                onPress={() => {
+                  if (!isSelfProfile) return;
+                  setStatusDraft(user?.status?.customMessage || '');
+                  setIsEditingStatus(true);
+                }}
                 style={[
                   styles.statusBalloon,
                   { backgroundColor: statusBalloonOuterBg, borderColor: COLORS.border.light },
                 ]}
               >
-                <View
-                  style={
-                    statusBalloonInnerBg
-                      ? {
-                          backgroundColor: statusBalloonInnerBg,
-                          borderRadius: 10,
-                          paddingHorizontal: 10,
-                          paddingVertical: 8,
-                        }
-                      : { paddingVertical: 2 }
-                  }
-                >
-                  <UsernameGradientText
-                    username={user.status.customMessage}
-                    prefix=""
-                    effect={profile.statusMessageDisplayEffect ?? null}
-                    fontSize={13}
-                    fontWeight="600"
-                    numberOfLines={2}
-                    style={
-                      statusMessageGradientOn
-                        ? { maxWidth: 200 }
-                        : { color: statusMessageSolidColor, maxWidth: 200 }
-                    }
-                  />
-                </View>
-              </View>
-            )}
+                {isEditingStatus && isSelfProfile ? (
+                  <View style={styles.statusBalloonEdit}>
+                    <TextInput
+                      value={statusDraft}
+                      onChangeText={(text) => setStatusDraft(text.slice(0, 100))}
+                      placeholder="Mensagem de status..."
+                      placeholderTextColor={COLORS.text.tertiary}
+                      multiline
+                      maxLength={100}
+                      autoFocus
+                      style={[styles.statusBalloonInput, { color: statusMessageSolidColor }]}
+                    />
+                    <View style={styles.statusBalloonEditActions}>
+                      <TouchableOpacity
+                        onPress={handleCancelStatusEdit}
+                        disabled={isSavingStatusMessage}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="close" size={20} color={statusMessageSolidColor} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleSaveStatusMessage}
+                        disabled={isSavingStatusMessage}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        {isSavingStatusMessage ? (
+                          <ActivityIndicator size="small" color={COLORS.primary.main} />
+                        ) : (
+                          <Ionicons name="checkmark" size={22} color={COLORS.primary.main} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : user.status?.customMessage?.trim() ? (
+                  <View
+                    style={[
+                      styles.statusBalloonInner,
+                      statusBalloonInnerBg ? { backgroundColor: statusBalloonInnerBg } : null,
+                    ]}
+                  >
+                    <UsernameGradientText
+                      username={user.status.customMessage}
+                      prefix=""
+                      effect={profile.statusMessageDisplayEffect ?? null}
+                      fontSize={13}
+                      fontWeight="600"
+                      numberOfLines={4}
+                      style={
+                        statusMessageGradientOn
+                          ? styles.statusMessageText
+                          : { color: statusMessageSolidColor, ...styles.statusMessageText }
+                      }
+                    />
+                  </View>
+                ) : (
+                  <Text
+                    style={[
+                      styles.statusBalloonPlaceholder,
+                      { color: statusMessageSolidColor },
+                    ]}
+                  >
+                    Mensagem de status...
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ) : null}
           </View>
 
-          {/* Informações do usuário à direita do avatar */}
           <View style={styles.userInfo}>
             {/* Nome, plano e 3 pontinhos na mesma linha */}
             <View style={styles.nameRow}>
@@ -907,8 +1005,23 @@ export function UserProfileScreen() {
               )}
             </View>
             
-            {/* Bio */}
-            {user.bio ? <Text style={[styles.bio, dynamicStyles.text]}>{user.bio}</Text> : null}
+            {/* Bio + editar perfil (dono) */}
+            <View style={styles.bioEditRow}>
+              {user.bio ? (
+                <Text style={[styles.bio, dynamicStyles.text]}>{user.bio}</Text>
+              ) : isSelfProfile ? (
+                <Text style={[styles.bio, dynamicStyles.text, styles.bioEmpty]}>Sem bio</Text>
+              ) : null}
+              {isSelfProfile ? (
+                <Button
+                  size="sm"
+                  icon={<Ionicons name="create-outline" size={16} color="#ffffff" />}
+                  onPress={handleOpenAppearanceSettings}
+                >
+                  Editar perfil
+                </Button>
+              ) : null}
+            </View>
           </View>
         </View>
 
@@ -916,22 +1029,22 @@ export function UserProfileScreen() {
         {(canViewShop() || (donationsEnabled && !isSelfProfile)) && (
           <View style={styles.quickActions}>
             {canViewShop() && (
-              <TouchableOpacity 
-                style={[styles.quickActionButton, dynamicStyles.card]} 
+              <Button
+                size="sm"
+                icon={<Ionicons name="storefront-outline" size={18} color="#ffffff" />}
                 onPress={handleShopPress}
               >
-                <Ionicons name="storefront-outline" size={20} color={getSafeColor(profile.cardTextColor, COLORS.text.primary)} />
-                <Text style={[styles.quickActionText, dynamicStyles.cardText]}>Loja</Text>
-              </TouchableOpacity>
+                Ver loja
+              </Button>
             )}
             {donationsEnabled && !isSelfProfile && (
-              <TouchableOpacity 
-                style={[styles.quickActionButton, dynamicStyles.card]} 
+              <Button
+                size="sm"
+                icon={<Ionicons name="heart-outline" size={18} color="#ffffff" />}
                 onPress={handleDonatePress}
               >
-                <Ionicons name="heart-outline" size={20} color={getSafeColor(profile.cardTextColor, COLORS.text.primary)} />
-                <Text style={[styles.quickActionText, dynamicStyles.cardText]}>Doar</Text>
-              </TouchableOpacity>
+                Doação
+              </Button>
             )}
           </View>
         )}
@@ -1493,14 +1606,21 @@ const styles = StyleSheet.create({
   profileHeader: {
     marginTop: -50,
     paddingHorizontal: 16,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 8,
+    paddingTop: 50,
+  },
+  avatarStatusRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingTop: 50, // Começa abaixo da metade do avatar (avatar tem 100px, metade = 50px)
+    alignItems: 'center',
+    gap: 10,
+    marginTop: -50,
+    minWidth: 0,
+    width: '100%',
   },
   avatarContainer: {
     position: 'relative',
-    marginTop: -50, // Move o avatar para cima para sobrepor o cover
   },
   avatarWrapper: {
     position: 'relative',
@@ -1517,12 +1637,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusBalloon: {
-    position: 'absolute',
-    left: 110, // À direita do avatar (100px + 10px de gap)
-    top: -30, // Na metade superior do avatar (sobreposto ao cover background)
-    maxWidth: 200,
+    alignSelf: 'center',
+    flexGrow: 0,
+    flexShrink: 1,
+    maxWidth: '72%',
     borderRadius: 12,
-    padding: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1531,6 +1652,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border.light,
     zIndex: 10,
+  },
+  statusBalloonInner: {
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  statusMessageText: {
+    flexShrink: 1,
   },
   statusBalloonArrow: {
     width: 0,
@@ -1664,8 +1792,8 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   userInfo: {
-    flex: 1,
-    marginTop: 50, // Começa abaixo da metade do avatar (50px = metade de 100px)
+    width: '100%',
+    marginTop: 4,
   },
   nameRow: {
     flexDirection: 'row',
@@ -1694,29 +1822,45 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: 16,
-    gap: 12,
+    gap: 8,
     width: '100%',
     justifyContent: 'center',
-  },
-  quickActionButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+  bioEditRow: {
+    marginTop: 8,
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+  },
+  bioEmpty: {
+    fontStyle: 'italic',
+    opacity: 0.85,
+  },
+  statusBalloonEdit: {
+    width: '100%',
+    minWidth: 140,
+  },
+  statusBalloonInput: {
+    fontSize: 13,
+    lineHeight: 18,
+    maxHeight: 72,
+    padding: 0,
+  },
+  statusBalloonEditActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  statusBalloonPlaceholder: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: 'italic',
+    opacity: 0.75,
   },
   actions: {
     marginTop: 20,

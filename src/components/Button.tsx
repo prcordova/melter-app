@@ -16,6 +16,7 @@ interface ButtonProps extends TouchableOpacityProps {
   loading?: boolean;
   variant?: 'primary' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
+  icon?: React.ReactNode;
 }
 
 // Configuração do gradiente
@@ -29,6 +30,7 @@ export function Button({
   size = 'md',
   disabled,
   style,
+  icon,
   ...props
 }: ButtonProps) {
   const getContainerStyle = (): ViewStyle => {
@@ -119,7 +121,16 @@ export function Button({
         />
       );
     }
-    return <Text style={getTextStyle()}>{children}</Text>;
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        {icon}
+        {typeof children === 'string' ? (
+          <Text style={getTextStyle()}>{children}</Text>
+        ) : (
+          children
+        )}
+      </View>
+    );
   };
 
   // Para variante primary, envolver em LinearGradient
