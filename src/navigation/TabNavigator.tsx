@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
 import { FeedScreen } from '../screens/FeedScreen';
@@ -11,38 +11,15 @@ import { CommunityStackNavigator } from './CommunityStackNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../theme/colors';
-import { messageApi } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { useUnreadMessages } from '../contexts/UnreadMessagesContext';
 
 const Tab = createBottomTabNavigator();
 
 export function TabNavigator() {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
   usePushNotifications();
-  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
-
-  // Buscar contador de mensagens não lidas
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchUnreadCount = async () => {
-      try {
-        const response = await messageApi.getUnreadCount();
-        if (response.success && response.data) {
-          setUnreadMessagesCount(response.data.count || 0);
-        }
-      } catch (error) {
-        console.error('[TabNavigator] Erro ao buscar contador de mensagens:', error);
-      }
-    };
-
-    fetchUnreadCount();
-    // Atualizar a cada 30 segundos
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+  const { unreadCount: unreadMessagesCount, refreshUnreadCount } = useUnreadMessages();
   
   return (
     <Tab.Navigator
@@ -114,8 +91,7 @@ export function TabNavigator() {
         }}
         listeners={{
           tabPress: () => {
-            // Resetar contador ao abrir a tab de mensagens
-            setUnreadMessagesCount(0);
+            refreshUnreadCount();
           },
         }}
       />

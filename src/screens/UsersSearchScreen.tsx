@@ -8,13 +8,14 @@ import {
   TextInput,
   Alert,
   DeviceEventEmitter,
+  TouchableOpacity,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { UserCard } from '../components/UserCard';
 import { userApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Picker } from '@react-native-picker/picker';
+import { BottomOptionSheet } from '../components/ui/BottomOptionSheet';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -43,6 +44,13 @@ interface User {
 }
 
 type FilterType = 'popular' | 'recent' | 'most-viewed' | 'most-liked';
+
+const EXPLORER_FILTER_OPTIONS: { label: string; value: FilterType }[] = [
+  { label: 'Populares', value: 'popular' },
+  { label: 'Recentes', value: 'recent' },
+  { label: 'Mais vistos', value: 'most-viewed' },
+  { label: 'Mais curtidos', value: 'most-liked' },
+];
 
 interface UsersSearchScreenProps {
   hideHeader?: boolean;
@@ -91,6 +99,10 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
+  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
+
+  const selectedFilterLabel =
+    EXPLORER_FILTER_OPTIONS.find((o) => o.value === selectedFilter)?.label ?? 'Filtro';
 
   const getCacheKey = (filter: FilterType, search: string, pageNum: number) =>
     `${filter}::${search.trim().toLowerCase()}::${pageNum}`;
@@ -328,22 +340,28 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
               autoCorrect={false}
             />
           </View>
-          <View style={styles.filterContainer}>
-            <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={selectedFilter}
-                onValueChange={(value: FilterType) => setSelectedFilter(value)}
-                style={styles.picker}
-                dropdownIconColor={COLORS.text.secondary}
-              >
-                <Picker.Item label="Populares" value="popular" />
-                <Picker.Item label="Recentes" value="recent" />
-                <Picker.Item label="Mais Vistos" value="most-viewed" />
-                <Picker.Item label="Mais Curtidos" value="most-liked" />
-              </Picker>
-            </View>
-          </View>
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setFilterSheetVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="filter" size={18} color={COLORS.secondary.main} />
+            <Text style={styles.filterButtonText} numberOfLines={1}>
+              {selectedFilterLabel}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={COLORS.text.secondary} />
+          </TouchableOpacity>
         </View>
+
+        <BottomOptionSheet
+          visible={filterSheetVisible}
+          title="Ordenar por"
+          subtitle="Como exibir pessoas no explorar"
+          options={EXPLORER_FILTER_OPTIONS}
+          selectedValue={selectedFilter}
+          onClose={() => setFilterSheetVisible(false)}
+          onSelect={(value) => setSelectedFilter(value)}
+        />
 
         {/* Lista de Usuários */}
         {loading ? (
@@ -414,17 +432,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.text.primary,
   },
-  filterContainer: {
-    width: 140,
-  },
-  pickerWrapper: {
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 128,
+    maxWidth: 150,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     backgroundColor: COLORS.background.paper,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: COLORS.secondary.main,
-    overflow: 'hidden',
   },
-  picker: {
+  filterButtonText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
     color: COLORS.text.primary,
   },
   listContent: {

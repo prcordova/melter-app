@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
+import { UnreadMessagesProvider } from './src/contexts/UnreadMessagesContext';
 import { AuthStackNavigator } from './src/navigation/AuthStackNavigator';
 import { TabNavigator } from './src/navigation/TabNavigator';
 import { View, Text, StyleSheet } from 'react-native';
@@ -57,11 +58,13 @@ export default function App() {
       <SafeAreaProvider>
         <AuthProvider>
           <NotificationProvider>
-            <NavigationContainer>
-              <Navigation />
-              <StatusBar style="auto" />
-              <CustomToast />
-            </NavigationContainer>
+            <UnreadMessagesProvider>
+              <NavigationContainer>
+                <Navigation />
+                <StatusBar style="auto" />
+                <CustomToast />
+              </NavigationContainer>
+            </UnreadMessagesProvider>
           </NotificationProvider>
         </AuthProvider>
       </SafeAreaProvider>

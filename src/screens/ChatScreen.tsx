@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import {
   Linking,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatDistanceToNow, format, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -33,24 +33,15 @@ import { showToast } from '../components/CustomToast';
 import { StoryReplyPreview } from '../components/stories/StoryReplyPreview';
 import { EmojiPicker } from '../components/EmojiPicker';
 import { useSocketIO } from '../hooks/useSocketIO';
+import { useUnreadMessages } from '../contexts/UnreadMessagesContext';
+import { AttachPickerModal, type AttachPickerOption } from '../components/chat/AttachPickerModal';
+import {
+  type ChatMessage,
+  normalizeChatMessage,
+  MESSAGE_READ_CHECK_COLOR,
+} from '../utils/message-helpers';
 
-interface Message {
-  _id: string;
-  senderId: string;
-  recipientId: string;
-  content: string;
-  timestamp: string;
-  status: 'sent' | 'delivered' | 'read';
-  type?: 'text' | 'image' | 'document';
-  imageUrl?: string;
-  documentUrl?: string;
-  documentName?: string;
-  storyReply?: {
-    storyId: string;
-    mediaUrl: string;
-    mediaType: 'image' | 'video' | 'gif';
-  } | null;
-}
+const TAB_BAR_HEIGHT = 60;
 
 type ChatRouteParams = {
   userId: string;
@@ -80,7 +71,9 @@ export function ChatScreen() {
     (navigation as any).navigate('UserProfile', { username: username });
   };
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { refreshUnreadCount } = useUnreadMessages();
+  const [showAttachPicker, setShowAttachPicker] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [sending, setSending] = useState(false);
@@ -108,80 +101,81 @@ export function ChatScreen() {
     checkFriendship();
   }, []);
 
-  // Listener para novas mensagens via Socket.IO
+  useFocusEffect(
+    useCallback(() => {
+      const parent = navigation.getParent();
+      if (!parent) return;
+
+      parent.setOptions({
+        tabBarStyle: { display: 'none' },
+      });
+
+      return () => {
+        parent.setOptions({
+          tabBarStyle: {
+            backgroundColor: COLORS.background.paper,
+            borderTopWidth: 1,
+            borderTopColor: COLORS.border.light,
+            height: TAB_BAR_HEIGHT + insets.bottom,
+            paddingBottom: insets.bottom || 8,
+            paddingTop: 8,
+          },
+        });
+      };
+    }, [navigation, insets.bottom])
+  );
+
   useEffect(() => {
-    if (!socket || !user?.id || !userId) {
-      console.log('[ChatScreen] Socket.IO não está pronto ainda', { 
-        hasSocket: !!socket, 
-        hasUser: !!user?.id, 
-        hasUserId: !!userId 
-      });
-      return;
-    }
+    if (!socket || !user?.id || !userId) return;
 
-    console.log('[ChatScreen] ✅ Configurando listener Socket.IO para novas mensagens');
-    console.log('[ChatScreen] Monitorando conversa entre:', { currentUser: user.id, otherUser: userId });
-
-    const handleNewMessage = (message: Message) => {
-      console.log('[ChatScreen] 📨 Nova mensagem recebida via Socket.IO:', {
-        messageId: message._id,
-        senderId: message.senderId,
-        recipientId: message.recipientId,
-        content: message.content?.substring(0, 50),
-      });
-      
-      // Verificar se a mensagem é para esta conversa
-      const isForThisConversation = 
+    const handleNewMessage = (raw: unknown) => {
+      const message = normalizeChatMessage(raw as Record<string, unknown>);
+      const isForThisConversation =
         (message.senderId === userId && message.recipientId === user.id) ||
         (message.senderId === user.id && message.recipientId === userId);
-      
-      console.log('[ChatScreen] Mensagem é para esta conversa?', isForThisConversation);
-      
-      if (isForThisConversation) {
-        // Adicionar mensagem à lista
-        setMessages((prev) => {
-          // Verificar se a mensagem já existe (evitar duplicatas)
-          const exists = prev.some((msg) => msg._id === message._id);
-          if (exists) {
-            console.log('[ChatScreen] Mensagem já existe, ignorando duplicata');
-            return prev;
-          }
-          
-          console.log('[ChatScreen] ✅ Adicionando nova mensagem ao chat');
-          // Adicionar nova mensagem no final
-          return [...prev, message];
-        });
 
-        // Scroll para o final automaticamente
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+      if (!isForThisConversation) return;
 
-        // Marcar como lida se a mensagem é para o usuário atual
-        if (message.recipientId === user.id && message.senderId === userId) {
-          messageApi.markAsRead(userId).catch((error) => {
+      setMessages((prev) => {
+        const exists = prev.some((msg) => msg._id === message._id);
+        if (exists) return prev;
+        return [...prev, message];
+      });
+
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
+      if (message.recipientId === user.id && message.senderId === userId) {
+        messageApi
+          .markAsRead(userId)
+          .then(() => refreshUnreadCount())
+          .catch((error) => {
             console.warn('[ChatScreen] Erro ao marcar como lida:', error);
           });
-        }
-      } else {
-        console.log('[ChatScreen] Mensagem não é para esta conversa, ignorando');
       }
     };
 
-    // Registrar listener Socket.IO
+    const handleMessagesRead = (payload: unknown) => {
+      const readBy = (payload as { readBy?: string })?.readBy;
+      if (readBy !== userId) return;
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.senderId === user.id && msg.recipientId === userId
+            ? { ...msg, read: true }
+            : msg
+        )
+      );
+    };
+
     socket.on('new-message', handleNewMessage);
-    console.log('[ChatScreen] ✅ Listener "new-message" configurado no socket');
+    socket.on('messages-read', handleMessagesRead);
 
-    // Cleanup
     return () => {
-      console.log('[ChatScreen] Removendo listener Socket.IO');
-      try {
-        socket.off('new-message', handleNewMessage);
-      } catch (error) {
-        console.error('[ChatScreen] Erro ao remover listener:', error);
-      }
+      socket.off('new-message', handleNewMessage);
+      socket.off('messages-read', handleMessagesRead);
     };
-  }, [socket, user?.id, userId]);
+  }, [socket, user?.id, userId, refreshUnreadCount]);
 
   const checkFriendship = async () => {
     try {
@@ -267,7 +261,10 @@ export function ChatScreen() {
       const response = await messageApi.getMessages(user.id, userId, date);
 
       if (response && response.success) {
-        const newMessages = response.data || [];
+        const rawList = response.data || [];
+        const newMessages = rawList.map((m: Record<string, unknown>) =>
+          normalizeChatMessage(m)
+        );
         // hasMore e previousDayDate vêm no nível superior da resposta
         const hasMore = (response as any).hasMore ?? false;
         const previousDayDate = (response as any).previousDayDate ?? null;
@@ -280,9 +277,9 @@ export function ChatScreen() {
           });
         } else {
           setMessages(newMessages);
-          // Marcar como lido apenas no primeiro carregamento
           try {
             await messageApi.markAsRead(userId);
+            await refreshUnreadCount();
           } catch (e) {
             console.warn('[ChatScreen] Erro ao marcar como lido:', e);
           }
@@ -388,13 +385,13 @@ export function ChatScreen() {
       }
 
       // Mensagem otimista
-      const optimisticMessage: Message = {
+      const optimisticMessage: ChatMessage = {
         _id: `temp-${Date.now()}`,
         senderId: user?.id || '',
         recipientId: userId,
         content: messageContent,
         timestamp: new Date().toISOString(),
-        status: 'sent',
+        read: false,
         type: messageType,
         imageUrl: imageUrl || undefined,
         documentUrl: documentUrl || undefined,
@@ -420,11 +417,11 @@ export function ChatScreen() {
       });
 
       if (response.success) {
-        // Substituir mensagem otimista pela real
+        const saved = normalizeChatMessage(
+          (response.data || {}) as Record<string, unknown>
+        );
         setMessages((prev) =>
-          prev.map((msg) =>
-            msg._id === optimisticMessage._id ? response.data : msg
-          )
+          prev.map((msg) => (msg._id === optimisticMessage._id ? saved : msg))
         );
       }
     } catch (error) {
@@ -439,68 +436,59 @@ export function ChatScreen() {
   };
 
   const handleAttachPress = () => {
-    Alert.alert(
-      'Anexar',
-      'Escolha uma opção',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Foto', 
-          onPress: async () => {
-            try {
-              const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-              if (!permissionResult.granted) {
-                showToast.error('Permissão', 'É necessário permitir acesso à galeria');
-                return;
-              }
+    setShowAttachPicker(true);
+  };
 
-              const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                quality: 0.8,
-                aspect: [4, 3],
-              });
+  const handleAttachOption = async (option: AttachPickerOption) => {
+    if (option === 'photo') {
+      try {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+          showToast.error('Permissão', 'É necessário permitir acesso à galeria');
+          return;
+        }
 
-              if (!result.canceled && result.assets[0]) {
-                setSelectedImage({
-                  uri: result.assets[0].uri,
-                  name: result.assets[0].fileName || `image_${Date.now()}.jpg`,
-                });
-                setSelectedDocument(null); // Limpar documento se houver
-              }
-            } catch (error) {
-              console.error('[ChatScreen] Erro ao selecionar imagem:', error);
-              showToast.error('Erro', 'Não foi possível selecionar a imagem');
-            }
-          }
-        },
-        { 
-          text: 'Documento', 
-          onPress: async () => {
-            try {
-              const result = await DocumentPicker.getDocumentAsync({
-                type: '*/*',
-                copyToCacheDirectory: true,
-              });
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          quality: 0.8,
+          aspect: [4, 3],
+        });
 
-              if (!result.canceled && result.assets[0]) {
-                const file = result.assets[0];
-                setSelectedDocument({
-                  uri: file.uri,
-                  name: file.name,
-                  mimeType: file.mimeType || 'application/octet-stream',
-                  size: file.size,
-                });
-                setSelectedImage(null); // Limpar imagem se houver
-              }
-            } catch (error) {
-              console.error('[ChatScreen] Erro ao selecionar documento:', error);
-              showToast.error('Erro', 'Não foi possível selecionar o documento');
-            }
-          }
-        },
-      ]
-    );
+        if (!result.canceled && result.assets[0]) {
+          setSelectedImage({
+            uri: result.assets[0].uri,
+            name: result.assets[0].fileName || `image_${Date.now()}.jpg`,
+          });
+          setSelectedDocument(null);
+        }
+      } catch (error) {
+        console.error('[ChatScreen] Erro ao selecionar imagem:', error);
+        showToast.error('Erro', 'Não foi possível selecionar a imagem');
+      }
+      return;
+    }
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const file = result.assets[0];
+        setSelectedDocument({
+          uri: file.uri,
+          name: file.name,
+          mimeType: file.mimeType || 'application/octet-stream',
+          size: file.size,
+        });
+        setSelectedImage(null);
+      }
+    } catch (error) {
+      console.error('[ChatScreen] Erro ao selecionar documento:', error);
+      showToast.error('Erro', 'Não foi possível selecionar o documento');
+    }
   };
 
   const handleRemoveAttachment = () => {
@@ -561,7 +549,7 @@ export function ChatScreen() {
     }
   };
 
-  const renderMessage = ({ item, index }: { item: Message; index: number }) => {
+  const renderMessage = ({ item, index }: { item: ChatMessage; index: number }) => {
     try {
       const isSentByMe = item.senderId === user?.id;
       const prevMessage = index > 0 ? messages[index - 1] : null;
@@ -709,15 +697,9 @@ export function ChatScreen() {
                 </Text>
                 {isSentByMe && (
                   <Ionicons
-                    name={
-                      item.status === 'read'
-                        ? 'checkmark-done'
-                        : item.status === 'delivered'
-                        ? 'checkmark-done-outline'
-                        : 'checkmark'
-                    }
+                    name={item.read ? 'checkmark-done' : 'checkmark'}
                     size={14}
-                    color={item.status === 'read' ? '#10b981' : '#ffffff'}
+                    color={item.read ? MESSAGE_READ_CHECK_COLOR : 'rgba(255,255,255,0.85)'}
                     style={{ marginLeft: 4 }}
                   />
                 )}
@@ -757,7 +739,7 @@ export function ChatScreen() {
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={insets.top}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -875,7 +857,7 @@ export function ChatScreen() {
         )}
 
         {/* Input Area */}
-        <View style={[styles.inputContainer, { paddingBottom: insets.bottom + 8 }]}>
+        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
           {!checkingFriendship && !isFriend ? (
             <View style={styles.notFriendsContainer}>
               <Ionicons name="lock-closed-outline" size={20} color={COLORS.text.tertiary} />
@@ -973,6 +955,12 @@ export function ChatScreen() {
           visible={showEmojiPicker}
           onEmojiSelect={handleEmojiSelect}
           onClose={() => setShowEmojiPicker(false)}
+        />
+
+        <AttachPickerModal
+          visible={showAttachPicker}
+          onClose={() => setShowAttachPicker(false)}
+          onSelect={handleAttachOption}
         />
       </ImageBackground>
   );
@@ -1145,7 +1133,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 8,
     backgroundColor: COLORS.background.paper,
     borderTopWidth: 1,
     borderTopColor: COLORS.border.light,

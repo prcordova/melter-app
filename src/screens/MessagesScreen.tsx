@@ -13,7 +13,7 @@ import {
   Image,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header } from '../components/Header';
 import { ConversationCard } from '../components/ConversationCard';
@@ -24,6 +24,7 @@ import { showToast } from '../components/CustomToast';
 import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { useSocketIO } from '../hooks/useSocketIO';
+import { useUnreadMessages } from '../contexts/UnreadMessagesContext';
 
 interface Conversation {
   _id: string;
@@ -84,6 +85,7 @@ export function MessagesScreen() {
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const { modalProps, showConfirm, hideModal } = useCustomModal();
+  const { refreshUnreadCount } = useUnreadMessages();
   
   // Estados para busca
   const [searchResultsConversations, setSearchResultsConversations] = useState<SearchResultConversation[]>([]);
@@ -95,31 +97,36 @@ export function MessagesScreen() {
   // Socket.IO para receber mensagens em tempo real
   const { socket } = useSocketIO();
 
-  useEffect(() => {
-    fetchConversations();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchConversations();
+      refreshUnreadCount();
+    }, [refreshUnreadCount])
+  );
 
-  // Listener para novas mensagens via Socket.IO - atualizar lista de conversas
+  // Listener para novas mensagens / lidas (Pusher)
   useEffect(() => {
     if (!socket || !user?.id) return;
 
-    console.log('[MessagesScreen] Configurando listener Socket.IO para atualizar conversas');
-
-    const handleNewMessage = (message: any) => {
-      console.log('[MessagesScreen] 📨 Nova mensagem recebida via Socket.IO:', message);
-      
-      // Recarregar conversas para atualizar lista e contadores
+    const handleNewMessage = () => {
       fetchConversations().catch((error) => {
         console.error('[MessagesScreen] Erro ao recarregar conversas:', error);
       });
+      refreshUnreadCount();
+    };
+
+    const handleMessagesRead = () => {
+      refreshUnreadCount();
     };
 
     socket.on('new-message', handleNewMessage);
+    socket.on('messages-read', handleMessagesRead);
 
     return () => {
       socket.off('new-message', handleNewMessage);
+      socket.off('messages-read', handleMessagesRead);
     };
-  }, [socket, user?.id]);
+  }, [socket, user?.id, refreshUnreadCount]);
 
   useEffect(() => {
     // Filtrar conversas quando a busca ou aba muda (apenas quando não está pesquisando)
@@ -333,13 +340,28 @@ export function MessagesScreen() {
     }
   };
 
-  const handleConversationPress = (conversation: Conversation) => {
+  const handleConversationPress = async (conversation: Conversation) => {
+    if (conversation.unreadCount > 0) {
+      try {
+        await messageApi.markAsRead(conversation.user._id);
+        setConversations((prev) =>
+          prev.map((c) =>
+            c._id === conversation._id || c.user._id === conversation.user._id
+              ? { ...c, unreadCount: 0 }
+              : c
+          )
+        );
+        await refreshUnreadCount();
+      } catch (error) {
+        console.warn('[MessagesScreen] Erro ao marcar como lida ao abrir:', error);
+      }
+    }
+
     navigation.navigate('Chat', {
       userId: conversation.user._id,
       username: conversation.user.username,
       avatar: conversation.user.avatar,
     });
-    // Limpar o input de pesquisa ao abrir a conversa
     setSearchQuery('');
   };
 
@@ -481,8 +503,7 @@ export function MessagesScreen() {
         ));
         
         showToast.success('Sucesso', 'Mensagens marcadas como lidas');
-        
-        // Recarregar conversas para sincronizar
+        await refreshUnreadCount();
         setTimeout(async () => {
           await fetchConversations();
         }, 500);
@@ -992,7 +1013,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.background.paper,
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 0,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border.light,
   },

@@ -5,6 +5,13 @@ import Constants from 'expo-constants';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 
+/** Ref opcional injetada pelo provider para evitar dependência circular */
+let refreshUnreadMessagesRef: (() => void) | null = null;
+
+export function registerUnreadMessagesRefresh(fn: () => void) {
+  refreshUnreadMessagesRef = fn;
+}
+
 // Em foreground o utilizador já está na app — não mostrar popup/banner/som (push só “fora” da app).
 Notifications.setNotificationHandler({
   handleNotification: async () => {
@@ -77,9 +84,7 @@ export function usePushNotifications() {
       
       // Se for notificação de mensagem, podemos atualizar o estado aqui
       if (notification.request.content.data?.type === 'MESSAGE') {
-        console.log('[PushNotifications] ✅ Notificação de mensagem recebida - atualizando contador');
-        // O NotificationContext já vai buscar as notificações
-        // Mas podemos adicionar lógica específica aqui se necessário
+        refreshUnreadMessagesRef?.();
       }
     });
     
