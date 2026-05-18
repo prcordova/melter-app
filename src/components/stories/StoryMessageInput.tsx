@@ -71,8 +71,10 @@ export function StoryMessageInput({
   const handleSendMessage = async () => {
     if (sending) return;
     if (!message.trim() && !selectedFile) {
-      showToast.error('Erro', 'Digite uma mensagem ou selecione um arquivo');
-      return;
+      if (!storyId?.trim()) {
+        showToast.error('Erro', 'Digite uma mensagem ou selecione um arquivo');
+        return;
+      }
     }
 
     try {
@@ -133,8 +135,6 @@ export function StoryMessageInput({
         type: uploadedFileData ? fileType : 'text',
         storyReply: {
           storyId,
-          mediaUrl: storyMediaUrl,
-          mediaType: storyMediaType,
         },
       };
 
@@ -158,7 +158,12 @@ export function StoryMessageInput({
       }
     } catch (error: any) {
       console.error('Erro ao enviar mensagem:', error);
-      showToast.error('Erro', error.message || 'Não foi possível enviar a mensagem');
+      const apiMsg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        'Não foi possível enviar a mensagem';
+      showToast.error('Erro', apiMsg);
     } finally {
       setSending(false);
     }
@@ -225,9 +230,12 @@ export function StoryMessageInput({
         />
 
         <TouchableOpacity
-          style={[styles.sendButton, (!message.trim() && !selectedFile) && styles.sendButtonDisabled]}
+          style={[
+            styles.sendButton,
+            !message.trim() && !selectedFile && !storyId?.trim() && styles.sendButtonDisabled,
+          ]}
           onPress={handleSendMessage}
-          disabled={sending || (!message.trim() && !selectedFile)}
+          disabled={sending || (!message.trim() && !selectedFile && !storyId?.trim())}
         >
           {sending ? (
             <ActivityIndicator size="small" color="#ffffff" />

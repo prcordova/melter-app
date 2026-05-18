@@ -350,12 +350,6 @@ export function StoryViewerModal({
         return;
       }
 
-      if (currentUser.accountType === 'admin') {
-        setIsFriend(false);
-        setLoadingFriendship(false);
-        return;
-      }
-
       setLoadingFriendship(true);
       try {
         const response = await userApi.checkFriendshipStatus(currentStory.userId._id);
