@@ -33,6 +33,7 @@ import { ShopCommunityContent } from '../components/shop/ShopCommunityContent';
 import { ShopSubscriptionPlansSection } from '../components/shop/ShopSubscriptionPlansSection';
 import { ProductCheckoutModal, type CheckoutProduct } from '../components/shop/ProductCheckoutModal';
 import { PlanLocker } from '../components/PlanLocker';
+import { Button } from '../components/Button';
 import { BackArrow } from '../components/BackArrow';
 import { getFeatureLimit, hasFeatureAccess } from '../config/plan-features';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -793,7 +794,12 @@ export function MyShopScreen() {
         {/* Sistema de Tabs (apenas para dono aprovado ou admin) */}
         {showTabs && (
           <View style={styles.tabsContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.tabsScroll}
+              contentContainerStyle={styles.tabsScrollContent}
+            >
               <TouchableOpacity
                 style={[styles.tab, activeTab === 'products' && styles.tabActive]}
                 onPress={() => handleTabChange('products')}
@@ -847,11 +853,20 @@ export function MyShopScreen() {
                       activeTab === 'plans' && styles.tabTextActive,
                     ]}
                   >
-                    Planos
+                    Assinaturas
                   </Text>
                 </TouchableOpacity>
               )}
             </ScrollView>
+            {isOwner && sellerVerification?.status === 'approved' && (
+              <Button
+                size="sm"
+                onPress={() => handleTabChange('plans')}
+                style={styles.createSubscriptionBtn}
+              >
+                Criar Assinatura
+              </Button>
+            )}
           </View>
         )}
 
@@ -1656,9 +1671,24 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   tabsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border.light,
     paddingHorizontal: 16,
+    paddingRight: 12,
+    paddingBottom: 4,
+  },
+  tabsScroll: {
+    flex: 1,
+  },
+  tabsScrollContent: {
+    alignItems: 'center',
+  },
+  createSubscriptionBtn: {
+    marginBottom: 6,
+    flexShrink: 0,
   },
   tab: {
     alignItems: 'center',

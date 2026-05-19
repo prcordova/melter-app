@@ -245,7 +245,7 @@ export function ShopSettingsModal({
                   }}
                 >
                   <Ionicons name="card-outline" size={20} color={COLORS.primary.main} />
-                  <Text style={styles.actionButtonText}>Gerenciar Planos de Assinatura</Text>
+                  <Text style={styles.actionButtonText}>Gerenciar assinaturas da loja</Text>
                   <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
                 </TouchableOpacity>
               </View>

@@ -53,17 +53,12 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [deleteConfirmPlan, setDeleteConfirmPlan] = useState<string | null>(null);
 
-  const hasAccess = userPlan === 'PRO' || userPlan === 'PRO_PLUS';
-  // Usar getFeatureLimit para obter o limite correto do plan-features
-  const maxSubscriptionPlans = hasAccess 
-    ? getFeatureLimit(userPlan, 'maxSubscriptionPlans')
-    : 0;
+  const maxSubscriptionPlans = getFeatureLimit(userPlan, 'maxSubscriptionPlans');
+  const hasAccess = maxSubscriptionPlans > 0;
 
   useEffect(() => {
-    if (hasAccess) {
-      fetchPlans();
-    }
-  }, [hasAccess]);
+    fetchPlans();
+  }, []);
 
   const fetchPlans = async () => {
     try {
@@ -157,9 +152,9 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
     return (
       <View style={styles.noAccessContainer}>
         <Ionicons name="card-outline" size={64} color={COLORS.text.secondary} />
-        <Text style={styles.noAccessTitle}>Recurso Disponível no Plano PRO</Text>
+        <Text style={styles.noAccessTitle}>Assinaturas indisponíveis</Text>
         <Text style={styles.noAccessText}>
-          Você precisa fazer upgrade para o plano PRO para gerenciar planos de assinatura.
+          Seu plano atual da plataforma não permite criar assinaturas na loja.
         </Text>
       </View>
     );
@@ -201,7 +196,7 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
             >
               <Ionicons name="add" size={20} color="#FFFFFF" />
               <Text style={styles.createButtonText}>
-                Criar ({currentPlansCount}/{maxSubscriptionPlans})
+                Criar assinatura ({currentPlansCount}/{maxSubscriptionPlans})
               </Text>
             </TouchableOpacity>
           </PlanLocker>
@@ -212,7 +207,7 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
           >
             <Ionicons name="add" size={20} color="#FFFFFF" />
             <Text style={styles.createButtonText}>
-              Criar ({currentPlansCount}/{maxSubscriptionPlans})
+              Criar assinatura ({currentPlansCount}/{maxSubscriptionPlans})
             </Text>
           </TouchableOpacity>
         )}
@@ -293,6 +288,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background.default,
+  },
+  infoBox: {
+    margin: 16,
+    marginBottom: 0,
+    padding: 14,
+    backgroundColor: COLORS.secondary.main + '18',
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.secondary.main,
+    gap: 6,
+  },
+  infoTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  infoText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 19,
   },
   header: {
     flexDirection: 'row',
