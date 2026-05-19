@@ -864,7 +864,7 @@ export function MyShopScreen() {
                 onPress={() => handleTabChange('plans')}
                 style={styles.createSubscriptionBtn}
               >
-                Criar Assinatura
+                Editar assinaturas
               </Button>
             )}
           </View>
