@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { DiscoveryPreferenceProvider } from './src/contexts/DiscoveryPreferenceContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { UnreadMessagesProvider } from './src/contexts/UnreadMessagesContext';
 import { AuthStackNavigator } from './src/navigation/AuthStackNavigator';
@@ -34,7 +35,7 @@ function Navigation() {
   }
 
   return (
-    <>
+    <DiscoveryPreferenceProvider>
       <Stack.Navigator>
         {user ? (
           <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
@@ -48,7 +49,7 @@ function Navigation() {
         onUnlocked={clearBiometricUnlockRequirement}
         onLogout={logout}
       />
-    </>
+    </DiscoveryPreferenceProvider>
   );
 }
 

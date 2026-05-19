@@ -19,6 +19,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { UsersSearchScreen } from './UsersSearchScreen';
+import { DiscoveryModeTabs } from '../components/DiscoveryModeTabs';
+import { discoveryModeToTabName } from '../utils/explorer-discovery-personalization';
+import type { DiscoveryViewMode } from '../utils/explorer-discovery-personalization';
 
 type TabType = 'explore' | 'friends' | 'received' | 'sent';
 const normalizeUsername = (value?: string) =>
@@ -153,6 +156,17 @@ export function CommunityScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Comunidade</Text>
 
+        <View style={styles.discoveryModeRow}>
+          <DiscoveryModeTabs
+            activeMode="users"
+            onModeChange={(mode: DiscoveryViewMode) => {
+              if (mode === 'users') return;
+              const parent = navigation.getParent();
+              parent?.navigate(discoveryModeToTabName(mode) as never);
+            }}
+          />
+        </View>
+
         {/* Tabs de Navegação */}
         <View style={styles.tabBar}>
           <TouchableOpacity 
@@ -253,7 +267,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.text.primary,
     marginTop: 16,
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  discoveryModeRow: {
+    marginBottom: 12,
   },
   tabBar: {
     flexDirection: 'row',

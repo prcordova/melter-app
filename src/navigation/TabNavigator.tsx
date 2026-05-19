@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
 import { FeedScreen } from '../screens/FeedScreen';
@@ -13,24 +13,59 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../theme/colors';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useUnreadMessages } from '../contexts/UnreadMessagesContext';
+import { useDiscoveryPreference } from '../contexts/DiscoveryPreferenceContext';
+import type { DiscoveryViewMode } from '../utils/explorer-discovery-personalization';
 
 const Tab = createBottomTabNavigator();
+
+type DiscoveryTabIcon = 'storefront' | 'people';
+
+type DiscoveryTabConfig = {
+  mode: DiscoveryViewMode;
+  name: string;
+  component: React.ComponentType;
+  label: string;
+  icon: DiscoveryTabIcon;
+};
+
+const DISCOVERY_TAB_CONFIG: Record<DiscoveryViewMode, Omit<DiscoveryTabConfig, 'mode'>> = {
+  shops: {
+    name: 'ShopsTab',
+    component: ShopsSearchScreen,
+    label: 'Lojas',
+    icon: 'storefront',
+  },
+  users: {
+    name: 'CommunityStack',
+    component: CommunityStackNavigator,
+    label: 'Comunidade',
+    icon: 'people',
+  },
+};
 
 export function TabNavigator() {
   const insets = useSafeAreaInsets();
   usePushNotifications();
   const { unreadCount: unreadMessagesCount, refreshUnreadCount } = useUnreadMessages();
-  
+  const { preference } = useDiscoveryPreference();
+
+  const orderedDiscoveryTabs = useMemo((): DiscoveryTabConfig[] => {
+    return preference.modeButtonOrder.map((mode) => ({
+      mode,
+      ...DISCOVERY_TAB_CONFIG[mode],
+    }));
+  }, [preference.modeButtonOrder]);
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.secondary.main, // #B63385 - Rosa Melter (ativo)
-        tabBarInactiveTintColor: COLORS.text.tertiary, // #6b7280 - Cinza (inativo)
+        tabBarActiveTintColor: COLORS.secondary.main,
+        tabBarInactiveTintColor: COLORS.text.tertiary,
         tabBarStyle: {
-          backgroundColor: COLORS.background.paper, // #ffffff
+          backgroundColor: COLORS.background.paper,
           borderTopWidth: 1,
-          borderTopColor: COLORS.border.light, // #f1f5f9
+          borderTopColor: COLORS.border.light,
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom || 8,
           paddingTop: 8,
@@ -46,33 +81,24 @@ export function TabNavigator() {
         component={FeedScreen}
         options={{
           tabBarLabel: 'Feed',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
+
+      {orderedDiscoveryTabs.map(({ mode, name, component, label, icon }) => (
+        <Tab.Screen
+          key={name}
+          name={name}
+          component={component}
+          options={{
+            tabBarLabel: label,
+            tabBarIcon: ({ color, size }) => <Ionicons name={icon} size={size} color={color} />,
+          }}
+        />
+      ))}
+
       <Tab.Screen
-        name="ShopsTab"
-        component={ShopsSearchScreen}
-        options={{
-          tabBarLabel: 'Lojas',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="storefront" size={size} color={color} />
-          ),
-        }}
-      />
-             <Tab.Screen
-               name="CommunityStack"
-               component={CommunityStackNavigator}
-               options={{
-                 tabBarLabel: 'Comunidade',
-                 tabBarIcon: ({ color, size }) => (
-                   <Ionicons name="people" size={size} color={color} />
-                 ),
-               }}
-             />
-             <Tab.Screen
-               name="MessagesStack"
+        name="MessagesStack"
         component={MessagesStackNavigator}
         options={{
           tabBarLabel: 'Mensagens',
@@ -100,14 +126,10 @@ export function TabNavigator() {
         component={ProfileStackNavigator}
         options={{
           tabBarLabel: 'Perfil',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            // Força sempre abrir o início da stack de perfil,
-            // evitando estados presos quando vindo da tab de lojas.
             e.preventDefault();
             navigation.navigate('ProfileStack', {
               screen: 'ProfileMain',
@@ -143,7 +165,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -10,
-    backgroundColor: COLORS.states.error, // Vermelho
+    backgroundColor: COLORS.states.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -151,7 +173,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: COLORS.background.paper, // Branco
+    borderColor: COLORS.background.paper,
   },
   badgeText: {
     color: '#fff',
@@ -159,4 +181,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-

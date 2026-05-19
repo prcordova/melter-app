@@ -32,6 +32,7 @@ import {
   parsePlatformPurposesInput,
   type UserPlatformPurpose,
 } from '../../constants/user-platform-purposes';
+import { useDiscoveryPreference } from '../../contexts/DiscoveryPreferenceContext';
 
 interface CategoryPreferences {
   categoryInteractions: { [key: string]: number };
@@ -54,6 +55,7 @@ export function PreferencesScreen() {
 
   const insets = useSafeAreaInsets();
   const { showConfirm } = useCustomModal();
+  const { refreshDiscoveryPreference } = useDiscoveryPreference();
 
   const [preferences, setPreferences] = useState<CategoryPreferences | null>(null);
   const [localBlockedCategories, setLocalBlockedCategories] = useState<string[]>([]);
@@ -369,6 +371,7 @@ export function PreferencesScreen() {
                 });
                 if (res.success) {
                   showToast.success('Sucesso', 'Perfil atualizado.');
+                  await refreshDiscoveryPreference();
                 }
               } catch {
                 showToast.error('Erro', 'Não foi possível salvar.');

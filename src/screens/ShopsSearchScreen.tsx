@@ -18,6 +18,11 @@ import { showToast } from '../components/CustomToast';
 import { useAuth } from '../contexts/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { TouchableOpacity } from 'react-native';
+import { DiscoveryModeTabs } from '../components/DiscoveryModeTabs';
+import {
+  discoveryModeToTabName,
+  type DiscoveryViewMode,
+} from '../utils/explorer-discovery-personalization';
 
 interface Product {
   _id: string;
@@ -274,6 +279,17 @@ export function ShopsSearchScreen() {
           )}
         </View>
 
+        <View style={styles.discoveryModeRow}>
+          <DiscoveryModeTabs
+            activeMode="shops"
+            onModeChange={(mode: DiscoveryViewMode) => {
+              if (mode === 'shops') return;
+              const parent = navigation.getParent();
+              parent?.navigate(discoveryModeToTabName(mode) as never);
+            }}
+          />
+        </View>
+
         {/* Barra de Busca e Toggle +18 */}
         <View style={styles.searchRow}>
           <View style={styles.searchContainer}>
@@ -371,6 +387,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 16,
+    marginBottom: 8,
+  },
+  discoveryModeRow: {
     marginBottom: 12,
   },
   title: {
