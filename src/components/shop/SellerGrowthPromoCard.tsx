@@ -20,7 +20,8 @@ export type SellerGrowthPromoNavigateAction =
   | 'appearance'
   | 'feed'
   | 'explorer'
-  | 'openVerificationForm';
+  | 'openVerificationForm'
+  | 'share_shop';
 
 type Props = {
   variant?: SellerGrowthPromoVariant;
@@ -78,6 +79,10 @@ function PromoActions({
   ) => {
     if (action === 'shop' && placement === 'shop' && !isApprovedShop) {
       onAction('openVerificationForm');
+      return;
+    }
+    if (action === 'share_shop') {
+      onAction('share_shop');
       return;
     }
     onAction(action);
@@ -187,6 +192,10 @@ function resolvePress(
 ) {
   if (action === 'shop' && placement === 'shop' && !isApprovedShop) {
     onAction('openVerificationForm');
+    return;
+  }
+  if (action === 'share_shop') {
+    onAction('share_shop');
     return;
   }
   onAction(action);

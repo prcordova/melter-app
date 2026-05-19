@@ -26,33 +26,47 @@ export function getSellerShopApprovedContent(
 ): SellerGrowthPromoContent {
   const compact = variant === 'small';
 
+  const sharePrimary: SellerGrowthPromoCta = { label: 'Copiar link da loja', action: 'share_shop' };
+  const manageSecondary: SellerGrowthPromoCta = { label: 'Gerenciar loja', action: 'shop' };
+
+  const shareHint =
+    'O link inclui sua indicação: quem criar conta por ele conta no programa Indique.';
+
   if (compact && placement !== 'shop') {
     return {
       title: 'Sua loja está ativa',
-      description: 'Acesse sua vitrine para gerenciar produtos e vendas.',
-      primaryCta: { label: 'Minha loja', action: 'shop' },
+      description:
+        'Compartilhe sua vitrine no Instagram, WhatsApp ou na bio e traga seguidores para comprar.',
+      hint: shareHint,
+      primaryCta: sharePrimary,
+      secondaryCta: manageSecondary,
     };
   }
 
   if (placement === 'shop') {
     return {
-      title: 'Loja aprovada',
+      title: 'Divulgue sua loja',
       description:
-        'Sua loja está pronta. Acesse a vitrine para publicar produtos e acompanhar vendas.',
-      primaryCta: { label: 'Minha loja', action: 'shop' },
+        'Sua vitrine está no ar. Copie o link e compartilhe nas redes onde sua audiência já está.',
+      hint: shareHint,
+      primaryCta: sharePrimary,
+      secondaryCta: { label: 'Ver produtos', action: 'shop' },
     };
   }
 
   return {
     title: 'Sua loja está ativa',
-    description: 'Gerencie produtos, vendas e a vitrine da sua loja.',
-    primaryCta: { label: 'Minha loja', action: 'shop' },
+    description:
+      'Divulgue o link da vitrine, publique novos produtos e acompanhe vendas na sua loja.',
+    hint: shareHint,
+    primaryCta: sharePrimary,
+    secondaryCta: manageSecondary,
   };
 }
 
 export type SellerGrowthPromoCta = {
   label: string;
-  action: 'shop' | 'links' | 'appearance' | 'feed' | 'explorer';
+  action: 'shop' | 'links' | 'appearance' | 'feed' | 'explorer' | 'share_shop';
 };
 
 export type SellerGrowthPromoContent = {

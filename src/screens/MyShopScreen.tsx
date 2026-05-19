@@ -37,6 +37,8 @@ import { BackArrow } from '../components/BackArrow';
 import { getFeatureLimit, hasFeatureAccess } from '../config/plan-features';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
+import { buildShopShareUrl } from '../utils/shop-share';
+import * as Clipboard from 'expo-clipboard';
 import axios from 'axios';
 
 type ShopVisibility = 'public' | 'preview' | 'friends' | 'followers';
@@ -422,6 +424,8 @@ export function MyShopScreen() {
 
   const ownerApproved = sellerVerification?.status === 'approved';
   const showTabs = isAdmin || (isOwner && ownerApproved);
+  const shopIsPublicAndActive =
+    Boolean(shopSettings?.isEnabled) && shopSettings?.visibility === 'public';
 
   const mapVerificationToFormData = (
     data: SellerVerification | null | undefined
@@ -455,9 +459,24 @@ export function MyShopScreen() {
     setShowVerificationForm(true);
   };
 
+  const handleCopyShopShareLink = async () => {
+    if (!username) return;
+    try {
+      const url = buildShopShareUrl(username);
+      await Clipboard.setStringAsync(url);
+      showToast.success('Link copiado', 'Cole na bio ou nas suas redes.');
+    } catch {
+      showToast.error('Erro', 'Não foi possível copiar o link.');
+    }
+  };
+
   const handleGrowthPromoAction = (action: SellerGrowthPromoNavigateAction) => {
     if (action === 'openVerificationForm') {
       void openVerificationForm();
+      return;
+    }
+    if (action === 'share_shop') {
+      void handleCopyShopShareLink();
       return;
     }
     if (action === 'links') {
@@ -729,17 +748,47 @@ export function MyShopScreen() {
                 <Text style={styles.titleUsername}>{username}</Text>
               </TouchableOpacity>
             </View>
-            {isOwner && (
-              <TouchableOpacity
-                style={styles.settingsButton}
-                onPress={handleSettingsPress}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="settings-outline" size={24} color={COLORS.text.secondary} />
-              </TouchableOpacity>
-            )}
+            <View style={styles.headerActions}>
+              {isOwner && ownerApproved && shopIsPublicAndActive && (
+                <TouchableOpacity
+                  style={styles.shareShopButton}
+                  onPress={() => void handleCopyShopShareLink()}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="share-outline" size={22} color={COLORS.secondary.main} />
+                </TouchableOpacity>
+              )}
+              {isOwner && (
+                <TouchableOpacity
+                  style={styles.settingsButton}
+                  onPress={handleSettingsPress}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="settings-outline" size={24} color={COLORS.text.secondary} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
+
+        {isOwner && ownerApproved && shopIsPublicAndActive && (
+          <View style={styles.shareShopBanner}>
+            <Ionicons name="megaphone-outline" size={20} color={COLORS.secondary.main} />
+            <View style={styles.shareShopBannerText}>
+              <Text style={styles.shareShopBannerTitle}>Divulgue sua vitrine</Text>
+              <Text style={styles.shareShopBannerDescription}>
+                Compartilhe o link nas redes. Quem se cadastrar por ele conta como sua indicação.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.shareShopBannerCta}
+              onPress={() => void handleCopyShopShareLink()}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.shareShopBannerCtaText}>Copiar link</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Sistema de Tabs (apenas para dono aprovado ou admin) */}
         {showTabs && (
@@ -1554,10 +1603,57 @@ const styles = StyleSheet.create({
     color: COLORS.secondary.main,
     lineHeight: 32,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  shareShopButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   settingsButton: {
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  shareShopBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.secondary.main + '44',
+    backgroundColor: COLORS.secondary.main + '12',
+  },
+  shareShopBannerText: {
+    flex: 1,
+    gap: 2,
+  },
+  shareShopBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  shareShopBannerDescription: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    lineHeight: 16,
+  },
+  shareShopBannerCta: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.secondary.main,
+  },
+  shareShopBannerCtaText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
   },
   tabsContainer: {
     borderBottomWidth: 1,
