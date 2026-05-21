@@ -1681,25 +1681,6 @@ export const productsApi = {
     }>>(`/api/products/${productId}/purchase-status`);
     return response.data;
   },
-  uploadFile: async (productId: string, fileData: FormData, onUploadProgress?: (progress: number) => void) => {
-    const token = await AsyncStorage.getItem('token');
-    const response = await axios.post(`${API_CONFIG.BASE_URL}/api/products/upload-file`, fileData, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        // Não definir Content-Type manualmente - axios faz isso automaticamente com boundary
-      },
-      timeout: 300000, // 5 minutos para uploads grandes
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total && onUploadProgress) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onUploadProgress(progress);
-        }
-      },
-    });
-    return response.data;
-  },
   getPresignedUploadUrl: async (productId: string, fileName: string, fileType: string, fileSize: number, order: number = 0) => {
     const token = await AsyncStorage.getItem('token');
     const response = await api.get<ApiResponse<{
@@ -1707,7 +1688,7 @@ export const productsApi = {
       fileKey: string;
       fileUrl: string;
       metadata: any;
-    }>>(`/api/products/upload-presigned`, {
+    }>>(`/api/products/upload/files`, {
       params: {
         productId,
         fileName,

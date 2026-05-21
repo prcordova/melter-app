@@ -410,7 +410,7 @@ export function CreateProductModal({
           } as any);
 
           const token = await AsyncStorage.getItem('token');
-          const response = await axios.post(`${API_CONFIG.BASE_URL}/api/products/upload-cover`, formData, {
+          const response = await axios.post(`${API_CONFIG.BASE_URL}/api/products/upload/cover`, formData, {
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'multipart/form-data',
