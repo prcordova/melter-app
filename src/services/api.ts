@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
+import { SHOP_API } from '../config/shop-api-paths';
 import type {
   UserGenderIdentity,
   UserInterestedIn,
@@ -1549,7 +1550,7 @@ export const shopsApi = {
       queryParams.append('onlyPurchased', 'true');
     }
 
-    const response = await api.get<ApiResponse<any>>(`/api/shops/products?${queryParams.toString()}`);
+    const response = await api.get<ApiResponse<any>>(`${SHOP_API.marketplace.products}?${queryParams.toString()}`);
     return response.data;
   },
 };
@@ -1573,7 +1574,7 @@ export const shopApi = {
       visibility: 'public' | 'preview' | 'friends' | 'followers';
       saleNotifications: boolean;
       sellerVerification?: any;
-    }>>('/api/users/shop/settings');
+    }>>(SHOP_API.me.settings);
     return response.data;
   },
   updateSettings: async (data: {
@@ -1581,11 +1582,11 @@ export const shopApi = {
     visibility?: 'public' | 'preview' | 'friends' | 'followers';
     saleNotifications?: boolean;
   }) => {
-    const response = await api.put<ApiResponse<any>>('/api/users/shop/settings', data);
+    const response = await api.put<ApiResponse<any>>(SHOP_API.me.settings, data);
     return response.data;
   },
   deleteShop: async () => {
-    const response = await api.delete<ApiResponse<any>>('/api/users/shop/settings');
+    const response = await api.delete<ApiResponse<any>>(SHOP_API.me.settings);
     return response.data;
   },
 };
@@ -1593,15 +1594,15 @@ export const shopApi = {
 // API de Verificação de Vendedor
 export const sellerVerificationApi = {
   getVerification: async () => {
-    const response = await api.get<ApiResponse<any>>('/api/users/seller-verification');
+    const response = await api.get<ApiResponse<any>>(SHOP_API.verification.root);
     return response.data;
   },
   createVerification: async (data: any) => {
-    const response = await api.post<ApiResponse<any>>('/api/users/seller-verification', data);
+    const response = await api.post<ApiResponse<any>>(SHOP_API.verification.root, data);
     return response.data;
   },
   submitVerification: async (formData: FormData) => {
-    const response = await api.post<ApiResponse<any>>('/api/users/seller-verification', formData, {
+    const response = await api.post<ApiResponse<any>>(SHOP_API.verification.root, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 120000,
       maxContentLength: Infinity,
@@ -1610,11 +1611,11 @@ export const sellerVerificationApi = {
     return response.data;
   },
   updateVerification: async (data: any) => {
-    const response = await api.put<ApiResponse<any>>('/api/users/seller-verification', data);
+    const response = await api.put<ApiResponse<any>>(SHOP_API.verification.root, data);
     return response.data;
   },
   submitAppeal: async (appealReason: string) => {
-    const response = await api.post<ApiResponse<any>>('/api/users/seller-verification/appeal', {
+    const response = await api.post<ApiResponse<any>>(SHOP_API.verification.appeal, {
       appealReason,
     });
     return response.data;
@@ -1625,7 +1626,7 @@ export const sellerVerificationApi = {
       fileKey: string;
       fileUrl: string;
       metadata: any;
-    }>>('/api/users/seller-verification/upload-presigned', {
+    }>>(SHOP_API.verification.upload, {
       params: {
         fileName,
         fileType,
@@ -1740,7 +1741,7 @@ export const subscriptionPlansApi = {
     return response.data;
   },
   getShopPlans: async (username: string) => {
-    const response = await api.get<ApiResponse<any[]>>(`/api/subscription-plans/shop/${username}`);
+    const response = await api.get<ApiResponse<any[]>>(SHOP_API.subscriptionPlans(username));
     return response.data;
   },
   getPlan: async (planId: string) => {
@@ -1795,7 +1796,7 @@ export const shopAnalyticsApi = {
     if (params?.endDate) queryParams.append('endDate', params.endDate);
     if (params?.productId) queryParams.append('productId', params.productId);
     
-    const url = `/api/shop/analytics${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `${SHOP_API.me.analytics}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await api.get<ApiResponse<any>>(url);
     return response.data;
   },
@@ -1806,7 +1807,7 @@ export const shopCommunityApi = {
   getComments: async () => {
     const response = await api.get<ApiResponse<{
       comments: any[];
-    }>>('/api/shop/comments/moderation');
+    }>>(SHOP_API.me.commentsModeration);
     return response.data;
   },
   approveComment: async (productId: string, commentId: string) => {
@@ -1828,7 +1829,7 @@ export const shopCommunityApi = {
   getLikes: async () => {
     const response = await api.get<ApiResponse<{
       likesByProduct: any[];
-    }>>('/api/shop/products/likes');
+    }>>(SHOP_API.me.likes);
     return response.data;
   },
 };
