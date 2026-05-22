@@ -14,7 +14,7 @@ import {
   SELLER_VERIFICATION_DOC_PREVIEW_HEIGHT,
   SELLER_VERIFICATION_VIDEO_PROOF_PREVIEW_HEIGHT,
   SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT,
-} from '../../config/seller-verification.config';
+} from '../../config/shops/seller-verification.config';
 
 type Props = {
   label: string;

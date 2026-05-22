@@ -1,7 +1,9 @@
 import axios, { AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
-import { SHOP_API } from '../config/shop-api-paths';
+import { SHOP_API } from '../config/shops/api-paths';
+import { AUTH_API } from '../config/auth/api-paths';
+import { USERS_API } from '../config/users/api-paths';
 import type {
   UserGenderIdentity,
   UserInterestedIn,
@@ -182,7 +184,7 @@ export const authApi = {
         },
       });
 
-      const response = await loginApi.post<LoginResult>('/api/auth/login', { 
+      const response = await loginApi.post<LoginResult>(AUTH_API.login, { 
         username, 
         password 
       });
@@ -195,7 +197,7 @@ export const authApi = {
   },
 
   login2FA: async (tempToken: string, code: string): Promise<LoginResult> => {
-    const response = await api.post<LoginResult>('/api/auth/login/2fa', {
+    const response = await api.post<LoginResult>(AUTH_API.login2fa, {
       tempToken,
       code,
     });
@@ -234,11 +236,11 @@ export const authApi = {
     } as any);
 
     // Não definir Content-Type manualmente: o axios precisa incluir o boundary do multipart.
-    const response = await api.post<ApiResponse<any>>('/api/auth/register', formData);
+    const response = await api.post<ApiResponse<any>>(AUTH_API.register, formData);
     return response.data;
   },
   forgotPassword: async (email: string): Promise<ApiResponse<any>> => {
-    const response = await api.post<ApiResponse<any>>('/api/auth/forgot-password', { email });
+    const response = await api.post<ApiResponse<any>>(AUTH_API.forgotPassword, { email });
     return response.data;
   },
   verifyResetToken: async (email: string, token: string): Promise<ApiResponse<{ valid: boolean }>> => {
@@ -249,7 +251,7 @@ export const authApi = {
     return response.data;
   },
   resetPassword: async (email: string, token: string, newPassword: string): Promise<ApiResponse<any>> => {
-    const response = await api.post<ApiResponse<any>>('/api/auth/reset-password', {
+    const response = await api.post<ApiResponse<any>>(AUTH_API.resetPassword, {
       email,
       token,
       newPassword,
@@ -257,14 +259,14 @@ export const authApi = {
     return response.data;
   },
   verifyEmail: async (email: string, token: string): Promise<ApiResponse<any>> => {
-    const response = await api.post<ApiResponse<any>>('/api/auth/verify-email', {
+    const response = await api.post<ApiResponse<any>>(AUTH_API.verifyEmail, {
       email,
       token,
     });
     return response.data;
   },
   resendVerification: async (email: string): Promise<ApiResponse<any>> => {
-    const response = await api.post<ApiResponse<any>>('/api/auth/resend-verification', {
+    const response = await api.post<ApiResponse<any>>(AUTH_API.resendVerification, {
       email,
     });
     return response.data;
@@ -275,7 +277,9 @@ export const authApi = {
 export const userApi = {
   getMyProfile: async (params?: { scope?: 'basic' | 'full' }) => {
     const scope = params?.scope || 'basic';
-    const response = await api.get<ApiResponse<any>>(`/api/users/profile?scope=${scope}`);
+    const response = await api.get<ApiResponse<any>>(
+      `${USERS_API.me.profile}?scope=${scope}`
+    );
     return response.data;
   },
   listUsers: async (params: {

@@ -1,7 +1,7 @@
 /**
- * Caminhos canônicos da API de loja.
- * Manter em sync com melter/src/config/shop-api-paths.ts — única fonte de paths /api/shops.
- * Ver melter/docs/SHOP_API_MIGRATION.md
+ * Caminhos canônicos da API de loja (app).
+ * Manter em sync com melter/src/config/shops/api-paths.ts.
+ * Documentação: melter/src/config/shops/shops.md
  */
 export const SHOP_API = {
   marketplace: {

@@ -30,7 +30,7 @@ import {
   SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_TITLE,
   SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT,
   SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_THUMB_WIDTH,
-} from '../../config/seller-verification.config';
+} from '../../config/shops/seller-verification.config';
 import { getSellerVerificationFieldLabel } from '../../utils/seller-verification-fields';
 import { getSellerRejectionNotice } from '../../utils/seller-verification-rejection';
 import {
