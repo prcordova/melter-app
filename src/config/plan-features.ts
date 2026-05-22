@@ -159,7 +159,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     
     // Recursos
     hasAnalytics: true,
-    hasShopAnalytics: true, // PRO tem analytics completo da loja
+    hasShopAnalytics: false, // Analytics da loja apenas no PRO+
     hasPrioritySupport: true,
     hasVerifiedBadge: true,
     

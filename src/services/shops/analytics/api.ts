@@ -1,6 +1,6 @@
-import { api } from '../http-client';
-import { SHOP_API } from '../../config/shops/api-paths';
-import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
+import { SHOP_ANALYTICS_API } from '../../../config/shops/analytics/api-paths';
+import type { ApiResponse } from '../../shared/types';
+import { api } from '../../http-client';
 
 export const shopAnalyticsApi = {
   getAnalytics: async (params?: {
@@ -12,11 +12,9 @@ export const shopAnalyticsApi = {
     if (params?.startDate) queryParams.append('startDate', params.startDate);
     if (params?.endDate) queryParams.append('endDate', params.endDate);
     if (params?.productId) queryParams.append('productId', params.productId);
-    
-    const url = `${SHOP_API.me.analytics}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    const url = `${SHOP_ANALYTICS_API.me}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await api.get<ApiResponse<any>>(url);
     return response.data;
   },
 };
-
-// API de Comunidade da Loja

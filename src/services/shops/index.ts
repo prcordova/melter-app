@@ -1,1 +1,2 @@
-export { shopsApi } from './api'
+export { shopsApi } from './api';
+export { shopAnalyticsApi } from './analytics';

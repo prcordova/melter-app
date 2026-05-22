@@ -382,18 +382,6 @@ export function MyShopScreen() {
 
   // Handler para mudar tab
   const handleTabChange = (tab: ActiveTab) => {
-    // Verificar acesso à tab Analytics
-    if (tab === 'analytics') {
-      const userPlan = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
-      const hasAccess = isAdmin || hasFeatureAccess(userPlan, 'hasShopAnalytics');
-      
-      if (!hasAccess) {
-        showToast.info('Analytics', 'Analytics disponível apenas para plano PRO');
-        navigation.navigate('Plans' as never);
-        return;
-      }
-    }
-
     setActiveTab(tab);
   };
 
@@ -1120,15 +1108,7 @@ export function MyShopScreen() {
               </View>
             )}
 
-            {activeTab === 'analytics' && (
-              <PlanLocker
-                requiredPlan="PRO"
-                currentPlan={(user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS'}
-                isAdmin={isAdmin}
-              >
-                <ShopAnalyticsContent />
-              </PlanLocker>
-            )}
+            {activeTab === 'analytics' && <ShopAnalyticsContent />}
 
             {activeTab === 'community' && <ShopCommunityContent />}
 

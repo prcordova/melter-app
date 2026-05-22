@@ -40,7 +40,9 @@ export function SellerVerificationStatusCard({
     if (!sellerVerification) {
       return {
         title: 'Criar sua Loja',
-        description: 'Para começar a vender na plataforma, você precisa solicitar a abertura da sua loja. Preencha o formulário de verificação de vendedor para iniciar.',
+        description:
+          'Como funciona: após a verificação de documentos e aprovação, você adiciona produtos; compradores pagam e só quem compra (ou assina) acessa seu conteúdo — o valor das vendas vai para sua carteira Melter.\n\n' +
+          'Seus arquivos ficam protegidos para quem pagou. A plataforma valida documentos de vendedores e usa proteção Cloudflare contra ataques. Pode enviar o cadastro com tranquilidade: analisamos e avisamos em cada etapa.',
         icon: 'storefront-outline' as const,
         color: COLORS.text.secondary,
         bgColor: COLORS.background.tertiary,

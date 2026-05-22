@@ -8,13 +8,15 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
-import { shopAnalyticsApi } from '../../services/api';
+import { shopAnalyticsApi } from '../../services/shops/analytics';
 import { showToast } from '../CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '../../contexts/AuthContext';
+import { hasFeatureAccess } from '../../config/plan-features';
+import { ShopAnalyticsLockedPanel } from './ShopAnalyticsLockedPanel';
 
 interface AnalyticsData {
   summary: {
@@ -106,6 +108,10 @@ interface AnalyticsData {
 
 export function ShopAnalyticsContent() {
   const { user } = useAuth();
+  const userPlan = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
+  const hasAnalyticsAccess =
+    user?.accountType === 'admin' || hasFeatureAccess(userPlan, 'hasShopAnalytics');
+
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,9 +131,13 @@ export function ShopAnalyticsContent() {
   const [dateRange, setDateRange] = useState(getCurrentMonthRange());
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !hasAnalyticsAccess) return;
     fetchAnalytics();
-  }, [user, selectedMonth, selectedProduct, dateRange]);
+  }, [user, hasAnalyticsAccess, selectedMonth, selectedProduct, dateRange]);
+
+  if (!hasAnalyticsAccess) {
+    return <ShopAnalyticsLockedPanel />;
+  }
 
   const fetchAnalytics = async () => {
     try {
