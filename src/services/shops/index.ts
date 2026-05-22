@@ -1,0 +1,1 @@
+export { shopsApi } from './api'

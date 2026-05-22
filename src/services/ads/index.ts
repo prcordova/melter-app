@@ -1,0 +1,1 @@
+export { adsApi } from './api'

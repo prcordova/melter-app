@@ -1,0 +1,1 @@
+export { linksApi } from './api'

@@ -1,0 +1,1 @@
+export { storiesApi } from './api'

@@ -1,0 +1,1 @@
+export { platformFeedInfoApi } from './api'
