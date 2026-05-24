@@ -6,9 +6,19 @@ import { MESSAGES_API } from '../../config/messages/api-paths';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
 
 export const messageApi = {
-  getConversations: async () => {
-    const response = await api.get<ApiResponse<any>>(MESSAGES_API.conversations);
-    return response.data;
+  getConversations: async (params?: {
+    limit?: number
+    cursor?: string | null
+    archived?: boolean
+  }) => {
+    const search = new URLSearchParams()
+    if (params?.limit != null) search.set('limit', String(params.limit))
+    if (params?.cursor) search.set('cursor', params.cursor)
+    if (params?.archived != null) search.set('archived', params.archived ? 'true' : 'false')
+    const qs = search.toString()
+    const url = qs ? `${MESSAGES_API.conversations}?${qs}` : MESSAGES_API.conversations
+    const response = await api.get<ApiResponse<any>>(url)
+    return response.data
   },
 
   getMessages: async (userId: string, otherUserId: string, date?: string) => {
