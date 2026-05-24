@@ -34,8 +34,7 @@ export const sellerVerificationApi = {
     const response = await api.get<ApiResponse<{
       presignedUrl: string;
       fileKey: string;
-      fileUrl: string;
-      metadata: any;
+      metadata: Record<string, unknown>;
     }>>(SHOP_API.verification.upload, {
       params: {
         fileName,

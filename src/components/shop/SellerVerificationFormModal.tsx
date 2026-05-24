@@ -49,7 +49,11 @@ function hasStoredSellerVideoProof(url?: string | null): boolean {
 function isRemoteSellerVerificationAssetUrl(url?: string | null): boolean {
   if (!url || typeof url !== 'string') return false;
   const trimmed = url.trim();
-  return trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  return (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('seller-verification/')
+  );
 }
 
 export type SellerVerificationFormData = {
