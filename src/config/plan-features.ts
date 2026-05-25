@@ -105,11 +105,11 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canControlFollowListsPrivacy: false,
     
     // Links
-    maxLinks: 10,
+    maxLinks: 5,
     
     // Posts e Conteúdo
     canUploadPostImages: true,
-    maxImagesPerPost: 4,
+    maxImagesPerPost: 2,
     canPostWithoutLink: true, // STARTER pode postar sem link ✅
     
     // Monetização
@@ -130,12 +130,12 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   
   PRO: {
     // Produtos e Loja
-    maxProducts: 20,
+    maxProducts: 10,
     canCreateCategories: false, // Feature removida - categorias personalizadas não disponíveis
     canUploadProductImages: true,
     canEnableShop: true, // PRO pode ter loja
-    maxFileSizePerFile: 1000, // 1GB por arquivo
-    maxTotalFileSize: 5000, // 5GB total por produto
+    maxFileSizePerFile: 1000, // 1 GB por arquivo
+    maxTotalFileSize: 3000, // 3 GB total por produto
     
     // Perfil - Aparência
     canUploadBackgroundImage: true,
@@ -147,11 +147,11 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canControlFollowListsPrivacy: true,
     
     // Links
-    maxLinks: 20,
+    maxLinks: 10,
     
     // Posts e Conteúdo
     canUploadPostImages: true,
-    maxImagesPerPost: 10,
+    maxImagesPerPost: 5,
     canPostWithoutLink: true, // PRO pode postar sem link ✅
     
     // Monetização
@@ -172,12 +172,12 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   
   PRO_PLUS: {
     // Produtos e Loja
-    maxProducts: 50, // 2.5x mais que PRO
+    maxProducts: 20,
     canCreateCategories: true, // PRO_PLUS pode criar categorias personalizadas
     canUploadProductImages: true,
     canEnableShop: true,
-    maxFileSizePerFile: 2000, // 2GB por arquivo
-    maxTotalFileSize: 10000, // 10GB total por produto
+    maxFileSizePerFile: 2000, // 2 GB por arquivo
+    maxTotalFileSize: 5000, // 5 GB total por produto
     
     // Perfil - Aparência
     canUploadBackgroundImage: true,
@@ -189,11 +189,11 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canControlFollowListsPrivacy: true,
     
     // Links
-    maxLinks: 100, // 2x mais que PRO
+    maxLinks: 50,
     
     // Posts e Conteúdo
     canUploadPostImages: true,
-    maxImagesPerPost: 20, // 2x mais que PRO
+    maxImagesPerPost: 20,
     canPostWithoutLink: true, // PRO_PLUS pode postar sem link ✅
     
     // Monetização
