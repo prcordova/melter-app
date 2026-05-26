@@ -5,6 +5,10 @@ import { COLORS } from '../theme/colors';
 import { useNavigation } from '@react-navigation/native';
 import { showToast } from './CustomToast';
 
+function formatPlanLabel(plan: string): string {
+  return plan === 'PRO_PLUS' ? 'PRO+' : plan;
+}
+
 interface PlanLockerProps {
   children: React.ReactNode;
   requiredPlan: 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
@@ -26,7 +30,7 @@ export function PlanLocker({ children, requiredPlan, currentPlan = 'FREE', isAdm
 
   const handleUpgradePress = () => {
     (navigation as any).navigate('Plans');
-    showToast.info('Upgrade necessário', `Este recurso está disponível no plano ${requiredPlan}`);
+    showToast.info('Upgrade necessário', `Este recurso está disponível no plano ${formatPlanLabel(requiredPlan)}`);
   };
 
   if (hasAccess) {
@@ -45,7 +49,7 @@ export function PlanLocker({ children, requiredPlan, currentPlan = 'FREE', isAdm
       >
         <View style={styles.lockBadge}>
           <Ionicons name="lock-closed" size={16} color="#ffffff" />
-          <Text style={styles.lockText}>{requiredPlan}</Text>
+          <Text style={styles.lockText}>{formatPlanLabel(requiredPlan)}</Text>
         </View>
       </TouchableOpacity>
     </View>
