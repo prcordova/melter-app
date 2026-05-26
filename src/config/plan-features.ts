@@ -18,6 +18,10 @@ export interface PlanLimits {
   canCustomizeButtonColors: boolean; // buttonBackgroundColor, buttonTextColor
   /** Ocultar listas de seguidores/seguindo — apenas PRO e PRO+ */
   canControlFollowListsPrivacy: boolean;
+  /** Ocultar identidade na lista expandida de reações (posts de terceiros) — apenas PRO+ */
+  canHideIdentityInPostReactions: boolean;
+  /** Ocultar lista de quem viu o story — apenas PRO+ */
+  canHideStoryViewersList: boolean;
   
   // Links
   maxLinks: number;
@@ -61,6 +65,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canCustomizeLikesColor: false,
     canCustomizeButtonColors: false,
     canControlFollowListsPrivacy: false,
+    canHideIdentityInPostReactions: false,
+    canHideStoryViewersList: false,
     
     // Links
     maxLinks: 3,
@@ -103,6 +109,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canCustomizeLikesColor: true,
     canCustomizeButtonColors: true,
     canControlFollowListsPrivacy: false,
+    canHideIdentityInPostReactions: false,
+    canHideStoryViewersList: false,
     
     // Links
     maxLinks: 5,
@@ -145,6 +153,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canCustomizeLikesColor: true,
     canCustomizeButtonColors: true,
     canControlFollowListsPrivacy: true,
+    canHideIdentityInPostReactions: false,
+    canHideStoryViewersList: false,
     
     // Links
     maxLinks: 10,
@@ -187,6 +197,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canCustomizeLikesColor: true,
     canCustomizeButtonColors: true,
     canControlFollowListsPrivacy: true,
+    canHideIdentityInPostReactions: true,
+    canHideStoryViewersList: true,
     
     // Links
     maxLinks: 50,

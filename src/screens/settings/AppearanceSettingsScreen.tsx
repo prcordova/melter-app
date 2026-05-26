@@ -55,6 +55,10 @@ interface ProfileSettings {
   showFollowersFollowing: boolean;
   /** true = não apareço nas listas de seguidores/seguindo em perfis de terceiros (dono do perfil e admins veem) */
   hideFromOthersFollowLists: boolean;
+  /** PRO+ — ocultar @ na lista expandida de reações em posts de terceiros */
+  hideIdentityInPostReactions: boolean;
+  /** PRO+ — ninguém vê quem visualizou o story */
+  hideStoryViewersList: boolean;
   postsLimit: number;
   buttonBackgroundColor: string | null;
   buttonTextColor: string | null;
@@ -115,6 +119,8 @@ export function AppearanceSettingsScreen() {
     showPosts: true,
     showFollowersFollowing: true,
     hideFromOthersFollowLists: false,
+    hideIdentityInPostReactions: false,
+    hideStoryViewersList: false,
     postsLimit: 3,
     buttonBackgroundColor: null,
     buttonTextColor: null,
@@ -157,6 +163,8 @@ export function AppearanceSettingsScreen() {
 
         const planType = (data.plan?.type || 'FREE') as PlanType;
         const followListPrivacyAllowed = PLAN_LIMITS[planType].canControlFollowListsPrivacy;
+        const proPlusReactionPrivacy = PLAN_LIMITS[planType].canHideIdentityInPostReactions;
+        const proPlusStoryViewsPrivacy = PLAN_LIMITS[planType].canHideStoryViewersList;
         
         // Carregar bio
         setBio(data.bio || '');
@@ -164,6 +172,8 @@ export function AppearanceSettingsScreen() {
         // Carregar settings do perfil
         const profile = data.profile || {};
         const hasHideFromOthersKey = Object.prototype.hasOwnProperty.call(profile as object, 'hideFromOthersFollowLists');
+        const hasHideReactionKey = Object.prototype.hasOwnProperty.call(profile as object, 'hideIdentityInPostReactions');
+        const hasHideStoryViewsKey = Object.prototype.hasOwnProperty.call(profile as object, 'hideStoryViewersList');
         setSettings((prev) => ({
           ...prev,
           backgroundColor: profile.backgroundColor || prev.backgroundColor,
@@ -196,6 +206,16 @@ export function AppearanceSettingsScreen() {
             ? hasHideFromOthersKey
               ? profile.hideFromOthersFollowLists === true
               : (prev.hideFromOthersFollowLists ?? false)
+            : false,
+          hideIdentityInPostReactions: proPlusReactionPrivacy
+            ? hasHideReactionKey
+              ? profile.hideIdentityInPostReactions === true
+              : (prev.hideIdentityInPostReactions ?? false)
+            : false,
+          hideStoryViewersList: proPlusStoryViewsPrivacy
+            ? hasHideStoryViewsKey
+              ? profile.hideStoryViewersList === true
+              : (prev.hideStoryViewersList ?? false)
             : false,
           postsLimit:
             profile.postsLimit !== undefined && profile.postsLimit !== null
@@ -355,6 +375,11 @@ export function AppearanceSettingsScreen() {
       const followPrivacyAllowed = PLAN_LIMITS[planType].canControlFollowListsPrivacy;
       const snapshotHideFromOthers =
         followPrivacyAllowed && settings.hideFromOthersFollowLists === true;
+      const snapshotHideIdentityInPostReactions =
+        PLAN_LIMITS[planType].canHideIdentityInPostReactions &&
+        settings.hideIdentityInPostReactions === true;
+      const snapshotHideStoryViewersList =
+        PLAN_LIMITS[planType].canHideStoryViewersList && settings.hideStoryViewersList === true;
 
       // 4. Preparar payload do perfil
       const profilePayload: any = {
@@ -375,6 +400,8 @@ export function AppearanceSettingsScreen() {
         showPosts: settings.showPosts,
         showFollowersFollowing: settings.showFollowersFollowing,
         hideFromOthersFollowLists: snapshotHideFromOthers,
+        hideIdentityInPostReactions: snapshotHideIdentityInPostReactions,
+        hideStoryViewersList: snapshotHideStoryViewersList,
         postsLimit: Math.min(3, Math.max(1, Math.round(Number(settings.postsLimit)) || 3)),
       };
 
@@ -653,6 +680,38 @@ export function AppearanceSettingsScreen() {
                 <Switch
                   value={settings.hideFromOthersFollowLists}
                   onValueChange={(value) => handleSettingsChange({ hideFromOthersFollowLists: value })}
+                  trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                  thumbColor="#ffffff"
+                />
+              </View>
+            </View>
+          </PlanLocker>
+          <PlanLocker requiredPlan="PRO_PLUS" currentPlan={user?.plan?.type}>
+            <View style={[styles.fieldContainer, { marginBottom: 0 }]}>
+              <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={styles.switchLabel}>Ocultar meu nome nas reações em posts de outros</Text>
+                  <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
+                    PRO+. Ao expandir quem reagiu, outros não veem seu @ (o dono do post e você continuam vendo).
+                  </Text>
+                </View>
+                <Switch
+                  value={settings.hideIdentityInPostReactions}
+                  onValueChange={(value) => handleSettingsChange({ hideIdentityInPostReactions: value })}
+                  trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                  thumbColor="#ffffff"
+                />
+              </View>
+              <View style={[styles.switchRow, { alignItems: 'flex-start', marginTop: 16 }]}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={styles.switchLabel}>Ocultar lista de quem viu meus stories</Text>
+                  <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
+                    PRO+. Ninguém vê a lista de visualizações, nem você.
+                  </Text>
+                </View>
+                <Switch
+                  value={settings.hideStoryViewersList}
+                  onValueChange={(value) => handleSettingsChange({ hideStoryViewersList: value })}
                   trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
                   thumbColor="#ffffff"
                 />
