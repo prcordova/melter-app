@@ -706,7 +706,8 @@ export function AppearanceSettingsScreen() {
                 <View style={{ flex: 1, paddingRight: 12 }}>
                   <Text style={styles.switchLabel}>Ocultar lista de quem viu meus stories</Text>
                   <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
-                    PRO+. Ninguém vê a lista de visualizações, nem você.
+                    PRO+. Ninguém vê a lista de visualizações dos seus stories, nem você. Ao ver stories de outras
+                    pessoas, sua visualização não aparece na lista deles.
                   </Text>
                 </View>
                 <Switch
