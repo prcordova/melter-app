@@ -61,6 +61,7 @@ export const USERS_API = {
       transactionalEmails: '/api/users/preferences/transactional-emails',
       emailMarketing: '/api/users/preferences/email-marketing',
       categoryPreferences: '/api/users/preferences/category-preferences',
+      location: '/api/users/preferences/location',
     },
   },
 
