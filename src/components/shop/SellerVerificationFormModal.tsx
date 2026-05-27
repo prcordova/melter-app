@@ -43,6 +43,7 @@ import {
   isValidCpf,
   parseBirthDateInput,
 } from '../../utils/seller-verification-validation';
+import { uploadSellerVerificationFileDirect } from '../../utils/seller-verification-upload';
 
 function hasStoredSellerVideoProof(url?: string | null): boolean {
   return typeof url === 'string' && url.trim().length > 0;
@@ -558,15 +559,6 @@ export function SellerVerificationFormModal({
     clearVideoProofLocal();
   };
 
-  const appendFile = (formData: FormData, key: string, file: PickedImage, fallbackName: string) => {
-    const mime =
-      file.mimeType || (key === 'videoProof' ? 'video/mp4' : 'image/jpeg');
-    formData.append(key, {
-      uri: file.uri,
-      type: mime,
-      name: file.fileName || fallbackName,
-    } as unknown as Blob);
-  };
 
   const handleSubmit = async () => {
     const requiresField = (field: string) => {
@@ -680,15 +672,40 @@ export function SellerVerificationFormModal({
       formData.append('isAdultContent', String(isAdultContent));
       formData.append('documentIsCopyOnly', documentIsCopyOnly ? 'true' : 'false');
 
-      if (documentFrontFile) appendFile(formData, 'documentFront', documentFrontFile, 'document_front.jpg');
-      if (documentBackFile) appendFile(formData, 'documentBack', documentBackFile, 'document_back.jpg');
-      if (selfieFile) appendFile(formData, 'selfieWithDocument', selfieFile, 'selfie.jpg');
+      if (documentFrontFile) {
+        formData.append(
+          'documentFrontUrl',
+          await uploadSellerVerificationFileDirect({
+            file: documentFrontFile,
+            documentType: 'front',
+          })
+        );
+      }
+      if (documentBackFile) {
+        formData.append(
+          'documentBackUrl',
+          await uploadSellerVerificationFileDirect({
+            file: documentBackFile,
+            documentType: 'back',
+          })
+        );
+      }
+      if (selfieFile) {
+        formData.append(
+          'selfieWithDocumentUrl',
+          await uploadSellerVerificationFileDirect({
+            file: selfieFile,
+            documentType: 'selfie',
+          })
+        );
+      }
       if (videoProofFile) {
-        appendFile(
-          formData,
-          'videoProof',
-          videoProofFile,
-          videoProofFile.fileName || 'video-proof.mp4'
+        formData.append(
+          'videoProofUrl',
+          await uploadSellerVerificationFileDirect({
+            file: videoProofFile,
+            documentType: 'videoProof',
+          })
         );
       } else if (
         requiresField('videoProof') &&
@@ -710,8 +727,11 @@ export function SellerVerificationFormModal({
       const err = error as { response?: { data?: { message?: string }; status?: number }; message?: string };
       let msg = err.response?.data?.message || err.message || 'Erro ao enviar verificação';
       if (err.response?.status === 413) {
+        const serverMessage = err.response?.data?.message;
         msg =
-          `Arquivos muito grandes. Imagens até ${SELLER_VERIFICATION_MAX_IMAGE_SIZE_LABEL}; vídeo prova até ${SELLER_VERIFICATION_MAX_VIDEO_SIZE_LABEL} — reduza e tente de novo.`;
+          serverMessage && String(serverMessage).includes('muito grande')
+            ? String(serverMessage)
+            : 'Falha no envio dos documentos. Verifique sua conexão e tente novamente.';
       }
       showToast.error('Erro', String(msg));
     } finally {
