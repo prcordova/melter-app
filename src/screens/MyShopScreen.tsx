@@ -186,24 +186,26 @@ export function MyShopScreen() {
   }, [route.params?.openPlan, username]);
 
   // Buscar configurações da loja (apenas para dono)
-  const fetchShopSettings = async () => {
+  const fetchShopSettings = async (): Promise<any[]> => {
     try {
       const response = await shopApi.getSettings();
 
       if (response.success && response.data) {
         setShopSettings(response.data);
-        fetchProducts();
+        return await fetchProducts();
       } else {
         setShopSettings(null);
+        return [];
       }
     } catch (error) {
       console.error('[MyShopScreen] Erro ao carregar configurações:', error);
       setShopSettings(null);
+      return [];
     }
   };
 
   // Buscar produtos da loja
-  const fetchProducts = async () => {
+  const fetchProducts = async (): Promise<any[]> => {
     try {
       setLoadingProducts(true);
       
@@ -256,13 +258,16 @@ export function MyShopScreen() {
         } else {
           setPendingProductsCount(0);
         }
+        return productsData;
       } else {
         setProducts([]);
         setPendingProductsCount(0);
+        return [];
       }
     } catch (error) {
       console.error('[MyShopScreen] Erro ao buscar produtos:', error);
       setProducts([]);
+      return [];
     } finally {
       setLoadingProducts(false);
     }
@@ -498,7 +503,7 @@ export function MyShopScreen() {
     }
   };
 
-  const handleVerificationSuccess = (updated: SellerVerificationFormData) => {
+  const handleVerificationSuccess = async (updated: SellerVerificationFormData) => {
     setShopSettings((prev) => {
       if (!prev) return prev;
       return {
@@ -511,7 +516,16 @@ export function MyShopScreen() {
       };
     });
     setShowVerificationForm(false);
-    void fetchShopSettings();
+    const list = await fetchShopSettings();
+    // Após envio do cadastro da loja: abrir wizard do primeiro pacote se ainda não existir nenhum.
+    if (!isOwner) return;
+    const planType = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
+    const maxProducts = getFeatureLimit(planType, 'maxProducts');
+    if (list.length >= maxProducts) return;
+    if (list.length > 0) return;
+    setActiveTab('products');
+    setEditingProduct(null);
+    setShowCreateProductModal(true);
   };
 
   const filteredProducts = useMemo(() => {
