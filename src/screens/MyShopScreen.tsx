@@ -137,6 +137,15 @@ export function MyShopScreen() {
     }
   }, [route.params?.tab]);
 
+  /** Dono com cadastro da loja em análise: só aba Produtos (sem Analytics/Comunidade). */
+  useEffect(() => {
+    const st = shopSettings?.sellerVerification?.status;
+    if (!isOwner) return;
+    if ((st === 'pending' || st === 'needs_review') && activeTab !== 'products') {
+      setActiveTab('products');
+    }
+  }, [shopSettings?.sellerVerification?.status, isOwner, activeTab]);
+
   // Carregar dados da loja (recarrega ao mudar username / dono)
   useEffect(() => {
     if (authLoading || !username) return;
@@ -412,7 +421,11 @@ export function MyShopScreen() {
   };
 
   const ownerApproved = sellerVerification?.status === 'approved';
-  const showTabs = isAdmin || (isOwner && ownerApproved);
+  const canPrepareShopCatalogWhilePending =
+    isOwner &&
+    (sellerVerification?.status === 'pending' || sellerVerification?.status === 'needs_review');
+  const showSecondaryShopTabs = isAdmin || ownerApproved;
+  const showTabs = isAdmin || (isOwner && (ownerApproved || canPrepareShopCatalogWhilePending));
   const shopIsPublicAndActive =
     Boolean(shopSettings?.isEnabled) && shopSettings?.visibility === 'public';
 
@@ -779,7 +792,7 @@ export function MyShopScreen() {
           </View>
         )}
 
-        {/* Sistema de Tabs (apenas para dono aprovado ou admin) */}
+        {/* Sistema de Tabs: dono aprovado/admin ou dono com loja em análise (só Produtos + mensagem) */}
         {showTabs && (
           <View style={styles.tabsContainer}>
             <ScrollView
@@ -802,33 +815,37 @@ export function MyShopScreen() {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.tab, activeTab === 'analytics' && styles.tabActive]}
-                onPress={() => handleTabChange('analytics')}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === 'analytics' && styles.tabTextActive,
-                  ]}
-                >
-                  Analytics
-                </Text>
-              </TouchableOpacity>
+              {showSecondaryShopTabs ? (
+                <>
+                  <TouchableOpacity
+                    style={[styles.tab, activeTab === 'analytics' && styles.tabActive]}
+                    onPress={() => handleTabChange('analytics')}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        activeTab === 'analytics' && styles.tabTextActive,
+                      ]}
+                    >
+                      Analytics
+                    </Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.tab, activeTab === 'community' && styles.tabActive]}
-                onPress={() => handleTabChange('community')}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === 'community' && styles.tabTextActive,
-                  ]}
-                >
-                  Comunidade
-                </Text>
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.tab, activeTab === 'community' && styles.tabActive]}
+                    onPress={() => handleTabChange('community')}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        activeTab === 'community' && styles.tabTextActive,
+                      ]}
+                    >
+                      Comunidade
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : null}
 
               {isOwner && sellerVerification?.status === 'approved' && (
                 <TouchableOpacity
@@ -863,6 +880,23 @@ export function MyShopScreen() {
           <View style={styles.tabContent}>
             {activeTab === 'products' && (
               <View style={styles.productsContent}>
+                {isOwner && canPrepareShopCatalogWhilePending && (
+                  <View style={styles.pendingAlert}>
+                    <View style={styles.pendingAlertContent}>
+                      <Ionicons name="information-circle" size={20} color={COLORS.primary.main} />
+                      <View style={styles.pendingAlertText}>
+                        <Text style={styles.pendingAlertTitle}>
+                          Cadastre produtos enquanto sua loja é analisada
+                        </Text>
+                        <Text style={styles.pendingAlertDescription}>
+                          Eles vão para moderação como de sempre. Na vitrine pública só aparecem depois
+                          que o cadastro da loja for aprovado e a loja estiver ativa.
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
                 {isOwner && ownerApproved && shopSettings && !shopSettings.isEnabled && (
                   <View style={styles.shopDisabledBanner}>
                     <Ionicons name="storefront-outline" size={22} color={COLORS.states.warning} />
@@ -909,7 +943,9 @@ export function MyShopScreen() {
                     <Text style={styles.emptyProductsTitle}>Esta loja ainda não tem produtos</Text>
                     <Text style={styles.emptyProductsText}>
                       {isOwner
-                        ? 'Comece criando seu primeiro produto!'
+                        ? canPrepareShopCatalogWhilePending
+                          ? 'Você já pode criar seu primeiro produto. Ele vai para moderação; na vitrine pública só depois da aprovação da loja.'
+                          : 'Comece criando seu primeiro produto!'
                         : 'O dono desta loja ainda não adicionou itens.'}
                     </Text>
                     {isOwner && (
@@ -1108,11 +1144,11 @@ export function MyShopScreen() {
               </View>
             )}
 
-            {activeTab === 'analytics' && <ShopAnalyticsContent />}
+            {activeTab === 'analytics' && showSecondaryShopTabs && <ShopAnalyticsContent />}
 
-            {activeTab === 'community' && <ShopCommunityContent />}
+            {activeTab === 'community' && showSecondaryShopTabs && <ShopCommunityContent />}
 
-            {activeTab === 'plans' && isOwner && (
+            {activeTab === 'plans' && isOwner && ownerApproved && (
               <SubscriptionPlansContent userPlan={user?.plan?.type as any} />
             )}
           </View>
