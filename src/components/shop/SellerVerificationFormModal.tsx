@@ -22,8 +22,10 @@ import { SellerDocumentUploadField } from './SellerDocumentUploadField';
 import { SelectRow } from '../SelectRow';
 import {
   SELLER_VERIFICATION_MAX_IMAGE_SIZE_BYTES,
+  SELLER_VERIFICATION_MAX_IMAGE_SIZE_LABEL,
   SELLER_VERIFICATION_UPLOAD_HELPER_TEXT,
   SELLER_VERIFICATION_MAX_VIDEO_SIZE_BYTES,
+  SELLER_VERIFICATION_MAX_VIDEO_SIZE_LABEL,
   SELLER_VERIFICATION_VIDEO_UPLOAD_HELPER_TEXT,
   SELLER_VERIFICATION_MAX_VIDEO_DURATION_SEC,
   SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_VIDEO_URL,
@@ -115,7 +117,7 @@ async function pickSellerImage(): Promise<PickedImage | null> {
   if (result.canceled || !result.assets?.[0]) return null;
   const asset = result.assets[0];
   if (asset.fileSize && asset.fileSize > SELLER_VERIFICATION_MAX_IMAGE_SIZE_BYTES) {
-    showToast.error('Arquivo grande', 'Use uma imagem de até 30 MB.');
+    showToast.error('Arquivo grande', `Use uma imagem de até ${SELLER_VERIFICATION_MAX_IMAGE_SIZE_LABEL}.`);
     return null;
   }
   return {
@@ -709,7 +711,7 @@ export function SellerVerificationFormModal({
       let msg = err.response?.data?.message || err.message || 'Erro ao enviar verificação';
       if (err.response?.status === 413) {
         msg =
-          'Arquivos muito grandes. Imagens até 30 MB; vídeo prova com limite maior — reduza e tente de novo.';
+          `Arquivos muito grandes. Imagens até ${SELLER_VERIFICATION_MAX_IMAGE_SIZE_LABEL}; vídeo prova até ${SELLER_VERIFICATION_MAX_VIDEO_SIZE_LABEL} — reduza e tente de novo.`;
       }
       showToast.error('Erro', String(msg));
     } finally {
