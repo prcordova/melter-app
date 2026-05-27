@@ -14,7 +14,7 @@ export const sellerVerificationApi = {
   submitVerification: async (formData: FormData) => {
     const response = await api.post<ApiResponse<any>>(SHOP_API.verification.root, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120000,
+      timeout: 600000,
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
     });
