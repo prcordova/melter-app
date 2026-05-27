@@ -17,13 +17,15 @@ import { showToast } from '../../CustomToast';
 import { useAuth } from '../../../contexts/AuthContext';
 import { PLAN_LIMITS, validateFileSize, PlanType } from '../../../config/plan-features';
 import { getImageUrl } from '../../../utils/image';
+import type { PackContentDeliveryMode } from '../ProductCreationWizard';
 
 interface ContentStepProps {
   formData: any;
   setFormData: (data: any) => void;
+  isEditing?: boolean;
 }
 
-export function ContentStep({ formData, setFormData }: ContentStepProps) {
+export function ContentStep({ formData, setFormData, isEditing = false }: ContentStepProps) {
   const { user } = useAuth();
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
@@ -232,12 +234,84 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
     return ft === 'image' || ft === 'video';
   };
 
+  const needsDeliveryChoice = !isEditing && !formData.contentDeliveryMode;
+  const showLinksSection = formData.contentDeliveryMode === 'FILES_AND_LINKS';
+
+  const selectDeliveryMode = (mode: PackContentDeliveryMode) => {
+    setFormData({
+      ...formData,
+      contentDeliveryMode: mode,
+      links: mode === 'FILES_ONLY' ? [] : formData.links,
+    });
+  };
+
+  const resetDeliveryChoice = () => {
+    setFormData({
+      ...formData,
+      contentDeliveryMode: null,
+      links: [],
+    });
+  };
+
+  if (needsDeliveryChoice) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>O que você vai enviar neste pacote?</Text>
+        <Text style={styles.subtitle}>
+          Todo pacote precisa de pelo menos um arquivo de mídia na Melter. Links externos são
+          opcionais e não substituem arquivos.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.choiceCard}
+          onPress={() => selectDeliveryMode('FILES_ONLY')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="folder-outline" size={32} color={COLORS.secondary.main} />
+          <Text style={styles.choiceTitle}>Só arquivos</Text>
+          <Text style={styles.choiceDescription}>
+            Imagens, vídeos ou documentos que o comprador acessa na Melter.
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.choiceCard}
+          onPress={() => selectDeliveryMode('FILES_AND_LINKS')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.choiceIconRow}>
+            <Ionicons name="folder-outline" size={28} color={COLORS.secondary.main} />
+            <Ionicons name="link-outline" size={24} color={COLORS.text.secondary} />
+          </View>
+          <Text style={styles.choiceTitle}>Arquivos + links</Text>
+          <Text style={styles.choiceDescription}>
+            Mídia na Melter e links extras (Drive, site, etc.) para o comprador.
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
+      <View style={styles.alertInfo}>
+        <Ionicons name="information-circle-outline" size={20} color={COLORS.secondary.main} />
+        <Text style={styles.alertInfoText}>
+          Obrigatório: envie pelo menos um arquivo de mídia. Um link sozinho não é suficiente para
+          criar o pacote.
+        </Text>
+      </View>
+
+      {!isEditing && (
+        <TouchableOpacity onPress={resetDeliveryChoice} style={styles.changeChoiceButton}>
+          <Text style={styles.changeChoiceText}>Alterar opção</Text>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.header}>
-        <Text style={styles.title}>Adicionar conteúdo</Text>
+        <Text style={styles.title}>Arquivos de mídia</Text>
         <Text style={styles.subtitle}>
-          Inclua pelo menos um link externo ou arquivo para continuar.
+          Use o botão abaixo para enviar imagens, vídeos ou documentos.
         </Text>
       </View>
 
@@ -340,81 +414,132 @@ export function ContentStep({ formData, setFormData }: ContentStepProps) {
         )}
       </View>
 
-      {/* Links (Opcional) */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Links externos</Text>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddLink} activeOpacity={0.7}>
-            <Ionicons name="link-outline" size={18} color={COLORS.text.secondary} />
-            <Text style={styles.addButtonText}>Adicionar Link</Text>
-          </TouchableOpacity>
+      {showLinksSection && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Links externos</Text>
+            <TouchableOpacity style={styles.addButton} onPress={handleAddLink} activeOpacity={0.7}>
+              <Ionicons name="link-outline" size={18} color={COLORS.text.secondary} />
+              <Text style={styles.addButtonText}>Adicionar Link</Text>
+            </TouchableOpacity>
+          </View>
+
+          {formData.links.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>Nenhum link adicionado ainda</Text>
+            </View>
+          ) : (
+            <View style={styles.linksList}>
+              {formData.links.map((link: any, index: number) => (
+                <View key={link.id} style={styles.linkCard}>
+                  <View style={styles.linkHeader}>
+                    <Text style={styles.linkTitle}>Link {index + 1}</Text>
+                    <TouchableOpacity
+                      onPress={() => handleRemoveLink(link.id)}
+                      style={styles.removeButton}
+                    >
+                      <Ionicons name="close-circle" size={20} color={COLORS.states.error} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>URL *</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={link.url}
+                      onChangeText={(value) => handleLinkChange(link.id, 'url', value)}
+                      placeholder="https://drive.google.com/file/d/..."
+                      placeholderTextColor={COLORS.text.tertiary}
+                      keyboardType="url"
+                      autoCapitalize="none"
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Título</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={link.title}
+                      onChangeText={(value) => handleLinkChange(link.id, 'title', value)}
+                      placeholder="Título do link"
+                      placeholderTextColor={COLORS.text.tertiary}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Descrição</Text>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      value={link.description}
+                      onChangeText={(value) => handleLinkChange(link.id, 'description', value)}
+                      placeholder="Descrição do link (opcional)"
+                      placeholderTextColor={COLORS.text.tertiary}
+                      multiline
+                      numberOfLines={2}
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
-
-        {formData.links.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>Nenhum link adicionado ainda</Text>
-          </View>
-        ) : (
-          <View style={styles.linksList}>
-            {formData.links.map((link: any, index: number) => (
-              <View key={link.id} style={styles.linkCard}>
-                <View style={styles.linkHeader}>
-                  <Text style={styles.linkTitle}>Link {index + 1}</Text>
-                  <TouchableOpacity
-                    onPress={() => handleRemoveLink(link.id)}
-                    style={styles.removeButton}
-                  >
-                    <Ionicons name="close-circle" size={20} color={COLORS.states.error} />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>URL *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={link.url}
-                    onChangeText={(value) => handleLinkChange(link.id, 'url', value)}
-                    placeholder="https://drive.google.com/file/d/..."
-                    placeholderTextColor={COLORS.text.tertiary}
-                    keyboardType="url"
-                    autoCapitalize="none"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Título</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={link.title}
-                    onChangeText={(value) => handleLinkChange(link.id, 'title', value)}
-                    placeholder="Título do link"
-                    placeholderTextColor={COLORS.text.tertiary}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Descrição</Text>
-                  <TextInput
-                    style={[styles.input, styles.textArea]}
-                    value={link.description}
-                    onChangeText={(value) => handleLinkChange(link.id, 'description', value)}
-                    placeholder="Descrição do link (opcional)"
-                    placeholderTextColor={COLORS.text.tertiary}
-                    multiline
-                    numberOfLines={2}
-                    textAlignVertical="top"
-                  />
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  choiceCard: {
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    backgroundColor: COLORS.background.paper,
+  },
+  choiceTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginTop: 8,
+  },
+  choiceDescription: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  choiceIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  alertInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: `${COLORS.secondary.main}14`,
+    borderWidth: 1,
+    borderColor: `${COLORS.secondary.main}40`,
+  },
+  alertInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
+  },
+  changeChoiceButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 4,
+  },
+  changeChoiceText: {
+    fontSize: 13,
+    color: COLORS.secondary.main,
+    fontWeight: '600',
+  },
   container: {
     gap: 20,
   },

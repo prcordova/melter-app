@@ -29,6 +29,8 @@ interface ProductCreationWizardProps {
 
 const steps = ['Conteúdo', 'Detalhes', 'Revisão'];
 
+export type PackContentDeliveryMode = 'FILES_ONLY' | 'FILES_AND_LINKS';
+
 /** Arquivos da API usam fileType + url; o wizard espera type (MIME), uri e id. */
 function mapApiFilesToWizardFiles(files: any[]): any[] {
   if (!Array.isArray(files)) return [];
@@ -72,6 +74,7 @@ export function ProductCreationWizard({
 
   const [formData, setFormData] = useState({
     // Step 1: Conteúdo
+    contentDeliveryMode: null as PackContentDeliveryMode | null,
     files: [] as any[],
     links: [] as Array<{ id: string; url: string; title: string; description: string }>,
     modules: [] as any[],
@@ -132,9 +135,7 @@ export function ProductCreationWizard({
   // Preencher dados se estiver editando
   useEffect(() => {
     if (product && visible) {
-      setFormData({
-        files: mapApiFilesToWizardFiles(product.digital?.files || []),
-        links: product.digital?.downloadUrl
+      const editLinks = product.digital?.downloadUrl
           ? [
               {
                 id: '1',
@@ -143,7 +144,12 @@ export function ProductCreationWizard({
                 description: '',
               },
             ]
-          : [],
+          : [];
+
+      setFormData({
+        contentDeliveryMode: editLinks.length > 0 ? 'FILES_AND_LINKS' : 'FILES_ONLY',
+        files: mapApiFilesToWizardFiles(product.digital?.files || []),
+        links: editLinks,
         modules: [],
         title: product.title || '',
         description: product.description || '',
@@ -180,6 +186,7 @@ export function ProductCreationWizard({
     } else if (!product && visible) {
       // Reset para novo produto
       setFormData({
+        contentDeliveryMode: null,
         files: [],
         links: [],
         modules: [],
@@ -214,20 +221,17 @@ export function ProductCreationWizard({
   const canProceedToNext = (step: number): boolean => {
     try {
       switch (step) {
-        case 0: // Conteúdo - precisa ter pelo menos um link com URL válida ou arquivo
-          // Verificar se há arquivos
-          const hasFiles = formData.files && formData.files.length > 0;
-          
-          // Verificar se há links com URL válida (não vazia e com mais de 3 caracteres)
-          const hasValidLinks = formData.links && formData.links.length > 0 && 
-            formData.links.some((link: any) => 
-              link.url && 
-              typeof link.url === 'string' && 
-              link.url.trim() !== '' &&
-              link.url.trim().length > 3
+        case 0: {
+          if (!product && !formData.contentDeliveryMode) return false;
+          const hasHostedFiles =
+            formData.files &&
+            formData.files.length > 0 &&
+            formData.files.some(
+              (f: { existing?: boolean; url?: string; file?: File; uri?: string }) =>
+                (f.existing && Boolean(f.url || f.uri)) || f.file instanceof File
             );
-          
-          return hasFiles || hasValidLinks;
+          return Boolean(hasHostedFiles);
+        }
         case 1: // Detalhes
           const hasTitle = Boolean(formData.title && String(formData.title).trim() !== '');
           const hasCategory = Boolean(formData.categoryId && String(formData.categoryId).trim() !== '');
@@ -271,6 +275,14 @@ export function ProductCreationWizard({
     setActiveStep((prev) => prev - 1);
   };
 
+  const resetContentDeliveryChoice = () => {
+    setFormData((prev) => ({
+      ...prev,
+      contentDeliveryMode: null,
+      links: [],
+    }));
+  };
+
   const handleSave = () => {
     // Preparar dados para o backend
     const productData = {
@@ -294,23 +306,30 @@ export function ProductCreationWizard({
       isAdultContent: formData.categoryId === 'conteudo-18',
       contentValidations: formData.contentValidations,
       digital: {
-        // Buscar o primeiro link válido (com URL preenchida e com mais de 3 caracteres)
-        downloadUrl: formData.links && formData.links.length > 0
-          ? (formData.links.find((link: any) => 
-              link.url && 
-              typeof link.url === 'string' && 
-              link.url.trim() !== '' &&
-              link.url.trim().length > 3
-            )?.url || '')
-          : '',
-        fileName: formData.links && formData.links.length > 0
-          ? (formData.links.find((link: any) => 
-              link.url && 
-              typeof link.url === 'string' && 
-              link.url.trim() !== '' &&
-              link.url.trim().length > 3
-            )?.title || '')
-          : '',
+        downloadUrl:
+          formData.contentDeliveryMode === 'FILES_AND_LINKS' &&
+          formData.links &&
+          formData.links.length > 0
+            ? formData.links.find(
+                (link: { url?: string }) =>
+                  link.url &&
+                  typeof link.url === 'string' &&
+                  link.url.trim() !== '' &&
+                  link.url.trim().length > 3
+              )?.url || ''
+            : '',
+        fileName:
+          formData.contentDeliveryMode === 'FILES_AND_LINKS' &&
+          formData.links &&
+          formData.links.length > 0
+            ? formData.links.find(
+                (link: { url?: string; title?: string }) =>
+                  link.url &&
+                  typeof link.url === 'string' &&
+                  link.url.trim() !== '' &&
+                  link.url.trim().length > 3
+              )?.title || ''
+            : '',
         allowDownload: formData.allowDownload,
         fileSize: 0,
         files: formData.files || [],
@@ -324,7 +343,11 @@ export function ProductCreationWizard({
     switch (activeStep) {
       case 0:
         return (
-          <ContentStep formData={formData} setFormData={setFormData} />
+          <ContentStep
+            formData={formData}
+            setFormData={setFormData}
+            isEditing={Boolean(product)}
+          />
         );
       case 1:
         return (
@@ -462,11 +485,21 @@ export function ProductCreationWizard({
             <View style={styles.footer}>
               <TouchableOpacity
                 style={[styles.button, styles.backButton]}
-                onPress={activeStep === 0 ? handleClose : handleBack}
+                onPress={
+                  activeStep === 0
+                    ? formData.contentDeliveryMode && !product
+                      ? resetContentDeliveryChoice
+                      : handleClose
+                    : handleBack
+                }
                 disabled={saving}
               >
                 <Text style={styles.backButtonText}>
-                  {activeStep === 0 ? 'Cancelar' : 'Voltar'}
+                  {activeStep === 0
+                    ? formData.contentDeliveryMode && !product
+                      ? 'Voltar'
+                      : 'Cancelar'
+                    : 'Voltar'}
                 </Text>
               </TouchableOpacity>
 

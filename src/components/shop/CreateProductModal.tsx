@@ -331,6 +331,22 @@ export function CreateProductModal({
       (touchedFields.has('digitalContent') || showValidationErrors) &&
       formData.type === 'DIGITAL_PACK'
     ) {
+      const hasHostedMedia =
+        selectedFiles.length > 0 ||
+        (formData.digital.files?.some(
+          (f) =>
+            f.fileType === 'image' ||
+            f.fileType === 'video' ||
+            (typeof f.url === 'string' && f.url.toLowerCase().includes('/product-files/'))
+        ) ??
+          false)
+
+      if (!hasHostedMedia) {
+        errors.push(
+          'Adicione pelo menos um arquivo de mídia (imagem, vídeo ou documento). Links são opcionais.'
+        )
+      }
+
       if (formData.digital.downloadUrl && formData.digital.downloadUrl.trim() !== '') {
         const url = formData.digital.downloadUrl.trim();
         if (url.length > 200) {
@@ -747,8 +763,8 @@ export function CreateProductModal({
               <View style={styles.infoBox}>
                 <Text style={styles.infoTitle}>📦 Produto Digital</Text>
                 <Text style={styles.infoText}>
-                  Crie pacotes digitais com links externos, arquivos ou ambos. Você pode criar o produto vazio e
-                  adicionar conteúdo depois.
+                  Envie pelo menos um arquivo de mídia no pacote. Links externos são opcionais e complementam o
+                  conteúdo.
                 </Text>
               </View>
 
