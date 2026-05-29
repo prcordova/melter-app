@@ -5,6 +5,7 @@ import type {
   UserInterestedIn,
 } from '../../constants/user-demographics';
 import type { ApiResponse, SendFriendRequestApiResponse } from '../shared/types';
+import type { ProfileContentSafetyPublic } from '../../types/profile-content-safety';
 
 export const userApi = {
   getMyProfile: async (params?: { scope?: 'basic' | 'full' }) => {
@@ -82,8 +83,11 @@ export const userApi = {
     const response = await api.get<ApiResponse<any>>(`/api/users/${username}/follow-status`);
     return response.data;
   },
-  getUserProfile: async (username: string) => {
-    const response = await api.get<ApiResponse<any>>(`/api/users/${username}`);
+  getUserProfile: async (username: string, options?: { guestContentAck?: boolean }) => {
+    const query = options?.guestContentAck ? '?guestContentAck=1' : '';
+    const response = await api.get<ApiResponse<any>>(
+      `${USERS_API.byUsername(username)}${query}`
+    );
     return response.data;
   },
   /** Lista paginada: `data.items`, `data.hasMore`, `data.page` */
@@ -229,7 +233,9 @@ export const userApi = {
     return response.data;
   },
   updateStatus: async (statusData: { visibility?: 'online' | 'busy' | 'offline'; customMessage?: string }) => {
-    const response = await api.put<ApiResponse<any>>('/api/users/status', statusData);
+    const response = await api.put<
+      ApiResponse<any> & { contentSafety?: ProfileContentSafetyPublic }
+    >('/api/users/status', statusData);
     return response.data;
   },
   searchMentions: async (query: string) => {

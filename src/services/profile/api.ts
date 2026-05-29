@@ -4,6 +4,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../../config/api.config';
 import type { UsernameDisplayEffectConfig } from '../../types/username-display-effect';
 import type { ApiResponse } from '../shared/types';
+import type { ProfileContentSafetyPublic } from '../../types/profile-content-safety';
+
+type ProfileMediaUploadResponse = ApiResponse<any> & {
+  avatarUrl?: string;
+  backgroundUrl?: string;
+  contentSafety?: ProfileContentSafetyPublic;
+};
+
+type ProfileUpdateResponse = ApiResponse<{
+  profile?: Record<string, unknown>;
+  bio?: string;
+  contentSafety?: ProfileContentSafetyPublic;
+}>;
 
 export const profileApi = {
   updateProfile: async (profileData: {
@@ -42,7 +55,7 @@ export const profileApi = {
       customMessage?: string;
     };
   }) => {
-    const response = await api.put<ApiResponse<any>>('/api/users/profile', profileData);
+    const response = await api.put<ProfileUpdateResponse>('/api/users/profile', profileData);
     return response.data;
   },
 
@@ -72,7 +85,7 @@ export const profileApi = {
       },
     });
     
-    return response.data;
+    return response.data as ProfileMediaUploadResponse;
   },
 
   uploadBackground: async (imageUri: string) => {
@@ -96,7 +109,7 @@ export const profileApi = {
       },
     });
     
-    return response.data;
+    return response.data as ProfileMediaUploadResponse;
   },
 };
 

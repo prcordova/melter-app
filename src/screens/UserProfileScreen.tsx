@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,12 @@ import { API_CONFIG } from '../config/api.config';
 import { emitSocialGraphChanged } from '../lib/social-events';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 import { PLAN_LIMITS, type PlanType } from '../config/plan-features';
+import { CustomModal } from '../components/CustomModal';
+import {
+  hasProfileRestrictedAck,
+  markProfileRestrictedAck,
+} from '../lib/profile-restricted-ack';
+import { PROFILE_CONTENT_SAFETY_STRINGS } from '../config/profile-content-safety-strings';
 
 const { width } = Dimensions.get('window');
 const FREE_PLAN_DEFAULT_BG = require('../../public/assets/imgs/bgMelter.jpg');
@@ -76,6 +82,8 @@ export function UserProfileScreen() {
   const [isEditingStatus, setIsEditingStatus] = useState(false);
   const [statusDraft, setStatusDraft] = useState('');
   const [isSavingStatusMessage, setIsSavingStatusMessage] = useState(false);
+  const [restrictedEntryGateOpen, setRestrictedEntryGateOpen] = useState(false);
+  const pendingRestrictedProfileRef = useRef<any>(null);
 
   const renderProfileSkeleton = () => (
     <View style={styles.skeletonContainer}>
@@ -221,7 +229,32 @@ export function UserProfileScreen() {
         // Atualizar os dados
         userData.followersCount = followersCount;
         userData.followingCount = followingCount;
-        
+
+        const isRestricted = userData.contentSafety?.restrictedForGuests === true;
+        const isOwner =
+          currentUser?.username === username ||
+          currentUser?.id === userData.id ||
+          currentUser?.id === userData._id;
+        const isAdmin = currentUser?.accountType === 'admin';
+        const needsRestrictedEntryGate =
+          isRestricted &&
+          !isOwner &&
+          !isAdmin &&
+          !hasProfileRestrictedAck(username);
+
+        if (needsRestrictedEntryGate) {
+          pendingRestrictedProfileRef.current = userData;
+          setRestrictedEntryGateOpen(true);
+          setUser(null);
+          setLinks([]);
+          setPosts([]);
+          setHasLoadedOnce(true);
+          return;
+        }
+
+        setRestrictedEntryGateOpen(false);
+        pendingRestrictedProfileRef.current = null;
+
         setUser(userData);
         setLinks(userData.links || []);
         setIsFollowing(userData.isFollowing);
@@ -597,6 +630,55 @@ export function UserProfileScreen() {
       );
     }
   };
+
+  const handleRestrictedEntryAccept = useCallback(async () => {
+    markProfileRestrictedAck(username);
+    setRestrictedEntryGateOpen(false);
+    pendingRestrictedProfileRef.current = null;
+    await loadData();
+  }, [username]);
+
+  const handleRestrictedEntryDecline = useCallback(() => {
+    setRestrictedEntryGateOpen(false);
+    pendingRestrictedProfileRef.current = null;
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    const tabNav = navigation.getParent?.()?.getParent?.();
+    if (tabNav && typeof (tabNav as any).navigate === 'function') {
+      (tabNav as any).navigate('CommunityStack', { screen: 'Community' });
+      return;
+    }
+    navigation.navigate('CommunityStack', { screen: 'Community' });
+  }, [navigation]);
+
+  if (restrictedEntryGateOpen) {
+    return (
+      <>
+        {renderProfileSkeleton()}
+        <CustomModal
+          visible={restrictedEntryGateOpen}
+          title={PROFILE_CONTENT_SAFETY_STRINGS.restrictedEntryGate.title}
+          message={`${PROFILE_CONTENT_SAFETY_STRINGS.restrictedEntryGate.description}\n\n${PROFILE_CONTENT_SAFETY_STRINGS.restrictedEntryGate.helperText}`}
+          closeOnBackdropPress={false}
+          buttons={[
+            {
+              text: PROFILE_CONTENT_SAFETY_STRINGS.restrictedEntryGate.leave,
+              style: 'cancel',
+              onPress: handleRestrictedEntryDecline,
+            },
+            {
+              text: PROFILE_CONTENT_SAFETY_STRINGS.restrictedEntryGate.enter,
+              onPress: () => {
+                void handleRestrictedEntryAccept();
+              },
+            },
+          ]}
+        />
+      </>
+    );
+  }
 
   if (loading && !refreshing) {
     return renderProfileSkeleton();

@@ -30,6 +30,9 @@ import {
   normalizeUsernameDisplayEffect,
 } from '../../types/username-display-effect';
 import { ProfileGradientEffectSection } from './ProfileGradientEffectSection';
+import { ProfileAiModerationModal } from '../../components/profile/ProfileAiModerationModal';
+import { ProfileContentSafetyHint } from '../../components/profile/ProfileContentSafetyHint';
+import type { ProfileContentSafetyPublic } from '../../types/profile-content-safety';
 
 interface ProfileSettings {
   backgroundColor: string;
@@ -147,6 +150,8 @@ export function AppearanceSettingsScreen() {
   const [statusMessageEffect, setStatusMessageEffect] = useState<UsernameDisplayEffectConfig>(() => ({
     ...DEFAULT_USERNAME_DISPLAY_EFFECT,
   }));
+  const [contentSafety, setContentSafety] = useState<ProfileContentSafetyPublic | null>(null);
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -246,6 +251,11 @@ export function AppearanceSettingsScreen() {
           visibility: status.visibility || 'online',
           customMessage: status.customMessage || '',
         });
+
+        const safety = (data as { contentSafety?: ProfileContentSafetyPublic }).contentSafety;
+        if (safety) {
+          setContentSafety(safety);
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
@@ -332,9 +342,13 @@ export function AppearanceSettingsScreen() {
       let uploadedAvatarUrl: string | null = null;
       if (pendingAvatar) {
         try {
+          setAiAnalyzing(true);
           const avatarResponse = await profileApi.uploadAvatar(pendingAvatar);
           if (avatarResponse.success) {
-            uploadedAvatarUrl = avatarResponse.avatarUrl;
+            uploadedAvatarUrl = avatarResponse.avatarUrl ?? null;
+            if (avatarResponse.contentSafety) {
+              setContentSafety(avatarResponse.contentSafety);
+            }
             setPendingAvatar(null);
             setAvatarPreview(null);
             showToast.success('Sucesso', 'Avatar atualizado');
@@ -342,6 +356,8 @@ export function AppearanceSettingsScreen() {
         } catch (error) {
           console.error('Erro ao fazer upload do avatar:', error);
           showToast.error('Erro', 'Não foi possível atualizar o avatar');
+        } finally {
+          setAiAnalyzing(false);
         }
       }
 
@@ -349,9 +365,13 @@ export function AppearanceSettingsScreen() {
       let uploadedBackgroundUrl: string | null = null;
       if (pendingBackground) {
         try {
+          setAiAnalyzing(true);
           const backgroundResponse = await profileApi.uploadBackground(pendingBackground);
           if (backgroundResponse.success) {
-            uploadedBackgroundUrl = backgroundResponse.backgroundUrl;
+            uploadedBackgroundUrl = backgroundResponse.backgroundUrl ?? null;
+            if (backgroundResponse.contentSafety) {
+              setContentSafety(backgroundResponse.contentSafety);
+            }
             setPendingBackground(null);
             setBackgroundPreview(null);
             showToast.success('Sucesso', 'Background atualizado');
@@ -359,6 +379,8 @@ export function AppearanceSettingsScreen() {
         } catch (error) {
           console.error('Erro ao fazer upload do background:', error);
           showToast.error('Erro', 'Não foi possível atualizar o background');
+        } finally {
+          setAiAnalyzing(false);
         }
       }
 
@@ -451,14 +473,30 @@ export function AppearanceSettingsScreen() {
         profilePayload.statusMessageContainerBg = settings.statusMessageContainerBg;
         profilePayload.statusMessageBubbleBg = settings.statusMessageBubbleBg;
       }
+
+      try {
+        const statusResponse = await userApi.updateStatus({
+          visibility: userStatus.visibility,
+          customMessage: userStatus.customMessage,
+        });
+        if (statusResponse.contentSafety) {
+          setContentSafety(statusResponse.contentSafety);
+        }
+      } catch (statusError) {
+        console.error('Erro ao salvar status:', statusError);
+      }
+
       const updateResponse = await profileApi.updateProfile({
         bio,
         profile: profilePayload,
-        status: userStatus,
       });
 
       if (!updateResponse.success) {
         throw new Error('Erro ao salvar alterações');
+      }
+
+      if (updateResponse.data?.contentSafety) {
+        setContentSafety(updateResponse.data.contentSafety);
       }
 
       // 6. Recarregar dados do usuário
@@ -523,6 +561,10 @@ export function AppearanceSettingsScreen() {
               maxLength={500}
             />
             <Text style={styles.charCount}>{bio.length}/500</Text>
+            <ProfileContentSafetyHint
+              restrictedForGuests={Boolean(contentSafety?.restrictedForGuests)}
+              reasons={contentSafety?.reasons}
+            />
           </View>
 
           <View style={styles.fieldContainer}>
@@ -1020,6 +1062,8 @@ export function AppearanceSettingsScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      <ProfileAiModerationModal visible={aiAnalyzing} />
     </View>
   );
 }
