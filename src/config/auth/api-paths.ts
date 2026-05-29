@@ -7,6 +7,7 @@ export const AUTH_API = {
   login: '/api/auth/login',
   login2fa: '/api/auth/login/2fa',
   register: '/api/auth/register',
+  registerModerateAvatar: '/api/auth/register/moderate-avatar',
   verifyEmail: '/api/auth/verify-email',
   resendVerification: '/api/auth/resend-verification',
   forgotPassword: '/api/auth/forgot-password',
