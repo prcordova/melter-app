@@ -2,6 +2,18 @@ import { api } from '../http-client';
 import { SHOP_API } from '../../config/shops/api-paths';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
 
+export type MarketplaceProductsListResponse = ApiResponse<any[]> & {
+  beyondSearch?: unknown[];
+  showBeyondSearch?: boolean;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+  meta?: unknown;
+};
+
 export const shopsApi = {
   getProducts: async (params: {
     page?: number;
@@ -40,7 +52,7 @@ export const shopsApi = {
       queryParams.append('onlyPurchased', 'true');
     }
 
-    const response = await api.get<ApiResponse<any>>(`${SHOP_API.marketplace.products}?${queryParams.toString()}`);
+    const response = await api.get<MarketplaceProductsListResponse>(`${SHOP_API.marketplace.products}?${queryParams.toString()}`);
     return response.data;
   },
 };

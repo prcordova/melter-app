@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ShopCard } from '../components/ShopCard';
+import { MarketplaceBeyondSearchDivider } from '../components/shop/MarketplaceBeyondSearchDivider';
 import { shopsApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { Picker } from '@react-native-picker/picker';
@@ -84,6 +85,7 @@ export function ShopsSearchScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
+  const [beyondProducts, setBeyondProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -146,8 +148,7 @@ export function ShopsSearchScreen() {
       });
 
       if (response.success) {
-        // API atual: { success, data: Product[], pagination } — versões antigas / wrappers: data.products, data.data
-        const raw = response.data as any
+        const raw = response.data as any;
         const productsData = Array.isArray(raw)
           ? raw
           : Array.isArray(raw?.products)
@@ -155,19 +156,27 @@ export function ShopsSearchScreen() {
             : Array.isArray(raw?.data)
               ? raw.data
               : [];
-        
-        const newProducts = productsData.map((p: any) => ({
+
+        const beyondRaw = response.beyondSearch;
+        const beyondData = Array.isArray(beyondRaw) ? beyondRaw : [];
+
+        const normalizeProduct = (p: any) => ({
           ...p,
-          // Garantir que categoryId seja um objeto se for string
-          categoryId: typeof p.categoryId === 'string' 
-            ? { name: p.categoryId } 
-            : p.categoryId,
-        }));
+          categoryId:
+            typeof p.categoryId === 'string' ? { name: p.categoryId } : p.categoryId,
+        });
+
+        const newProducts = productsData.map(normalizeProduct);
+        const newBeyond = beyondData.map(normalizeProduct);
+
+        const pagination = (response as any).pagination ?? raw?.pagination;
+        const isLastPage = pagination
+          ? pageNum >= pagination.pages
+          : newProducts.length < 20;
 
         if (pageNum === 1) {
           setProducts(newProducts);
         } else {
-          // Evitar duplicatas
           setProducts((prev) => {
             const existingIds = new Set(prev.map((p) => p._id));
             const uniqueNewProducts = newProducts.filter(
@@ -177,8 +186,8 @@ export function ShopsSearchScreen() {
           });
         }
 
-        // Paginação vem no mesmo nível que `data` na API /shops/products
-        const pagination = (response as any).pagination ?? raw?.pagination;
+        setBeyondProducts(isLastPage ? newBeyond : []);
+
         if (pagination) {
           setHasMore(pageNum < pagination.pages);
         } else {
@@ -190,6 +199,9 @@ export function ShopsSearchScreen() {
     } catch (error) {
       console.error('[ShopsSearchScreen] Erro ao buscar produtos:', error);
       showToast.error('Erro', 'Não foi possível carregar os produtos');
+      if (pageNum === 1) {
+        setBeyondProducts([]);
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -227,21 +239,37 @@ export function ShopsSearchScreen() {
     <ShopCard product={item} onPress={() => handleProductPress(item)} />
   );
 
-  const renderFooter = () => {
-    if (!loadingMore) return null;
+  const renderListFooter = () => {
+    if (loadingMore) {
+      return (
+        <View style={styles.footer}>
+          <ActivityIndicator size="small" color={COLORS.secondary.main} animating />
+        </View>
+      );
+    }
+
+    if (beyondProducts.length === 0) return null;
+
     return (
-      <View style={styles.footer}>
-        <ActivityIndicator
-          size="small"
-          color={COLORS.secondary.main}
-          animating={true}
-        />
+      <View style={styles.beyondSection}>
+        {products.length === 0 ? (
+          <Text style={styles.noExactMatch}>Nenhum resultado exato para os filtros atuais.</Text>
+        ) : null}
+        <MarketplaceBeyondSearchDivider />
+        {beyondProducts.map((product) => (
+          <View key={`beyond-${product._id}`} style={styles.beyondCardWrap}>
+            <ShopCard product={product} onPress={() => handleProductPress(product)} />
+          </View>
+        ))}
       </View>
     );
   };
 
+  const renderFooter = () => renderListFooter();
+
   const renderEmpty = () => {
     if (loading) return null;
+    if (beyondProducts.length > 0) return null;
     return (
       <View style={styles.empty}>
         <Text style={styles.emptyIcon}>🛍️</Text>
@@ -515,6 +543,19 @@ const styles = StyleSheet.create({
   footer: {
     paddingVertical: 20,
     alignItems: 'center',
+  },
+  beyondSection: {
+    paddingBottom: 16,
+  },
+  beyondCardWrap: {
+    marginBottom: 12,
+  },
+  noExactMatch: {
+    textAlign: 'center',
+    color: COLORS.text.secondary,
+    fontSize: 14,
+    marginBottom: 4,
+    paddingHorizontal: 8,
   },
   empty: {
     paddingVertical: 60,
