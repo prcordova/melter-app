@@ -9,6 +9,12 @@ import {
 import { COLORS } from '../../theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+const SELLER_ONBOARDING_PAID_ACCESS = {
+  title: 'Ninguém acessa o produto sem pagar',
+  note:
+    'Fotos, vídeos e arquivos do seu pacote digital ficam bloqueados até o comprador pagar ou manter a assinatura ativa. Visitantes da loja só veem a capa pública — o conteúdo nunca fica aberto para quem não pagou.',
+} as const;
+
 interface SellerVerification {
   status: 'pending' | 'approved' | 'rejected' | 'disabled' | 'needs_review' | 'appeal' | null;
   submittedAt?: string;
@@ -42,7 +48,7 @@ export function SellerVerificationStatusCard({
         title: 'Criar sua Loja',
         description:
           'Como funciona: após a verificação de documentos e aprovação, você adiciona produtos; compradores pagam e só quem compra (ou assina) acessa seu conteúdo — o valor das vendas vai para sua carteira Melter.\n\n' +
-          'Seus arquivos ficam protegidos para quem pagou. A plataforma valida documentos de vendedores e usa proteção Cloudflare contra ataques. Pode enviar o cadastro com tranquilidade: analisamos e avisamos em cada etapa.',
+          'A plataforma valida documentos de vendedores e usa proteção Cloudflare contra ataques. Pode enviar o cadastro com tranquilidade: analisamos e avisamos em cada etapa.',
         icon: 'storefront-outline' as const,
         color: COLORS.text.secondary,
         bgColor: COLORS.background.tertiary,
@@ -168,6 +174,7 @@ export function SellerVerificationStatusCard({
   };
 
   const config = getStatusConfig();
+  const showPaidAccessBanner = !sellerVerification;
 
   return (
     <View
@@ -179,6 +186,16 @@ export function SellerVerificationStatusCard({
         },
       ]}
     >
+      {showPaidAccessBanner ? (
+        <View style={styles.paidAccessBanner}>
+          <View style={styles.paidAccessBannerHeader}>
+            <Ionicons name="lock-closed-outline" size={20} color={COLORS.states.warning} />
+            <Text style={styles.paidAccessBannerTitle}>{SELLER_ONBOARDING_PAID_ACCESS.title}</Text>
+          </View>
+          <Text style={styles.paidAccessBannerNote}>{SELLER_ONBOARDING_PAID_ACCESS.note}</Text>
+        </View>
+      ) : null}
+
       <View style={styles.header}>
         <Ionicons name={config.icon} size={48} color={config.color} />
         <Text style={[styles.title, { color: config.color }]}>{config.title}</Text>
@@ -311,6 +328,31 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     padding: 20,
     marginBottom: 16,
+  },
+  paidAccessBanner: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.states.warning,
+    padding: 14,
+    marginBottom: 16,
+  },
+  paidAccessBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  paidAccessBannerTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  paidAccessBannerNote: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: COLORS.text.primary,
   },
   header: {
     alignItems: 'center',
