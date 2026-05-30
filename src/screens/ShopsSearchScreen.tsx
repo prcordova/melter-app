@@ -23,6 +23,13 @@ import {
   discoveryModeToTabName,
   type DiscoveryViewMode,
 } from '../utils/explorer-discovery-personalization';
+import {
+  marketplaceSortModeToQuery,
+  MARKETPLACE_GENDER_LABELS,
+  MARKETPLACE_SORT_LABELS,
+  type MarketplaceGenderFilter,
+  type MarketplaceSortMode,
+} from '../utils/marketplace-filters';
 
 interface Product {
   _id: string;
@@ -56,8 +63,22 @@ interface Product {
   };
 }
 
-type SortByType = 'createdAt' | 'price' | 'salesCount';
-type SortOrderType = 'asc' | 'desc';
+const MARKETPLACE_SORT_MODES: MarketplaceSortMode[] = [
+  'recent',
+  'oldest',
+  'price_high',
+  'price_low',
+  'best_sellers',
+];
+
+const MARKETPLACE_GENDER_FILTERS: MarketplaceGenderFilter[] = [
+  'women',
+  'men',
+  'trans_women',
+  'trans_men',
+  'other',
+  'all',
+];
 
 export function ShopsSearchScreen() {
   const navigation = useNavigation<any>();
@@ -66,8 +87,8 @@ export function ShopsSearchScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<SortByType>('createdAt');
-  const [sortOrder, setSortOrder] = useState<SortOrderType>('desc');
+  const [sortMode, setSortMode] = useState<MarketplaceSortMode>('recent');
+  const [genderFilter, setGenderFilter] = useState<MarketplaceGenderFilter>('women');
   const [showAdultContent, setShowAdultContent] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -92,7 +113,7 @@ export function ShopsSearchScreen() {
 
   useEffect(() => {
     fetchProducts(1);
-  }, [selectedCategory, sortBy, sortOrder, showAdultContent]);
+  }, [selectedCategory, sortMode, showAdultContent, showAdultContent ? genderFilter : null]);
 
   useEffect(() => {
     // Debounce na busca
@@ -111,6 +132,8 @@ export function ShopsSearchScreen() {
         setLoadingMore(true);
       }
 
+      const { sortBy, sortOrder } = marketplaceSortModeToQuery(sortMode);
+
       const response = await shopsApi.getProducts({
         page: pageNum,
         limit: 20,
@@ -119,6 +142,7 @@ export function ShopsSearchScreen() {
         sortBy,
         sortOrder,
         showAdultContent,
+        genderFilter: showAdultContent ? genderFilter : undefined,
       });
 
       if (response.success) {
@@ -307,48 +331,62 @@ export function ShopsSearchScreen() {
             <Text style={styles.adultToggleLabel}>+18</Text>
             <Switch
               value={showAdultContent}
-              onValueChange={setShowAdultContent}
+              onValueChange={(value) => {
+                setShowAdultContent(value);
+                if (value) {
+                  setGenderFilter('women');
+                }
+              }}
               trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
               thumbColor="#ffffff"
             />
           </View>
         </View>
 
-        {/* Filtros - Ordenar por e Ordem lado a lado */}
+        {/* Filtros — ordenação (+ gênero quando +18) */}
         <View style={styles.filtersSection}>
           <View style={styles.sortRow}>
-            {/* Ordenação */}
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>Ordenar por:</Text>
+            <View style={[styles.filterGroup, !showAdultContent && styles.filterGroupFull]}>
+              <Text style={styles.filterLabel}>Ordenar:</Text>
               <View style={styles.pickerWrapper}>
                 <Picker
-                  selectedValue={sortBy}
-                  onValueChange={(value: SortByType) => setSortBy(value)}
+                  selectedValue={sortMode}
+                  onValueChange={(value: MarketplaceSortMode) => setSortMode(value)}
                   style={styles.picker}
                   dropdownIconColor={COLORS.text.secondary}
                 >
-                  <Picker.Item label="Mais Recentes" value="createdAt" />
-                  <Picker.Item label="Preço" value="price" />
-                  <Picker.Item label="Mais Vendidos" value="salesCount" />
+                  {MARKETPLACE_SORT_MODES.map((mode) => (
+                    <Picker.Item
+                      key={mode}
+                      label={MARKETPLACE_SORT_LABELS[mode]}
+                      value={mode}
+                    />
+                  ))}
                 </Picker>
               </View>
             </View>
 
-            {/* Ordem */}
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>Ordem:</Text>
-              <View style={styles.pickerWrapper}>
-                <Picker
-                  selectedValue={sortOrder}
-                  onValueChange={(value: SortOrderType) => setSortOrder(value)}
-                  style={styles.picker}
-                  dropdownIconColor={COLORS.text.secondary}
-                >
-                  <Picker.Item label="Decrescente" value="desc" />
-                  <Picker.Item label="Crescente" value="asc" />
-                </Picker>
+            {showAdultContent ? (
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterLabel}>Perfil:</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    selectedValue={genderFilter}
+                    onValueChange={(value: MarketplaceGenderFilter) => setGenderFilter(value)}
+                    style={styles.picker}
+                    dropdownIconColor={COLORS.text.secondary}
+                  >
+                    {MARKETPLACE_GENDER_FILTERS.map((filter) => (
+                      <Picker.Item
+                        key={filter}
+                        label={MARKETPLACE_GENDER_LABELS[filter]}
+                        value={filter}
+                      />
+                    ))}
+                  </Picker>
+                </View>
               </View>
-            </View>
+            ) : null}
           </View>
         </View>
 
@@ -452,6 +490,9 @@ const styles = StyleSheet.create({
   filterGroup: {
     flex: 1,
     gap: 8,
+  },
+  filterGroupFull: {
+    flex: 1,
   },
   filterLabel: {
     fontSize: 14,

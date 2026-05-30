@@ -11,6 +11,7 @@ export const shopsApi = {
     sortBy?: 'createdAt' | 'price' | 'salesCount';
     sortOrder?: 'asc' | 'desc';
     showAdultContent?: boolean;
+    genderFilter?: string;
     sellerUsername?: string;
     onlyPurchased?: boolean;
   }) => {
@@ -28,6 +29,9 @@ export const shopsApi = {
     if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
     if (params.showAdultContent !== undefined) {
       queryParams.append('showAdultContent', String(params.showAdultContent));
+    }
+    if (params.genderFilter && params.genderFilter !== 'all') {
+      queryParams.append('genderFilter', params.genderFilter);
     }
     if (params.sellerUsername && params.sellerUsername !== 'all') {
       queryParams.append('sellerUsername', params.sellerUsername);
