@@ -39,6 +39,7 @@ import {
   markProfileRestrictedAck,
 } from '../lib/profile-restricted-ack';
 import { PROFILE_CONTENT_SAFETY_STRINGS } from '../config/profile-content-safety-strings';
+import { MessageRequestModal } from '../components/messages/MessageRequestModal';
 
 const { width } = Dimensions.get('window');
 const FREE_PLAN_DEFAULT_BG = require('../../public/assets/imgs/bgMelter.jpg');
@@ -83,6 +84,7 @@ export function UserProfileScreen() {
   const [statusDraft, setStatusDraft] = useState('');
   const [isSavingStatusMessage, setIsSavingStatusMessage] = useState(false);
   const [restrictedEntryGateOpen, setRestrictedEntryGateOpen] = useState(false);
+  const [messageRequestOpen, setMessageRequestOpen] = useState(false);
   const pendingRestrictedProfileRef = useRef<any>(null);
 
   const renderProfileSkeleton = () => (
@@ -540,10 +542,18 @@ export function UserProfileScreen() {
   };
 
   const handleMessagePress = () => {
-    if (friendshipStatus !== 'FRIENDS') {
-      showToast.info('Mensagens', 'Apenas amigos podem enviar mensagens.');
+    if (!user) return;
+
+    if (friendshipStatus === 'PENDING_SENT' || friendshipStatus === 'PENDING_RECEIVED') {
+      setMessageRequestOpen(true);
       return;
     }
+
+    if (friendshipStatus !== 'FRIENDS' && friendshipStatus !== 'FRIENDLY') {
+      showToast.info('Mensagens', 'Envie um pedido de amizade para conversar.');
+      return;
+    }
+
     navigation.navigate('MessagesStack', {
       screen: 'Chat',
       params: {
@@ -1441,6 +1451,16 @@ export function UserProfileScreen() {
           void refreshUser();
         }}
       />
+
+      {user && (user.id || user._id) ? (
+        <MessageRequestModal
+          visible={messageRequestOpen}
+          onClose={() => setMessageRequestOpen(false)}
+          recipientId={String(user.id || user._id)}
+          recipientUsername={user.username}
+          variant={friendshipStatus === 'PENDING_RECEIVED' ? 'reply' : 'outgoing'}
+        />
+      ) : null}
 
       <Modal
         visible={shareLinksModalVisible}

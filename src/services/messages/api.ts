@@ -29,14 +29,15 @@ export const messageApi = {
     return response.data;
   },
 
-  sendMessage: async (data: { 
-    recipientId: string; 
-    content: string; 
+  sendMessage: async (data: {
+    recipientId: string;
+    content: string;
     type?: 'text' | 'image' | 'document';
     imageUrl?: string | null;
     documentUrl?: string | null;
     documentName?: string | null;
     documentSize?: number | null;
+    asMessageRequest?: boolean;
     storyReply?: {
       storyId: string;
       mediaUrl: string;
@@ -52,6 +53,7 @@ export const messageApi = {
       documentName: data.documentName || null,
       documentSize: data.documentSize || null,
       storyReply: data.storyReply || null,
+      ...(data.asMessageRequest ? { asMessageRequest: true } : {}),
     });
     return response.data;
   },

@@ -222,8 +222,12 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
   };
 
   const handleMessagePress = () => {
-    if (friendshipStatus !== 'FRIENDS') {
-      showToast.info('Mensagens', 'Apenas amigos podem enviar mensagens.');
+    if (
+      friendshipStatus !== 'FRIENDS' &&
+      friendshipStatus !== 'PENDING_SENT' &&
+      friendshipStatus !== 'PENDING_RECEIVED'
+    ) {
+      showToast.info('Mensagens', 'Envie um pedido de amizade para conversar.');
       return;
     }
     navigation.navigate('MessagesStack', {

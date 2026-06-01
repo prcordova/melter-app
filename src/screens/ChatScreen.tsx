@@ -35,6 +35,7 @@ import { EmojiPicker } from '../components/EmojiPicker';
 import { useSocketIO } from '../hooks/useSocketIO';
 import { useUnreadMessages } from '../contexts/UnreadMessagesContext';
 import { AttachPickerModal, type AttachPickerOption } from '../components/chat/AttachPickerModal';
+import { MessageRequestModal } from '../components/messages/MessageRequestModal';
 import {
   type ChatMessage,
   normalizeChatMessage,
@@ -86,8 +87,11 @@ export function ChatScreen() {
   const [newMessage, setNewMessage] = useState('');
   const [hasMore, setHasMore] = useState(false);
   const [previousDayDate, setPreviousDayDate] = useState<string | null>(null);
-  const [isFriend, setIsFriend] = useState(true); // Assumimos que é amigo até carregar
-  const [checkingFriendship, setCheckingFriendship] = useState(true);
+  const [friendshipMode, setFriendshipMode] = useState<'loading' | 'friends' | 'pending' | 'none'>(
+    'loading'
+  );
+  const [isFriendshipRequester, setIsFriendshipRequester] = useState(false);
+  const [messageRequestOpen, setMessageRequestOpen] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   
@@ -192,21 +196,28 @@ export function ChatScreen() {
 
   const checkFriendship = async () => {
     try {
-      setCheckingFriendship(true);
+      setFriendshipMode('loading');
       const response = await userApi.getUserProfile(username);
       if (response.success) {
         setUserData(response.data);
-        // No backend do Melter, mensagens só para status FRIENDS
-        // O backend agora retorna 'FRIENDS' para amizade aceita
-        const isFriendly = response.data.friendshipStatus === 'FRIENDS';
-        setIsFriend(isFriendly);
+        const status = response.data.friendshipStatus as string | undefined;
+        if (status === 'FRIENDS' || status === 'FRIENDLY') {
+          setFriendshipMode('friends');
+          setIsFriendshipRequester(false);
+        } else if (status === 'PENDING_SENT' || status === 'PENDING') {
+          setFriendshipMode('pending');
+          setIsFriendshipRequester(true);
+        } else if (status === 'PENDING_RECEIVED') {
+          setFriendshipMode('pending');
+          setIsFriendshipRequester(false);
+        } else {
+          setFriendshipMode('none');
+          setIsFriendshipRequester(false);
+        }
       }
     } catch (error) {
       console.error('[ChatScreen] Erro ao verificar amizade:', error);
-      // Fallback: tentar ver se é amigo pela lista de mensagens se a rota de perfil falhar
-      setIsFriend(false);
-    } finally {
-      setCheckingFriendship(false);
+      setFriendshipMode('none');
     }
   };
 
@@ -226,7 +237,7 @@ export function ChatScreen() {
               setShowMenu(false);
               const id = userData.friendshipId || userData._id;
               await userApi.removeFriend(id);
-              setIsFriend(false);
+              setFriendshipMode('none');
               showToast.success('Sucesso', 'Amizade removida com sucesso');
             } catch (error) {
               showToast.error('Erro', 'Não foi possível remover a amizade');
@@ -325,6 +336,7 @@ export function ChatScreen() {
   };
 
   const handleSendMessage = async () => {
+    if (friendshipMode !== 'friends') return;
     // Não enviar se não tiver conteúdo e não tiver anexo
     if ((!newMessage.trim() && !selectedImage && !selectedDocument) || sending || uploading) return;
 
@@ -791,7 +803,7 @@ export function ChatScreen() {
             onPress={() => setShowMenu(false)}
           >
             <View style={[styles.menuContainer, { top: insets.top + 50 }]}>
-              {isFriend && (
+              {friendshipMode === 'friends' && (
                 <TouchableOpacity 
                   style={styles.menuItem} 
                   onPress={handleRemoveFriend}
@@ -869,14 +881,30 @@ export function ChatScreen() {
 
         {/* Input Area */}
         <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-          {!checkingFriendship && !isFriend ? (
+          {friendshipMode === 'pending' ? (
+            <View style={styles.pendingFriendshipContainer}>
+              <Ionicons name="information-circle-outline" size={22} color={COLORS.secondary.main} />
+              <Text style={styles.pendingFriendshipText}>
+                {isFriendshipRequester
+                  ? 'Pedido de amizade enviado. Você pode enviar uma mensagem que será entregue quando a amizade for aceita.'
+                  : 'Você recebeu um pedido de amizade. Envie uma mensagem para acompanhar sua resposta.'}
+              </Text>
+              <TouchableOpacity
+                style={styles.messageRequestButton}
+                onPress={() => setMessageRequestOpen(true)}
+              >
+                <Ionicons name="mail-outline" size={18} color="#fff" />
+                <Text style={styles.messageRequestButtonText}>Enviar solicitação de mensagem</Text>
+              </TouchableOpacity>
+            </View>
+          ) : friendshipMode === 'none' ? (
             <View style={styles.notFriendsContainer}>
               <Ionicons name="lock-closed-outline" size={20} color={COLORS.text.tertiary} />
               <Text style={styles.notFriendsText}>
-                Você só pode enviar mensagens para amigos.
+                Envie um pedido de amizade para conversar. Com amizade pendente, use a solicitação de mensagem.
               </Text>
             </View>
-          ) : (
+          ) : friendshipMode === 'friends' ? (
             <>
               <TouchableOpacity 
                 style={styles.attachButton}
@@ -957,9 +985,17 @@ export function ChatScreen() {
                 )}
               </TouchableOpacity>
             </>
-          )}
+          ) : null}
         </View>
       </KeyboardAvoidingView>
+
+      <MessageRequestModal
+        visible={messageRequestOpen}
+        onClose={() => setMessageRequestOpen(false)}
+        recipientId={userId}
+        recipientUsername={username}
+        variant={isFriendshipRequester ? 'outgoing' : 'reply'}
+      />
 
       <EmojiPicker
         visible={showEmojiPicker}
@@ -1219,6 +1255,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.tertiary,
     fontWeight: '500',
+    flex: 1,
+    textAlign: 'center',
+  },
+  pendingFriendshipContainer: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.background.tertiary,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    gap: 10,
+  },
+  pendingFriendshipText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
+  },
+  messageRequestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.secondary.main,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  messageRequestButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
