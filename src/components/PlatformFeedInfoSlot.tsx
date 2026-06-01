@@ -77,6 +77,16 @@ export function PlatformFeedInfoSlot({
   const safeIndex = items.length ? Math.min(index, items.length - 1) : 0;
   const active = items[safeIndex];
 
+  const goToPrev = useCallback(() => {
+    if (items.length <= 1) return;
+    setIndex((i) => (i - 1 + items.length) % items.length);
+  }, [items.length]);
+
+  const goToNext = useCallback(() => {
+    if (items.length <= 1) return;
+    setIndex((i) => (i + 1) % items.length);
+  }, [items.length]);
+
   useEffect(() => {
     if (items.length <= 1) return;
     const item = items[safeIndex];
@@ -291,13 +301,35 @@ export function PlatformFeedInfoSlot({
       <View style={styles.card}>
         {body}
         {items.length > 1 ? (
-          <View style={styles.dots}>
-            {items.map((it, i) => (
-              <View
-                key={it.id}
-                style={[styles.dot, i === safeIndex ? styles.dotActive : styles.dotInactive]}
-              />
-            ))}
+          <View style={styles.carouselNav}>
+            <TouchableOpacity
+              style={styles.carouselArrow}
+              onPress={goToPrev}
+              accessibilityLabel="Dica anterior"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="chevron-back" size={22} color={COLORS.primary.main} />
+            </TouchableOpacity>
+            <View style={styles.dots}>
+              {items.map((it, i) => (
+                <TouchableOpacity
+                  key={it.id}
+                  onPress={() => setIndex(i)}
+                  accessibilityLabel={`Dica ${i + 1} de ${items.length}`}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                >
+                  <View style={[styles.dot, i === safeIndex ? styles.dotActive : styles.dotInactive]} />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.carouselArrow}
+              onPress={goToNext}
+              accessibilityLabel="Próxima dica"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="chevron-forward" size={22} color={COLORS.primary.main} />
+            </TouchableOpacity>
           </View>
         ) : null}
       </View>
@@ -461,11 +493,30 @@ const styles = StyleSheet.create({
   btnDisabled: {
     opacity: 0.7,
   },
+  carouselNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingBottom: 10,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border.light,
+  },
+  carouselArrow: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
+    backgroundColor: COLORS.background.default,
+  },
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 4,
-    paddingBottom: 10,
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
   },
   dot: {
     width: 6,

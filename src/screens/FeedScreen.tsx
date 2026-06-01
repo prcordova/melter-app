@@ -416,7 +416,8 @@ export function FeedScreen() {
               ad={currentAd}
               onView={handleAdView}
               onClick={handleAdClick}
-              onSkip={() => handleNextAd(adPosition)}
+              onSkip={ads.length > 1 ? () => handleNextAd(adPosition) : undefined}
+              onVideoEnd={ads.length > 1 ? () => handleNextAd(adPosition) : undefined}
             />
           ) : null}
 

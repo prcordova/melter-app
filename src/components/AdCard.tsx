@@ -8,7 +8,7 @@ import {
   Linking,
   ActivityIndicator,
 } from 'react-native';
-import { Video, ResizeMode, type Video as VideoRef } from 'expo-av';
+import { Video, ResizeMode, type AVPlaybackStatus, type Video as VideoRef } from 'expo-av';
 import { Ad } from '../types/feed';
 import { COLORS } from '../theme/colors';
 import { devWarn } from '../config/dev-logs';
@@ -17,13 +17,15 @@ interface AdCardProps {
   ad: Ad;
   onView: (adId: string) => void;
   onClick: (adId: string) => void;
+  /** Próximo anúncio ao pular ou ao fim do vídeo (só passar com 2+ ads no feed). */
   onSkip?: () => void;
+  onVideoEnd?: () => void;
 }
 
 const MIN_SKIP_TIME = 5;
 const AUTO_SKIP_TIME = 30;
 
-export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
+export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps) {
   const [hasViewed, setHasViewed] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [canSkip, setCanSkip] = useState(false);
@@ -31,9 +33,11 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
 
   const onViewRef = useRef(onView);
   const onSkipRef = useRef(onSkip);
+  const onVideoEndRef = useRef(onVideoEnd);
   const videoRef = useRef<VideoRef>(null);
   onViewRef.current = onView;
   onSkipRef.current = onSkip;
+  onVideoEndRef.current = onVideoEnd;
 
   // Registra view uma vez por montagem (sem re-disparar quando canSkip muda).
   useEffect(() => {
@@ -42,9 +46,9 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
     setHasViewed(true);
   }, [ad?._id, hasViewed]);
 
-  // Timer isolado — deps estáveis evitam dezenas de setInterval ao rolar o feed.
+  // Timer de pular/auto-avanço só com 2+ anúncios (onSkip definido no feed).
   useEffect(() => {
-    if (!ad?._id) return;
+    if (!ad?._id || !onSkip) return;
 
     const interval = setInterval(() => {
       setTimeElapsed((prev) => {
@@ -61,7 +65,7 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [ad?._id]);
+  }, [ad?._id, onSkip]);
 
   // Libera decoder de vídeo ao sair da lista (evita OOM / fechamento silencioso no Android).
   useEffect(() => {
@@ -93,6 +97,20 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
     }
   };
 
+  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    if (!status.isLoaded || !status.didJustFinish) return;
+    onVideoEndRef.current?.();
+  };
+
+  const handleVideoLoaded = async () => {
+    setVideoLoading(false);
+    try {
+      await videoRef.current?.playAsync();
+    } catch {
+      /* ignore */
+    }
+  };
+
   if (!ad?._id) {
     return null;
   }
@@ -109,11 +127,13 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
         <Text style={styles.adBadgeText}>📢 Anúncio Patrocinado</Text>
       </View>
 
-      <TouchableOpacity style={styles.adContent} onPress={handleAdClick} activeOpacity={0.9}>
+      <View style={styles.adContent}>
         {isImage && ad.mediaUrl ? (
-          <View style={styles.mediaContainer}>
-            <Image source={{ uri: ad.mediaUrl }} style={styles.adMedia} resizeMode="contain" />
-          </View>
+          <TouchableOpacity onPress={handleAdClick} activeOpacity={0.9}>
+            <View style={styles.mediaContainer}>
+              <Image source={{ uri: ad.mediaUrl }} style={styles.adMedia} resizeMode="contain" />
+            </View>
+          </TouchableOpacity>
         ) : null}
 
         {isVideo && ad.mediaUrl ? (
@@ -121,20 +141,19 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
             <Video
               ref={videoRef}
               source={{ uri: ad.mediaUrl }}
-              rate={1.0}
-              volume={0}
-              isMuted
               resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={false}
+              shouldPlay
               isLooping={false}
-              useNativeControls={false}
+              isMuted
+              useNativeControls
               style={styles.adMedia}
               onLoadStart={() => setVideoLoading(true)}
-              onLoad={() => setVideoLoading(false)}
+              onLoad={handleVideoLoaded}
+              onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
               onError={() => setVideoLoading(false)}
             />
             {videoLoading ? (
-              <View style={styles.loadingOverlay}>
+              <View style={styles.loadingOverlay} pointerEvents="none">
                 <ActivityIndicator color={COLORS.secondary.main} size="large" />
               </View>
             ) : null}
@@ -156,7 +175,7 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
             <Text style={styles.adLink}>Saiba mais</Text>
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
 
       {onSkip ? (
         <View style={styles.skipContainer}>
@@ -172,14 +191,16 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
         </View>
       ) : null}
 
-      <View style={styles.progressBar}>
-        <View
-          style={[
-            styles.progressFill,
-            { width: `${Math.min((timeElapsed / AUTO_SKIP_TIME) * 100, 100)}%` },
-          ]}
-        />
-      </View>
+      {onSkip ? (
+        <View style={styles.progressBar}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${Math.min((timeElapsed / AUTO_SKIP_TIME) * 100, 100)}%` },
+            ]}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
