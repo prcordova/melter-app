@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header } from '../components/Header';
 import { ConversationCard } from '../components/ConversationCard';
+import { MessagesRequestsList } from '../components/messages/MessagesRequestsList';
+import { ChatSettingsModal } from '../components/messages/ChatSettingsModal';
 import { messageApi, userApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { COLORS } from '../theme/colors';
@@ -25,6 +27,33 @@ import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { useSocketIO } from '../hooks/useSocketIO';
 import { useUnreadMessages } from '../contexts/UnreadMessagesContext';
+import type { InboxRequestItem } from '../types/messages-inbox';
+import {
+  type ChatSettings,
+  type UserChatStatus,
+  DEFAULT_CHAT_SETTINGS,
+  DEFAULT_USER_CHAT_STATUS,
+  loadChatSettings,
+  saveChatSettings,
+  loadUserChatStatus,
+  saveUserChatStatus,
+} from '../lib/chat-settings';
+
+const CONVERSATIONS_PAGE_SIZE = 20;
+
+function sortConversations(list: Conversation[]): Conversation[] {
+  return [...list].sort((a, b) => {
+    try {
+      const timeA = a.lastMessage?.timestamp ? new Date(a.lastMessage.timestamp).getTime() : 0;
+      const timeB = b.lastMessage?.timestamp ? new Date(b.lastMessage.timestamp).getTime() : 0;
+      const finalA = Number.isNaN(timeA) ? 0 : timeA;
+      const finalB = Number.isNaN(timeB) ? 0 : timeB;
+      return finalB - finalA;
+    } catch {
+      return 0;
+    }
+  });
+}
 
 interface Conversation {
   _id: string;
@@ -75,18 +104,41 @@ interface SearchResultConversation extends Conversation {
 export function MessagesScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<MessagesScreenNavigationProp>();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [filteredConversations, setFilteredConversations] = useState<Conversation[]>([]);
+  const [inboxConversations, setInboxConversations] = useState<Conversation[]>([]);
+  const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
+  const [inboxHasMore, setInboxHasMore] = useState(false);
+  const [archivedHasMore, setArchivedHasMore] = useState(false);
+  const [inboxCursor, setInboxCursor] = useState<string | null>(null);
+  const [archivedCursor, setArchivedCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [activeTab, setActiveTab] = useState<'inbox' | 'archived'>('inbox');
+  const [activeTab, setActiveTab] = useState<'inbox' | 'archived' | 'requests'>('inbox');
+  const [requestItems, setRequestItems] = useState<InboxRequestItem[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestsActionId, setRequestsActionId] = useState<string | null>(null);
+  const [showChatSettings, setShowChatSettings] = useState(false);
+  const [chatSettings, setChatSettings] = useState<ChatSettings>(DEFAULT_CHAT_SETTINGS);
+  const [userChatStatus, setUserChatStatus] = useState<UserChatStatus>(DEFAULT_USER_CHAT_STATUS);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const { modalProps, showConfirm, hideModal } = useCustomModal();
   const { refreshUnreadCount } = useUnreadMessages();
-  
+
+  const allConversations = useMemo(
+    () => [...inboxConversations, ...archivedConversations],
+    [inboxConversations, archivedConversations]
+  );
+
+  const listConversations =
+    activeTab === 'inbox'
+      ? inboxConversations
+      : activeTab === 'archived'
+        ? archivedConversations
+        : [];
+
   // Estados para busca
   const [searchResultsConversations, setSearchResultsConversations] = useState<SearchResultConversation[]>([]);
   const [searchResultsFriends, setSearchResultsFriends] = useState<FriendUser[]>([]);
@@ -97,19 +149,93 @@ export function MessagesScreen() {
   // Socket.IO para receber mensagens em tempo real
   const { socket } = useSocketIO();
 
+  useEffect(() => {
+    loadChatSettings().then(setChatSettings);
+    loadUserChatStatus().then(setUserChatStatus);
+  }, []);
+
+  const fetchRequestsInbox = useCallback(async () => {
+    try {
+      setRequestsLoading(true);
+      const response = await messageApi.getRequestsInbox();
+      if (response?.success && response.data?.items) {
+        setRequestItems(response.data.items);
+      } else {
+        setRequestItems([]);
+      }
+    } catch (error) {
+      console.error('[MessagesScreen] Erro ao carregar solicitações:', error);
+      setRequestItems([]);
+    } finally {
+      setRequestsLoading(false);
+    }
+  }, []);
+
+  const loadConversationsList = useCallback(
+    async (archived: boolean, reset: boolean) => {
+      const setList = archived ? setArchivedConversations : setInboxConversations;
+      const setHasMore = archived ? setArchivedHasMore : setInboxHasMore;
+      const setCursor = archived ? setArchivedCursor : setInboxCursor;
+      const currentCursor = archived ? archivedCursor : inboxCursor;
+
+      try {
+        if (!reset) setLoadingMore(true);
+
+        const response = await messageApi.getConversations({
+          limit: CONVERSATIONS_PAGE_SIZE,
+          cursor: reset ? undefined : currentCursor ?? undefined,
+          archived,
+        });
+
+        if (response?.success) {
+          const page = response as {
+            data: Conversation[];
+            hasMore?: boolean;
+            nextCursor?: string | null;
+          };
+          const data = Array.isArray(page.data) ? page.data : [];
+          const sorted = sortConversations(data);
+          setList((prev) => (reset ? sorted : [...prev, ...sorted]));
+          setHasMore(Boolean(page.hasMore));
+          setCursor(page.nextCursor ?? null);
+        }
+      } catch (error) {
+        console.error('[MessagesScreen] Erro ao carregar conversas:', error);
+        if (reset) setList([]);
+      } finally {
+        if (!reset) setLoadingMore(false);
+      }
+    },
+    [archivedCursor, inboxCursor]
+  );
+
+  const refreshInbox = useCallback(async () => {
+    setLoading(true);
+    await Promise.all([loadConversationsList(false, true), fetchRequestsInbox()]);
+    setLoading(false);
+  }, [loadConversationsList, fetchRequestsInbox]);
+
   useFocusEffect(
     React.useCallback(() => {
-      fetchConversations();
+      refreshInbox();
       refreshUnreadCount();
-    }, [refreshUnreadCount])
+    }, [refreshInbox, refreshUnreadCount])
   );
+
+  useEffect(() => {
+    if (activeTab === 'archived') {
+      loadConversationsList(true, true);
+    } else if (activeTab === 'requests') {
+      fetchRequestsInbox();
+    }
+  }, [activeTab]);
 
   // Listener para novas mensagens / lidas (Pusher)
   useEffect(() => {
     if (!socket || !user?.id) return;
 
     const handleNewMessage = () => {
-      fetchConversations().catch((error) => {
+      refreshInbox().catch((error) => {
         console.error('[MessagesScreen] Erro ao recarregar conversas:', error);
       });
       refreshUnreadCount();
@@ -126,25 +252,7 @@ export function MessagesScreen() {
       socket.off('new-message', handleNewMessage);
       socket.off('messages-read', handleMessagesRead);
     };
-  }, [socket, user?.id, refreshUnreadCount]);
-
-  useEffect(() => {
-    // Filtrar conversas quando a busca ou aba muda (apenas quando não está pesquisando)
-    if (!searchQuery.trim()) {
-      let result = conversations;
-
-      // Filtro por aba
-      if (activeTab === 'inbox') {
-        result = result.filter(conv => !conv.isArchived);
-      } else {
-        result = result.filter(conv => conv.isArchived);
-      }
-
-      setFilteredConversations(result);
-      setSearchResultsConversations([]);
-      setSearchResultsFriends([]);
-    }
-  }, [searchQuery, conversations, activeTab]);
+  }, [socket, user?.id, refreshUnreadCount, refreshInbox]);
 
   // Buscar quando o usuário digitar
   useEffect(() => {
@@ -184,10 +292,10 @@ export function MessagesScreen() {
         const results: SearchResultConversation[] = [];
         
           // Buscar em cada conversa
-        for (const conv of conversations) {
-          // Verificar se está na aba correta
-          if (activeTab === 'inbox' && conv.isArchived) continue;
-          if (activeTab === 'archived' && !conv.isArchived) continue;
+        const searchPool =
+          activeTab === 'archived' ? archivedConversations : inboxConversations;
+
+        for (const conv of searchPool) {
 
           // Verificar se o texto está no username
           const matchesUsername = conv.user.username.toLowerCase().includes(queryLower);
@@ -245,21 +353,18 @@ export function MessagesScreen() {
                 }
               } else {
                 // Buscar conversa correspondente
-                const conv = conversations.find(c => 
-                  c._id === convId || c.user._id === convId
+                const conv = searchPool.find(
+                  (c) => c._id === convId || c.user._id === convId
                 );
-                
+
                 if (conv) {
-                  const inCorrectTab = activeTab === 'inbox' ? !conv.isArchived : conv.isArchived;
-                  if (inCorrectTab) {
-                    conversationMap.set(convId, {
-                      ...conv,
-                      matchedMessage: {
-                        content: msg.content,
-                        timestamp: msg.timestamp || msg.createdAt || new Date().toISOString(),
-                      },
-                    });
-                  }
+                  conversationMap.set(convId, {
+                    ...conv,
+                    matchedMessage: {
+                      content: msg.content,
+                      timestamp: msg.timestamp || msg.createdAt || new Date().toISOString(),
+                    },
+                  });
                 }
               }
             });
@@ -286,7 +391,7 @@ export function MessagesScreen() {
         if (friendsResponse && friendsResponse.success) {
           const friends = friendsResponse.data || [];
           // Filtrar apenas amigos que não estão nas conversas existentes
-          const existingUserIds = new Set(conversations.map(conv => conv.user._id));
+          const existingUserIds = new Set(allConversations.map((conv) => conv.user._id));
           const newFriends = friends.filter((friend: FriendUser) => 
             !existingUserIds.has(friend._id) && 
             friend.username.toLowerCase().includes(query.toLowerCase())
@@ -306,51 +411,102 @@ export function MessagesScreen() {
     }
   };
 
-  const fetchConversations = async () => {
+  const patchConversationInLists = (
+    conversationId: string,
+    patch: Partial<Conversation>
+  ) => {
+    const mapList = (list: Conversation[]) =>
+      list.map((c) =>
+        c._id === conversationId || c.user._id === conversationId ? { ...c, ...patch } : c
+      );
+    setInboxConversations(mapList);
+    setArchivedConversations(mapList);
+  };
+
+  const removeConversationFromLists = (conversationId: string) => {
+    const filterList = (list: Conversation[]) =>
+      list.filter((c) => c._id !== conversationId && c.user._id !== conversationId);
+    setInboxConversations(filterList);
+    setArchivedConversations(filterList);
+  };
+
+  const handleLoadMore = () => {
+    if (loadingMore || loading || searchQuery.trim()) return;
+    if (activeTab === 'inbox' && inboxHasMore) {
+      loadConversationsList(false, false);
+    } else if (activeTab === 'archived' && archivedHasMore) {
+      loadConversationsList(true, false);
+    }
+  };
+
+  const handleRefresh = () => {
+    if (activeTab === 'requests') {
+      fetchRequestsInbox();
+      return;
+    }
+    if (activeTab === 'archived') {
+      loadConversationsList(true, true);
+      return;
+    }
+    refreshInbox();
+  };
+
+  const handleAcceptRequest = async (item: InboxRequestItem) => {
+    setRequestsActionId(item.friendshipId);
     try {
-      setLoading(true);
-      const response = await messageApi.getConversations();
-      
-      if (response && response.success) {
-        // Garantir que temos um array
-        const data = Array.isArray(response.data) ? response.data : [];
-        
-        // Ordenar por última mensagem (mais recente primeiro)
-        const sorted = [...data].sort((a: Conversation, b: Conversation) => {
-          try {
-            const timeA = a.lastMessage?.timestamp ? new Date(a.lastMessage.timestamp).getTime() : 0;
-            const timeB = b.lastMessage?.timestamp ? new Date(b.lastMessage.timestamp).getTime() : 0;
-            
-            // Lidar com datas inválidas (NaN)
-            const finalA = isNaN(timeA) ? 0 : timeA;
-            const finalB = isNaN(timeB) ? 0 : timeB;
-            
-            return finalB - finalA;
-          } catch (e) {
-            return 0;
-          }
+      const response = await userApi.acceptFriendRequest(item.friendshipId);
+      if (response?.success) {
+        showToast.success('Sucesso', 'Solicitação aceita');
+        await Promise.all([fetchRequestsInbox(), loadConversationsList(false, true)]);
+        navigation.navigate('Chat', {
+          userId: item.requesterId,
+          username: item.requesterUsername,
+          avatar: item.requesterAvatar,
         });
-        setConversations(sorted);
+      } else {
+        showToast.error('Erro', 'Não foi possível aceitar a solicitação');
       }
     } catch (error) {
-      console.error('[MessagesScreen] Erro ao carregar conversas:', error);
-      setConversations([]);
+      console.error('[MessagesScreen] Erro ao aceitar solicitação:', error);
+      showToast.error('Erro', 'Não foi possível aceitar a solicitação');
     } finally {
-      setLoading(false);
+      setRequestsActionId(null);
     }
+  };
+
+  const handleRejectRequest = async (item: InboxRequestItem) => {
+    setRequestsActionId(item.friendshipId);
+    try {
+      const response = await userApi.rejectFriendRequest(item.friendshipId);
+      if (response?.success) {
+        showToast.success('Sucesso', 'Solicitação recusada');
+        await fetchRequestsInbox();
+      } else {
+        showToast.error('Erro', 'Não foi possível recusar a solicitação');
+      }
+    } catch (error) {
+      console.error('[MessagesScreen] Erro ao recusar solicitação:', error);
+      showToast.error('Erro', 'Não foi possível recusar a solicitação');
+    } finally {
+      setRequestsActionId(null);
+    }
+  };
+
+  const handleSaveChatSettings = async (
+    settings: ChatSettings,
+    status: UserChatStatus
+  ) => {
+    setChatSettings(settings);
+    setUserChatStatus(status);
+    await Promise.all([saveChatSettings(settings), saveUserChatStatus(status)]);
+    showToast.success('Sucesso', 'Configurações salvas');
   };
 
   const handleConversationPress = async (conversation: Conversation) => {
     if (conversation.unreadCount > 0) {
       try {
         await messageApi.markAsRead(conversation.user._id);
-        setConversations((prev) =>
-          prev.map((c) =>
-            c._id === conversation._id || c.user._id === conversation.user._id
-              ? { ...c, unreadCount: 0 }
-              : c
-          )
-        );
+        patchConversationInLists(conversation.user._id, { unreadCount: 0 });
         await refreshUnreadCount();
       } catch (error) {
         console.warn('[MessagesScreen] Erro ao marcar como lida ao abrir:', error);
@@ -414,23 +570,32 @@ export function MessagesScreen() {
         // Usar o valor retornado pela API para garantir consistência
         const newArchivedState = response.data?.isArchived ?? !conversationToArchive.isArchived;
         
-        // Atualizar estado local imediatamente com o valor retornado pela API
-        // O _id da conversa é o ID do outro usuário (mesmo que user._id)
-        setConversations(prev => prev.map(c => {
-          // Usar _id que é o ID do outro usuário
-          if (c._id === conversationToArchive._id) {
-            return { ...c, isArchived: newArchivedState };
-          }
-          return c;
-        }));
-        
-        // Mostrar toast de sucesso
+        const updated = { ...conversationToArchive, isArchived: newArchivedState };
+        if (newArchivedState) {
+          setInboxConversations((prev) =>
+            prev.filter((c) => c._id !== conversationToArchive._id)
+          );
+          setArchivedConversations((prev) => {
+            const without = prev.filter((c) => c._id !== conversationToArchive._id);
+            return sortConversations([updated, ...without]);
+          });
+        } else {
+          setArchivedConversations((prev) =>
+            prev.filter((c) => c._id !== conversationToArchive._id)
+          );
+          setInboxConversations((prev) => {
+            const without = prev.filter((c) => c._id !== conversationToArchive._id);
+            return sortConversations([updated, ...without]);
+          });
+        }
+
         showToast.success('Sucesso', newArchivedState ? 'Conversa arquivada' : 'Conversa desarquivada');
-        
-        // Recarregar conversas após um delay para garantir que o backend processou
-        // Isso garante que o estado está sincronizado com o servidor
+
         setTimeout(async () => {
-          await fetchConversations();
+          await Promise.all([
+            loadConversationsList(false, true),
+            loadConversationsList(true, true),
+          ]);
         }, 1000);
       } else {
         console.error('[MessagesScreen] Resposta não foi bem-sucedida:', response);
@@ -442,11 +607,7 @@ export function MessagesScreen() {
       // Se foi timeout, fazer atualização otimista
       if (error.message && error.message.includes('Timeout')) {
         const newArchivedState = !conversationToArchive.isArchived;
-        setConversations(prev => prev.map(c => 
-          c._id === conversationToArchive._id 
-            ? { ...c, isArchived: newArchivedState } 
-            : c
-        ));
+        patchConversationInLists(conversationToArchive._id, { isArchived: newArchivedState });
         showToast.info('Aviso', 'Ação realizada localmente. Verifique sua conexão.');
       } else {
         showToast.error('Erro', error.message || 'Não foi possível processar o pedido');
@@ -466,7 +627,7 @@ export function MessagesScreen() {
         try {
           const response = await messageApi.deleteConversation(selectedConversation._id);
           if (response.success) {
-            setConversations((prev) => prev.filter((c) => c._id !== selectedConversation._id));
+            removeConversationFromLists(selectedConversation._id);
             setShowOptionsModal(false);
             showToast.success('Sucesso', 'Conversa deletada localmente.');
           }
@@ -496,16 +657,12 @@ export function MessagesScreen() {
       
       if (response && response.success) {
         // Atualizar estado local - zerar contador de não lidas
-        setConversations(prev => prev.map(c => 
-          c._id === conversationToMark._id || c.user._id === conversationToMark.user._id
-            ? { ...c, unreadCount: 0 }
-            : c
-        ));
-        
+        patchConversationInLists(conversationToMark.user._id, { unreadCount: 0 });
+
         showToast.success('Sucesso', 'Mensagens marcadas como lidas');
         await refreshUnreadCount();
-        setTimeout(async () => {
-          await fetchConversations();
+        setTimeout(() => {
+          refreshInbox();
         }, 500);
       } else {
         showToast.error('Erro', 'Não foi possível marcar como lida');
@@ -567,13 +724,24 @@ export function MessagesScreen() {
       <View style={styles.empty}>
         <Text style={styles.emptyIcon}>💬</Text>
         <Text style={styles.emptyText}>
-          {searchQuery ? 'Nenhuma conversa encontrada' : 'Nenhuma conversa ainda'}
+          {searchQuery
+            ? 'Nenhuma conversa encontrada'
+            : activeTab === 'archived'
+              ? 'Nenhuma conversa arquivada'
+              : 'Nenhuma conversa ainda'}
         </Text>
         <Text style={styles.emptySubtext}>
-          {searchQuery
-            ? 'Tente buscar por outro nome'
-            : 'Inicie uma nova conversa!'}
+          {searchQuery ? 'Tente buscar por outro nome' : 'Inicie uma nova conversa!'}
         </Text>
+      </View>
+    );
+  };
+
+  const renderListFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.loadMoreFooter}>
+        <ActivityIndicator size="small" color={COLORS.secondary.main} />
       </View>
     );
   };
@@ -755,25 +923,45 @@ export function MessagesScreen() {
         </View>
       </View>
 
-      {/* Tabs Inbox / Archived - apenas quando não está pesquisando */}
+      {/* Configurações + abas — apenas sem busca */}
       {!searchQuery.trim() && (
         <View style={styles.tabContainer}>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'inbox' && styles.activeTab]}
-            onPress={() => setActiveTab('inbox')}
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => setShowChatSettings(true)}
+            accessibilityLabel="Configurações do chat"
           >
-            <Text style={[styles.tabText, activeTab === 'inbox' && styles.activeTabText]}>
-              Entrada {conversations.filter(c => !c.isArchived).length > 0 && `(${conversations.filter(c => !c.isArchived).length})`}
-            </Text>
+            <Ionicons name="settings-outline" size={22} color={COLORS.text.secondary} />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'archived' && styles.activeTab]}
-            onPress={() => setActiveTab('archived')}
-          >
-            <Text style={[styles.tabText, activeTab === 'archived' && styles.activeTabText]}>
-              Arquivadas {conversations.filter(c => c.isArchived).length > 0 && `(${conversations.filter(c => c.isArchived).length})`}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.tabsRow}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'inbox' && styles.activeTab]}
+              onPress={() => setActiveTab('inbox')}
+            >
+              <Text style={[styles.tabText, activeTab === 'inbox' && styles.activeTabText]}>
+                Entrada
+                {inboxConversations.length > 0 ? ` (${inboxConversations.length})` : ''}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'archived' && styles.activeTab]}
+              onPress={() => setActiveTab('archived')}
+            >
+              <Text style={[styles.tabText, activeTab === 'archived' && styles.activeTabText]}>
+                Arquivadas
+                {archivedConversations.length > 0 ? ` (${archivedConversations.length})` : ''}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'requests' && styles.activeTab]}
+              onPress={() => setActiveTab('requests')}
+            >
+              <Text style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}>
+                Solicitações
+                {requestItems.length > 0 ? ` (${requestItems.length})` : ''}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -859,25 +1047,33 @@ export function MessagesScreen() {
             )}
           </View>
         </View>
+      ) : activeTab === 'requests' ? (
+        <MessagesRequestsList
+          items={requestItems}
+          loading={requestsLoading}
+          actionLoadingId={requestsActionId}
+          onAccept={handleAcceptRequest}
+          onReject={handleRejectRequest}
+        />
+      ) : loading && listConversations.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          {renderConversationsSkeleton()}
+          <Text style={styles.loadingText}>Carregando conversas...</Text>
+        </View>
       ) : (
-        /* Lista normal de conversas quando não está pesquisando */
-        loading ? (
-          <View style={styles.loadingContainer}>
-            {renderConversationsSkeleton()}
-            <Text style={styles.loadingText}>Carregando conversas...</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={filteredConversations}
-            renderItem={renderItem}
-            keyExtractor={(item, index) => (item && item._id) ? item._id : `conv-${index}`}
-            ListEmptyComponent={renderEmpty}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            refreshing={loading}
-            onRefresh={fetchConversations}
-          />
-        )
+        <FlatList
+          data={listConversations}
+          renderItem={renderItem}
+          keyExtractor={(item, index) => (item && item._id) ? item._id : `conv-${index}`}
+          ListEmptyComponent={renderEmpty}
+          ListFooterComponent={renderListFooter}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshing={loading && !loadingMore}
+          onRefresh={handleRefresh}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.35}
+        />
       )}
 
       {/* Modal de Opções */}
@@ -964,10 +1160,14 @@ export function MessagesScreen() {
         </Pressable>
       </Modal>
 
-      {/* Custom Modal para confirmações */}
-      <CustomModal
-        {...modalProps}
-        onClose={hideModal}
+      <CustomModal {...modalProps} onClose={hideModal} />
+
+      <ChatSettingsModal
+        visible={showChatSettings}
+        settings={chatSettings}
+        userStatus={userChatStatus}
+        onClose={() => setShowChatSettings(false)}
+        onSave={handleSaveChatSettings}
       />
     </View>
   </ImageBackground>
@@ -1011,18 +1211,37 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.background.paper,
-    paddingHorizontal: 16,
-    paddingBottom: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border.light,
+    gap: 8,
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.background.tertiary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabsRow: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   tab: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginRight: 12,
+    paddingHorizontal: 12,
     borderRadius: 20,
     backgroundColor: COLORS.background.tertiary,
+  },
+  loadMoreFooter: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   activeTab: {
     backgroundColor: COLORS.secondary.main,

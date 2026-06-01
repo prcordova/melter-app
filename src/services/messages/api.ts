@@ -81,6 +81,26 @@ export const messageApi = {
     return response.data;
   },
 
+  getRequestsInbox: async () => {
+    const response = await api.get<
+      ApiResponse<{
+        items: Array<{
+          friendshipId: string;
+          requesterId: string;
+          requesterUsername: string;
+          requesterAvatar?: string;
+          createdAt: string;
+          hasMessageRequest: boolean;
+          messagePreview?: string;
+          messageRequestId?: string;
+        }>;
+        count: number;
+        withMessageCount: number;
+      }>
+    >(MESSAGES_API.requestsInbox);
+    return response.data;
+  },
+
   uploadImage: async (imageUri: string, recipientId: string) => {
     const token = await AsyncStorage.getItem('token');
     const userId = await AsyncStorage.getItem('userId');

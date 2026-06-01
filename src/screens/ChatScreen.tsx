@@ -40,6 +40,12 @@ import {
   normalizeChatMessage,
   MESSAGE_READ_CHECK_COLOR,
 } from '../utils/message-helpers';
+import {
+  type ChatSettings,
+  DEFAULT_CHAT_SETTINGS,
+  loadChatSettings,
+  getChatBackgroundSource,
+} from '../lib/chat-settings';
 
 const TAB_BAR_HEIGHT = 60;
 
@@ -92,6 +98,7 @@ export function ChatScreen() {
   
   // Estado para emoji picker
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [chatSettings, setChatSettings] = useState<ChatSettings>(DEFAULT_CHAT_SETTINGS);
 
   // Socket.IO para receber mensagens em tempo real
   const { socket } = useSocketIO();
@@ -100,6 +107,12 @@ export function ChatScreen() {
     fetchMessages();
     checkFriendship();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadChatSettings().then(setChatSettings);
+    }, [])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -679,7 +692,9 @@ export function ChatScreen() {
                 <Text
                   style={[
                     styles.messageText,
-                    isSentByMe ? styles.myMessageText : styles.otherMessageText,
+                    isSentByMe
+                      ? styles.myMessageText
+                      : [styles.otherMessageText, { color: chatSettings.textColor }],
                   ]}
                 >
                   {item.content}
@@ -728,14 +743,10 @@ export function ChatScreen() {
   };
 
   const avatarSource = getAvatarUrl(avatar);
+  const chatBgSource = getChatBackgroundSource(chatSettings.backgroundImage);
 
-  return (
-    <ImageBackground
-      source={require('../../public/assets/imgs/bgMelter.jpg')} // Background do Melter
-      style={styles.backgroundImage}
-      imageStyle={styles.backgroundImageStyle}
-      resizeMode="repeat"
-    >
+  const chatShell = (
+    <>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -948,21 +959,39 @@ export function ChatScreen() {
             </>
           )}
         </View>
-          </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
 
-        {/* Emoji Picker Modal */}
-        <EmojiPicker
-          visible={showEmojiPicker}
-          onEmojiSelect={handleEmojiSelect}
-          onClose={() => setShowEmojiPicker(false)}
-        />
+      <EmojiPicker
+        visible={showEmojiPicker}
+        onEmojiSelect={handleEmojiSelect}
+        onClose={() => setShowEmojiPicker(false)}
+      />
 
-        <AttachPickerModal
-          visible={showAttachPicker}
-          onClose={() => setShowAttachPicker(false)}
-          onSelect={handleAttachOption}
-        />
+      <AttachPickerModal
+        visible={showAttachPicker}
+        onClose={() => setShowAttachPicker(false)}
+        onSelect={handleAttachOption}
+      />
+    </>
+  );
+
+  if (chatBgSource) {
+    return (
+      <ImageBackground
+        source={chatBgSource}
+        style={[styles.backgroundImage, { backgroundColor: chatSettings.backgroundColor }]}
+        imageStyle={styles.backgroundImageStyle}
+        resizeMode="repeat"
+      >
+        {chatShell}
       </ImageBackground>
+    );
+  }
+
+  return (
+    <View style={[styles.backgroundImage, { backgroundColor: chatSettings.backgroundColor }]}>
+      {chatShell}
+    </View>
   );
 }
 
