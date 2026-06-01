@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { walletApi } from '../../services/api';
+import { setPendingMpDeposit } from '../../lib/wallet-pending-deposit';
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../CustomToast';
 import { Linking } from 'react-native';
@@ -23,7 +24,8 @@ import { SelectRow } from '../SelectRow';
 interface AddBalanceModalProps {
   visible: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  /** Chamado após abrir checkout (recarga pendente — reconciliar na carteira). */
+  onSuccess?: (pendingDepositId?: string) => void;
 }
 
 interface BalancePackage {
@@ -125,28 +127,22 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
   const fetchData = async () => {
     setLoadingFee(true);
     try {
-      // Buscar pacotes e taxas em paralelo
-      const [packagesResponse, feesResponse] = await Promise.all([
+      const [packagesResponse, feeResponse] = await Promise.all([
         walletApi.getBalancePackages(),
-        walletApi.getFees(),
+        walletApi.getCustomDepositFee(),
       ]);
 
-      // Processar pacotes
       if (packagesResponse.success && packagesResponse.data && packagesResponse.data.length > 0) {
         setPackages(packagesResponse.data);
         if (!selectedPackageId) setSelectedPackageId(packagesResponse.data[0]._id);
         setCurrentPackageIndex(0);
       } else {
-        console.warn('[ADD_BALANCE] Nenhum pacote encontrado. Resposta:', packagesResponse);
         setPackages([]);
       }
 
-      // Processar taxas
-      if (feesResponse.success && feesResponse.data?.fees) {
-        const fee = feesResponse.data.fees.customDepositFeePercentage || 8;
-        setCustomDepositFee(fee);
+      if (feeResponse.success && feeResponse.data) {
+        setCustomDepositFee(feeResponse.data.customDepositFeePercentage ?? 8);
       } else {
-        console.warn('[ADD_BALANCE] Erro ao buscar taxas, usando padrão. Resposta:', feesResponse);
         setCustomDepositFee(8);
       }
     } catch (error) {
@@ -212,9 +208,17 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
 
       if (response.success && response.data?.checkoutUrl) {
         const checkoutUrl = response.data.checkoutUrl;
+        const pendingDepositId = response.data.pendingDepositId;
+
+        if (pendingDepositId) {
+          await setPendingMpDeposit(null, pendingDepositId);
+        }
+
         const canOpen = await Linking.canOpenURL(checkoutUrl);
         if (canOpen) {
           await Linking.openURL(checkoutUrl);
+          onSuccess?.(pendingDepositId);
+          onClose();
         } else {
           showToast.error('Não foi possível abrir o link de pagamento');
           navigatingRef.current = false;

@@ -30,7 +30,9 @@ export const walletApi = {
   }) => {
     const response = await api.post<ApiResponse<{
       checkoutUrl: string;
-      gateway: string;
+      sessionId?: string;
+      provider: string;
+      pendingDepositId?: string;
     }>>('/api/wallet/create-checkout', data);
     return response.data;
   },
@@ -57,10 +59,19 @@ export const walletApi = {
     const response = await api.post<ApiResponse<any>>('/api/wallet/withdraw', data);
     return response.data;
   },
-  getPaymentStatus: async (paymentId: string) => {
+  getPaymentStatus: async (paymentId: string, options?: { confirm?: boolean }) => {
+    const confirm = options?.confirm ? '&confirm=true' : '';
     const response = await api.get<ApiResponse<{
       status: string;
-    }>>(`/api/mercadopago/payment-status?payment_id=${paymentId}`);
+      confirmation?: { outcome?: string };
+    }>>(`/api/mercadopago/payment-status?payment_id=${encodeURIComponent(paymentId)}${confirm}`);
+    return response.data;
+  },
+  syncPendingDeposit: async (pendingDepositId: string) => {
+    const response = await api.post<ApiResponse<{ outcome?: string }>>(
+      '/api/mercadopago/sync-pending-deposit',
+      { pendingDepositId }
+    );
     return response.data;
   },
   getBalancePackages: async () => {

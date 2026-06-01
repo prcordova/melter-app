@@ -18,7 +18,11 @@ import { WalletHistory } from '../../components/wallet/WalletHistory';
 import { walletApi } from '../../services/api';
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../../components/CustomToast';
-import { Linking } from 'react-native';
+import {
+  clearPendingMpDeposit,
+  getPendingMpDepositIds,
+} from '../../lib/wallet-pending-deposit';
+import { useWalletDepositCompleted } from '../../hooks/useWalletDepositCompleted';
 
 interface WalletData {
   balance: number;
@@ -39,34 +43,84 @@ export function WalletSettingsScreen() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pollingRef = useRef(false);
 
+  const fetchWalletData = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await walletApi.getBalance();
+      if (response.success && response.data) {
+        setWalletData(response.data);
+        setRefreshTrigger((prev) => prev + 1);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dados da carteira:', error);
+      showToast.error('Erro ao carregar dados da carteira');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const reconcilePendingDeposit = React.useCallback(async () => {
+    const { paymentId, pendingDepositId } = await getPendingMpDepositIds();
+    if (!paymentId && !pendingDepositId) return;
+
+    try {
+      if (paymentId) {
+        const response = await walletApi.getPaymentStatus(paymentId, { confirm: true });
+        if (response.success && response.data) {
+          const outcome = response.data.confirmation?.outcome;
+          if (outcome === 'credited' || outcome === 'already_processed') {
+            await clearPendingMpDeposit();
+            await fetchWalletData();
+            showToast.success('Recarga aprovada com sucesso!');
+            setPaymentStatus(null);
+            setPendingPaymentId(null);
+            return;
+          }
+        }
+      }
+
+      if (pendingDepositId) {
+        const syncRes = await walletApi.syncPendingDeposit(pendingDepositId);
+        if (syncRes.success) {
+          const outcome = syncRes.data?.outcome;
+          if (outcome === 'credited' || outcome === 'already_processed') {
+            await clearPendingMpDeposit();
+            await fetchWalletData();
+            showToast.success('Recarga aprovada com sucesso!');
+            setPaymentStatus(null);
+            setPendingPaymentId(null);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[WALLET] Erro ao reconciliar recarga pendente:', error);
+    }
+  }, [fetchWalletData]);
+
+  useWalletDepositCompleted({
+    showToastOnComplete: true,
+    toastMessage: 'Recarga aprovada com sucesso!',
+    onBalanceUpdated: () => {
+      void clearPendingMpDeposit();
+      void fetchWalletData();
+      setPaymentStatus(null);
+      setPendingPaymentId(null);
+    },
+  });
+
   useFocusEffect(
     React.useCallback(() => {
-      fetchWalletData();
+      void fetchWalletData();
+      void reconcilePendingDeposit();
       return () => {
-        // Cleanup ao sair da tela
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current);
           pollingIntervalRef.current = null;
         }
         pollingRef.current = false;
       };
-    }, [])
+    }, [fetchWalletData, reconcilePendingDeposit])
   );
-
-  // Verificar URL de retorno do pagamento (deep linking)
-  useEffect(() => {
-    const checkPaymentReturn = async () => {
-      // No mobile, podemos usar deep linking ou parâmetros de navegação
-      // Por enquanto, vamos verificar se há algum estado salvo
-      try {
-        // Implementar lógica de deep linking se necessário
-      } catch (error) {
-        console.error('Erro ao verificar retorno do pagamento:', error);
-      }
-    };
-
-    checkPaymentReturn();
-  }, []);
 
   // Polling do status do pagamento quando está pendente
   useEffect(() => {
@@ -76,36 +130,66 @@ export function WalletSettingsScreen() {
       if (pendingPaymentId) {
         pollingRef.current = true;
 
-        const checkPaymentStatus = async () => {
+        const checkPendingDeposit = async () => {
           try {
-            const response = await walletApi.getPaymentStatus(pendingPaymentId);
-            if (response.success && response.data) {
-              const status = response.data.status;
+            const { paymentId } = await getPendingMpDepositIds();
 
-              if (status === 'approved') {
+            if (paymentId) {
+              const response = await walletApi.getPaymentStatus(paymentId, { confirm: true });
+              if (response.success && response.data) {
+                const status = response.data.status;
+                const outcome = response.data.confirmation?.outcome;
+                const credited =
+                  status === 'approved' ||
+                  outcome === 'credited' ||
+                  outcome === 'already_processed';
+
+                if (credited) {
+                  await clearPendingMpDeposit();
+                  setPaymentStatus('success');
+                  void fetchWalletData();
+                  showToast.success('Pagamento aprovado com sucesso!');
+                  if (pollingIntervalRef.current) {
+                    clearInterval(pollingIntervalRef.current);
+                    pollingIntervalRef.current = null;
+                  }
+                  pollingRef.current = false;
+                  setTimeout(() => {
+                    setPaymentStatus(null);
+                    setPendingPaymentId(null);
+                  }, 3000);
+                  return;
+                }
+                if (status === 'rejected' || status === 'cancelled') {
+                  await clearPendingMpDeposit();
+                  setPaymentStatus('cancelled');
+                  if (pollingIntervalRef.current) {
+                    clearInterval(pollingIntervalRef.current);
+                    pollingIntervalRef.current = null;
+                  }
+                  pollingRef.current = false;
+                  setTimeout(() => {
+                    setPaymentStatus(null);
+                    setPendingPaymentId(null);
+                  }, 3000);
+                  return;
+                }
+              }
+            }
+
+            const syncRes = await walletApi.syncPendingDeposit(pendingPaymentId);
+            if (syncRes.success) {
+              const outcome = syncRes.data?.outcome;
+              if (outcome === 'credited' || outcome === 'already_processed') {
+                await clearPendingMpDeposit();
                 setPaymentStatus('success');
-                fetchWalletData();
+                void fetchWalletData();
                 showToast.success('Pagamento aprovado com sucesso!');
-
                 if (pollingIntervalRef.current) {
                   clearInterval(pollingIntervalRef.current);
                   pollingIntervalRef.current = null;
                 }
                 pollingRef.current = false;
-
-                setTimeout(() => {
-                  setPaymentStatus(null);
-                  setPendingPaymentId(null);
-                }, 3000);
-              } else if (status === 'rejected' || status === 'cancelled') {
-                setPaymentStatus('cancelled');
-
-                if (pollingIntervalRef.current) {
-                  clearInterval(pollingIntervalRef.current);
-                  pollingIntervalRef.current = null;
-                }
-                pollingRef.current = false;
-
                 setTimeout(() => {
                   setPaymentStatus(null);
                   setPendingPaymentId(null);
@@ -113,12 +197,12 @@ export function WalletSettingsScreen() {
               }
             }
           } catch (error) {
-            console.error('[WALLET] Erro ao verificar status do pagamento:', error);
+            console.error('[WALLET] Erro ao verificar recarga pendente:', error);
           }
         };
 
-        checkPaymentStatus();
-        const interval = setInterval(checkPaymentStatus, 5000);
+        void checkPendingDeposit();
+        const interval = setInterval(() => void checkPendingDeposit(), 5000);
         pollingIntervalRef.current = interval;
 
         setTimeout(() => {
@@ -188,27 +272,15 @@ export function WalletSettingsScreen() {
         pollingRef.current = false;
       };
     }
-  }, [paymentStatus, pendingPaymentId, walletData]);
+  }, [paymentStatus, pendingPaymentId, walletData, fetchWalletData]);
 
-  const fetchWalletData = async () => {
-    try {
-      setLoading(true);
-      const response = await walletApi.getBalance();
-      if (response.success && response.data) {
-        setWalletData(response.data);
-        setRefreshTrigger(prev => prev + 1);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar dados da carteira:', error);
-      showToast.error('Erro ao carregar dados da carteira');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddBalanceSuccess = () => {
+  const handleAddBalanceSuccess = async (pendingDepositId?: string) => {
     setPaymentStatus('pending');
-    fetchWalletData();
+    if (pendingDepositId) {
+      setPendingPaymentId(pendingDepositId);
+    }
+    await fetchWalletData();
+    void reconcilePendingDeposit();
   };
 
   const handleWithdrawSuccess = () => {
