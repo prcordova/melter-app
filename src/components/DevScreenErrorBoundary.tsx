@@ -1,5 +1,6 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { DEBUG_VERBOSE_LOGS } from '../config/dev-logs';
 
 type Props = { children: ReactNode; screenName: string };
 type State = { error: Error | null; componentStack: string };
@@ -15,12 +16,14 @@ export class DevScreenErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     const stack = info.componentStack ?? '';
     this.setState({ componentStack: stack });
-    console.error(`[CRASH ${this.props.screenName}]`, error.message, error.stack);
-    console.error(`[CRASH ${this.props.screenName}] componentStack:`, stack);
+    if (DEBUG_VERBOSE_LOGS) {
+      console.error(`[CRASH ${this.props.screenName}]`, error.message, error.stack);
+      console.error(`[CRASH ${this.props.screenName}] componentStack:`, stack);
+    }
   }
 
   render() {
-    if (!__DEV__ || !this.state.error) {
+    if (!__DEV__ || !DEBUG_VERBOSE_LOGS || !this.state.error) {
       return this.props.children;
     }
 

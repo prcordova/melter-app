@@ -37,7 +37,7 @@ export function getChatBackgroundSource(
   imageId: ChatSettings['backgroundImage']
 ): number | undefined {
   if (imageId === 'melter') {
-    return require('../../public/assets/imgs/bgMelter.jpg');
+    return require('../../assets/bgMelter.jpg');
   }
   return undefined;
 }

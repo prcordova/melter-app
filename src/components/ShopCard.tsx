@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getImageUrl } from '../utils/image';
+import { resolveProductCoverImageSource } from '../utils/product-cover-display';
 import { COLORS } from '../theme/colors';
 
 interface Product {
@@ -52,6 +53,8 @@ interface ShopCardProps {
   statusChip?: { label: string };
   /** Botão de ação principal abaixo do card (Comprar / Assinar / Entrar / Editar) */
   footerAction?: { label: string; onPress: () => void };
+  /** De `meta.productCoverAvatarFallbackEnabled` (admin > Parâmetros). */
+  avatarFallbackEnabled?: boolean;
 }
 
 const PRODUCT_TYPE_LABELS: Record<string, string> = {
@@ -77,11 +80,13 @@ export function ShopCard({
   showRequiresChangesBadge = false,
   statusChip,
   footerAction,
+  avatarFallbackEnabled = true,
 }: ShopCardProps) {
-  // Usar bgMelter.jpg como fallback quando não tem coverImage
-  const imageSource = product.coverImage
-    ? { uri: getImageUrl(product.coverImage) }
-    : require('../../assets/bgMelter.jpg');
+  const imageSource = resolveProductCoverImageSource({
+    coverImage: product.coverImage,
+    sellerAvatar: product.userId?.avatar,
+    avatarFallbackEnabled,
+  });
   
   // Normalizar categoryId (pode ser string ou objeto)
   const category = typeof product.categoryId === 'string' 

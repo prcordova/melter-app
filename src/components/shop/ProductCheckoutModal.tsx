@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
-import { getImageUrl } from '../../utils/image';
+import { resolveProductCoverImageSource } from '../../utils/product-cover-display';
 import { ordersApi } from '../../services/api';
 import { showToast } from '../CustomToast';
 
@@ -23,13 +23,14 @@ export interface CheckoutProduct {
   coverImage?: string | null;
   paymentMode?: 'UNICO' | 'ASSINATURA';
   subscriptionPlan?: { price?: number } | null;
-  userId?: { username?: string };
+  userId?: { username?: string; avatar?: string };
 }
 
-interface ProductCheckoutModalProps {
+export interface ProductCheckoutModalProps {
   visible: boolean;
   product: CheckoutProduct | null;
   walletBalance: number;
+  avatarFallbackEnabled?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -38,6 +39,7 @@ export function ProductCheckoutModal({
   visible,
   product,
   walletBalance,
+  avatarFallbackEnabled = true,
   onClose,
   onSuccess,
 }: ProductCheckoutModalProps) {
@@ -74,8 +76,12 @@ export function ProductCheckoutModal({
     }
   };
 
-  const imageSource = product.coverImage
-    ? { uri: getImageUrl(product.coverImage) }
+  const imageSource = product
+    ? resolveProductCoverImageSource({
+        coverImage: product.coverImage,
+        sellerAvatar: product.userId?.avatar,
+        avatarFallbackEnabled,
+      })
     : require('../../../assets/bgMelter.jpg');
 
   return (

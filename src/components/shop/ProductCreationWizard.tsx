@@ -18,13 +18,15 @@ import { ContentStep } from './wizard/ContentStep';
 import { DetailsStep } from './wizard/DetailsStep';
 import { ReviewStep } from './wizard/ReviewStep';
 
-interface ProductCreationWizardProps {
+export interface ProductCreationWizardProps {
   visible: boolean;
   onClose: () => void;
   onSave: (formData: any) => void;
   product?: any;
   saving?: boolean;
   overallProgress?: number;
+  /** De `meta.productCoverAvatarFallbackEnabled` (admin). */
+  productCoverAvatarFallbackEnabled?: boolean;
 }
 
 const steps = ['Conteúdo', 'Detalhes', 'Revisão'];
@@ -66,6 +68,7 @@ export function ProductCreationWizard({
   product,
   saving = false,
   overallProgress = 0,
+  productCoverAvatarFallbackEnabled = true,
 }: ProductCreationWizardProps) {
   const insets = useSafeAreaInsets();
   const [activeStep, setActiveStep] = useState(0);
@@ -356,6 +359,7 @@ export function ProductCreationWizard({
             setFormData={setFormData}
             lockPaymentAndPlan={Boolean(product?._id)}
             lockCategory={product?.status === 'APPROVED'}
+            productCoverAvatarFallbackEnabled={productCoverAvatarFallbackEnabled}
           />
         );
       case 2:

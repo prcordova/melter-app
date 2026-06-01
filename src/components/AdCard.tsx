@@ -11,6 +11,7 @@ import {
 import { Video, ResizeMode, type Video as VideoRef } from 'expo-av';
 import { Ad } from '../types/feed';
 import { COLORS } from '../theme/colors';
+import { devWarn } from '../config/dev-logs';
 
 interface AdCardProps {
   ad: Ad;
@@ -81,7 +82,7 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
           await Linking.openURL(ad.link);
         }
       } catch (error) {
-        if (__DEV__) console.warn('[AdCard] link:', error);
+        devWarn('[AdCard] link:', error);
       }
     }
   };

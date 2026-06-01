@@ -1,4 +1,3 @@
-import "react-native-css-interop/jsx-runtime";
 import React from 'react';
 import { LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -16,16 +15,25 @@ import { View, Text, StyleSheet } from 'react-native';
 import { usePermissions } from './src/hooks/usePermissions';
 import { CustomToast } from './src/components/CustomToast';
 import { BiometricUnlockModal } from './src/components/BiometricUnlockModal';
+import { DEBUG_VERBOSE_LOGS } from './src/config/dev-logs';
 
 const Stack = createNativeStackNavigator();
 
-if (__DEV__) {
+if (__DEV__ && DEBUG_VERBOSE_LOGS) {
   const defaultHandler = ErrorUtils.getGlobalHandler();
   ErrorUtils.setGlobalHandler((error, isFatal) => {
     console.error('[GLOBAL JS ERROR]', isFatal ? 'FATAL' : 'non-fatal', error?.message, error?.stack);
     defaultHandler?.(error, isFatal);
   });
-  LogBox.ignoreLogs(['VirtualizedList:']);
+}
+
+if (__DEV__) {
+  LogBox.ignoreLogs([
+    'VirtualizedList:',
+    'expo-notifications',
+    'expo-av',
+    'SafeAreaView has been deprecated',
+  ]);
 }
 
 function Navigation() {

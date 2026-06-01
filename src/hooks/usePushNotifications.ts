@@ -4,6 +4,7 @@ import { AppState, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
+import { devLog, devWarn } from '../config/dev-logs';
 
 /** Ref opcional injetada pelo provider para evitar dependência circular */
 let refreshUnreadMessagesRef: (() => void) | null = null;
@@ -42,7 +43,7 @@ if (Platform.OS === 'android') {
     enableVibrate: true,
   })
   .then(() => {
-    console.log('[PushNotifications] ✅ Canal "messages" criado com sucesso (HIGH importance)');
+    devLog('[PushNotifications] Canal "messages" criado (HIGH importance)');
   })
   .catch(err => {
     console.error('[PushNotifications] ❌ Erro ao criar canal messages:', err);
@@ -74,12 +75,10 @@ export function usePushNotifications() {
       // Access channelId safely - Android properties are in request.trigger or content.data
       const channelId = (notification.request.content.data as any)?.channelId || 'não definido';
       
-      console.log('[PushNotifications] 📬 Notificação recebida no APP (foreground):', {
+      devLog('[PushNotifications] Notificação em foreground:', {
         type: notification.request.content.data?.type,
         title: notification.request.content.title,
-        body: notification.request.content.body,
-        channelId: channelId,
-        identifier: notification.request.identifier,
+        channelId,
       });
       
       // Se for notificação de mensagem, podemos atualizar o estado aqui
@@ -88,7 +87,7 @@ export function usePushNotifications() {
       }
     });
     
-    console.log('[PushNotifications] ✅ Listener de notificações configurado');
+    devLog('[PushNotifications] Listener configurado');
 
     // Listener para quando o usuário toca na notificação
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
@@ -115,51 +114,39 @@ export function usePushNotifications() {
     try {
       // Verificar permissões
       const permissions = await Notifications.getPermissionsAsync();
-      console.log('[PushNotifications] Permissões atuais:', {
-        status: permissions.status,
-        android: permissions.granted ? 'SIM' : 'NÃO',
-        ios: permissions.ios?.status || 'N/A',
-      });
+      devLog('[PushNotifications] Permissões:', permissions.status);
       
       let finalStatus = permissions.status;
 
       if (permissions.status !== 'granted') {
-        console.log('[PushNotifications] Solicitando permissões...');
+        devLog('[PushNotifications] Solicitando permissões...');
         const requestResult = await Notifications.requestPermissionsAsync();
         finalStatus = requestResult.status;
-        console.log('[PushNotifications] Resultado da solicitação:', {
-          status: requestResult.status,
-          android: requestResult.granted ? 'SIM' : 'NÃO',
-        });
+        devLog('[PushNotifications] Resultado:', requestResult.status);
       }
 
       if (finalStatus !== 'granted') {
-        console.warn('[PushNotifications] ❌ Permissão de notificação negada - status:', finalStatus);
-        console.warn('[PushNotifications] ⚠️ AS NOTIFICAÇÕES VISUAIS NÃO FUNCIONARÃO SEM PERMISSÃO!');
+        devWarn('[PushNotifications] Permissão negada:', finalStatus);
         return;
       }
       
-      console.log('[PushNotifications] ✅ Permissão de notificação concedida');
+      devLog('[PushNotifications] Permissão concedida');
 
-      // Obter token do Expo Push
-      // O projectId é obtido automaticamente do app.json ou Constants
       const projectId = Constants.expoConfig?.extra?.eas?.projectId || undefined;
-      
-      console.log(`[PushNotifications] Obtendo token - projectId: ${projectId || 'não configurado'}`);
-      
+      devLog(`[PushNotifications] Obtendo token (projectId: ${projectId ?? 'n/a'})`);
+
       const token = await Notifications.getExpoPushTokenAsync({
         projectId,
       });
 
-      console.log(`[PushNotifications] Token obtido: ${token.data.substring(0, 20)}... (token completo: ${token.data})`);
+      devLog(`[PushNotifications] Token obtido: ${token.data.substring(0, 24)}...`);
 
-      // Enviar token para o backend
       try {
-        const response = await api.post('/api/users/push-token', {
+        await api.post('/api/users/push-token', {
           pushToken: token.data,
           platform: Platform.OS,
         });
-        console.log('[PushNotifications] Token registrado com sucesso no backend');
+        devLog('[PushNotifications] Token registrado no backend');
       } catch (error: any) {
         console.error('[PushNotifications] Erro ao enviar token:', error?.response?.data || error?.message);
       }

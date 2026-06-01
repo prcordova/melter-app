@@ -31,6 +31,11 @@ import {
   type MarketplaceGenderFilter,
   type MarketplaceSortMode,
 } from '../utils/marketplace-filters';
+import {
+  DEFAULT_SHOP_PRODUCTS_LIST_META,
+  normalizeShopProductsListMeta,
+  type ShopProductsListMeta,
+} from '../constants/shop-products-list-meta';
 
 interface Product {
   _id: string;
@@ -96,6 +101,9 @@ export function ShopsSearchScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [shopListMeta, setShopListMeta] = useState<ShopProductsListMeta>(
+    DEFAULT_SHOP_PRODUCTS_LIST_META
+  );
 
   const handleMyShopPress = () => {
     if (user?.username) {
@@ -148,6 +156,10 @@ export function ShopsSearchScreen() {
       });
 
       if (response.success) {
+        if (response.meta) {
+          setShopListMeta(normalizeShopProductsListMeta(response.meta));
+        }
+
         const raw = response.data as any;
         const productsData = Array.isArray(raw)
           ? raw
@@ -236,7 +248,11 @@ export function ShopsSearchScreen() {
   };
 
   const renderItem = ({ item }: { item: Product }) => (
-    <ShopCard product={item} onPress={() => handleProductPress(item)} />
+    <ShopCard
+      product={item}
+      avatarFallbackEnabled={shopListMeta.productCoverAvatarFallbackEnabled}
+      onPress={() => handleProductPress(item)}
+    />
   );
 
   const renderListFooter = () => {
@@ -258,7 +274,11 @@ export function ShopsSearchScreen() {
         <MarketplaceBeyondSearchDivider />
         {beyondProducts.map((product) => (
           <View key={`beyond-${product._id}`} style={styles.beyondCardWrap}>
-            <ShopCard product={product} onPress={() => handleProductPress(product)} />
+            <ShopCard
+              product={product}
+              avatarFallbackEnabled={shopListMeta.productCoverAvatarFallbackEnabled}
+              onPress={() => handleProductPress(product)}
+            />
           </View>
         ))}
       </View>

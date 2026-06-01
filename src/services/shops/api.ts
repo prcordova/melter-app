@@ -1,6 +1,7 @@
 import { api } from '../http-client';
 import { SHOP_API } from '../../config/shops/api-paths';
-import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
+import type { ApiResponse } from '../shared/types';
+import type { ShopProductsListMeta } from '../../constants/shop-products-list-meta';
 
 export type MarketplaceProductsListResponse = ApiResponse<any[]> & {
   beyondSearch?: unknown[];
@@ -11,7 +12,7 @@ export type MarketplaceProductsListResponse = ApiResponse<any[]> & {
     total: number;
     pages: number;
   };
-  meta?: unknown;
+  meta?: Partial<ShopProductsListMeta>;
 };
 
 export const shopsApi = {

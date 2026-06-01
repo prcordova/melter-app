@@ -1,6 +1,11 @@
 import { api } from '../http-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
+import type { ApiResponse } from '../shared/types';
+import type { ShopProductsListMeta } from '../../constants/shop-products-list-meta';
+
+export type ProductsListResponse = ApiResponse<any[]> & {
+  meta?: Partial<ShopProductsListMeta>;
+};
 
 export const productsApi = {
   getProducts: async (params?: {
@@ -12,7 +17,7 @@ export const productsApi = {
     if (params?.isActive !== undefined) queryParams.append('isActive', String(params.isActive));
     
     const url = `/api/products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    const response = await api.get<ApiResponse<any[]>>(url);
+    const response = await api.get<ProductsListResponse>(url);
     return response.data;
   },
   getProduct: async (productId: string) => {

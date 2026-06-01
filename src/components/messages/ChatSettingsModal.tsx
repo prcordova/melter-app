@@ -56,17 +56,18 @@ export function ChatSettingsModal({
   const updateSettings = (patch: Partial<ChatSettings>) => {
     const next = { ...tempSettings, ...patch };
     setTempSettings(next);
-    onPreview?.(next);
+    if (onPreview) onPreview(next);
   };
 
   const handleCancel = () => {
-    onPreview?.(settings);
+    if (onPreview) onPreview(settings);
     onClose();
   };
 
   const handleReset = () => {
-    setTempSettings({ ...DEFAULT_CHAT_SETTINGS });
-    onPreview?.({ ...DEFAULT_CHAT_SETTINGS });
+    const defaults = { ...DEFAULT_CHAT_SETTINGS };
+    setTempSettings(defaults);
+    if (onPreview) onPreview(defaults);
   };
 
   const previewBg = getChatBackgroundSource(tempSettings.backgroundImage);

@@ -41,6 +41,11 @@ import { API_CONFIG } from '../config/api.config';
 import { buildShopShareUrl } from '../utils/shop-share';
 import * as Clipboard from 'expo-clipboard';
 import axios from 'axios';
+import {
+  DEFAULT_SHOP_PRODUCTS_LIST_META,
+  normalizeShopProductsListMeta,
+  type ShopProductsListMeta,
+} from '../constants/shop-products-list-meta';
 
 type ShopVisibility = 'public' | 'preview' | 'friends' | 'followers';
 type ActiveTab = 'products' | 'analytics' | 'community' | 'plans';
@@ -117,6 +122,9 @@ export function MyShopScreen() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [pendingProductsCount, setPendingProductsCount] = useState(0);
+  const [shopListMeta, setShopListMeta] = useState<ShopProductsListMeta>(
+    DEFAULT_SHOP_PRODUCTS_LIST_META
+  );
 
   // Extrair parâmetros da rota
   const username = route.params?.username || user?.username || '';
@@ -218,6 +226,10 @@ export function MyShopScreen() {
       );
 
       if (response.success) {
+        if (response.meta) {
+          setShopListMeta(normalizeShopProductsListMeta(response.meta));
+        }
+
         let productsData = Array.isArray(response.data) ? response.data : [];
         
         // Para visitantes, garantir que apenas produtos aprovados sejam mostrados
@@ -1136,6 +1148,9 @@ export function MyShopScreen() {
                             <ShopCard
                               key={product._id}
                               product={product}
+                              avatarFallbackEnabled={
+                                shopListMeta.productCoverAvatarFallbackEnabled
+                              }
                               showPendingBadge={isOwner}
                               showRequiresChangesBadge={isOwner}
                               statusChip={
@@ -1298,6 +1313,9 @@ export function MyShopScreen() {
                         <ShopCard
                           key={product._id}
                           product={product}
+                          avatarFallbackEnabled={
+                            shopListMeta.productCoverAvatarFallbackEnabled
+                          }
                           showPendingBadge={isOwner}
                           showRequiresChangesBadge={isOwner}
                           statusChip={!isOwner ? purchaseStatusChip(product) : undefined}
@@ -1355,6 +1373,7 @@ export function MyShopScreen() {
       <ProductCheckoutModal
         visible={showCheckoutModal}
         product={checkoutProduct}
+        avatarFallbackEnabled={shopListMeta.productCoverAvatarFallbackEnabled}
         walletBalance={user?.wallet?.balance ?? 0}
         onClose={() => {
           setShowCheckoutModal(false);
@@ -1370,6 +1389,9 @@ export function MyShopScreen() {
       <ProductCreationWizard
         key={editingProduct?._id || 'new-product'}
         visible={showCreateProductModal}
+        productCoverAvatarFallbackEnabled={
+          shopListMeta.productCoverAvatarFallbackEnabled
+        }
         onClose={() => {
           setShowCreateProductModal(false);
           setEditingProduct(null);

@@ -17,6 +17,12 @@ import { showToast } from '../../CustomToast';
 import { useAuth } from '../../../contexts/AuthContext';
 import { subscriptionPlansApi } from '../../../services/api';
 import { getImageUrl } from '../../../utils/image';
+import { resolveProductCoverImageSource } from '../../../utils/product-cover-display';
+import {
+  getProductCoverDefaultHint,
+  getProductCoverPreviewOverlayLabel,
+  hasCustomProductCover,
+} from '../../../utils/product-cover-display-hints';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../../../config/api.config';
 import axios from 'axios';
@@ -30,6 +36,7 @@ interface DetailsStepProps {
   lockPaymentAndPlan?: boolean;
   /** Produto aprovado: categoria fixa (alinhado ao backend). */
   lockCategory?: boolean;
+  productCoverAvatarFallbackEnabled?: boolean;
 }
 
 export function DetailsStep({
@@ -37,6 +44,7 @@ export function DetailsStep({
   setFormData,
   lockPaymentAndPlan = false,
   lockCategory = false,
+  productCoverAvatarFallbackEnabled = true,
 }: DetailsStepProps) {
   const { user } = useAuth();
   const [categories, setCategories] = useState<Array<{ _id: string; name: string }>>([]);
@@ -330,6 +338,9 @@ export function DetailsStep({
       {/* Imagem de Capa */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Imagem de capa</Text>
+        <Text style={styles.helperText}>
+          {getProductCoverDefaultHint(productCoverAvatarFallbackEnabled)}
+        </Text>
 
         <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
           {safeFormData.coverImage && (
@@ -356,7 +367,21 @@ export function DetailsStep({
 
           {!safeFormData.coverImage && (
             <View style={styles.emptyImageBox}>
-              <Text style={styles.emptyImageText}>Nenhuma imagem de capa selecionada</Text>
+              <Image
+                source={resolveProductCoverImageSource({
+                  coverImage: null,
+                  sellerAvatar: user?.avatar,
+                  avatarFallbackEnabled: productCoverAvatarFallbackEnabled,
+                })}
+                style={styles.defaultCoverPreview}
+                resizeMode="cover"
+              />
+              <Text style={styles.emptyImageText}>
+                {getProductCoverPreviewOverlayLabel(
+                  productCoverAvatarFallbackEnabled,
+                  hasCustomProductCover(safeFormData.coverImage)
+                )}
+              </Text>
             </View>
           )}
 
@@ -668,16 +693,24 @@ const styles = StyleSheet.create({
   emptyImageBox: {
     backgroundColor: COLORS.background.tertiary,
     borderRadius: 8,
-    padding: 24,
+    padding: 12,
     alignItems: 'center',
     marginBottom: 12,
     borderWidth: 2,
     borderColor: COLORS.border.light,
     borderStyle: 'dashed',
+    overflow: 'hidden',
+  },
+  defaultCoverPreview: {
+    width: '100%',
+    height: 140,
+    borderRadius: 6,
+    marginBottom: 8,
   },
   emptyImageText: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.text.secondary,
+    textAlign: 'center',
   },
   imageUploadButton: {
     flexDirection: 'row',

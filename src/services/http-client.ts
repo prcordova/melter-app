@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
+import { DEBUG_VERBOSE_LOGS } from '../config/dev-logs';
 
 // Criar instância do axios
 export const api = axios.create({
@@ -62,13 +63,19 @@ api.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    if (__DEV__) {
-      console.error(`[API ERROR] ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.response?.status, error.response?.data || error.message);
-      
-      // Log detalhado do header enviado
+    if (__DEV__ && DEBUG_VERBOSE_LOGS) {
+      console.error(
+        `[API ERROR] ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+        error.response?.status,
+        error.response?.data || error.message
+      );
       if (error.config?.headers) {
-        const authHeader = error.config.headers.Authorization || error.config.headers.authorization;
-        console.error(`[API ERROR] Header Authorization enviado:`, authHeader ? `${authHeader.substring(0, 30)}...` : 'NÃO ENVIADO');
+        const authHeader =
+          error.config.headers.Authorization || error.config.headers.authorization;
+        console.error(
+          `[API ERROR] Header Authorization enviado:`,
+          authHeader ? `${authHeader.substring(0, 30)}...` : 'NÃO ENVIADO'
+        );
       }
     }
     
@@ -87,15 +94,17 @@ api.interceptors.response.use(
       // ou se for rota de auth (login falhou)
       if (error.config?.url && error.config.url.includes('/auth/')) {
         // Login/logout - pode remover token
-        if (__DEV__) {
+        if (__DEV__ && DEBUG_VERBOSE_LOGS) {
           console.warn('[API] Erro 401 em rota de auth - removendo token');
         }
         await AsyncStorage.removeItem('token');
       } else {
         // Para outras rotas, não remover token imediatamente
         // Pode ser problema de CORS, rede, ou header não chegando
-        if (__DEV__) {
-          console.warn('[API] Erro 401 em rota protegida - mantendo token (pode ser problema de rede/CORS)');
+        if (__DEV__ && DEBUG_VERBOSE_LOGS) {
+          console.warn(
+            '[API] Erro 401 em rota protegida - mantendo token (pode ser problema de rede/CORS)'
+          );
           console.warn('[API] Mensagem do servidor:', errorMessage);
         }
       }
