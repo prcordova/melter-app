@@ -15,9 +15,10 @@ export const authApi = {
         },
       });
 
-      const response = await loginApi.post<LoginResult>(AUTH_API.login, { 
-        username, 
-        password 
+      const response = await loginApi.post<LoginResult>(AUTH_API.login, {
+        username,
+        password,
+        accessSource: 'app',
       });
       
       return response.data;
@@ -31,6 +32,7 @@ export const authApi = {
     const response = await api.post<LoginResult>(AUTH_API.login2fa, {
       tempToken,
       code,
+      accessSource: 'app',
     });
     return response.data;
   },
