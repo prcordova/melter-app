@@ -2,11 +2,16 @@ import { api } from '../http-client';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
 
 export const paymentApi = {
-  createCheckoutSession: async (planName: string, gateway?: 'STRIPE' | 'MERCADOPAGO') => {
+  createCheckoutSession: async (
+    planName: string,
+    gateway?: 'STRIPE' | 'MERCADOPAGO',
+    billingInterval?: 'MONTHLY' | 'QUARTERLY' | 'ANNUAL'
+  ) => {
     try {
       const response = await api.post<any>('/api/payments/create-checkout', {
         plano: planName.toUpperCase(), // STARTER, PRO, PRO_PLUS
         ...(gateway && { gateway }),
+        ...(billingInterval && { billingInterval }),
       });
       
       // A API retorna { url, gateway } diretamente (sem success ou data)

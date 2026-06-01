@@ -20,15 +20,19 @@ import { useCustomModal, CustomModal } from '../components/CustomModal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Ionicons from '@expo/vector-icons/Ionicons';
-
-interface Plan {
-  name: string;
-  displayName: string;
-  price: string;
-  color: string;
-  features: string[];
-  recommended: boolean;
-}
+import {
+  MARKETING_PLANS,
+  buildPlanCardHighlights,
+  formatPlanDisplayName,
+  formatPlanPriceBrl,
+  formatPlanPeriodTotalPriceBrl,
+} from '../config/plans-marketing';
+import {
+  PLAN_BILLING_INTERVALS,
+  PLAN_BILLING_INTERVAL_DISCOUNT_PERCENT,
+  getPlanBillingDiscountPercent,
+  type PlanBillingInterval,
+} from '../config/plan-billing';
 
 export function PlansScreen() {
   const insets = useSafeAreaInsets();
@@ -42,87 +46,36 @@ export function PlansScreen() {
   const [gateway, setGateway] = useState<'STRIPE' | 'MERCADOPAGO' | null>(null);
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState<'STRIPE' | 'MERCADOPAGO'>('MERCADOPAGO');
+  const [billingInterval, setBillingInterval] = useState<PlanBillingInterval>('MONTHLY');
   const [loading, setLoading] = useState(false);
   const [fetchingPlan, setFetchingPlan] = useState(true);
 
-  const plans: Plan[] = [
-    {
-      name: 'FREE',
-      displayName: 'FREE',
-      price: 'R$ 0,00',
-      color: '#gray',
-      features: [
-        'Até 3 links',
-        '1 produto digital',
-        '1 plano de assinatura',
-        '1 imagem por post',
-        'Perfil básico',
-        'Suporte básico',
-      ],
-      recommended: false,
-    },
-    {
-      name: 'STARTER',
-      displayName: 'STARTER',
-      price: 'R$ 4,99',
-      color: '#0ea5e9',
-      features: [
-        'Até 10 links',
-        '3 produtos digitais',
-        '2 planos de assinatura',
-        '4 imagens por post',
-        'Posts sem link ✨',
-        'Customização completa de cores',
-        'Imagem de fundo personalizada',
-        'Analytics avançado',
-        'Receber doações',
-        'Suporte prioritário',
-      ],
-      recommended: false,
-    },
-    {
-      name: 'PRO',
-      displayName: 'PRO',
-      price: 'R$ 29,99',
-      color: '#FFD700',
-      features: [
-        'Até 20 links',
-        '20 produtos digitais',
-        '3 planos de assinatura',
-        '10 imagens por post',
-        'Todas funcionalidades do Starter',
-        'Loja completa',
-        'Analytics da Loja',
-        'Controle de overlay',
-        'Selo Verificado ✓',
-        'Suporte VIP 24/7',
-      ],
-      recommended: false,
-    },
-    {
-      name: 'PRO_PLUS',
-      displayName: 'PRO+',
-      price: 'R$ 49,90',
-      color: '#9333ea',
-      features: [
-        'Até 100 links',
-        '50 produtos digitais',
-        '10 planos de assinatura',
-        '20 imagens por post',
-        'Todas funcionalidades do PRO',
-        'Categorias personalizadas',
-        '2GB por arquivo / 10GB por produto',
-        'Autenticação de 2 fatores (2FA)',
-        'Selo de Verificado Exclusivo ✓',
-        'Suporte Premium 24/7',
-      ],
-      recommended: true,
-    },
-  ];
+  const checkoutBillingInterval: PlanBillingInterval =
+    selectedPaymentGateway === 'MERCADOPAGO' ? billingInterval : 'MONTHLY';
+
+  const planCards = MARKETING_PLANS.map((meta) => ({
+    ...meta,
+    name: meta.id,
+    displayName: meta.displayName ?? meta.id,
+    features: buildPlanCardHighlights(meta.id),
+    price: formatPlanPriceBrl(meta.id, checkoutBillingInterval),
+    periodTotal:
+      meta.id !== 'FREE' && checkoutBillingInterval !== 'MONTHLY'
+        ? formatPlanPeriodTotalPriceBrl(meta.id, checkoutBillingInterval)
+        : null,
+    discountPercent:
+      meta.id !== 'FREE' ? getPlanBillingDiscountPercent(checkoutBillingInterval) : 0,
+  }));
 
   useEffect(() => {
     fetchUserPlan();
   }, []);
+
+  useEffect(() => {
+    if (selectedPaymentGateway === 'STRIPE') {
+      setBillingInterval('MONTHLY');
+    }
+  }, [selectedPaymentGateway]);
 
   const fetchUserPlan = async () => {
     try {
@@ -184,8 +137,8 @@ export function PlansScreen() {
       showConfirm(
         'Trocar de Plano',
         isUpgrade
-          ? `Você está subindo de plano. Após confirmar, você será redirecionado para o checkout do novo plano ${planName === 'PRO_PLUS' ? 'PRO+' : planName}.`
-          : `Você está descendo de plano. Você continuará com o plano ${currentPlan === 'PRO_PLUS' ? 'PRO+' : currentPlan} até ${expirationDate ? formatDate(expirationDate) : 'o final do período atual'}. Após essa data, seu plano será alterado automaticamente para ${planName === 'PRO_PLUS' ? 'PRO+' : planName}.`,
+          ? `Você está subindo de plano. Após confirmar, você será redirecionado para o checkout do novo plano ${formatPlanDisplayName(planName)}.`
+          : `Você está descendo de plano. Você continuará com o plano ${formatPlanDisplayName(currentPlan)} até ${expirationDate ? formatDate(expirationDate) : 'o final do período atual'}. Após essa data, seu plano será alterado automaticamente para ${formatPlanDisplayName(planName)}.`,
         async () => {
           if (isUpgrade) {
             await proceedWithCheckout(planName);
@@ -209,7 +162,11 @@ export function PlansScreen() {
     try {
       setLoading(true);
       
-      const response = await paymentApi.createCheckoutSession(planName, selectedPaymentGateway);
+      const response = await paymentApi.createCheckoutSession(
+        planName,
+        selectedPaymentGateway,
+        checkoutBillingInterval
+      );
       
       // Verificar diferentes formatos de resposta
       let checkoutUrl: string | null = null;
@@ -273,7 +230,7 @@ export function PlansScreen() {
   const handleCancelPlan = async () => {
     showConfirm(
       'Confirmar Cancelamento',
-      `Tem certeza que deseja cancelar sua assinatura do plano ${currentPlan === 'PRO_PLUS' ? 'PRO+' : currentPlan}? Você continuará tendo acesso aos recursos do plano até o final do período atual.`,
+      `Tem certeza que deseja cancelar sua assinatura do plano ${formatPlanDisplayName(currentPlan)}? Você continuará tendo acesso aos recursos do plano até o final do período atual.`,
       async () => {
         try {
           setLoading(true);
@@ -342,8 +299,17 @@ export function PlansScreen() {
             <Text style={styles.currentPlanTitle}>Seu Plano Atual</Text>
             <View style={styles.currentPlanInfo}>
               <View style={styles.currentPlanHeader}>
-                <Text style={[styles.currentPlanName, { color: plans.find(p => p.name === currentPlan)?.color || COLORS.primary.main }]}>
-                  {currentPlan === 'PRO_PLUS' ? 'PRO+' : currentPlan}
+                <Text
+                  style={[
+                    styles.currentPlanName,
+                    {
+                      color:
+                        MARKETING_PLANS.find((p) => p.id === currentPlan)?.color ||
+                        COLORS.primary.main,
+                    },
+                  ]}
+                >
+                  {formatPlanDisplayName(currentPlan)}
                 </Text>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(planStatus) }]}>
                   <Text style={styles.statusText}>
@@ -372,7 +338,7 @@ export function PlansScreen() {
                 <Text style={styles.pendingPlanText}>
                   Após essa data, você desfrutará do plano:{' '}
                   <Text style={styles.pendingPlanName}>
-                    {pendingPlan ? (pendingPlan === 'PRO_PLUS' ? 'PRO+' : pendingPlan) : 'Gratuito'}
+                    {pendingPlan ? formatPlanDisplayName(pendingPlan) : 'Gratuito'}
                   </Text>
                 </Text>
               )}
@@ -403,7 +369,12 @@ export function PlansScreen() {
         {/* Título */}
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Escolha Seu Plano</Text>
-          <Text style={styles.subtitle}>Desbloqueie todo o potencial do seu perfil com nossos planos premium</Text>
+          <Text style={styles.subtitle}>
+            Desbloqueie todo o potencial do seu perfil com nossos planos premium
+          </Text>
+          <Text style={styles.syncNote}>
+            Limites e recursos refletem o que está ativo na plataforma (mesmos valores do site).
+          </Text>
         </View>
 
         {/* Seleção de Gateway de Pagamento */}
@@ -416,7 +387,7 @@ export function PlansScreen() {
             onPress={() => setSelectedPaymentGateway('MERCADOPAGO')}
           >
             <Text style={styles.gatewayOptionTitle}>💳 Mercado Pago</Text>
-            <Text style={styles.gatewayOptionDescription}>Pix, Boleto, Card</Text>
+            <Text style={styles.gatewayOptionDescription}>Pix, Boleto, Cartão</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -426,15 +397,50 @@ export function PlansScreen() {
             onPress={() => setSelectedPaymentGateway('STRIPE')}
           >
             <Text style={styles.gatewayOptionTitle}>💳 Stripe</Text>
-            <Text style={styles.gatewayOptionDescription}>International card</Text>
+            <Text style={styles.gatewayOptionDescription}>Cartão internacional</Text>
           </TouchableOpacity>
         </View>
 
+        {selectedPaymentGateway === 'MERCADOPAGO' ? (
+          <View style={styles.billingIntervalSection}>
+            <Text style={styles.billingIntervalTitle}>Periodicidade</Text>
+            <Text style={styles.billingIntervalSubtitle}>
+              Preços nos cards são o valor mensal equivalente. Trimestral (−10%) e anual (−30%) sobre
+              o total do período.
+            </Text>
+            <View style={styles.billingIntervalChips}>
+              {PLAN_BILLING_INTERVALS.map((interval) => {
+                const discount = PLAN_BILLING_INTERVAL_DISCOUNT_PERCENT[interval];
+                const label =
+                  interval === 'MONTHLY'
+                    ? 'Mensal'
+                    : interval === 'QUARTERLY'
+                      ? `Trimestral (−${discount}%)`
+                      : `Anual (−${discount}%)`;
+                const selected = billingInterval === interval;
+                return (
+                  <TouchableOpacity
+                    key={interval}
+                    style={[styles.billingChip, selected && styles.billingChipSelected]}
+                    onPress={() => setBillingInterval(interval)}
+                  >
+                    <Text
+                      style={[styles.billingChipText, selected && styles.billingChipTextSelected]}
+                    >
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
         {/* Cards de Planos */}
         <View style={styles.plansContainer}>
-          {plans.map((plan) => {
+          {planCards.map((plan) => {
             const isCurrentPlan = plan.name === currentPlan;
-            const planColor = plan.color === '#gray' ? COLORS.text.secondary : plan.color;
+            const planColor = plan.color;
 
             return (
               <View
@@ -458,6 +464,13 @@ export function PlansScreen() {
                     <Text style={styles.planPrice}>{plan.price}</Text>
                     <Text style={styles.planPriceUnit}>/mês</Text>
                   </View>
+                  {plan.periodTotal && plan.discountPercent > 0 ? (
+                    <Text style={styles.periodTotalText}>
+                      {checkoutBillingInterval === 'QUARTERLY'
+                        ? `Plano trimestral — Total: ${plan.periodTotal}`
+                        : `Plano anual — Total: ${plan.periodTotal}`}
+                    </Text>
+                  ) : null}
                 </View>
                 <View style={styles.planFeatures}>
                   {plan.features.map((feature, index) => (
@@ -635,6 +648,59 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: COLORS.text.secondary,
+    textAlign: 'center',
+  },
+  syncNote: {
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 8,
+  },
+  billingIntervalSection: {
+    marginBottom: 20,
+  },
+  billingIntervalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  billingIntervalSubtitle: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  billingIntervalChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  billingChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+    backgroundColor: COLORS.background.paper,
+  },
+  billingChipSelected: {
+    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.main + '18',
+  },
+  billingChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  billingChipTextSelected: {
+    color: COLORS.primary.main,
+  },
+  periodTotalText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    marginTop: 8,
     textAlign: 'center',
   },
   gatewayContainer: {
