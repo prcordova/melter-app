@@ -10,7 +10,7 @@ import {
   Linking,
   Image,
 } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useScrollToTop } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Header } from '../components/Header';
@@ -38,6 +38,8 @@ import { normalizeUsernameDisplayEffect } from '../types/username-display-effect
 export function ProfileScreen() {
   const { user, logout } = useAuth();
   const navigation = useNavigation();
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
   const { modalProps, showConfirm, hideModal } = useCustomModal();
 
   const [status, setStatus] = useState<UserStatus>('online');
@@ -487,7 +489,8 @@ export function ProfileScreen() {
         }}
       />
 
-      <ScrollView 
+      <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

@@ -130,6 +130,18 @@ export function TabNavigator() {
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
+            const tabState = navigation.getState();
+            const profileTab = tabState.routes.find((r) => r.name === 'ProfileStack');
+            const stackState = profileTab?.state as
+              | { index?: number; routes?: { name: string }[] }
+              | undefined;
+            const innerRoute =
+              stackState?.routes?.[stackState.index ?? 0]?.name ?? 'ProfileMain';
+
+            if (innerRoute === 'ProfileMain') {
+              return;
+            }
+
             e.preventDefault();
             navigation.navigate('ProfileStack', {
               screen: 'ProfileMain',

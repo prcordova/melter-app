@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { COLORS } from '../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomOptionSheet } from '../components/ui/BottomOptionSheet';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useScrollToTop } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SOCIAL_GRAPH_CHANGED, type SocialGraphPayload } from '../lib/social-events';
 
@@ -90,6 +90,8 @@ function mapUserFromApi(u: any): User | null {
 export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: UsersSearchScreenProps = {}) {
   const { user: currentUser } = useAuth();
   const navigation = useNavigation<any>();
+  const listRef = useRef<FlatList<User>>(null);
+  useScrollToTop(listRef);
   const insets = useSafeAreaInsets();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -375,6 +377,7 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
           </View>
         ) : (
           <FlatList
+            ref={listRef}
             data={users}
             renderItem={renderItem}
             keyExtractor={(item) => item._id}

@@ -13,7 +13,7 @@ import {
   Image,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useScrollToTop } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header } from '../components/Header';
 import { ConversationCard } from '../components/ConversationCard';
@@ -104,6 +104,8 @@ interface SearchResultConversation extends Conversation {
 export function MessagesScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<MessagesScreenNavigationProp>();
+  const listRef = useRef<FlatList>(null);
+  useScrollToTop(listRef);
   const [inboxConversations, setInboxConversations] = useState<Conversation[]>([]);
   const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
   const [inboxHasMore, setInboxHasMore] = useState(false);
@@ -1049,6 +1051,7 @@ export function MessagesScreen() {
         </View>
       ) : activeTab === 'requests' ? (
         <MessagesRequestsList
+          ref={listRef}
           items={requestItems}
           loading={requestsLoading}
           actionLoadingId={requestsActionId}
@@ -1062,6 +1065,7 @@ export function MessagesScreen() {
         </View>
       ) : (
         <FlatList
+          ref={listRef}
           data={listConversations}
           renderItem={renderItem}
           keyExtractor={(item, index) => (item && item._id) ? item._id : `conv-${index}`}

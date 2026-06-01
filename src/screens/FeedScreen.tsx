@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useScrollToTop } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { Header } from '../components/Header';
 import { CreatePostModal } from '../components/CreatePostModal';
@@ -35,6 +35,8 @@ export function FeedScreen() {
   const { user, refreshUser } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const listRef = useRef<FlatList<Post>>(null);
+  useScrollToTop(listRef);
 
   // Estados
   const [posts, setPosts] = useState<Post[]>([]);
@@ -518,6 +520,7 @@ export function FeedScreen() {
              />
 
       <FlatList
+        ref={listRef}
         data={posts}
         renderItem={renderItem}
         keyExtractor={(item) => item._id}

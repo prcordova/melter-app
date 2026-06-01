@@ -22,24 +22,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { userApi } from '../services/api';
 import { API_CONFIG } from '../config/api.config';
 import { showToast } from './CustomToast';
+import { getTabNavigator } from '../navigation/get-tab-navigator';
 
 interface HeaderProps {
   onLogoPress?: () => void;
 }
 
 type UserVisibility = 'online' | 'busy' | 'offline';
-
-function getTabNavigator(nav: any): any {
-  let current: any = nav;
-  for (let i = 0; i < 8 && current; i += 1) {
-    const names = current.getState?.()?.routeNames;
-    if (Array.isArray(names) && names.includes('FeedTab')) {
-      return current;
-    }
-    current = current.getParent?.();
-  }
-  return nav.getParent?.() ?? null;
-}
 
 export function Header({ 
   onLogoPress,

@@ -9,6 +9,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
+import { getTabNavigator } from '../navigation/get-tab-navigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { Header } from '../components/Header';
@@ -663,60 +664,39 @@ export function MyShopScreen() {
   }
 
   const handleBackToProfile = () => {
-    // Navegar para o perfil do dono da loja
-    // UserProfile está no TabNavigator, então precisa navegar via parent
-    // Estrutura: TabNavigator > ProfileStack (tab) > ProfileStackNavigator > MyShop
-    try {
-      // Primeiro, resetar a stack do ProfileStackNavigator para limpar a navegação da loja
-      const profileStackNavigator = navigation.getParent();
-      if (profileStackNavigator) {
-        (profileStackNavigator as any).dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'ProfileMain' }],
-          })
-        );
-      }
-      
-      // Depois, navegar para UserProfile no TabNavigator
-      const tabNavigator = navigation.getParent()?.getParent();
-      if (tabNavigator) {
-        // Usar setTimeout para garantir que o reset foi processado antes de navegar
-        setTimeout(() => {
-          (tabNavigator as any).navigate('UserProfile', {
-            username: username,
-          });
-        }, 100);
+    if (!username) {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
       } else {
-        // Fallback: tentar pegar o parent direto
-        const parent = navigation.getParent();
-        if (parent) {
-          (parent as any).navigate('UserProfile', {
-            username: username,
-          });
-        } else {
-          navigation.navigate('UserProfile', {
-            username: username,
-          });
-        }
+        navigation.navigate('ProfileMain');
       }
-    } catch (error) {
-      console.error('[MyShopScreen] Erro ao navegar para perfil:', error);
-      // Fallback: tentar navegar diretamente
-      try {
-        const parent = navigation.getParent();
-        if (parent) {
-          (parent as any).navigate('UserProfile', {
-            username: username,
-          });
-        } else {
-          navigation.navigate('UserProfile', {
-            username: username,
-          });
-        }
-      } catch (fallbackError) {
-        console.error('[MyShopScreen] Erro no fallback de navegação:', fallbackError);
+      return;
+    }
+
+    if (isOwner) {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('ProfileMain');
       }
+      return;
+    }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'ProfileMain' }],
+      })
+    );
+
+    const tabNav = getTabNavigator(navigation);
+    if (tabNav) {
+      tabNav.navigate('UserProfile', { username });
+      return;
+    }
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
     }
   };
 

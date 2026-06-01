@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import {
   View,
   Text,
@@ -21,85 +21,85 @@ type Props = {
   onReject: (item: InboxRequestItem) => void;
 };
 
-export function MessagesRequestsList({
-  items,
-  loading = false,
-  actionLoadingId = null,
-  onAccept,
-  onReject,
-}: Props) {
-  if (loading) {
+export const MessagesRequestsList = forwardRef<FlatList, Props>(
+  function MessagesRequestsList(
+    { items, loading = false, actionLoadingId = null, onAccept, onReject },
+    ref
+  ) {
+    if (loading) {
+      return (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={COLORS.secondary.main} />
+        </View>
+      );
+    }
+
+    if (items.length === 0) {
+      return (
+        <View style={styles.center}>
+          <Text style={styles.emptyText}>Nenhuma solicitação pendente.</Text>
+        </View>
+      );
+    }
+
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.secondary.main} />
-      </View>
-    );
-  }
+      <FlatList
+        ref={ref}
+        data={items}
+        keyExtractor={(item) => item.friendshipId}
+        contentContainerStyle={styles.list}
+        renderItem={({ item }) => {
+          const busy = actionLoadingId === item.friendshipId;
+          const avatarUri = getAvatarUrl(item.requesterAvatar);
 
-  if (items.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>Nenhuma solicitação pendente.</Text>
-      </View>
-    );
-  }
-
-  return (
-    <FlatList
-      data={items}
-      keyExtractor={(item) => item.friendshipId}
-      contentContainerStyle={styles.list}
-      renderItem={({ item }) => {
-        const busy = actionLoadingId === item.friendshipId;
-        const avatarUri = getAvatarUrl(item.requesterAvatar);
-
-        return (
-          <View style={styles.row}>
-            {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarLetter}>
-                  {getUserInitials(item.requesterUsername)}
-                </Text>
-              </View>
-            )}
-            <View style={styles.body}>
-              <Text style={styles.username}>@{item.requesterUsername}</Text>
-              {item.hasMessageRequest && item.messagePreview ? (
-                <Text style={styles.preview} numberOfLines={3}>
-                  “{item.messagePreview}”
-                </Text>
+          return (
+            <View style={styles.row}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
               ) : (
-                <Text style={styles.previewMuted}>Pedido de amizade</Text>
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarLetter}>
+                    {getUserInitials(item.requesterUsername)}
+                  </Text>
+                </View>
               )}
-            </View>
-            <View style={styles.actions}>
-              <TouchableOpacity
-                style={[styles.btn, styles.btnAccept]}
-                disabled={busy}
-                onPress={() => onAccept(item)}
-              >
-                {busy ? (
-                  <ActivityIndicator size="small" color="#fff" />
+              <View style={styles.body}>
+                <Text style={styles.username}>@{item.requesterUsername}</Text>
+                {item.hasMessageRequest && item.messagePreview ? (
+                  <Text style={styles.preview} numberOfLines={3}>
+                    “{item.messagePreview}”
+                  </Text>
                 ) : (
-                  <Ionicons name="checkmark" size={22} color="#fff" />
+                  <Text style={styles.previewMuted}>Pedido de amizade</Text>
                 )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.btn, styles.btnReject]}
-                disabled={busy}
-                onPress={() => onReject(item)}
-              >
-                <Ionicons name="close" size={22} color={COLORS.text.primary} />
-              </TouchableOpacity>
+              </View>
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  style={[styles.btn, styles.btnAccept]}
+                  disabled={busy}
+                  onPress={() => onAccept(item)}
+                >
+                  {busy ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="checkmark" size={22} color="#fff" />
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btn, styles.btnReject]}
+                  disabled={busy}
+                  onPress={() => onReject(item)}
+                >
+                  <Ionicons name="close" size={22} color={COLORS.text.primary} />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        );
-      }}
-    />
-  );
-}
+          );
+        }}
+      />
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   list: { paddingBottom: 24 },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { MarketplaceBeyondSearchDivider } from '../components/shop/MarketplaceBe
 import { shopsApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { Picker } from '@react-native-picker/picker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useScrollToTop } from '@react-navigation/native';
 import { showToast } from '../components/CustomToast';
 import { useAuth } from '../contexts/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -89,6 +89,8 @@ const MARKETPLACE_GENDER_FILTERS: MarketplaceGenderFilter[] = [
 export function ShopsSearchScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  const listRef = useRef<FlatList<Product>>(null);
+  useScrollToTop(listRef);
   const [products, setProducts] = useState<Product[]>([]);
   const [beyondProducts, setBeyondProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -443,6 +445,7 @@ export function ShopsSearchScreen() {
           renderShopsSkeleton()
         ) : (
           <FlatList
+            ref={listRef}
             data={products}
             renderItem={renderItem}
             keyExtractor={(item) => item._id}

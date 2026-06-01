@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { userApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useScrollToTop } from '@react-navigation/native';
 import { UsersSearchScreen } from './UsersSearchScreen';
 import { DiscoveryModeTabs } from '../components/DiscoveryModeTabs';
 import { discoveryModeToTabName } from '../utils/explorer-discovery-personalization';
@@ -34,6 +34,8 @@ const normalizeUsername = (value?: string) =>
 export function CommunityScreen() {
   const { user: currentUser } = useAuth();
   const navigation = useNavigation<any>();
+  const listRef = useRef<FlatList>(null);
+  useScrollToTop(listRef);
   const [activeTab, setActiveTab] = useState<TabType>('explore');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -235,6 +237,7 @@ export function CommunityScreen() {
               </View>
             ) : (
               <FlatList
+                ref={listRef}
                 data={getListData()}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id || item._id}
