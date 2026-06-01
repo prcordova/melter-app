@@ -449,6 +449,21 @@ export function PostCard({
         </TouchableOpacity>
       )}
 
+      {/* Reactions Summary */}
+      {post.reactionsCount && 
+       typeof post.reactionsCount === 'object' && 
+       typeof post.reactionsCount.total === 'number' && 
+       post.reactionsCount.total > 0 && (
+        <View style={styles.reactionsSummary}>
+          {topReaction && (
+            <Text style={styles.topReactionEmoji}>{REACTIONS[topReaction]}</Text>
+          )}
+          <Text style={styles.reactionsSummaryText}>
+            {post.reactionsCount.total} {post.reactionsCount.total === 1 ? 'reação' : 'reações'}
+          </Text>
+        </View>
+      )}
+
       {/* Actions */}
       <View style={styles.actions}>
         {/* Reactions */}
@@ -510,21 +525,6 @@ export function PostCard({
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Reactions Summary */}
-      {post.reactionsCount && 
-       typeof post.reactionsCount === 'object' && 
-       typeof post.reactionsCount.total === 'number' && 
-       post.reactionsCount.total > 0 && (
-        <View style={styles.reactionsSummary}>
-          {topReaction && (
-            <Text style={styles.topReactionEmoji}>{REACTIONS[topReaction]}</Text>
-          )}
-          <Text style={styles.reactionsSummaryText}>
-            {post.reactionsCount.total} {post.reactionsCount.total === 1 ? 'reação' : 'reações'}
-          </Text>
-        </View>
-      )}
 
       {/* Modais */}
       {post._id && (
