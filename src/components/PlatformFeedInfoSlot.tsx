@@ -131,15 +131,32 @@ export function PlatformFeedInfoSlot({
     </View>
   );
 
-  const profileHref =
+  const referrerUsername =
     active.kind === 'referrer_invite'
-      ? (active.payload.visitProfileHref?.trim() || `/user/${encodeURIComponent(active.payload.referrer.username)}`)
+      ? active.payload.referrer?.username?.trim() || ''
+      : '';
+
+  const profileHref =
+    active.kind === 'referrer_invite' && referrerUsername
+      ? (active.payload.visitProfileHref?.trim() ||
+          `/user/${encodeURIComponent(referrerUsername)}`)
       : '';
 
   const body = (() => {
     if (active.kind === 'referrer_invite') {
+      const referrer = active.payload.referrer;
+      if (!referrer?.username?.trim()) {
+        return (
+          <>
+            {header}
+            <View style={styles.staticPad}>
+              <Text style={styles.cardBody}>Dica indisponível no momento.</Text>
+            </View>
+          </>
+        );
+      }
+
       const {
-        referrer,
         campaignTitle,
         campaignSubtitle,
         campaignBody,

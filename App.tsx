@@ -1,5 +1,6 @@
 import "react-native-css-interop/jsx-runtime";
 import React from 'react';
+import { LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -17,6 +18,15 @@ import { CustomToast } from './src/components/CustomToast';
 import { BiometricUnlockModal } from './src/components/BiometricUnlockModal';
 
 const Stack = createNativeStackNavigator();
+
+if (__DEV__) {
+  const defaultHandler = ErrorUtils.getGlobalHandler();
+  ErrorUtils.setGlobalHandler((error, isFatal) => {
+    console.error('[GLOBAL JS ERROR]', isFatal ? 'FATAL' : 'non-fatal', error?.message, error?.stack);
+    defaultHandler?.(error, isFatal);
+  });
+  LogBox.ignoreLogs(['VirtualizedList:']);
+}
 
 function Navigation() {
   const { user, loading, biometricUnlockRequired, clearBiometricUnlockRequirement, logout } = useAuth();

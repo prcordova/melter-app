@@ -4,6 +4,17 @@ import type { UsernameDisplayEffectConfig } from './username-display-effect';
 
 export type ReactionType = 'LIKE' | 'LOVE' | 'HAPPY' | 'FIRE' | 'STRONG' | 'SAD' | 'ANGRY';
 
+export type PostReactionsCount = {
+  LIKE: number;
+  LOVE: number;
+  HAPPY: number;
+  FIRE: number;
+  STRONG: number;
+  SAD: number;
+  ANGRY: number;
+  total: number;
+};
+
 export interface PostUser {
   _id: string;
   username: string;
@@ -33,7 +44,7 @@ export interface PostLink {
 export interface Comment {
   _id: string;
   content: string;
-  userId: PostUser;
+  userId: PostUser | string;
   postId: string;
   parentId?: string | null;
   replies?: Comment[];
@@ -54,16 +65,10 @@ export interface Post {
   imageUrl?: string | null;
   visibility: string;
   userReaction: ReactionType | null;
-  reactionsCount: {
-    LIKE: number;
-    LOVE: number;
-    HAPPY: number;
-    FIRE: number;
-    STRONG: number;
-    SAD: number;
-    ANGRY: number;
-    total: number;
-  };
+  reactionsCount?: PostReactionsCount;
+  /** API: post compartilhado sem permissão para ver o original. */
+  canViewOriginalPost?: boolean;
+  originalPostVisibilityMessage?: string | null;
   commentsCount: number;
   viewsCount?: number;
   sharesCount?: number;

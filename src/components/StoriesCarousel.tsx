@@ -37,12 +37,16 @@ export function StoriesCarousel({
 
   // Verificar se todos os stories do grupo foram visualizados
   const isGroupViewed = (group: StoriesGroup) => {
+    if (!Array.isArray(group.stories) || group.stories.length === 0) return true;
     return group.stories.every((story) => isStoryViewed(story));
   };
 
   const renderStoryItem = (group: StoriesGroup, index: number) => {
     // Validação de segurança
     if (!group || !group.user || !group.user._id) {
+      return null;
+    }
+    if (!Array.isArray(group.stories) || group.stories.length === 0) {
       return null;
     }
 

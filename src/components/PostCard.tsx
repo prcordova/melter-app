@@ -58,10 +58,13 @@ export function PostCard({
   const [showReportModal, setShowReportModal] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [showOriginalPostModal, setShowOriginalPostModal] = useState(false);
+  const [originalPostId, setOriginalPostId] = useState<string | null>(null);
 
-  // Verificação de segurança
-  const authorId = getPostAuthorObjectId(post.userId);
-  if (!post || !post.userId || typeof post.userId !== 'object' || !authorId) {
+  const authorId = getPostAuthorObjectId(post?.userId);
+  const isValidPost =
+    Boolean(post && post.userId && typeof post.userId === 'object' && authorId);
+
+  if (!isValidPost || !post || !authorId) {
     return null;
   }
 
@@ -172,8 +175,6 @@ export function PostCard({
     }
   };
 
-  const [originalPostId, setOriginalPostId] = useState<string | null>(null);
-
   const handleOriginalPostPress = () => {
     if (post.originalPostId) {
       const originalId = getOriginalPostId(post);
@@ -251,7 +252,9 @@ export function PostCard({
                   style={styles.verifiedIcon}
                 />
               )}
-              {originalPost.userId.plan?.type && originalPost.userId.plan.type !== 'FREE' && (
+              {originalPost.userId?.plan?.type &&
+                typeof originalPost.userId.plan.type === 'string' &&
+                originalPost.userId.plan.type !== 'FREE' && (
                 <View style={[
                   { flexShrink: 0 },
                   styles.planBadge,
@@ -389,15 +392,21 @@ export function PostCard({
         </Text>
       )}
 
-      {/* Renderizar Post Original se existir */}
-      {post.originalPostId && typeof post.originalPostId === 'object' && (
-        <TouchableOpacity 
-          activeOpacity={0.95}
-          onPress={handleOriginalPostPress}
-        >
-          {renderOriginalPost(post.originalPostId as Post)}
-        </TouchableOpacity>
-      )}
+      {/* Post original (compartilhamento) — respeita permissão como no web */}
+      {post.originalPostId && typeof post.originalPostId === 'object' ? (
+        post.canViewOriginalPost === false ? (
+          <View style={styles.originalPostRestricted}>
+            <Text style={styles.originalPostRestrictedText}>
+              {post.originalPostVisibilityMessage ||
+                'Você não tem permissão para ver este post.'}
+            </Text>
+          </View>
+        ) : (
+          <TouchableOpacity activeOpacity={0.95} onPress={handleOriginalPostPress}>
+            {renderOriginalPost(post.originalPostId as Post)}
+          </TouchableOpacity>
+        )
+      ) : null}
 
       {/* Link Preview (apenas para posts normais) */}
       {!post.originalPostId && post.linkId && typeof post.linkId === 'object' && (
@@ -865,6 +874,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
     backgroundColor: COLORS.background.tertiary + '40', // 40% opacity
+  },
+  originalPostRestricted: {
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    backgroundColor: COLORS.background.tertiary,
+    alignItems: 'center',
+  },
+  originalPostRestrictedText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   originalHeader: {
     flexDirection: 'row',

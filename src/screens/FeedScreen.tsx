@@ -27,7 +27,9 @@ import {
   loadDismissedPlatformFeedInfoIds,
   persistDismissedPlatformFeedInfoIds,
 } from '../lib/platform-feed-info-dismiss';
+import { normalizeReactionsCount, applyOptimisticReaction } from '../utils/post-reactions';
 import { showToast } from '../components/CustomToast';
+import { DevScreenErrorBoundary } from '../components/DevScreenErrorBoundary';
 
 export function FeedScreen() {
   const { user, refreshUser } = useAuth();
@@ -116,17 +118,22 @@ export function FeedScreen() {
         const newPosts = response.data.posts ?? [];
 
         // Filtrar posts inválidos
-        const validPosts = newPosts.filter((p: Post) => {
-          if (!p?._id || !p.userId || typeof p.userId !== 'object') return false;
-          const uid = (p.userId as any)._id ?? (p.userId as any).id;
-          if (!uid) return false;
-          const u = p.userId.username;
-          const fn = (p.userId as any).fullName;
-          const hasLabel =
-            (typeof u === 'string' && u.trim().length > 0) ||
-            (typeof fn === 'string' && fn.trim().length > 0);
-          return hasLabel;
-        });
+        const validPosts = newPosts
+          .filter((p: Post) => {
+            if (!p?._id || !p.userId || typeof p.userId !== 'object') return false;
+            const uid = (p.userId as any)._id ?? (p.userId as any).id;
+            if (!uid) return false;
+            const u = p.userId.username;
+            const fn = (p.userId as any).fullName;
+            const hasLabel =
+              (typeof u === 'string' && u.trim().length > 0) ||
+              (typeof fn === 'string' && fn.trim().length > 0);
+            return hasLabel;
+          })
+          .map((p: Post) => ({
+            ...p,
+            reactionsCount: normalizeReactionsCount(p.reactionsCount),
+          }));
 
         if (pageNum === 1) {
           setPosts(validPosts);
@@ -164,7 +171,14 @@ export function FeedScreen() {
         // Filtrar e ordenar grupos válidos
         const sortedStories = Array.isArray(storiesData)
           ? storiesData
-              .filter((group: any) => group && group.user && group.user._id) // Filtrar grupos inválidos
+              .filter(
+                (group: any) =>
+                  group &&
+                  group.user &&
+                  group.user._id &&
+                  Array.isArray(group.stories) &&
+                  group.stories.length > 0
+              )
               .sort((a: any, b: any) => {
                 // Stories do próprio usuário primeiro
                 if (a?.user?._id === user?.id) return -1;
@@ -249,38 +263,16 @@ export function FeedScreen() {
       prevPosts.map((p) => {
         if (p._id !== postId) return p;
 
-        const prevReaction = p.userReaction;
-        const prevCounts = p.reactionsCount;
-        const newCounts = { ...prevCounts };
-        let newReaction: ReactionType | null = prevReaction;
-
-        if (prevReaction === reactionType) {
-          // Remover reação
-          newReaction = null;
-          if (newCounts[reactionType] > 0) {
-            newCounts[reactionType] -= 1;
-          }
-          if (newCounts.total > 0) {
-            newCounts.total -= 1;
-          }
-        } else if (prevReaction === null) {
-          // Adicionar reação
-          newReaction = reactionType;
-          newCounts[reactionType] += 1;
-          newCounts.total += 1;
-        } else {
-          // Trocar reação
-          if (newCounts[prevReaction] > 0) {
-            newCounts[prevReaction] -= 1;
-          }
-          newCounts[reactionType] += 1;
-          newReaction = reactionType;
-        }
+        const { userReaction, reactionsCount } = applyOptimisticReaction(
+          p.userReaction,
+          p.reactionsCount,
+          reactionType
+        );
 
         return {
           ...p,
-          reactionsCount: newCounts,
-          userReaction: newReaction,
+          reactionsCount,
+          userReaction,
         };
       })
     );
@@ -364,57 +356,59 @@ export function FeedScreen() {
     showToast.info('Carteira', 'Funcionalidade de carteira será implementada');
   };
 
-  const handleAdView = async (adId: string) => {
+  const handleAdView = useCallback(async (adId: string) => {
     try {
       await adsApi.viewAd(adId);
-    } catch (error) {
-      // Ignorar erros silenciosamente
+    } catch {
+      // métrica opcional — não bloquear feed
     }
-  };
+  }, []);
 
-  const handleAdClick = async (adId: string) => {
+  const handleAdClick = useCallback(async (adId: string) => {
     try {
       await adsApi.clickAd(adId);
-    } catch (error) {
-      // Ignorar erros silenciosamente
+    } catch {
+      // métrica opcional
     }
-  };
+  }, []);
 
-  const handleNextAd = (adPosition: number) => {
-    if (ads.length > 1) {
-      const currentIndex = adIndices[adPosition] ?? 0;
+  const handleNextAd = useCallback((adPosition: number) => {
+    setAdIndices((prev) => {
+      if (ads.length <= 1) return prev;
+      const currentIndex = prev[adPosition] ?? 0;
       const nextIndex = (currentIndex + 1) % ads.length;
-      setAdIndices((prev) => ({
-        ...prev,
-        [adPosition]: nextIndex,
-      }));
-    }
-  };
+      return { ...prev, [adPosition]: nextIndex };
+    });
+  }, [ads.length]);
 
-  // Render Item
-  const renderItem = ({ item, index }: { item: Post; index: number }) => {
-    // Validação adicional antes de renderizar
-    if (!item || !item._id || !item.userId || typeof item.userId !== 'object' || !item.userId._id) {
-      return null;
-    }
+  const handlePlatformAfterFollow = useCallback(() => {
+    void refreshUser();
+    void fetchPlatformFeedInfo();
+  }, [refreshUser, fetchPlatformFeedInfo]);
 
-    return (
-      <View>
-        <PostCard
-          post={item}
-          onReact={handleReact}
-          onComment={handleComment}
-          onShare={handleShare}
-          onDelete={handleDelete}
-        />
+  const renderItem = useCallback(
+    ({ item, index }: { item: Post; index: number }) => {
+      if (!item?._id || !item.userId || typeof item.userId !== 'object' || !item.userId._id) {
+        return null;
+      }
 
-        {/* Anúncio a cada 2 posts (mais frequente para garantir visibilidade) */}
-        {ads.length > 0 && (index + 1) % 2 === 0 && (() => {
-          const adPosition = Math.floor((index + 1) / 2);
-          const currentIndex = adIndices[adPosition] ?? Math.floor(Math.random() * ads.length);
-          const currentAd = ads[currentIndex % ads.length];
+      const adPosition = Math.floor((index + 1) / 2);
+      const showAd = ads.length > 0 && (index + 1) % 2 === 0;
+      const currentAd = showAd
+        ? ads[(adIndices[adPosition] ?? 0) % ads.length]
+        : null;
 
-          return (
+      return (
+        <View>
+          <PostCard
+            post={item}
+            onReact={handleReact}
+            onComment={handleComment}
+            onShare={handleShare}
+            onDelete={handleDelete}
+          />
+
+          {showAd && currentAd?._id ? (
             <AdCard
               key={`ad-${adPosition}-${currentAd._id}`}
               ad={currentAd}
@@ -422,43 +416,54 @@ export function FeedScreen() {
               onClick={handleAdClick}
               onSkip={() => handleNextAd(adPosition)}
             />
-          );
-        })()}
+          ) : null}
 
-        {platformFeedItems.length > 0 &&
-          ((index + 1) % 5 === 0 || index === posts.length - 1) && (
-            <View style={{ marginVertical: 8 }} key={`platform-info-${Math.floor((index + 1) / 5)}`}>
+          {platformFeedItems.length > 0 &&
+          ((index + 1) % 5 === 0 || index === posts.length - 1) ? (
+            <View style={{ marginVertical: 8 }}>
               <PlatformFeedInfoSlot
                 items={platformFeedItems}
                 onDismiss={dismissPlatformInfo}
-                onAfterFollow={() => {
-                  void refreshUser();
-                  void fetchPlatformFeedInfo();
-                }}
+                onAfterFollow={handlePlatformAfterFollow}
               />
             </View>
-          )}
-      </View>
-    );
-  };
+          ) : null}
+        </View>
+      );
+    },
+    [
+      ads,
+      adIndices,
+      posts.length,
+      platformFeedItems,
+      dismissPlatformInfo,
+      handlePlatformAfterFollow,
+      handleAdView,
+      handleAdClick,
+      handleNextAd,
+      handleReact,
+      handleComment,
+      handleShare,
+      handleDelete,
+    ]
+  );
 
-  // Header Component
-  const ListHeaderComponent = () => (
-    <View style={styles.header}>
-      {/* Stories - sempre mostrar (tem botão criar) */}
-      <StoriesCarousel
-        storiesGroups={storiesGroups}
-        onStoryClick={handleStoryClick}
-        onCreateStory={handleCreateStory}
-      />
-
-      {/* Botão Criar Post */}
-      <View style={styles.createPostContainer}>
-        <Button onPress={handleCreatePost} style={styles.createPostButton}>
-          Criar Post
-        </Button>
+  const listHeader = useMemo(
+    () => (
+      <View style={styles.header}>
+        <StoriesCarousel
+          storiesGroups={storiesGroups}
+          onStoryClick={handleStoryClick}
+          onCreateStory={handleCreateStory}
+        />
+        <View style={styles.createPostContainer}>
+          <Button onPress={handleCreatePost} style={styles.createPostButton}>
+            Criar Post
+          </Button>
+        </View>
       </View>
-    </View>
+    ),
+    [storiesGroups, handleStoryClick, handleCreateStory]
   );
 
   // Footer Component
@@ -504,25 +509,28 @@ export function FeedScreen() {
   }
 
          return (
+           <DevScreenErrorBoundary screenName="Feed">
            <View style={styles.container}>
-             {/* Header fixo */}
-             <Header 
+             <Header
                onLogoPress={() => {
-                 // Refresh ao clicar no logo
                  onRefresh();
                }}
              />
 
-             {/* Lista de Posts */}
       <FlatList
         data={posts}
         renderItem={renderItem}
         keyExtractor={(item) => item._id}
-        ListHeaderComponent={ListHeaderComponent}
+        ListHeaderComponent={listHeader}
         ListFooterComponent={ListFooterComponent}
         ListEmptyComponent={ListEmptyComponent}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
+        removeClippedSubviews
+        windowSize={7}
+        maxToRenderPerBatch={6}
+        initialNumToRender={5}
+        updateCellsBatchingPeriod={50}
         refreshControl={
           <RefreshControl
             refreshing={Boolean(refreshing)}
@@ -576,6 +584,7 @@ export function FeedScreen() {
         }}
       />
     </View>
+    </DevScreenErrorBoundary>
   );
 }
 

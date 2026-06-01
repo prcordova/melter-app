@@ -23,6 +23,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { COLORS } from '../theme/colors';
 import { Comment } from '../types/feed';
+import { getCommentAuthor } from '../utils/comment-author';
 
 import { Avatar } from './Avatar';
 
@@ -214,6 +215,9 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
   };
 
   const renderComment = (comment: Comment, isReply = false) => {
+    const author = getCommentAuthor(comment);
+    if (!author) return null;
+
     const isLiked = comment.userReaction === 'LIKE';
 
     return (
@@ -221,16 +225,16 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
         <View style={styles.commentContainer}>
           {/* Avatar usando componente padrão */}
           <Avatar 
-            user={{ username: comment.userId.username, avatar: comment.userId.avatar }} 
+            user={{ username: author.username, avatar: author.avatar }} 
             size={isReply ? 32 : 40}
-            onPress={() => handleUserProfilePress(comment.userId.username)}
+            onPress={() => handleUserProfilePress(author.username)}
           />
 
           {/* Conteúdo */}
           <View style={styles.commentContent}>
             <View style={styles.commentBubble}>
-              <TouchableOpacity onPress={() => handleUserProfilePress(comment.userId.username)}>
-                <Text style={styles.username}>{comment.userId.username}</Text>
+              <TouchableOpacity onPress={() => handleUserProfilePress(author.username)}>
+                <Text style={styles.username}>{author.username}</Text>
               </TouchableOpacity>
               <Text style={styles.text}>{comment.content}</Text>
             </View>
@@ -254,7 +258,7 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
                   style={styles.actionButton}
                   onPress={() => {
                     setReplyingTo(comment);
-                    setCommentText(`@${comment.userId.username} `);
+                    setCommentText(`@${author.username} `);
                   }}
                 >
                   <Text style={styles.actionText}>Responder</Text>
@@ -320,10 +324,13 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
             </ScrollView>
 
             {/* Barra de Resposta/Comentário */}
-            {replyingTo && (
+            {replyingTo && getCommentAuthor(replyingTo) && (
               <View style={styles.replyingToBar}>
                 <Text style={styles.replyingToText}>
-                  Respondendo a <Text style={{ fontWeight: 'bold' }}>@{replyingTo.userId.username}</Text>
+                  Respondendo a{' '}
+                  <Text style={{ fontWeight: 'bold' }}>
+                    @{getCommentAuthor(replyingTo)!.username}
+                  </Text>
                 </Text>
                 <TouchableOpacity onPress={() => {
                   setReplyingTo(null);

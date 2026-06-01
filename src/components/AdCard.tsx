@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   Linking,
   ActivityIndicator,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { Video, ResizeMode, type Video as VideoRef } from 'expo-av';
 import { Ad } from '../types/feed';
 import { COLORS } from '../theme/colors';
 
@@ -19,29 +19,40 @@ interface AdCardProps {
   onSkip?: () => void;
 }
 
+const MIN_SKIP_TIME = 5;
+const AUTO_SKIP_TIME = 30;
+
 export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
   const [hasViewed, setHasViewed] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [canSkip, setCanSkip] = useState(false);
   const [videoLoading, setVideoLoading] = useState(true);
 
-  const MIN_SKIP_TIME = 5; 
-  const AUTO_SKIP_TIME = 30;
+  const onViewRef = useRef(onView);
+  const onSkipRef = useRef(onSkip);
+  const videoRef = useRef<VideoRef>(null);
+  onViewRef.current = onView;
+  onSkipRef.current = onSkip;
 
+  // Registra view uma vez por montagem (sem re-disparar quando canSkip muda).
   useEffect(() => {
-    if (!hasViewed) {
-      onView(ad._id);
-      setHasViewed(true);
-    }
+    if (!ad?._id || hasViewed) return;
+    onViewRef.current(ad._id);
+    setHasViewed(true);
+  }, [ad?._id, hasViewed]);
+
+  // Timer isolado — deps estáveis evitam dezenas de setInterval ao rolar o feed.
+  useEffect(() => {
+    if (!ad?._id) return;
 
     const interval = setInterval(() => {
       setTimeElapsed((prev) => {
         const newTime = prev + 1;
-        if (newTime >= MIN_SKIP_TIME && !canSkip) {
+        if (newTime >= MIN_SKIP_TIME) {
           setCanSkip(true);
         }
-        if (newTime >= AUTO_SKIP_TIME && onSkip) {
-          onSkip();
+        if (newTime >= AUTO_SKIP_TIME && onSkipRef.current) {
+          onSkipRef.current();
           return 0;
         }
         return newTime;
@@ -49,7 +60,17 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [ad._id, hasViewed, onView, onSkip, canSkip]);
+  }, [ad?._id]);
+
+  // Libera decoder de vídeo ao sair da lista (evita OOM / fechamento silencioso no Android).
+  useEffect(() => {
+    return () => {
+      const v = videoRef.current;
+      if (!v) return;
+      void v.pauseAsync().catch(() => undefined);
+      void v.unloadAsync().catch(() => undefined);
+    };
+  }, [ad?._id]);
 
   const handleAdClick = async () => {
     onClick(ad._id);
@@ -58,11 +79,9 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
         const canOpen = await Linking.canOpenURL(ad.link);
         if (canOpen) {
           await Linking.openURL(ad.link);
-        } else {
-          console.warn('[AdCard] Não foi possível abrir o link:', ad.link);
         }
       } catch (error) {
-        console.error('[AdCard] Erro ao abrir link:', error);
+        if (__DEV__) console.warn('[AdCard] link:', error);
       }
     }
   };
@@ -73,8 +92,14 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
     }
   };
 
-  // Melhoria na detecção do tipo de mídia
-  const isVideo = ad.type?.toUpperCase() === 'VIDEO' || ad.mediaUrl?.toLowerCase().endsWith('.mp4') || ad.mediaUrl?.toLowerCase().endsWith('.mov');
+  if (!ad?._id) {
+    return null;
+  }
+
+  const isVideo =
+    ad.type?.toUpperCase() === 'VIDEO' ||
+    ad.mediaUrl?.toLowerCase().endsWith('.mp4') ||
+    ad.mediaUrl?.toLowerCase().endsWith('.mov');
   const isImage = ad.type?.toUpperCase() === 'IMAGE' || (!isVideo && ad.mediaUrl);
 
   return (
@@ -83,109 +108,74 @@ export function AdCard({ ad, onView, onClick, onSkip }: AdCardProps) {
         <Text style={styles.adBadgeText}>📢 Anúncio Patrocinado</Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.adContent}
-        onPress={handleAdClick}
-        activeOpacity={0.9}
-      >
-        {isImage && ad.mediaUrl && (
+      <TouchableOpacity style={styles.adContent} onPress={handleAdClick} activeOpacity={0.9}>
+        {isImage && ad.mediaUrl ? (
           <View style={styles.mediaContainer}>
-            <Image
-              source={{ uri: ad.mediaUrl }}
-              style={styles.adMedia}
-              resizeMode="contain"
-              onError={(e) => console.error('[AdCard] Erro ao carregar imagem:', e.nativeEvent.error)}
-            />
+            <Image source={{ uri: ad.mediaUrl }} style={styles.adMedia} resizeMode="contain" />
           </View>
-        )}
+        ) : null}
 
-        {isVideo && ad.mediaUrl && (
+        {isVideo && ad.mediaUrl ? (
           <View style={styles.videoContainer}>
             <Video
+              ref={videoRef}
               source={{ uri: ad.mediaUrl }}
               rate={1.0}
-              volume={1.0}
-              isMuted={true}
+              volume={0}
+              isMuted
               resizeMode={ResizeMode.CONTAIN}
-              shouldPlay
-              isLooping
+              shouldPlay={false}
+              isLooping={false}
+              useNativeControls={false}
               style={styles.adMedia}
-              onLoadStart={() => {
-                setVideoLoading(true);
-              }}
-              onLoad={() => {
-                setVideoLoading(false);
-              }}
-              onError={(error: any) => {
-                console.error('[AdCard] Erro no vídeo:', error);
-                setVideoLoading(false);
-              }}
+              onLoadStart={() => setVideoLoading(true)}
+              onLoad={() => setVideoLoading(false)}
+              onError={() => setVideoLoading(false)}
             />
-            {videoLoading && (
+            {videoLoading ? (
               <View style={styles.loadingOverlay}>
                 <ActivityIndicator color={COLORS.secondary.main} size="large" />
               </View>
-            )}
+            ) : null}
           </View>
-        )}
+        ) : null}
 
         <View style={styles.adInfo}>
-          {ad.title && (
+          {ad.title ? (
             <Text style={styles.adTitle} numberOfLines={1}>
               {ad.title}
             </Text>
-          )}
-          {ad.description && (
+          ) : null}
+          {ad.description ? (
             <Text style={styles.adDescription} numberOfLines={2}>
               {ad.description}
             </Text>
-          )}
-          <TouchableOpacity 
-            style={styles.ctaContainer}
-            onPress={handleAdClick}
-            activeOpacity={0.7}
-          >
+          ) : null}
+          <TouchableOpacity style={styles.ctaContainer} onPress={handleAdClick} activeOpacity={0.7}>
             <Text style={styles.adLink}>Saiba mais</Text>
-            <Text style={styles.adUrl} numberOfLines={1}>
-              {ad.link ? (() => {
-                try {
-                  const url = new URL(ad.link);
-                  return url.hostname.replace('www.', '');
-                } catch {
-                  return ad.link.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
-                }
-              })() : 'melter.com.br'}
-            </Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
 
-      {onSkip && (
+      {onSkip ? (
         <View style={styles.skipContainer}>
           {!canSkip ? (
             <View style={styles.skipTimer}>
-              <Text style={styles.skipTimerText}>
-                Pular em {MIN_SKIP_TIME - timeElapsed}s
-              </Text>
+              <Text style={styles.skipTimerText}>Pular em {Math.max(0, MIN_SKIP_TIME - timeElapsed)}s</Text>
             </View>
           ) : (
-            <TouchableOpacity
-              style={styles.skipButton}
-              onPress={handleSkip}
-            >
+            <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
               <Text style={styles.skipButtonText}>Pular Anúncio ⏩</Text>
             </TouchableOpacity>
           )}
         </View>
-      )}
+      ) : null}
 
       <View style={styles.progressBar}>
         <View
           style={[
             styles.progressFill,
-            {
-              width: `${Math.min((timeElapsed / AUTO_SKIP_TIME) * 100, 100)}%`,
-            },
+            { width: `${Math.min((timeElapsed / AUTO_SKIP_TIME) * 100, 100)}%` },
           ]}
         />
       </View>
@@ -201,10 +191,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
     elevation: 4,
   },
   adBadge: {
@@ -226,19 +212,19 @@ const styles = StyleSheet.create({
   },
   mediaContainer: {
     width: '100%',
-    height: 350,
-    backgroundColor: COLORS.secondary.main, // Rosa do site (#B63385)
+    height: 280,
+    backgroundColor: COLORS.secondary.main,
     justifyContent: 'center',
     alignItems: 'center',
   },
   adMedia: {
     width: '100%',
-    height: 350,
+    height: 280,
   },
   videoContainer: {
     width: '100%',
-    height: 350,
-    backgroundColor: COLORS.secondary.main, // Rosa do site (#B63385)
+    height: 280,
+    backgroundColor: COLORS.secondary.main,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -265,11 +251,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   ctaContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingTop: 8,
-    paddingBottom: 4,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
   },
@@ -277,11 +259,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#B63385',
     fontWeight: 'bold',
-  },
-  adUrl: {
-    fontSize: 12,
-    color: '#94a3b8',
-    maxWidth: '70%',
   },
   skipContainer: {
     position: 'absolute',
@@ -294,8 +271,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   skipButtonText: {
     color: '#ffffff',

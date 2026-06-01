@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
 // O .env NÃO é usado - apenas app.json (ou eas.json em builds)
 const API_BASE_URL = 
   Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL ||
-  'https://melter.com.br'; // Fallback padrão
+  'https://www.melter.com.br'; // Fallback (canônico — evita 308 sem www)
 
 export const API_CONFIG = {
   // URL base da API (Next.js backend)

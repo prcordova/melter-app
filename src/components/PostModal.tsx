@@ -39,6 +39,10 @@ import {
   VERIFIED_BADGE_ICON_COLOR,
 } from '../utils/post-author';
 import { getAdminSessionToken } from '../lib/admin-session';
+import {
+  normalizeReactionsCount,
+  applyOptimisticReaction,
+} from '../utils/post-reactions';
 
 interface PostModalProps {
   postId: string | null;
@@ -94,7 +98,11 @@ export function PostModal({
       const response = await postsApi.getPost(postId);
       
       if (response.success && response.data) {
-        setPost(response.data);
+        const data = response.data as Post;
+        setPost({
+          ...data,
+          reactionsCount: normalizeReactionsCount(data.reactionsCount),
+        });
       } else {
         setError(response.message || 'Post não encontrado');
       }
@@ -110,42 +118,23 @@ export function PostModal({
     if (!post) return;
 
     // Atualização otimista
-    const prevReaction = post.userReaction;
-    const prevCounts = post.reactionsCount;
-    const newCounts = { ...prevCounts };
-    let newReaction: ReactionType | null = prevReaction;
-
-    if (prevReaction === reactionType) {
-      newReaction = null;
-      if (newCounts[reactionType] > 0) {
-        newCounts[reactionType] -= 1;
-      }
-      if (newCounts.total > 0) {
-        newCounts.total -= 1;
-      }
-    } else if (prevReaction === null) {
-      newReaction = reactionType;
-      newCounts[reactionType] += 1;
-      newCounts.total += 1;
-    } else {
-      if (newCounts[prevReaction] > 0) {
-        newCounts[prevReaction] -= 1;
-      }
-      newCounts[reactionType] += 1;
-      newReaction = reactionType;
-    }
+    const { userReaction, reactionsCount } = applyOptimisticReaction(
+      post.userReaction,
+      post.reactionsCount,
+      reactionType
+    );
 
     setPost({
       ...post,
-      reactionsCount: newCounts,
-      userReaction: newReaction,
+      userReaction,
+      reactionsCount,
     });
 
     try {
       await postsApi.reactToPost(post._id, reactionType);
-    } catch (error) {
-      console.error('Erro ao reagir:', error);
-      fetchPost(); // Reverter em caso de erro
+    } catch (err) {
+      console.error('Erro ao reagir:', err);
+      void fetchPost();
     }
   };
 
@@ -336,7 +325,7 @@ export function PostModal({
                   <Text style={styles.retryButtonText}>Tentar novamente</Text>
                 </TouchableOpacity>
               </View>
-            ) : post ? (
+            ) : post && typeof post.userId === 'object' && post.userId ? (
               <View style={styles.contentWrapper}>
                 <ScrollView
                   style={styles.scrollView}
@@ -364,7 +353,11 @@ export function PostModal({
                           <View style={styles.authorNameShrink}>
                             <UsernameGradientText
                               username={headerAuthorUsername}
-                              effect={post.userId.profile?.usernameDisplayEffect ?? null}
+                              effect={
+                                typeof post.userId === 'object'
+                                  ? (post.userId.profile?.usernameDisplayEffect ?? null)
+                                  : null
+                              }
                               fontSize={16}
                               fontWeight="700"
                               style={{ color: COLORS.text.primary }}
@@ -382,10 +375,16 @@ export function PostModal({
                         </View>
                         <View style={styles.metaRow}>
                           <Text style={styles.date}>
-                            {formatDistanceToNow(new Date(post.createdAt), {
-                              addSuffix: true,
-                              locale: ptBR,
-                            })}
+                            {(() => {
+                              try {
+                                return formatDistanceToNow(new Date(post.createdAt), {
+                                  addSuffix: true,
+                                  locale: ptBR,
+                                });
+                              } catch {
+                                return '';
+                              }
+                            })()}
                           </Text>
                           <View style={styles.visibilityChip}>
                             {getVisibilityIcon()}
