@@ -16,6 +16,7 @@ import { usePermissions } from './src/hooks/usePermissions';
 import { CustomToast } from './src/components/CustomToast';
 import { BiometricUnlockModal } from './src/components/BiometricUnlockModal';
 import { DEBUG_VERBOSE_LOGS } from './src/config/dev-logs';
+import { initNotificationSoundPrefs } from './src/lib/notification-sounds';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +27,8 @@ if (__DEV__ && DEBUG_VERBOSE_LOGS) {
     defaultHandler?.(error, isFatal);
   });
 }
+
+void initNotificationSoundPrefs();
 
 if (__DEV__) {
   LogBox.ignoreLogs([

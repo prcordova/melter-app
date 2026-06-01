@@ -5,6 +5,10 @@ import Constants from 'expo-constants';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import { devLog, devWarn } from '../config/dev-logs';
+import {
+  isNotificationSoundCategoryEnabled,
+  resolveNotificationSoundCategory,
+} from '../lib/notification-sounds';
 
 /** Ref opcional injetada pelo provider para evitar dependência circular */
 let refreshUnreadMessagesRef: (() => void) | null = null;
@@ -15,12 +19,15 @@ export function registerUnreadMessagesRefresh(fn: () => void) {
 
 // Em foreground o utilizador já está na app — não mostrar popup/banner/som (push só “fora” da app).
 Notifications.setNotificationHandler({
-  handleNotification: async () => {
+  handleNotification: async (notification) => {
     const isForeground = AppState.currentState === 'active';
     const silent = isForeground;
+    const type = String(notification.request.content.data?.type ?? '');
+    const category = resolveNotificationSoundCategory(type);
+    const soundAllowed = isNotificationSoundCategoryEnabled(category);
     return {
       shouldShowAlert: !silent,
-      shouldPlaySound: !silent,
+      shouldPlaySound: !silent && soundAllowed,
       shouldSetBadge: true,
       shouldShowBanner: !silent,
       shouldShowList: !silent,

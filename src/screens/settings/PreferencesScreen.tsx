@@ -23,9 +23,16 @@ import {
   USER_GENDER_LABELS,
   USER_INTERESTED_IN_VALUES,
   USER_INTERESTED_IN_LABELS,
+  USER_SEXUAL_ORIENTATION_VALUES,
+  USER_SEXUAL_ORIENTATION_LABELS,
   type UserGenderIdentity,
   type UserInterestedIn,
+  type UserSexualOrientation,
 } from '../../constants/user-demographics';
+import { LocationPreferencesSection } from '../../components/settings/LocationPreferencesSection';
+import { NotificationSoundsPreferencesSection } from '../../components/settings/NotificationSoundsPreferencesSection';
+import { ChangeUsernameModal } from '../../components/settings/ChangeUsernameModal';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   USER_PLATFORM_PURPOSE_VALUES,
   USER_PLATFORM_PURPOSE_LABELS,
@@ -56,6 +63,9 @@ export function PreferencesScreen() {
   const insets = useSafeAreaInsets();
   const { showConfirm } = useCustomModal();
   const { refreshDiscoveryPreference } = useDiscoveryPreference();
+  const { user } = useAuth();
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const [usernameModalOpen, setUsernameModalOpen] = useState(false);
 
   const [preferences, setPreferences] = useState<CategoryPreferences | null>(null);
   const [localBlockedCategories, setLocalBlockedCategories] = useState<string[]>([]);
@@ -69,6 +79,7 @@ export function PreferencesScreen() {
   const [savingTransactional, setSavingTransactional] = useState(false);
   const hasUnsavedChanges = useRef(false);
   const [gender, setGender] = useState<UserGenderIdentity | ''>('');
+  const [sexualOrientation, setSexualOrientation] = useState<UserSexualOrientation | '' | 'NONE'>('');
   const [interestedIn, setInterestedIn] = useState<UserInterestedIn[]>([]);
   const [platformPurposes, setPlatformPurposes] = useState<UserPlatformPurpose[]>([]);
   const [savingDemographics, setSavingDemographics] = useState(false);
@@ -102,6 +113,7 @@ export function PreferencesScreen() {
         userApi.getMyProfile({ scope: 'full' }),
         userApi.getUserDemographics(),
       ]);
+      setPrefsLoaded(true);
 
       if (profileRes.success && profileRes.data) {
         const d = profileRes.data as {
@@ -137,9 +149,18 @@ export function PreferencesScreen() {
         }
         setInterestedIn(normalized);
         setPlatformPurposes(parsePlatformPurposesInput(d.platformPurposes));
+        if (
+          d.sexualOrientation &&
+          USER_SEXUAL_ORIENTATION_VALUES.includes(d.sexualOrientation as UserSexualOrientation)
+        ) {
+          setSexualOrientation(d.sexualOrientation as UserSexualOrientation);
+        } else if (d.sexualOrientation === null) {
+          setSexualOrientation('NONE');
+        }
       }
     } catch (error) {
       console.error('Erro ao buscar preferências de e-mail do perfil:', error);
+      setPrefsLoaded(true);
     }
   };
 
@@ -290,8 +311,21 @@ export function PreferencesScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>👤 Conta</Text>
           <Text style={styles.sectionDescription}>
-            Gênero, interesses e orientação sexual são opcionais (exceto se quiser definir seu gênero).
+            Gênero, interesses e orientação sexual ajudam na descoberta. Objetivos na plataforma são
+            obrigatórios.
           </Text>
+
+          <Text style={styles.fieldLabel}>@ atual</Text>
+          <Text style={styles.currentUsername}>@{user?.username || '—'}</Text>
+          <Button
+            variant="outline"
+            onPress={() => setUsernameModalOpen(true)}
+            disabled={!prefsLoaded}
+            style={{ marginBottom: 16 }}
+          >
+            Alterar @
+          </Button>
+
           <Text style={styles.fieldLabel}>Sexo</Text>
           <Select
             selectedValue={gender}
@@ -306,6 +340,24 @@ export function PreferencesScreen() {
           {!gender ? (
             <Text style={styles.helperMuted}>Não informado</Text>
           ) : null}
+
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Orientação sexual</Text>
+          <Select
+            selectedValue={sexualOrientation}
+            onValueChange={(v) =>
+              setSexualOrientation(v as UserSexualOrientation | '' | 'NONE')
+            }
+            placeholder="Selecione (opcional)"
+            disabled={savingDemographics}
+            items={[
+              { value: '', label: 'Não informado' },
+              { value: 'NONE', label: 'Prefiro não dizer' },
+              ...USER_SEXUAL_ORIENTATION_VALUES.map((value) => ({
+                value,
+                label: USER_SEXUAL_ORIENTATION_LABELS[value],
+              })),
+            ]}
+          />
 
           <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Tenho interesse em conhecer</Text>
           <View style={styles.chipsContainer}>
@@ -368,6 +420,10 @@ export function PreferencesScreen() {
                   gender,
                   interestedIn,
                   platformPurposes,
+                  sexualOrientation:
+                    sexualOrientation === '' || sexualOrientation === 'NONE'
+                      ? null
+                      : sexualOrientation,
                 });
                 if (res.success) {
                   showToast.success('Sucesso', 'Perfil atualizado.');
@@ -386,6 +442,10 @@ export function PreferencesScreen() {
             Salvar perfil
           </Button>
         </View>
+
+        <LocationPreferencesSection prefsLoaded={prefsLoaded} />
+
+        <NotificationSoundsPreferencesSection />
 
         {/* Ranking de Categorias */}
         {preferences && preferences.categoryRanking.length > 0 && (
@@ -568,6 +628,8 @@ export function PreferencesScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <ChangeUsernameModal visible={usernameModalOpen} onClose={() => setUsernameModalOpen(false)} />
     </View>
   );
 }
@@ -654,6 +716,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.primary,
     marginBottom: 8,
+  },
+  currentUsername: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+    marginBottom: 12,
   },
   helperMuted: {
     fontSize: 12,

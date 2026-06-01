@@ -194,6 +194,55 @@ export const userApi = {
     >('/api/users/preferences/demographics');
     return response.data;
   },
+  getLocationPreference: async () => {
+    const response = await api.get<
+      ApiResponse<{
+        country: string | null;
+        city: string | null;
+        hideLocation?: boolean;
+      }>
+    >(USERS_API.me.preferences.location);
+    return response.data;
+  },
+  patchLocationPreference: async (payload: {
+    country?: string | null;
+    city?: string | null;
+    hideLocation?: boolean;
+  }) => {
+    const response = await api.patch<ApiResponse<unknown>>(
+      USERS_API.me.preferences.location,
+      payload
+    );
+    return response.data;
+  },
+  getUsernameChangeStatus: async () => {
+    const response = await api.get<ApiResponse<unknown>>(USERS_API.me.username.changeStatus);
+    return response.data;
+  },
+  checkUsernameAvailability: async (username: string, signal?: AbortSignal) => {
+    const response = await api.get<ApiResponse<unknown>>(USERS_API.me.username.availability, {
+      params: { username },
+      signal,
+    });
+    return response.data;
+  },
+  sendUsernameChangeCode: async (newUsername: string) => {
+    const response = await api.post<ApiResponse<{ message?: string }>>(
+      USERS_API.me.username.sendCode,
+      { newUsername }
+    );
+    return response.data;
+  },
+  updateUsername: async (payload: {
+    newUsername: string;
+    password: string;
+    emailCode: string;
+  }) => {
+    const response = await api.patch<
+      ApiResponse<{ username?: string }> & { newToken?: string; message?: string }
+    >(USERS_API.me.username.update, payload);
+    return response.data;
+  },
   updateUserDemographics: async (payload: {
     gender: UserGenderIdentity;
     interestedIn: UserInterestedIn[];
