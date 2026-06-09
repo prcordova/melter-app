@@ -1,4 +1,4 @@
-import { getSellerVerificationFieldLabels } from './seller-verification-fields';
+import { getSellerVerificationFieldLabels, resolveFieldsToReviewForClient } from './verification-fields';
 
 const REJECTION_SUMMARIES: Record<string, string> = {
   documents_illegible: 'Documentos ilegíveis',
@@ -26,8 +26,13 @@ export function getSellerRejectionNotice(params: {
   rejectionReasonCodes?: string[];
   rejectionReason?: string | null;
   fieldsToReview?: string[];
+  status?: string | null;
 }): SellerRejectionNotice {
-  const fields = params.fieldsToReview ?? [];
+  const fields = resolveFieldsToReviewForClient({
+    status: params.status,
+    fieldsToReview: params.fieldsToReview,
+    rejectionReason: params.rejectionReason,
+  });
   const items = getSellerVerificationFieldLabels(fields);
   const code = params.rejectionReasonCodes?.[0];
 

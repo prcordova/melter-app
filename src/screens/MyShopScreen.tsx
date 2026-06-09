@@ -23,6 +23,11 @@ import {
   SellerVerificationFormModal,
   type SellerVerificationFormData,
 } from '../components/shop/SellerVerificationFormModal';
+import {
+  resolveFieldsToReviewForClient,
+  isSellerVerificationRecord,
+  pickVerificationFormSeed,
+} from '../utils/seller/verification-fields';
 import { SellerGrowthPromoCard } from '../components/shop/SellerGrowthPromoCard';
 import type { SellerGrowthPromoNavigateAction } from '../components/shop/SellerGrowthPromoCard';
 import { ProductCreationWizard } from '../components/shop/ProductCreationWizard';
@@ -373,20 +378,10 @@ export function MyShopScreen() {
   };
 
   // Buscar dados completos de verificação
-  const fetchVerificationData = async () => {
+  const fetchVerificationForForm = async () => {
     try {
       const response = await sellerVerificationApi.getVerification();
       if (response.success && response.data) {
-        // Atualizar shopSettings com os novos dados
-        setShopSettings((prev) => {
-          if (prev) {
-            return {
-              ...prev,
-              sellerVerification: response.data,
-            };
-          }
-          return prev;
-        });
         return response.data;
       }
     } catch (error) {
@@ -451,6 +446,11 @@ export function MyShopScreen() {
     data: SellerVerification | null | undefined
   ): SellerVerificationFormData | undefined => {
     if (!data) return undefined;
+    const fieldsToReview = resolveFieldsToReviewForClient({
+      status: data.status ?? null,
+      fieldsToReview: data.fieldsToReview,
+      rejectionReason: data.rejectionReason,
+    });
     return {
       cpf: data.cpf,
       birthDate: data.birthDate,
@@ -469,14 +469,30 @@ export function MyShopScreen() {
       needsReviewReason: data.needsReviewReason,
       rejectionReason: data.rejectionReason,
       rejectionReasonCodes: data.rejectionReasonCodes,
-      fieldsToReview: data.fieldsToReview || [],
+      fieldsToReview,
     };
   };
 
   const openVerificationForm = async () => {
-    const fresh = await fetchVerificationData();
-    setVerificationFormData(mapVerificationToFormData(fresh ?? sellerVerification));
+    const base = mapVerificationToFormData(sellerVerification);
+    setVerificationFormData(base);
     setShowVerificationForm(true);
+
+    const fresh = await fetchVerificationForForm();
+    if (!fresh) return;
+
+    const isCorrectionSeed =
+      sellerVerification?.status === 'rejected' ||
+      sellerVerification?.status === 'needs_review';
+
+    if (!isSellerVerificationRecord(fresh as Record<string, unknown>)) {
+      if (isCorrectionSeed) return;
+      setVerificationFormData(mapVerificationToFormData(fresh));
+      return;
+    }
+
+    const mapped = mapVerificationToFormData(fresh);
+    setVerificationFormData((prev) => pickVerificationFormSeed(prev ?? base, mapped));
   };
 
   const handleCopyShopShareLink = async () => {

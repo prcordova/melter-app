@@ -33,8 +33,12 @@ import {
   SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT,
   SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_THUMB_WIDTH,
 } from '../../config/shops/seller-verification.config';
-import { getSellerVerificationFieldLabel } from '../../utils/seller-verification-fields';
-import { getSellerRejectionNotice } from '../../utils/seller-verification-rejection';
+import {
+  getSellerVerificationFieldLabel,
+  resolveFieldsToReviewForClient,
+  SELLER_VERIFICATION_DOCUMENT_FIELD_KEYS,
+} from '../../utils/seller/verification-fields';
+import { getSellerRejectionNotice } from '../../utils/seller/rejection';
 import {
   digitsOnly,
   formatBirthDateForDisplay,
@@ -42,8 +46,8 @@ import {
   isBirthDateAtLeast18YearsOld,
   isValidCpf,
   parseBirthDateInput,
-} from '../../utils/seller-verification-validation';
-import { uploadSellerVerificationFileDirect } from '../../utils/seller-verification-upload';
+} from '../../utils/seller/validation';
+import { uploadSellerVerificationFileDirect } from '../../utils/seller/upload';
 
 function hasStoredSellerVideoProof(url?: string | null): boolean {
   return typeof url === 'string' && url.trim().length > 0;
@@ -192,7 +196,15 @@ export function SellerVerificationFormModal({
     if (visible) setDisplayData(existingData);
   }, [visible, existingData]);
 
-  const fieldsToReview = displayData?.fieldsToReview ?? [];
+  const fieldsToReview = useMemo(
+    () =>
+      resolveFieldsToReviewForClient({
+        status: displayData?.status ?? null,
+        fieldsToReview: displayData?.fieldsToReview,
+        rejectionReason: displayData?.rejectionReason,
+      }),
+    [displayData?.status, displayData?.fieldsToReview, displayData?.rejectionReason]
+  );
   const mustResubmitField = (field: string) => fieldsToReview.includes(field);
 
   const isReviewMode =
@@ -228,6 +240,34 @@ export function SellerVerificationFormModal({
   const showVideoProofSection =
     documentIsCopyOnly || fieldsToReview.includes('videoProof');
 
+  const showPersonalDataCard =
+    !isCorrectionOnlyMode ||
+    mustResubmitField('cpf') ||
+    mustResubmitField('birthDate');
+
+  const showContentTypeCard =
+    !isCorrectionOnlyMode || mustResubmitField('contentType');
+
+  const showConfirmationsCard = !isCorrectionOnlyMode;
+
+  const showDocumentsCard =
+    !isCorrectionOnlyMode ||
+    SELLER_VERIFICATION_DOCUMENT_FIELD_KEYS.some((field) => mustResubmitField(field));
+
+  const showDocumentFront =
+    !isCorrectionOnlyMode || mustResubmitField('documentFront');
+  const showDocumentBack =
+    !isCorrectionOnlyMode || mustResubmitField('documentBack');
+  const showSelfieField =
+    !isCorrectionOnlyMode || mustResubmitField('selfieWithDocument');
+
+  const hasDocumentFieldsToCorrect = SELLER_VERIFICATION_DOCUMENT_FIELD_KEYS.some((field) =>
+    mustResubmitField(field)
+  );
+
+  const showCopyOnlyCheckbox =
+    !isCorrectionOnlyMode || hasDocumentFieldsToCorrect || mustResubmitField('videoProof');
+
   const [documentFrontFile, setDocumentFrontFile] = useState<PickedImage | null>(null);
   const [documentFrontPreview, setDocumentFrontPreview] = useState<string | null>(null);
   const [documentBackFile, setDocumentBackFile] = useState<PickedImage | null>(null);
@@ -245,10 +285,16 @@ export function SellerVerificationFormModal({
 
   const displayDataSyncKey = useMemo(() => {
     if (!displayData) return 'empty';
+    const resolved = resolveFieldsToReviewForClient({
+      status: displayData.status ?? null,
+      fieldsToReview: displayData.fieldsToReview,
+      rejectionReason: displayData.rejectionReason,
+    });
     return [
       displayData.status ?? '',
-      (displayData.fieldsToReview ?? []).join(','),
+      resolved.join(','),
       displayData.documentIsCopyOnly ? '1' : '0',
+      displayData.rejectionReason?.slice(0, 80) ?? '',
     ].join('|');
   }, [displayData]);
 
@@ -296,7 +342,11 @@ export function SellerVerificationFormModal({
       return;
     }
 
-    const review = data.fieldsToReview || [];
+    const review = resolveFieldsToReviewForClient({
+      status: data.status ?? null,
+      fieldsToReview: data.fieldsToReview,
+      rejectionReason: data.rejectionReason,
+    });
     const mustResubmit = (field: string) => review.includes(field);
 
     setCpf(mustResubmit('cpf') ? '' : formatCpf(data.cpf || ''));
@@ -421,6 +471,7 @@ export function SellerVerificationFormModal({
       rejectionReasonCodes: displayData.rejectionReasonCodes,
       rejectionReason: displayData.rejectionReason,
       fieldsToReview: displayData.fieldsToReview,
+      status: displayData.status,
     });
   }, [displayData]);
 
@@ -591,25 +642,27 @@ export function SellerVerificationFormModal({
       showToast.error('Data', 'Informe a data de nascimento (DD/MM/AAAA)');
       return;
     }
-    if (!birthParsed) {
+    if (!isCorrectionOnlyMode && !birthParsed) {
       showToast.error('Data', 'Data de nascimento é obrigatória');
       return;
     }
-    if (!isBirthDateAtLeast18YearsOld(birthParsed)) {
+    if (birthParsed && !isBirthDateAtLeast18YearsOld(birthParsed)) {
       showToast.error('Erro', 'Você deve ter pelo menos 18 anos');
       return;
     }
 
-    if (!ageConfirmed || !contentOwnershipConfirmed || !adultContentAware) {
-      showToast.error('Termos', 'Confirme todos os termos obrigatórios');
-      return;
+    if (!isCorrectionOnlyMode) {
+      if (!ageConfirmed || !contentOwnershipConfirmed || !adultContentAware) {
+        showToast.error('Termos', 'Confirme todos os termos obrigatórios');
+        return;
+      }
     }
 
     if (requiresField('contentType') && !contentType) {
       showToast.error('Conteúdo', 'Selecione o tipo de conteúdo');
       return;
     }
-    if (!contentType) {
+    if (!isCorrectionOnlyMode && !contentType) {
       showToast.error('Conteúdo', 'Selecione o tipo de conteúdo');
       return;
     }
@@ -626,13 +679,22 @@ export function SellerVerificationFormModal({
     };
 
     const missingDocs: string[] = [];
-    if (!hasDocument('documentFront', documentFrontFile, documentFrontPreview)) {
+    if (
+      showDocumentFront &&
+      !hasDocument('documentFront', documentFrontFile, documentFrontPreview)
+    ) {
       missingDocs.push('frente do documento');
     }
-    if (!hasDocument('documentBack', documentBackFile, documentBackPreview)) {
+    if (
+      showDocumentBack &&
+      !hasDocument('documentBack', documentBackFile, documentBackPreview)
+    ) {
       missingDocs.push('verso do documento');
     }
-    if (!hasDocument('selfieWithDocument', selfieFile, selfiePreview)) {
+    if (
+      showSelfieField &&
+      !hasDocument('selfieWithDocument', selfieFile, selfiePreview)
+    ) {
       missingDocs.push('selfie com documento');
     }
     const hasVideoProofForSubmit = () => {
@@ -645,7 +707,7 @@ export function SellerVerificationFormModal({
       );
     };
 
-    if (!hasVideoProofForSubmit()) {
+    if (showVideoProofSection && !hasVideoProofForSubmit()) {
       missingDocs.push('vídeo prova');
     }
     if (missingDocs.length > 0) {
@@ -663,16 +725,45 @@ export function SellerVerificationFormModal({
     try {
       setSubmitting(true);
       const formData = new FormData();
-      formData.append('cpf', cpfNumbers);
-      formData.append('birthDate', birthParsed.toISOString());
-      formData.append('ageConfirmed', 'true');
-      formData.append('contentOwnershipConfirmed', 'true');
-      formData.append('adultContentAware', 'true');
-      formData.append('contentType', contentType);
+      if (requiresField('cpf')) {
+        formData.append('cpf', cpfNumbers);
+      } else if (!isCorrectionOnlyMode) {
+        formData.append('cpf', cpfNumbers);
+      }
+      if (birthParsed && (requiresField('birthDate') || !isCorrectionOnlyMode)) {
+        formData.append('birthDate', birthParsed.toISOString());
+      }
+      formData.append(
+        'ageConfirmed',
+        String(isCorrectionOnlyMode ? (displayData?.ageConfirmed ?? true) : ageConfirmed)
+      );
+      formData.append(
+        'contentOwnershipConfirmed',
+        String(
+          isCorrectionOnlyMode
+            ? (displayData?.contentOwnershipConfirmed ?? true)
+            : contentOwnershipConfirmed
+        )
+      );
+      formData.append(
+        'adultContentAware',
+        String(
+          isCorrectionOnlyMode
+            ? displayData?.isAdultContent
+              ? (displayData?.adultContentAware ?? true)
+              : true
+            : isAdultContent
+              ? adultContentAware
+              : true
+        )
+      );
+      if (requiresField('contentType') || !isCorrectionOnlyMode) {
+        formData.append('contentType', contentType);
+      }
       formData.append('isAdultContent', String(isAdultContent));
       formData.append('documentIsCopyOnly', documentIsCopyOnly ? 'true' : 'false');
 
-      if (documentFrontFile) {
+      if (showDocumentFront && documentFrontFile) {
         formData.append(
           'documentFrontUrl',
           await uploadSellerVerificationFileDirect({
@@ -681,7 +772,7 @@ export function SellerVerificationFormModal({
           })
         );
       }
-      if (documentBackFile) {
+      if (showDocumentBack && documentBackFile) {
         formData.append(
           'documentBackUrl',
           await uploadSellerVerificationFileDirect({
@@ -690,7 +781,7 @@ export function SellerVerificationFormModal({
           })
         );
       }
-      if (selfieFile) {
+      if (showSelfieField && selfieFile) {
         formData.append(
           'selfieWithDocumentUrl',
           await uploadSellerVerificationFileDirect({
@@ -699,7 +790,7 @@ export function SellerVerificationFormModal({
           })
         );
       }
-      if (videoProofFile) {
+      if (showVideoProofSection && videoProofFile) {
         formData.append(
           'videoProofUrl',
           await uploadSellerVerificationFileDirect({
@@ -825,6 +916,8 @@ export function SellerVerificationFormModal({
               </View>
             ) : null}
 
+            {showPersonalDataCard ? (
+            <>
             <Text style={styles.sectionTitle}>Dados pessoais</Text>
             <View
               style={[
@@ -834,6 +927,7 @@ export function SellerVerificationFormModal({
                   styles.sectionHighlight,
               ]}
             >
+              {(!isCorrectionOnlyMode || mustResubmitField('cpf')) ? (
               <View style={[styles.fieldHalf, !twoColumnPersonal && styles.fieldFull]}>
                 <Text style={styles.label}>CPF{canEditField('cpf') ? ' *' : ''}</Text>
                 <TextInput
@@ -850,6 +944,8 @@ export function SellerVerificationFormModal({
                   <Text style={styles.fieldHint}>{LOCKED_HINT}</Text>
                 ) : null}
               </View>
+              ) : null}
+              {(!isCorrectionOnlyMode || mustResubmitField('birthDate')) ? (
               <View style={[styles.fieldHalf, !twoColumnPersonal && styles.fieldFull]}>
                 <Text style={styles.label}>
                   Data de nascimento{canEditField('birthDate') ? ' *' : ''}
@@ -874,19 +970,17 @@ export function SellerVerificationFormModal({
                   <Text style={styles.fieldHintError}>Você deve ter pelo menos 18 anos</Text>
                 ) : null}
               </View>
-            </View>
-
-            <Text style={styles.sectionTitle}>
-              Documentos
-              {isCorrectionOnlyMode ? (
-                <Text style={styles.sectionSubtitle}>
-                  {' '}
-                  (todos aparecem; só os do alerta podem ser alterados)
-                </Text>
               ) : null}
-            </Text>
+            </View>
+            </>
+            ) : null}
+
+            {showDocumentsCard ? (
+            <>
+            <Text style={styles.sectionTitle}>Documentos</Text>
 
             <View style={[styles.docsGrid, !twoColumnDocs && styles.docsCol]}>
+              {showDocumentFront ? (
               <View style={[styles.docHalf, !twoColumnDocs && styles.fieldFull]}>
                 <SellerDocumentUploadField
                   label="Documento — Frente"
@@ -905,6 +999,8 @@ export function SellerVerificationFormModal({
                   picking={pickingDoc === 'documentFront'}
                 />
               </View>
+              ) : null}
+              {showDocumentBack ? (
               <View style={[styles.docHalf, !twoColumnDocs && styles.fieldFull]}>
                 <SellerDocumentUploadField
                   label="Documento — Verso"
@@ -923,6 +1019,8 @@ export function SellerVerificationFormModal({
                   picking={pickingDoc === 'documentBack'}
                 />
               </View>
+              ) : null}
+              {showSelfieField ? (
               <View style={styles.selfieSpan}>
                 <SellerDocumentUploadField
                   label="Selfie com documento"
@@ -941,6 +1039,8 @@ export function SellerVerificationFormModal({
                   picking={pickingDoc === 'selfieWithDocument'}
                 />
               </View>
+              ) : null}
+              {showCopyOnlyCheckbox ? (
               <View style={[styles.selfieSpan, { width: '100%' }]}>
                 <View style={styles.switchRow}>
                   <Switch
@@ -970,6 +1070,7 @@ export function SellerVerificationFormModal({
                   </Text>
                 </View>
               </View>
+              ) : null}
               {showVideoProofSection ? (
                 <View style={[styles.selfieSpan, { width: '100%' }]}>
                   <Text style={styles.videoInstruction}>
@@ -1036,7 +1137,11 @@ export function SellerVerificationFormModal({
                 </View>
               ) : null}
             </View>
+            </>
+            ) : null}
 
+            {showContentTypeCard ? (
+            <>
             <Text style={styles.sectionTitle}>Tipo de conteúdo</Text>
             <View
               style={[
@@ -1078,19 +1183,18 @@ export function SellerVerificationFormModal({
                 </Text>
               </View>
             </View>
+            </>
+            ) : null}
 
-            <Text style={styles.sectionTitle}>
-              Confirmações
-              {isCorrectionOnlyMode ? (
-                <Text style={styles.sectionSubtitle}> (já aceitas no envio anterior)</Text>
-              ) : null}
-            </Text>
-            <View style={isCorrectionOnlyMode ? styles.termsDisabled : undefined}>
+            {showConfirmationsCard ? (
+            <>
+            <Text style={styles.sectionTitle}>Confirmações</Text>
+            <View>
               <View style={styles.switchRow}>
                 <Switch
                   value={ageConfirmed}
                   onValueChange={setAgeConfirmed}
-                  disabled={isCorrectionOnlyMode || submitting}
+                  disabled={submitting}
                 />
                 <Text style={styles.switchLabel}>Confirmo que sou maior de 18 anos</Text>
               </View>
@@ -1098,7 +1202,7 @@ export function SellerVerificationFormModal({
                 <Switch
                   value={contentOwnershipConfirmed}
                   onValueChange={setContentOwnershipConfirmed}
-                  disabled={isCorrectionOnlyMode || submitting}
+                  disabled={submitting}
                 />
                 <Text style={styles.switchLabel}>
                   Confirmo que o conteúdo que vou vender é de minha autoria
@@ -1108,13 +1212,15 @@ export function SellerVerificationFormModal({
                 <Switch
                   value={adultContentAware}
                   onValueChange={setAdultContentAware}
-                  disabled={isCorrectionOnlyMode || submitting}
+                  disabled={submitting}
                 />
                 <Text style={styles.switchLabel}>
                   Estou ciente da responsabilidade por conteúdos que publicar
                 </Text>
               </View>
             </View>
+            </>
+            ) : null}
           </ScrollView>
 
           <View style={styles.footer}>

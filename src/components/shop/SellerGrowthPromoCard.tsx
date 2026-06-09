@@ -12,7 +12,7 @@ import {
   type SellerGrowthPromoPlacement,
   type SellerGrowthPromoVariant,
   type SellerVerificationStatusValue,
-} from '../../utils/seller-growth-promo';
+} from '../../utils/seller/growth-promo';
 
 export type SellerGrowthPromoNavigateAction =
   | 'shop'
