@@ -12,6 +12,7 @@ import {
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Button } from '../Button';
 import { shopApi } from '../../services/api';
 import { Picker } from '@react-native-picker/picker';
 import { useCustomModal, CustomModal } from '../CustomModal';
@@ -119,6 +120,11 @@ export function ShopSettingsModal({
         isEnabled: shopEnabled,
         visibility: visibility,
         saleNotifications: saleNotifications,
+        backgroundMode: shopAppearance.backgroundMode,
+        backgroundOverlay: shopAppearance.backgroundOverlay,
+        backgroundOverlayOpacity: shopAppearance.backgroundOverlayOpacity,
+        titleColor: shopAppearance.titleColor,
+        titleDisplayEffect: shopAppearance.titleDisplayEffect,
       });
 
       if (response.success) {
@@ -279,6 +285,7 @@ export function ShopSettingsModal({
               isAdultShop={isAdultShop}
               value={shopAppearance}
               onChange={setShopAppearance}
+              hideInlineSaveButton
             />
 
             {/* Botão Gerenciar Planos */}
@@ -328,27 +335,25 @@ export function ShopSettingsModal({
         )}
 
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.button, styles.cancelButton]}
+          <Button
+            variant="ghost"
+            size="sm"
             onPress={onClose}
             disabled={saving}
+            style={styles.footerButton}
           >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, styles.saveButton, saving && styles.saveButtonDisabled]}
-            onPress={handleSave}
+            Fechar
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onPress={() => void handleSave()}
+            loading={saving}
             disabled={saving || loading}
+            style={styles.footerButton}
           >
-            {saving ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <>
-                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                <Text style={styles.saveButtonText}>Salvar</Text>
-              </>
-            )}
-          </TouchableOpacity>
+            Salvar
+          </Button>
         </View>
       </View>
 
@@ -521,39 +526,17 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
     padding: 16,
     backgroundColor: COLORS.background.paper,
     borderTopWidth: 1,
     borderTopColor: COLORS.background.tertiary,
   },
-  button: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 14,
-    borderRadius: 8,
-  },
-  cancelButton: {
-    backgroundColor: COLORS.background.tertiary,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-  },
-  saveButton: {
-    backgroundColor: COLORS.primary.main,
-  },
-  saveButtonDisabled: {
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  footerButton: {
+    flex: 0,
+    minWidth: 120,
   },
 });
 

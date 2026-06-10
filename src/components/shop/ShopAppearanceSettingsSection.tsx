@@ -56,6 +56,7 @@ type Props = {
   isAdultShop?: boolean;
   value: ShopAppearanceSettings;
   onChange: (next: ShopAppearanceSettings) => void;
+  hideInlineSaveButton?: boolean;
 };
 
 export function ShopAppearanceSettingsSection({
@@ -64,6 +65,7 @@ export function ShopAppearanceSettingsSection({
   isAdultShop = false,
   value,
   onChange,
+  hideInlineSaveButton = false,
 }: Props) {
   const [uploadingBackground, setUploadingBackground] = useState(false);
   const [savingAppearance, setSavingAppearance] = useState(false);
@@ -336,17 +338,19 @@ export function ShopAppearanceSettingsSection({
             previewPrefix="Loja de "
           />
 
-          <TouchableOpacity
-            style={[styles.saveBtn, busy && styles.saveBtnDisabled]}
-            onPress={() => void handleSaveAppearance()}
-            disabled={busy}
-          >
-            {savingAppearance ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.saveBtnText}>Salvar aparência</Text>
-            )}
-          </TouchableOpacity>
+          {!hideInlineSaveButton ? (
+            <TouchableOpacity
+              style={[styles.saveBtn, busy && styles.saveBtnDisabled]}
+              onPress={() => void handleSaveAppearance()}
+              disabled={busy}
+            >
+              {savingAppearance ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.saveBtnText}>Salvar aparência</Text>
+              )}
+            </TouchableOpacity>
+          ) : null}
         </View>
       </PlanLocker>
     </View>
