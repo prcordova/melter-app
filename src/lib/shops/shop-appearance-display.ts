@@ -50,3 +50,28 @@ export function resolveShopTitleColor(
   const raw = shop?.titleColor?.trim();
   return raw || fallback;
 }
+
+/** Pill do título — contorno rosa e fundo branco (paridade com botão outline web). */
+export const shopHeaderContrastTitleStyle = {
+  backgroundColor: '#ffffff',
+  borderWidth: 1,
+  borderColor: '#B63385',
+  borderRadius: 12,
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  alignSelf: 'flex-start',
+  maxWidth: '100%',
+} as const;
+
+/** Engrenagem — círculo branco com ícone rosa. */
+export const shopHeaderContrastSettingsButtonStyle = {
+  backgroundColor: '#ffffff',
+  borderWidth: 1,
+  borderColor: '#B63385',
+  borderRadius: 18,
+  width: 36,
+  height: 36,
+  padding: 0,
+  justifyContent: 'center' as const,
+  alignItems: 'center' as const,
+} as const;

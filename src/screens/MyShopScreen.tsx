@@ -43,6 +43,8 @@ import {
   hasShopBackgroundImage,
   resolveShopBackgroundImageUrl,
   resolveShopTitleColor,
+  shopHeaderContrastSettingsButtonStyle,
+  shopHeaderContrastTitleStyle,
   shouldShowShopColorOverlay,
 } from '../lib/shops/shop-appearance-display';
 import { ShopAnalyticsContent } from '../components/shop/ShopAnalyticsContent';
@@ -872,7 +874,10 @@ export function MyShopScreen() {
           <View style={[styles.headerTop, isTopSectionBackground && styles.headerTopLayered]}>
             <BackArrow onPress={handleBackToProfile} />
             <TouchableOpacity
-              style={styles.titleContainer}
+              style={[
+                styles.titleContainer,
+                shopHasBackground && shopHeaderContrastTitleStyle,
+              ]}
               onPress={handleBackToProfile}
               activeOpacity={0.7}
             >
@@ -898,11 +903,18 @@ export function MyShopScreen() {
               )}
               {isOwner && (
                 <TouchableOpacity
-                  style={styles.settingsButton}
+                  style={[
+                    styles.settingsButton,
+                    shopHasBackground && shopHeaderContrastSettingsButtonStyle,
+                  ]}
                   onPress={handleSettingsPress}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="settings-outline" size={24} color={COLORS.text.secondary} />
+                  <Ionicons
+                    name="settings-outline"
+                    size={22}
+                    color={shopHasBackground ? COLORS.secondary.main : COLORS.text.secondary}
+                  />
                 </TouchableOpacity>
               )}
             </View>
