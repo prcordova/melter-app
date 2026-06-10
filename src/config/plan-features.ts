@@ -29,6 +29,13 @@ export interface PlanLimits {
   canHideIdentityInPostReactions: boolean
   /** Ocultar lista de visualizações do story (para todos, inclusive autor) — apenas PRO+ */
   canHideStoryViewersList: boolean
+
+  /** Aparência da vitrine da loja — apenas PRO e PRO+ */
+  canUploadShopBackgroundImage: boolean
+  canChangeShopBackgroundMode: boolean
+  canToggleShopBackgroundOverlay: boolean
+  canCustomizeShopTitleColor: boolean
+  canCustomizeShopTitleDisplayEffect: boolean
   
   // Links
   maxLinks: number
@@ -76,6 +83,11 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canControlFollowListsPrivacy: false,
     canHideIdentityInPostReactions: false,
     canHideStoryViewersList: false,
+    canUploadShopBackgroundImage: false,
+    canChangeShopBackgroundMode: false,
+    canToggleShopBackgroundOverlay: false,
+    canCustomizeShopTitleColor: false,
+    canCustomizeShopTitleDisplayEffect: false,
     
     // Links
     maxLinks: 3,
@@ -121,6 +133,11 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canControlFollowListsPrivacy: false,
     canHideIdentityInPostReactions: false,
     canHideStoryViewersList: false,
+    canUploadShopBackgroundImage: false,
+    canChangeShopBackgroundMode: false,
+    canToggleShopBackgroundOverlay: false,
+    canCustomizeShopTitleColor: false,
+    canCustomizeShopTitleDisplayEffect: false,
     
     // Links
     maxLinks: 5,
@@ -166,6 +183,11 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canControlFollowListsPrivacy: true,
     canHideIdentityInPostReactions: false,
     canHideStoryViewersList: false,
+    canUploadShopBackgroundImage: true,
+    canChangeShopBackgroundMode: true,
+    canToggleShopBackgroundOverlay: true,
+    canCustomizeShopTitleColor: true,
+    canCustomizeShopTitleDisplayEffect: true,
     
     // Links
     maxLinks: 10,
@@ -211,6 +233,11 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canControlFollowListsPrivacy: true,
     canHideIdentityInPostReactions: true,
     canHideStoryViewersList: true,
+    canUploadShopBackgroundImage: true,
+    canChangeShopBackgroundMode: true,
+    canToggleShopBackgroundOverlay: true,
+    canCustomizeShopTitleColor: true,
+    canCustomizeShopTitleDisplayEffect: true,
     
     // Links
     maxLinks: 50,
@@ -551,6 +578,115 @@ export function sanitizeProfileSettings(
 
   if (!limits.canHideStoryViewersList) {
     sanitized.hideStoryViewersList = false
+  }
+
+  return sanitized
+}
+
+export type ShopAppearanceSettings = {
+  backgroundImage?: string | null
+  backgroundMode?: 'full' | 'top'
+  backgroundOverlay?: boolean
+  backgroundOverlayOpacity?: number
+  titleColor?: string | null
+  titleDisplayEffect?: unknown
+}
+
+export function validateShopAppearanceSettings(
+  userPlan: PlanType,
+  settings: ShopAppearanceSettings
+): { valid: boolean; error?: string } {
+  const limits = PLAN_LIMITS[userPlan]
+
+  if (settings.backgroundImage && !limits.canUploadShopBackgroundImage) {
+    return {
+      valid: false,
+      error: 'Imagem de fundo da loja disponível apenas nos planos PRO e PRO+',
+    }
+  }
+
+  if (
+    settings.backgroundMode &&
+    settings.backgroundMode !== 'full' &&
+    !limits.canChangeShopBackgroundMode
+  ) {
+    return {
+      valid: false,
+      error: 'Modo de exibição do fundo da loja disponível apenas nos planos PRO e PRO+',
+    }
+  }
+
+  if (!limits.canToggleShopBackgroundOverlay) {
+    if (settings.backgroundOverlay === true) {
+      return {
+        valid: false,
+        error: 'Overlay do fundo da loja disponível apenas nos planos PRO e PRO+',
+      }
+    }
+    if (
+      typeof settings.backgroundOverlayOpacity === 'number' &&
+      settings.backgroundOverlayOpacity > 0
+    ) {
+      return {
+        valid: false,
+        error: 'Opacidade do overlay da loja disponível apenas nos planos PRO e PRO+',
+      }
+    }
+  }
+
+  if (settings.titleColor && !limits.canCustomizeShopTitleColor) {
+    return {
+      valid: false,
+      error: 'Cor do título da loja disponível apenas nos planos PRO e PRO+',
+    }
+  }
+
+  if (
+    settings.titleDisplayEffect !== undefined &&
+    !limits.canCustomizeShopTitleDisplayEffect
+  ) {
+    return {
+      valid: false,
+      error: 'Efeito no título da loja disponível apenas nos planos PRO e PRO+',
+    }
+  }
+
+  return { valid: true }
+}
+
+export function sanitizeShopAppearanceSettings(
+  userPlan: PlanType,
+  settings: ShopAppearanceSettings,
+  forceRemove = false
+): ShopAppearanceSettings {
+  const limits = PLAN_LIMITS[userPlan]
+  const sanitized: ShopAppearanceSettings = { ...settings }
+
+  if (!limits.canUploadShopBackgroundImage) {
+    if (forceRemove || settings.backgroundImage !== undefined) {
+      sanitized.backgroundImage = null
+    }
+  }
+
+  if (!limits.canChangeShopBackgroundMode) {
+    sanitized.backgroundMode = 'full'
+  }
+
+  if (!limits.canToggleShopBackgroundOverlay) {
+    sanitized.backgroundOverlay = false
+    sanitized.backgroundOverlayOpacity = 0
+  }
+
+  if (!limits.canCustomizeShopTitleColor) {
+    if (forceRemove || settings.titleColor !== undefined) {
+      sanitized.titleColor = null
+    }
+  }
+
+  if (!limits.canCustomizeShopTitleDisplayEffect) {
+    if (forceRemove || settings.titleDisplayEffect !== undefined) {
+      sanitized.titleDisplayEffect = null
+    }
   }
 
   return sanitized

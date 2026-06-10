@@ -12,6 +12,7 @@ export const SHOP_API = {
   },
   me: {
     settings: '/api/shops/me/settings',
+    background: '/api/shops/me/background',
     onboardingContext: '/api/shops/me/onboarding-context',
     analytics: SHOP_ANALYTICS_API.me,
     likes: '/api/shops/me/likes',

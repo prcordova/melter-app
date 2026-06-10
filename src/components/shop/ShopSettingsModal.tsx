@@ -15,6 +15,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { shopApi } from '../../services/api';
 import { Picker } from '@react-native-picker/picker';
 import { useCustomModal, CustomModal } from '../CustomModal';
+import {
+  ShopAppearanceSettingsSection,
+  DEFAULT_SHOP_APPEARANCE,
+  type ShopAppearanceSettings,
+} from './ShopAppearanceSettingsSection';
+import type { UsernameDisplayEffectConfig } from '../../types/username-display-effect';
 
 type ShopVisibility = 'public' | 'preview' | 'friends' | 'followers';
 
@@ -22,10 +28,20 @@ interface ShopSettingsModalProps {
   visible: boolean;
   onClose: () => void;
   onSettingsUpdated: () => void;
+  currentPlan?: string;
+  username?: string;
+  isAdultShop?: boolean;
   initialSettings?: {
     isEnabled: boolean;
     visibility: ShopVisibility;
     saleNotifications: boolean;
+    backgroundImage?: string | null;
+    backgroundImageUrl?: string | null;
+    backgroundMode?: 'full' | 'top';
+    backgroundOverlay?: boolean;
+    backgroundOverlayOpacity?: number;
+    titleColor?: string | null;
+    titleDisplayEffect?: UsernameDisplayEffectConfig | null;
   } | null;
   onNavigateToPlans?: () => void;
 }
@@ -34,6 +50,9 @@ export function ShopSettingsModal({
   visible,
   onClose,
   onSettingsUpdated,
+  currentPlan = 'FREE',
+  username,
+  isAdultShop = false,
   initialSettings,
   onNavigateToPlans,
 }: ShopSettingsModalProps) {
@@ -42,7 +61,25 @@ export function ShopSettingsModal({
   const [shopEnabled, setShopEnabled] = useState(false);
   const [visibility, setVisibility] = useState<ShopVisibility>('preview');
   const [saleNotifications, setSaleNotifications] = useState(false);
+  const [shopAppearance, setShopAppearance] =
+    useState<ShopAppearanceSettings>(DEFAULT_SHOP_APPEARANCE);
   const { showConfirm, modalProps, hideModal } = useCustomModal();
+
+  const applyAppearanceFromSettings = (data: ShopSettingsModalProps['initialSettings']) => {
+    if (!data) {
+      setShopAppearance(DEFAULT_SHOP_APPEARANCE);
+      return;
+    }
+    setShopAppearance({
+      backgroundImage: data.backgroundImage ?? null,
+      backgroundImageUrl: data.backgroundImageUrl ?? null,
+      backgroundMode: data.backgroundMode ?? 'full',
+      backgroundOverlay: Boolean(data.backgroundOverlay),
+      backgroundOverlayOpacity: data.backgroundOverlayOpacity ?? 0,
+      titleColor: data.titleColor ?? null,
+      titleDisplayEffect: data.titleDisplayEffect ?? null,
+    });
+  };
 
   useEffect(() => {
     if (visible) {
@@ -50,6 +87,7 @@ export function ShopSettingsModal({
         setShopEnabled(initialSettings.isEnabled);
         setVisibility(initialSettings.visibility);
         setSaleNotifications(initialSettings.saleNotifications);
+        applyAppearanceFromSettings(initialSettings);
       } else {
         fetchSettings();
       }
@@ -64,6 +102,7 @@ export function ShopSettingsModal({
         setShopEnabled(response.data.isEnabled || false);
         setVisibility(response.data.visibility || 'preview');
         setSaleNotifications(response.data.saleNotifications || false);
+        applyAppearanceFromSettings(response.data);
       }
     } catch (error: any) {
       console.error('[ShopSettingsModal] Erro ao carregar configurações:', error);
@@ -233,6 +272,14 @@ export function ShopSettingsModal({
                 />
               </View>
             </View>
+
+            <ShopAppearanceSettingsSection
+              currentPlan={currentPlan}
+              username={username}
+              isAdultShop={isAdultShop}
+              value={shopAppearance}
+              onChange={setShopAppearance}
+            />
 
             {/* Botão Gerenciar Planos */}
             {onNavigateToPlans && (

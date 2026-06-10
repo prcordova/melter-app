@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { getTabNavigator } from '../navigation/get-tab-navigator';
@@ -34,6 +35,16 @@ import { ProductCreationWizard } from '../components/shop/ProductCreationWizard'
 import { ShopCard } from '../components/ShopCard';
 import { SubscriptionPlansContent } from '../components/shop/SubscriptionPlansContent';
 import { ShopSettingsModal } from '../components/shop/ShopSettingsModal';
+import { UsernameGradientText } from '../components/UsernameGradientText';
+import type { UsernameDisplayEffectConfig } from '../types/username-display-effect';
+import {
+  getShopBackgroundMode,
+  getShopOverlayOpacity,
+  hasShopBackgroundImage,
+  resolveShopBackgroundImageUrl,
+  resolveShopTitleColor,
+  shouldShowShopColorOverlay,
+} from '../lib/shops/shop-appearance-display';
 import { ShopAnalyticsContent } from '../components/shop/ShopAnalyticsContent';
 import { ShopCommunityContent } from '../components/shop/ShopCommunityContent';
 import { ShopSubscriptionPlansSection } from '../components/shop/ShopSubscriptionPlansSection';
@@ -86,6 +97,13 @@ interface ShopSettings {
   isEnabled: boolean;
   visibility: ShopVisibility;
   saleNotifications: boolean;
+  backgroundImage?: string | null;
+  backgroundImageUrl?: string | null;
+  backgroundMode?: 'full' | 'top';
+  backgroundOverlay?: boolean;
+  backgroundOverlayOpacity?: number;
+  titleColor?: string | null;
+  titleDisplayEffect?: UsernameDisplayEffectConfig | null;
   sellerVerification?: SellerVerification | null;
 }
 
@@ -205,7 +223,7 @@ export function MyShopScreen() {
       const response = await shopApi.getSettings();
 
       if (response.success && response.data) {
-        setShopSettings(response.data);
+        setShopSettings(response.data as ShopSettings);
         return await fetchProducts();
       } else {
         setShopSettings(null);
@@ -520,7 +538,7 @@ export function MyShopScreen() {
       return;
     }
     if (action === 'appearance') {
-      navigation.navigate('ProfileStack' as never, { screen: 'AppearanceSettings' } as never);
+      setShowSettingsModal(true);
       return;
     }
     if (action === 'feed') {
@@ -667,6 +685,46 @@ export function MyShopScreen() {
     return { label };
   };
 
+  const shopVisual = useMemo(() => {
+    const fromShop = shopOwner?.shop as Record<string, unknown> | undefined;
+    const bgFromSettings =
+      shopSettings?.backgroundImageUrl ?? shopSettings?.backgroundImage ?? null;
+    const bgFromOwner =
+      typeof fromShop?.backgroundImage === 'string' ? fromShop.backgroundImage : null;
+
+    return {
+      backgroundImage: bgFromSettings ?? bgFromOwner,
+      backgroundImageUrl: shopSettings?.backgroundImageUrl ?? null,
+      backgroundMode: (shopSettings?.backgroundMode ??
+        fromShop?.backgroundMode ??
+        'full') as 'full' | 'top',
+      backgroundOverlay:
+        shopSettings?.backgroundOverlay ?? Boolean(fromShop?.backgroundOverlay),
+      backgroundOverlayOpacity:
+        shopSettings?.backgroundOverlayOpacity ??
+        (typeof fromShop?.backgroundOverlayOpacity === 'number'
+          ? fromShop.backgroundOverlayOpacity
+          : 0),
+      titleColor:
+        shopSettings?.titleColor ??
+        (typeof fromShop?.titleColor === 'string' ? fromShop.titleColor : null),
+      titleDisplayEffect:
+        shopSettings?.titleDisplayEffect ??
+        (fromShop?.titleDisplayEffect as UsernameDisplayEffectConfig | null | undefined) ??
+        null,
+    };
+  }, [shopOwner?.shop, shopSettings]);
+
+  const shopBackgroundUrl = resolveShopBackgroundImageUrl(shopVisual);
+  const shopBackgroundMode = getShopBackgroundMode(shopVisual);
+  const shopHasBackground = hasShopBackgroundImage(shopVisual);
+  const shopBgSource = shopBackgroundUrl ? { uri: shopBackgroundUrl } : null;
+  const isFullPageBackground = shopBackgroundMode === 'full' && !!shopBgSource;
+  const isTopSectionBackground = shopBackgroundMode === 'top' && !!shopBgSource;
+  const shopOverlayOpacity = getShopOverlayOpacity(shopVisual);
+  const showShopColorOverlay = shouldShowShopColorOverlay(shopVisual);
+  const shopTitleColor = resolveShopTitleColor(shopVisual, COLORS.secondary.main);
+
   if (loading || authLoading) {
     return (
       <View style={styles.container}>
@@ -718,6 +776,28 @@ export function MyShopScreen() {
 
   return (
     <View style={styles.container}>
+      {isFullPageBackground && shopBgSource ? (
+        <Image
+          source={shopBgSource}
+          style={styles.fullPageBgImage}
+          resizeMode="cover"
+        />
+      ) : null}
+      {isFullPageBackground && shopBgSource && showShopColorOverlay ? (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFillObject,
+            styles.fullPageBgOverlay,
+            {
+              backgroundColor: COLORS.background.default,
+              opacity: shopOverlayOpacity / 100,
+            },
+          ]}
+        />
+      ) : null}
+
+      <View style={styles.foreground}>
       <Header
         onLogoPress={() => {
           const parent = navigation.getParent();
@@ -729,7 +809,10 @@ export function MyShopScreen() {
         }}
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={[styles.content, isFullPageBackground ? styles.scrollTransparent : null]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Banner de Preview (apenas para dono em modo preview) */}
         {isPreview && isOwner && (
           <View style={styles.previewBanner}>
@@ -761,17 +844,48 @@ export function MyShopScreen() {
           </View>
         )}
 
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-            {/* Back Button - sempre visível */}
+        {/* Header + banner topo (modo top = fundo nesta faixa) */}
+        <View
+          style={[
+            styles.header,
+            isTopSectionBackground ? styles.headerWithTopBackground : null,
+          ]}
+        >
+          {isTopSectionBackground && shopBgSource ? (
+            <>
+              <Image source={shopBgSource} style={styles.topSectionBgImage} resizeMode="cover" />
+              {showShopColorOverlay ? (
+                <View
+                  pointerEvents="none"
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                      backgroundColor: COLORS.background.default,
+                      opacity: shopOverlayOpacity / 100,
+                    },
+                  ]}
+                />
+              ) : null}
+            </>
+          ) : null}
+
+          <View style={[styles.headerTop, isTopSectionBackground && styles.headerTopLayered]}>
             <BackArrow onPress={handleBackToProfile} />
-            <View style={styles.titleContainer}>
-              <Text style={styles.title}>Loja de </Text>
-              <TouchableOpacity onPress={handleBackToProfile} activeOpacity={0.7}>
-                <Text style={styles.titleUsername}>{username}</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.titleContainer}
+              onPress={handleBackToProfile}
+              activeOpacity={0.7}
+            >
+              <UsernameGradientText
+                username={username}
+                prefix="Loja de "
+                effect={shopVisual.titleDisplayEffect}
+                fontSize={24}
+                fontWeight="bold"
+                numberOfLines={1}
+                style={{ color: shopTitleColor, flexShrink: 1 }}
+              />
+            </TouchableOpacity>
             <View style={styles.headerActions}>
               {isOwner && ownerApproved && shopIsPublicAndActive && (
                 <TouchableOpacity
@@ -793,7 +907,6 @@ export function MyShopScreen() {
               )}
             </View>
           </View>
-        </View>
 
         {isOwner && ownerApproved && shopIsPublicAndActive && (
           <View style={styles.shareShopBanner}>
@@ -813,6 +926,7 @@ export function MyShopScreen() {
             </TouchableOpacity>
           </View>
         )}
+        </View>
 
         {/* Sistema de Tabs: dono aprovado/admin ou dono com loja em análise (só Produtos + mensagem) */}
         {showTabs && (
@@ -1332,6 +1446,7 @@ export function MyShopScreen() {
           </View>
         )}
       </ScrollView>
+      </View>
 
       {/* Modal de Appeal */}
       <AppealModal
@@ -1361,6 +1476,9 @@ export function MyShopScreen() {
         onClose={() => setShowSettingsModal(false)}
         onSettingsUpdated={handleSettingsUpdated}
         initialSettings={shopSettings}
+        currentPlan={user?.plan?.type}
+        username={username}
+        isAdultShop={Boolean(sellerVerification?.isAdultContent)}
         onNavigateToPlans={() => {
           setActiveTab('plans');
         }}
@@ -1572,6 +1690,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background.default,
   },
+  foreground: {
+    flex: 1,
+    zIndex: 2,
+  },
   content: {
     flex: 1,
   },
@@ -1642,17 +1764,41 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
   },
+  headerWithTopBackground: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 12,
+    marginHorizontal: 8,
+    marginTop: 4,
+  },
+  topSectionBgImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  fullPageBgImage: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+  fullPageBgOverlay: {
+    zIndex: 1,
+  },
+  scrollTransparent: {
+    backgroundColor: 'transparent',
+  },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
+  headerTopLayered: {
+    position: 'relative',
+    zIndex: 1,
+  },
   titleContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    flexWrap: 'wrap',
-    minHeight: 32, // Altura mínima para alinhar com o ícone
+    minHeight: 32,
+    minWidth: 0,
   },
   title: {
     fontSize: 24,

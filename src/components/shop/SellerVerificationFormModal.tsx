@@ -42,6 +42,7 @@ import { getSellerRejectionNotice } from '../../utils/seller/rejection';
 import {
   digitsOnly,
   formatBirthDateForDisplay,
+  formatBirthDateForApi,
   formatCpf,
   isBirthDateAtLeast18YearsOld,
   isValidCpf,
@@ -731,7 +732,7 @@ export function SellerVerificationFormModal({
         formData.append('cpf', cpfNumbers);
       }
       if (birthParsed && (requiresField('birthDate') || !isCorrectionOnlyMode)) {
-        formData.append('birthDate', birthParsed.toISOString());
+        formData.append('birthDate', formatBirthDateForApi(birthParsed));
       }
       formData.append(
         'ageConfirmed',

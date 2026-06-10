@@ -34,7 +34,7 @@ export function isValidCpf(cpf: string): boolean {
   return remainder === parseInt(clean.substring(10, 11), 10);
 }
 
-/** Aceita DD/MM/AAAA ou AAAA-MM-DD; retorna Date ou null. */
+/** Aceita DD/MM/AAAA ou AAAA-MM-DD; retorna Date local ou null. */
 export function parseBirthDateInput(value: string): Date | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -53,21 +53,43 @@ export function parseBirthDateInput(value: string): Date | null {
 
   const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) {
-    const d = new Date(trimmed);
-    return Number.isNaN(d.getTime()) ? null : d;
+    const year = parseInt(iso[1], 10);
+    const month = parseInt(iso[2], 10) - 1;
+    const day = parseInt(iso[3], 10);
+    const d = new Date(year, month, day);
+    if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) {
+      return d;
+    }
+    return null;
   }
 
   const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate());
 }
 
 export function formatBirthDateForDisplay(isoOrDate: string | Date): string {
+  if (typeof isoOrDate === 'string') {
+    const dateOnly = isoOrDate.trim().slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+      const [y, m, d] = dateOnly.split('-');
+      return `${d}/${m}/${y}`;
+    }
+  }
+
   const d = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
   if (Number.isNaN(d.getTime())) return '';
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const year = d.getUTCFullYear();
   return `${day}/${month}/${year}`;
+}
+
+export function formatBirthDateForApi(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function getAgeFromBirthDate(birth: Date): number {
