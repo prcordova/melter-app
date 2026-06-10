@@ -38,6 +38,7 @@ import { ShopSettingsModal } from '../components/shop/ShopSettingsModal';
 import { UsernameGradientText } from '../components/UsernameGradientText';
 import type { UsernameDisplayEffectConfig } from '../types/username-display-effect';
 import {
+  buildShopPageVisual,
   getShopBackgroundMode,
   getShopOverlayOpacity,
   hasShopBackgroundImage,
@@ -191,6 +192,8 @@ export function MyShopScreen() {
       if (cancelled) return;
       if (isOwner) {
         await fetchShopSettings();
+      } else {
+        setShopSettings(null);
       }
     })();
 
@@ -687,35 +690,15 @@ export function MyShopScreen() {
     return { label };
   };
 
-  const shopVisual = useMemo(() => {
-    const fromShop = shopOwner?.shop as Record<string, unknown> | undefined;
-    const bgFromSettings =
-      shopSettings?.backgroundImageUrl ?? shopSettings?.backgroundImage ?? null;
-    const bgFromOwner =
-      typeof fromShop?.backgroundImage === 'string' ? fromShop.backgroundImage : null;
-
-    return {
-      backgroundImage: bgFromSettings ?? bgFromOwner,
-      backgroundImageUrl: shopSettings?.backgroundImageUrl ?? null,
-      backgroundMode: (shopSettings?.backgroundMode ??
-        fromShop?.backgroundMode ??
-        'full') as 'full' | 'top',
-      backgroundOverlay:
-        shopSettings?.backgroundOverlay ?? Boolean(fromShop?.backgroundOverlay),
-      backgroundOverlayOpacity:
-        shopSettings?.backgroundOverlayOpacity ??
-        (typeof fromShop?.backgroundOverlayOpacity === 'number'
-          ? fromShop.backgroundOverlayOpacity
-          : 0),
-      titleColor:
-        shopSettings?.titleColor ??
-        (typeof fromShop?.titleColor === 'string' ? fromShop.titleColor : null),
-      titleDisplayEffect:
-        shopSettings?.titleDisplayEffect ??
-        (fromShop?.titleDisplayEffect as UsernameDisplayEffectConfig | null | undefined) ??
-        null,
-    };
-  }, [shopOwner?.shop, shopSettings]);
+  const shopVisual = useMemo(
+    () =>
+      buildShopPageVisual(
+        shopOwner?.shop as Record<string, unknown> | undefined,
+        shopSettings,
+        isOwner
+      ),
+    [shopOwner?.shop, shopSettings, isOwner]
+  );
 
   const shopBackgroundUrl = resolveShopBackgroundImageUrl(shopVisual);
   const shopBackgroundMode = getShopBackgroundMode(shopVisual);
@@ -874,10 +857,7 @@ export function MyShopScreen() {
           <View style={[styles.headerTop, isTopSectionBackground && styles.headerTopLayered]}>
             <BackArrow onPress={handleBackToProfile} />
             <TouchableOpacity
-              style={[
-                styles.titleContainer,
-                shopHasBackground && shopHeaderContrastTitleStyle,
-              ]}
+              style={[styles.titleContainer, shopHeaderContrastTitleStyle]}
               onPress={handleBackToProfile}
               activeOpacity={0.7}
             >
@@ -903,17 +883,14 @@ export function MyShopScreen() {
               )}
               {isOwner && (
                 <TouchableOpacity
-                  style={[
-                    styles.settingsButton,
-                    shopHasBackground && shopHeaderContrastSettingsButtonStyle,
-                  ]}
+                  style={[styles.settingsButton, shopHeaderContrastSettingsButtonStyle]}
                   onPress={handleSettingsPress}
                   activeOpacity={0.7}
                 >
                   <Ionicons
                     name="settings-outline"
                     size={22}
-                    color={shopHasBackground ? COLORS.secondary.main : COLORS.text.secondary}
+                    color={COLORS.secondary.main}
                   />
                 </TouchableOpacity>
               )}

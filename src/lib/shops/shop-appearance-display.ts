@@ -11,6 +11,75 @@ export type ShopAppearanceView = {
   titleDisplayEffect?: UsernameDisplayEffectConfig | null;
 };
 
+export type ShopAppearanceSource = ShopAppearanceView;
+
+function readBackgroundFromShopRecord(
+  shop: Record<string, unknown> | null | undefined
+): Pick<ShopAppearanceView, 'backgroundImage' | 'backgroundImageUrl'> {
+  const backgroundImageUrl =
+    typeof shop?.backgroundImageUrl === 'string' && shop.backgroundImageUrl.trim()
+      ? shop.backgroundImageUrl.trim()
+      : null;
+  const backgroundImageKey =
+    typeof shop?.backgroundImage === 'string' && shop.backgroundImage.trim()
+      ? shop.backgroundImage.trim()
+      : null;
+
+  return {
+    backgroundImage: backgroundImageUrl ?? backgroundImageKey,
+    backgroundImageUrl,
+  };
+}
+
+/** Aparência exibida na vitrine: dono usa settings locais; visitante só vê dados do vendedor. */
+export function buildShopPageVisual(
+  ownerShop: Record<string, unknown> | null | undefined,
+  ownerSettings: ShopAppearanceSource | null | undefined,
+  isOwnShop: boolean
+): ShopAppearanceView {
+  const shopBackground = readBackgroundFromShopRecord(ownerShop);
+
+  if (!isOwnShop) {
+    return {
+      ...shopBackground,
+      backgroundMode: ownerShop?.backgroundMode === 'top' ? 'top' : 'full',
+      backgroundOverlay: Boolean(ownerShop?.backgroundOverlay),
+      backgroundOverlayOpacity:
+        typeof ownerShop?.backgroundOverlayOpacity === 'number'
+          ? ownerShop.backgroundOverlayOpacity
+          : 0,
+      titleColor: typeof ownerShop?.titleColor === 'string' ? ownerShop.titleColor : null,
+      titleDisplayEffect:
+        (ownerShop?.titleDisplayEffect as UsernameDisplayEffectConfig | null | undefined) ?? null,
+    };
+  }
+
+  const settingsBackground =
+    ownerSettings?.backgroundImageUrl ?? ownerSettings?.backgroundImage ?? null;
+
+  return {
+    backgroundImage: settingsBackground ?? shopBackground.backgroundImage ?? null,
+    backgroundImageUrl:
+      ownerSettings?.backgroundImageUrl ?? shopBackground.backgroundImageUrl ?? null,
+    backgroundMode: (ownerSettings?.backgroundMode ??
+      (ownerShop?.backgroundMode === 'top' ? 'top' : 'full')) as 'full' | 'top',
+    backgroundOverlay:
+      ownerSettings?.backgroundOverlay ?? Boolean(ownerShop?.backgroundOverlay),
+    backgroundOverlayOpacity:
+      ownerSettings?.backgroundOverlayOpacity ??
+      (typeof ownerShop?.backgroundOverlayOpacity === 'number'
+        ? ownerShop.backgroundOverlayOpacity
+        : 0),
+    titleColor:
+      ownerSettings?.titleColor ??
+      (typeof ownerShop?.titleColor === 'string' ? ownerShop.titleColor : null),
+    titleDisplayEffect:
+      ownerSettings?.titleDisplayEffect ??
+      (ownerShop?.titleDisplayEffect as UsernameDisplayEffectConfig | null | undefined) ??
+      null,
+  };
+}
+
 /** URL exibível (pública, assinada ou key S3). */
 export function resolveShopBackgroundImageUrl(
   shop: ShopAppearanceView | null | undefined
@@ -51,7 +120,7 @@ export function resolveShopTitleColor(
   return raw || fallback;
 }
 
-/** Pill do título — contorno rosa e fundo branco (paridade com botão outline web). */
+/** Pill do título — fundo branco e borda rosa (padrão da vitrine, paridade web). */
 export const shopHeaderContrastTitleStyle = {
   backgroundColor: '#ffffff',
   borderWidth: 1,
@@ -63,7 +132,7 @@ export const shopHeaderContrastTitleStyle = {
   maxWidth: '100%',
 } as const;
 
-/** Engrenagem — círculo branco com ícone rosa. */
+/** Engrenagem — círculo branco, borda rosa e ícone rosa (padrão da vitrine). */
 export const shopHeaderContrastSettingsButtonStyle = {
   backgroundColor: '#ffffff',
   borderWidth: 1,
