@@ -273,10 +273,12 @@ export function MyShopScreen() {
         }
         // Para dono, incluir produtos aprovados, pendentes e que requerem mudanças
         else {
-          productsData = productsData.filter((p: any) => 
-            p.status === 'APPROVED' || 
-            p.status === 'PENDING' || 
-            p.status === 'REQUIRES_CHANGES'
+          productsData = productsData.filter(
+            (p: any) =>
+              p.status === 'APPROVED' ||
+              p.status === 'PENDING' ||
+              p.status === 'REQUIRES_CHANGES' ||
+              p.status === 'REJECTED'
           );
         }
         
@@ -443,7 +445,7 @@ export function MyShopScreen() {
     const planType = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
     const maxProducts = getFeatureLimit(planType, 'maxProducts');
     // Incluir produtos pendentes no limite (eles já "gastam" o recurso)
-    const currentProducts = products.length; // products já inclui todos (ativos + pendentes) para o dono
+    const currentProducts = products.filter((p: any) => p.status !== 'INACTIVE').length;
     return { max: maxProducts, current: currentProducts };
   };
 
@@ -594,7 +596,8 @@ export function MyShopScreen() {
             return (
               p.status === 'APPROVED' ||
               p.status === 'PENDING' ||
-              p.status === 'REQUIRES_CHANGES'
+              p.status === 'REQUIRES_CHANGES' ||
+              p.status === 'REJECTED'
             );
           })
         : products.filter((p: any) => {
@@ -604,7 +607,10 @@ export function MyShopScreen() {
             if (!isOwner) return match && p.status === 'APPROVED';
             return (
               match &&
-              (p.status === 'APPROVED' || p.status === 'PENDING' || p.status === 'REQUIRES_CHANGES')
+              (p.status === 'APPROVED' ||
+                p.status === 'PENDING' ||
+                p.status === 'REQUIRES_CHANGES' ||
+                p.status === 'REJECTED')
             );
           });
     const q = searchQuery.trim().toLowerCase();
@@ -1081,7 +1087,7 @@ export function MyShopScreen() {
                           {pendingProductsCount > 1 ? 's' : ''}
                         </Text>
                         <Text style={styles.pendingAlertDescription}>
-                          Em análise; em breve ficam ativos na loja.
+                          Em análise. Você ainda pode criar mais até o limite do plano.
                         </Text>
                       </View>
                     </View>
