@@ -120,6 +120,15 @@ export function resolveShopTitleColor(
   return raw || fallback;
 }
 
+/** Sombra leve — paridade com boxShadow do header web. */
+const shopHeaderElevation = {
+  shadowColor: '#000000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.12,
+  shadowRadius: 3,
+  elevation: 2,
+} as const;
+
 /** Pill do título — fundo branco e borda rosa (padrão da vitrine, paridade web). */
 export const shopHeaderContrastTitleStyle = {
   backgroundColor: '#ffffff',
@@ -130,9 +139,10 @@ export const shopHeaderContrastTitleStyle = {
   paddingVertical: 6,
   alignSelf: 'flex-start',
   maxWidth: '100%',
+  ...shopHeaderElevation,
 } as const;
 
-/** Engrenagem — círculo branco, borda rosa e ícone rosa (padrão da vitrine). */
+/** Ícone circular do header (engrenagem, compartilhar) — padrão da vitrine. */
 export const shopHeaderContrastSettingsButtonStyle = {
   backgroundColor: '#ffffff',
   borderWidth: 1,
@@ -143,4 +153,7 @@ export const shopHeaderContrastSettingsButtonStyle = {
   padding: 0,
   justifyContent: 'center' as const,
   alignItems: 'center' as const,
+  ...shopHeaderElevation,
 } as const;
+
+export const shopHeaderContrastIconButtonStyle = shopHeaderContrastSettingsButtonStyle;

@@ -44,6 +44,7 @@ import {
   hasShopBackgroundImage,
   resolveShopBackgroundImageUrl,
   resolveShopTitleColor,
+  shopHeaderContrastIconButtonStyle,
   shopHeaderContrastSettingsButtonStyle,
   shopHeaderContrastTitleStyle,
   shouldShowShopColorOverlay,
@@ -185,6 +186,11 @@ export function MyShopScreen() {
   useEffect(() => {
     if (authLoading || !username) return;
 
+    setShopOwner(null);
+    if (!isOwner) {
+      setShopSettings(null);
+    }
+
     let cancelled = false;
 
     (async () => {
@@ -320,7 +326,7 @@ export function MyShopScreen() {
       setLoading(true);
 
       // Buscar dados do dono da loja
-      const userResponse = await userApi.getUserProfile(username);
+      const userResponse = await userApi.getUserProfile(username, { context: 'shop' });
 
       if (!userResponse.success) {
         showToast.error('Erro', 'Usuário não encontrado');
@@ -708,7 +714,7 @@ export function MyShopScreen() {
   const isTopSectionBackground = shopBackgroundMode === 'top' && !!shopBgSource;
   const shopOverlayOpacity = getShopOverlayOpacity(shopVisual);
   const showShopColorOverlay = shouldShowShopColorOverlay(shopVisual);
-  const shopTitleColor = resolveShopTitleColor(shopVisual, COLORS.secondary.main);
+  const shopTitleColor = resolveShopTitleColor(shopVisual, COLORS.icon.active);
 
   if (loading || authLoading) {
     return (
@@ -874,7 +880,7 @@ export function MyShopScreen() {
             <View style={styles.headerActions}>
               {isOwner && ownerApproved && shopIsPublicAndActive && (
                 <TouchableOpacity
-                  style={styles.shareShopButton}
+                  style={[styles.shareShopButton, shopHeaderContrastIconButtonStyle]}
                   onPress={() => void handleCopyShopShareLink()}
                   activeOpacity={0.7}
                 >
@@ -1827,12 +1833,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   shareShopButton: {
-    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   settingsButton: {
-    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },

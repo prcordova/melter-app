@@ -83,10 +83,16 @@ export const userApi = {
     const response = await api.get<ApiResponse<any>>(`/api/users/${username}/follow-status`);
     return response.data;
   },
-  getUserProfile: async (username: string, options?: { guestContentAck?: boolean }) => {
-    const query = options?.guestContentAck ? '?guestContentAck=1' : '';
+  getUserProfile: async (
+    username: string,
+    options?: { guestContentAck?: boolean; context?: 'shop' }
+  ) => {
+    const search = new URLSearchParams();
+    if (options?.guestContentAck) search.set('guestContentAck', '1');
+    if (options?.context) search.set('context', options.context);
+    const qs = search.toString();
     const response = await api.get<ApiResponse<any>>(
-      `${USERS_API.byUsername(username)}${query}`
+      `${USERS_API.byUsername(username)}${qs ? `?${qs}` : ''}`
     );
     return response.data;
   },
