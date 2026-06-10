@@ -928,8 +928,9 @@ export function MyShopScreen() {
         )}
         </View>
 
-        {/* Sistema de Tabs: dono aprovado/admin ou dono com loja em análise (só Produtos + mensagem) */}
+        {/* Abas no topo — mesmo fundo do card de cadastro (web grey.50) */}
         {showTabs && (
+          <View style={styles.tabsShell}>
           <View style={styles.tabsContainer}>
             <ScrollView
               horizontal
@@ -1009,6 +1010,7 @@ export function MyShopScreen() {
               </Button>
             )}
           </View>
+          </View>
         )}
 
         {/* Conteúdo: com abas (dono aprovado ou admin) ou loja pública / dono em análise */}
@@ -1016,6 +1018,31 @@ export function MyShopScreen() {
           <View style={styles.tabContent}>
             {activeTab === 'products' && (
               <View style={styles.productsContent}>
+                {isOwner && !ownerApproved && (
+                  <>
+                    <SellerVerificationStatusCard
+                      sellerVerification={sellerVerification || null}
+                      onOpenForm={() => {
+                        void openVerificationForm();
+                      }}
+                      onOpenAppeal={() => setShowAppealModal(true)}
+                      onRefresh={fetchShopSettings}
+                      onOpenSupport={() => {
+                        navigation.navigate('ProfileStack' as never, { screen: 'SupportTickets' } as never);
+                      }}
+                      compact
+                    />
+                    {/* Promo "Prepare o perfil" desativado temporariamente (getShopPlacementContent → null) */}
+                  </>
+                )}
+                {isOwner && ownerApproved && shopIsPublicAndActive && (
+                  <SellerGrowthPromoCard
+                    variant="small"
+                    placement="shop"
+                    sellerStatus="approved"
+                    onAction={handleGrowthPromoAction}
+                  />
+                )}
                 {isOwner && canPrepareShopCatalogWhilePending && (
                   <View style={styles.pendingAlert}>
                     <View style={styles.pendingAlertContent}>
@@ -1294,25 +1321,18 @@ export function MyShopScreen() {
         ) : (
           <View style={styles.tabContent}>
             {isOwner && (
-              <>
-                <SellerVerificationStatusCard
-                  sellerVerification={sellerVerification || null}
-                  onOpenForm={() => {
-                    void openVerificationForm();
-                  }}
-                  onOpenAppeal={() => setShowAppealModal(true)}
-                  onRefresh={fetchShopSettings}
-                  onOpenSupport={() => {
-                    navigation.navigate('ProfileStack' as never, { screen: 'SupportTickets' } as never);
-                  }}
-                />
-                <SellerGrowthPromoCard
-                  variant="large"
-                  placement="shop"
-                  sellerStatus={sellerVerification?.status ?? null}
-                  onAction={handleGrowthPromoAction}
-                />
-              </>
+              <SellerVerificationStatusCard
+                sellerVerification={sellerVerification || null}
+                onOpenForm={() => {
+                  void openVerificationForm();
+                }}
+                onOpenAppeal={() => setShowAppealModal(true)}
+                onRefresh={fetchShopSettings}
+                onOpenSupport={() => {
+                  navigation.navigate('ProfileStack' as never, { screen: 'SupportTickets' } as never);
+                }}
+                compact
+              />
             )}
 
             <ShopSubscriptionPlansSection
@@ -1864,15 +1884,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
+  tabsShell: {
+    marginHorizontal: 8,
+    marginTop: 4,
+    marginBottom: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    backgroundColor: COLORS.secondary.main + '14',
+    overflow: 'hidden',
+  },
   tabsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingRight: 12,
     paddingBottom: 4,
+    paddingTop: 4,
   },
   tabsScroll: {
     flex: 1,

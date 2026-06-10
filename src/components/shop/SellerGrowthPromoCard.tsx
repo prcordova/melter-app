@@ -118,7 +118,7 @@ export function SellerGrowthPromoCard({
     return getSellerGrowthPromoContent(sellerStatus, placement);
   }, [isApprovedShop, sellerStatus, placement, variant]);
 
-  if (!showGrowthPromo && !isApprovedShop) {
+  if (!content) {
     return null;
   }
 

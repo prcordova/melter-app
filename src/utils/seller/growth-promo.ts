@@ -78,45 +78,30 @@ export type SellerGrowthPromoContent = {
   tertiaryCta?: SellerGrowthPromoCta;
 };
 
-function getShopPlacementContent(status: SellerVerificationStatusValue): SellerGrowthPromoContent {
+function getShopPlacementContent(
+  _status: SellerVerificationStatusValue
+): SellerGrowthPromoContent | null {
+  /**
+   * Temporariamente desativado — card “Prepare seu perfil” na vitrine (aba Pacotes).
+   * Reativar quando quiser incentivar links/aparência antes da loja abrir.
+   */
+  return null
+
+  /*
   if (!status) {
     return {
       title: 'Prepare seu perfil para vender',
-      description:
-        'Adicione links e personalize seu perfil antes de concluir o cadastro da loja.',
-      primaryCta: { label: 'Adicionar links', action: 'links' },
-      secondaryCta: { label: 'Personalizar perfil', action: 'appearance' },
-    };
+      ...
+    }
   }
-
-  let description =
-    'Complete seu perfil e adicione links para ganhar visibilidade enquanto sua loja é analisada.';
-
-  if (status === 'rejected') {
-    description =
-      'Enquanto corrige o cadastro acima, mantenha links e perfil atualizados para sua audiência continuar te encontrando.';
-  } else if (status === 'pending' || status === 'appeal') {
-    description = 'Use este tempo para fortalecer seu perfil, adicionar links e interagir no feed.';
-  } else if (status === 'needs_review') {
-    description =
-      'Além de concluir o cadastro acima, deixe seu perfil completo para atrair seguidores.';
-  } else if (status === 'disabled') {
-    description = 'Mantenha perfil e links ativos para sua audiência continuar te encontrando.';
-  }
-
-  return {
-    title: 'Atualize links e perfil enquanto aguarda',
-    description,
-    primaryCta: { label: 'Adicionar links', action: 'links' },
-    secondaryCta: { label: 'Personalizar perfil', action: 'appearance' },
-    tertiaryCta: { label: 'Ir ao feed', action: 'feed' },
-  };
+  ...
+  */
 }
 
 export function getSellerGrowthPromoContent(
   status: SellerVerificationStatusValue,
   placement: SellerGrowthPromoPlacement
-): SellerGrowthPromoContent {
+): SellerGrowthPromoContent | null {
   if (placement === 'shop') {
     return getShopPlacementContent(status);
   }

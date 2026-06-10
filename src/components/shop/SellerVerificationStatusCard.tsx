@@ -33,6 +33,7 @@ interface SellerVerificationStatusCardProps {
   onOpenAppeal: () => void;
   onRefresh?: () => void;
   onOpenSupport?: () => void;
+  compact?: boolean;
 }
 
 export function SellerVerificationStatusCard({
@@ -41,14 +42,16 @@ export function SellerVerificationStatusCard({
   onOpenAppeal,
   onRefresh,
   onOpenSupport,
+  compact = false,
 }: SellerVerificationStatusCardProps) {
   const getStatusConfig = () => {
     if (!sellerVerification) {
       return {
         title: 'Criar sua Loja',
-        description:
-          'Como funciona: após a verificação de documentos e aprovação, você adiciona produtos; compradores pagam e só quem compra (ou assina) acessa seu conteúdo — o valor das vendas vai para sua carteira Melter.\n\n' +
-          'A plataforma valida documentos de vendedores e usa proteção Cloudflare contra ataques. Pode enviar o cadastro com tranquilidade: analisamos e avisamos em cada etapa.',
+        description: compact
+          ? 'Envie a verificação de documentos. Após aprovação, publique pacotes ou assinaturas na loja.'
+          : 'Como funciona: após a verificação de documentos e aprovação, você adiciona produtos; compradores pagam e só quem compra (ou assina) acessa seu conteúdo — o valor das vendas vai para sua carteira Melter.\n\n' +
+            'A plataforma valida documentos de vendedores e usa proteção Cloudflare contra ataques. Pode enviar o cadastro com tranquilidade: analisamos e avisamos em cada etapa.',
         icon: 'storefront-outline' as const,
         color: COLORS.text.secondary,
         bgColor: COLORS.background.tertiary,
@@ -180,6 +183,7 @@ export function SellerVerificationStatusCard({
     <View
       style={[
         styles.card,
+        compact && styles.cardCompact,
         {
           backgroundColor: config.bgColor,
           borderColor: config.borderColor,
@@ -187,18 +191,28 @@ export function SellerVerificationStatusCard({
       ]}
     >
       {showPaidAccessBanner ? (
-        <View style={styles.paidAccessBanner}>
+        <View style={[styles.paidAccessBanner, compact && styles.paidAccessBannerCompact]}>
           <View style={styles.paidAccessBannerHeader}>
-            <Ionicons name="lock-closed-outline" size={20} color={COLORS.states.warning} />
-            <Text style={styles.paidAccessBannerTitle}>{SELLER_ONBOARDING_PAID_ACCESS.title}</Text>
+            <Ionicons name="lock-closed-outline" size={compact ? 16 : 20} color={COLORS.states.warning} />
+            <Text style={[styles.paidAccessBannerTitle, compact && styles.paidAccessBannerTitleCompact]}>
+              {SELLER_ONBOARDING_PAID_ACCESS.title}
+            </Text>
           </View>
-          <Text style={styles.paidAccessBannerNote}>{SELLER_ONBOARDING_PAID_ACCESS.note}</Text>
+          {!compact ? (
+            <Text style={styles.paidAccessBannerNote}>{SELLER_ONBOARDING_PAID_ACCESS.note}</Text>
+          ) : (
+            <Text style={styles.paidAccessBannerNoteCompact}>
+              Visitantes só veem a capa; conteúdo pago fica bloqueado até a compra.
+            </Text>
+          )}
         </View>
       ) : null}
 
       <View style={styles.header}>
-        <Ionicons name={config.icon} size={48} color={config.color} />
-        <Text style={[styles.title, { color: config.color }]}>{config.title}</Text>
+        <Ionicons name={config.icon} size={compact ? 32 : 48} color={config.color} />
+        <Text style={[styles.title, compact && styles.titleCompact, { color: config.color }]}>
+          {config.title}
+        </Text>
       </View>
 
       <View style={styles.content}>
@@ -329,6 +343,11 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
   },
+  cardCompact: {
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
   paidAccessBanner: {
     backgroundColor: '#FFFBEB',
     borderRadius: 10,
@@ -354,6 +373,18 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: COLORS.text.primary,
   },
+  paidAccessBannerCompact: {
+    padding: 10,
+    marginBottom: 10,
+  },
+  paidAccessBannerTitleCompact: {
+    fontSize: 13,
+  },
+  paidAccessBannerNoteCompact: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: COLORS.text.secondary,
+  },
   header: {
     alignItems: 'center',
     marginBottom: 16,
@@ -363,6 +394,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 12,
     textAlign: 'center',
+  },
+  titleCompact: {
+    fontSize: 17,
+    marginTop: 8,
   },
   content: {
     gap: 12,
