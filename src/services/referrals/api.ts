@@ -51,5 +51,14 @@ export const referralsApi = {
     const response = await api.get<ApiResponse<any[]>>('/api/referrals/my-referrals');
     return response.data;
   },
+
+  resolveReferrer: async (ref: string) => {
+    const response = await api.get<ApiResponse<{
+      userId: string;
+      username: string;
+      avatar?: string | null;
+    }>>(`/api/referrals/resolve?ref=${encodeURIComponent(ref)}`);
+    return response.data;
+  },
 };
 

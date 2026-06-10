@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { BackButton } from '../components/BackButton';
-import { authApi } from '../services/api';
+import { authApi, referralsApi } from '../services/api';
 import { showToast } from '../components/CustomToast';
 import { AxiosError } from 'axios';
 import * as ImagePicker from 'expo-image-picker';
@@ -40,6 +40,7 @@ export function RegisterScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referrerPreview, setReferrerPreview] = useState<string | null>(null);
 
   // Buscar referralCode do AsyncStorage ao montar o componente
   useEffect(() => {
@@ -55,6 +56,32 @@ export function RegisterScreen() {
     };
     loadReferralCode();
   }, []);
+
+  useEffect(() => {
+    if (!referralCode?.trim()) {
+      setReferrerPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    void referralsApi
+      .resolveReferrer(referralCode.trim())
+      .then((response) => {
+        if (cancelled) return;
+        if (response.success && response.data?.username) {
+          setReferrerPreview(response.data.username);
+        } else {
+          setReferrerPreview(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setReferrerPreview(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [referralCode]);
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, '').slice(0, 11);
@@ -255,7 +282,8 @@ export function RegisterScreen() {
                 <View style={styles.referralBanner}>
                   <Ionicons name="gift" size={20} color="#ffffff" />
                   <Text style={styles.referralText}>
-                    Você está ajudando <Text style={styles.referralCodeText}>{referralCode}</Text>!
+                    Você está ajudando{' '}
+                    <Text style={styles.referralCodeText}>@{referrerPreview ?? referralCode}</Text>!
                   </Text>
                 </View>
               )}

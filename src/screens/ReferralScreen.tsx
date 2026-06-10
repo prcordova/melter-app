@@ -76,10 +76,7 @@ export function ReferralScreen() {
   const [claimingReward, setClaimingReward] = useState(false);
   const [systemActive, setSystemActive] = useState(true);
 
-  // Gerar link de referência usando o username do usuário logado
-  const referralLink = user?.username 
-    ? `https://melter.com.br/register?ref=${user.username}`
-    : null;
+  const referralLink = stats?.referralLink ?? null;
 
   useEffect(() => {
     fetchStatus();
@@ -104,10 +101,7 @@ export function ReferralScreen() {
       setLoading(true);
       const response = await referralsApi.getMyStats();
       if (response.success && response.data) {
-        setStats({
-          ...response.data,
-          referralLink: referralLink || response.data.referralLink,
-        });
+        setStats(response.data);
       } else {
         showToast.error('Erro', response.message || 'Erro ao carregar estatísticas');
       }
@@ -126,7 +120,7 @@ export function ReferralScreen() {
   };
 
   const copyReferralLink = async () => {
-    const linkToCopy = referralLink || stats?.referralLink;
+    const linkToCopy = stats?.referralLink;
     if (linkToCopy) {
       try {
         await Clipboard.setStringAsync(linkToCopy);
@@ -227,7 +221,7 @@ export function ReferralScreen() {
             
             <View style={styles.linkContainer}>
               <Text style={styles.linkText} numberOfLines={1}>
-                {referralLink || stats.referralLink}
+                {stats.referralLink}
               </Text>
             </View>
 
