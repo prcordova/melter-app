@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -17,6 +18,7 @@ import { COLORS } from '../../theme/colors';
 import { ContentStep } from './wizard/ContentStep';
 import { DetailsStep } from './wizard/DetailsStep';
 import { ReviewStep } from './wizard/ReviewStep';
+import { showToast } from '../CustomToast';
 
 export interface ProductCreationWizardProps {
   visible: boolean;
@@ -71,7 +73,10 @@ export function ProductCreationWizard({
   productCoverAvatarFallbackEnabled = true,
 }: ProductCreationWizardProps) {
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const isTinyScreen = windowWidth < 400;
   const [activeStep, setActiveStep] = useState(0);
+  const [showMediaRequiredError, setShowMediaRequiredError] = useState(false);
   /** Dentro de Modal, o Android ignora muito o KAV; padding extra libera rolagem dos links. */
   const [keyboardInset, setKeyboardInset] = useState(0);
 
@@ -118,8 +123,24 @@ export function ProductCreationWizard({
     if (!visible) {
       setActiveStep(0);
       setKeyboardInset(0);
+      setShowMediaRequiredError(false);
     }
   }, [visible]);
+
+  const formHasHostedMedia = (files: any[] | undefined) =>
+    Boolean(
+      files?.length &&
+        files.some(
+          (f: { existing?: boolean; url?: string; uri?: string }) =>
+            Boolean(f.uri || f.url) || Boolean(f.existing)
+        )
+    );
+
+  useEffect(() => {
+    if (formHasHostedMedia(formData.files)) {
+      setShowMediaRequiredError(false);
+    }
+  }, [formData.files]);
 
   useEffect(() => {
     if (!visible) return;
@@ -226,14 +247,7 @@ export function ProductCreationWizard({
       switch (step) {
         case 0: {
           if (!product && !formData.contentDeliveryMode) return false;
-          const hasHostedFiles =
-            formData.files &&
-            formData.files.length > 0 &&
-            formData.files.some(
-              (f: { existing?: boolean; url?: string; file?: File; uri?: string }) =>
-                (f.existing && Boolean(f.url || f.uri)) || f.file instanceof File
-            );
-          return Boolean(hasHostedFiles);
+          return true;
         }
         case 1: // Detalhes
           const hasTitle = Boolean(formData.title && String(formData.title).trim() !== '');
@@ -266,9 +280,19 @@ export function ProductCreationWizard({
 
   const handleNext = () => {
     try {
-      if (canProceedToNext(activeStep)) {
-        setActiveStep((prev) => prev + 1);
+      if (!canProceedToNext(activeStep)) return;
+
+      if (activeStep === 0 && !formHasHostedMedia(formData.files)) {
+        setShowMediaRequiredError(true);
+        showToast.error(
+          'Arquivo obrigatório',
+          'Envie pelo menos um arquivo de mídia. Links sozinhos não são suficientes.'
+        );
+        return;
       }
+
+      setShowMediaRequiredError(false);
+      setActiveStep((prev) => prev + 1);
     } catch (error) {
       console.error('[ProductCreationWizard] Erro ao avançar step:', error);
     }
@@ -350,6 +374,7 @@ export function ProductCreationWizard({
             formData={formData}
             setFormData={setFormData}
             isEditing={Boolean(product)}
+            showMediaRequiredError={showMediaRequiredError}
           />
         );
       case 1:
@@ -394,10 +419,21 @@ export function ProductCreationWizard({
         keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(insets.top, 12) : 0}
         enabled={Platform.OS === 'ios'}
       >
-        <View style={[styles.overlay, { paddingTop: Math.max(insets.top, 12) }]}>
-          <View style={styles.modalContainer}>
+        <View
+          style={[
+            styles.overlay,
+            isTinyScreen && styles.overlayFullScreen,
+            { paddingTop: isTinyScreen ? 0 : Math.max(insets.top, 12) },
+          ]}
+        >
+          <View style={[styles.modalContainer, isTinyScreen && styles.modalContainerFullScreen]}>
             {/* Header */}
-            <View style={styles.header}>
+            <View
+              style={[
+                styles.header,
+                isTinyScreen && { paddingTop: Math.max(insets.top, 12) },
+              ]}
+            >
               <Text style={styles.title}>
                 {product ? 'Editar Produto' : 'Criar Produto Digital'}
               </Text>
@@ -541,12 +577,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  overlayFullScreen: {
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    width: '100%',
+    backgroundColor: COLORS.background.paper,
+  },
   modalContainer: {
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: COLORS.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     flex: 1,
     overflow: 'hidden',
+  },
+  modalContainerFullScreen: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   header: {
     flexDirection: 'row',

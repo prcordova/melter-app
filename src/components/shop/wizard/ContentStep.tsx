@@ -18,14 +18,21 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { PLAN_LIMITS, validateFileSize, PlanType } from '../../../config/plan-features';
 import { getImageUrl } from '../../../utils/image';
 import type { PackContentDeliveryMode } from '../ProductCreationWizard';
+import { MediaUploadPickerRow } from '../../ui/MediaUploadPickerRow';
 
 interface ContentStepProps {
   formData: any;
   setFormData: (data: any) => void;
   isEditing?: boolean;
+  showMediaRequiredError?: boolean;
 }
 
-export function ContentStep({ formData, setFormData, isEditing = false }: ContentStepProps) {
+export function ContentStep({
+  formData,
+  setFormData,
+  isEditing = false,
+  showMediaRequiredError = false,
+}: ContentStepProps) {
   const { user } = useAuth();
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
@@ -245,14 +252,6 @@ export function ContentStep({ formData, setFormData, isEditing = false }: Conten
     });
   };
 
-  const resetDeliveryChoice = () => {
-    setFormData({
-      ...formData,
-      contentDeliveryMode: null,
-      links: [],
-    });
-  };
-
   if (needsDeliveryChoice) {
     return (
       <View style={styles.container}>
@@ -294,26 +293,15 @@ export function ContentStep({ formData, setFormData, isEditing = false }: Conten
 
   return (
     <View style={styles.container}>
-      <View style={styles.alertInfo}>
-        <Ionicons name="information-circle-outline" size={20} color={COLORS.secondary.main} />
-        <Text style={styles.alertInfoText}>
-          Obrigatório: envie pelo menos um arquivo de mídia. Um link sozinho não é suficiente para
-          criar o pacote.
-        </Text>
-      </View>
-
-      {!isEditing && (
-        <TouchableOpacity onPress={resetDeliveryChoice} style={styles.changeChoiceButton}>
-          <Text style={styles.changeChoiceText}>Alterar opção</Text>
-        </TouchableOpacity>
-      )}
-
-      <View style={styles.header}>
-        <Text style={styles.title}>Arquivos de mídia</Text>
-        <Text style={styles.subtitle}>
-          Use o botão abaixo para enviar imagens, vídeos ou documentos.
-        </Text>
-      </View>
+      {showMediaRequiredError ? (
+        <View style={styles.alertWarning}>
+          <Text style={styles.alertWarningTitle}>Arquivo de mídia obrigatório</Text>
+          <Text style={styles.alertWarningText}>
+            Envie pelo menos um arquivo de mídia. Um link sozinho não é suficiente para criar o
+            pacote.
+          </Text>
+        </View>
+      ) : null}
 
       {fileSizeErrors.length > 0 && (
         <View style={styles.alertWarning}>
@@ -329,32 +317,16 @@ export function ContentStep({ formData, setFormData, isEditing = false }: Conten
         </View>
       )}
 
-      {/* Arquivos */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Arquivos</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={handlePickFiles}
-            disabled={uploadingFiles}
-            activeOpacity={0.7}
-          >
-            {uploadingFiles ? (
-              <ActivityIndicator size="small" color={COLORS.secondary.main} />
-            ) : (
-              <>
-                <Ionicons name="cloud-upload-outline" size={18} color={COLORS.text.secondary} />
-                <Text style={styles.addButtonText}>Adicionar Arquivo</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.sectionTitle}>Arquivos de mídia</Text>
+        <MediaUploadPickerRow
+          label="Adicionar arquivos"
+          onPress={() => void handlePickFiles()}
+          disabled={uploadingFiles}
+          loading={uploadingFiles}
+        />
 
-        {formData.files.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>Nenhum arquivo adicionado ainda</Text>
-          </View>
-        ) : (
+        {formData.files.length > 0 ? (
           <>
             <View style={styles.filesList}>
               {formData.files.map((file: any) => (
@@ -411,7 +383,7 @@ export function ContentStep({ formData, setFormData, isEditing = false }: Conten
               </Text>
             </View>
           </>
-        )}
+        ) : null}
       </View>
 
       {showLinksSection && (
@@ -531,15 +503,6 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     lineHeight: 18,
   },
-  changeChoiceButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 4,
-  },
-  changeChoiceText: {
-    fontSize: 13,
-    color: COLORS.secondary.main,
-    fontWeight: '600',
-  },
   container: {
     gap: 20,
   },
@@ -570,6 +533,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
+    marginBottom: 8,
   },
   addButton: {
     flexDirection: 'row',
@@ -648,6 +612,7 @@ const styles = StyleSheet.create({
   },
   filesList: {
     gap: 8,
+    marginTop: 12,
   },
   fileCard: {
     flexDirection: 'row',
