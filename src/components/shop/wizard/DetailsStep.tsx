@@ -18,11 +18,6 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { subscriptionPlansApi } from '../../../services/api';
 import { getImageUrl } from '../../../utils/image';
 import { resolveProductCoverImageSource } from '../../../utils/product-cover-display';
-import {
-  getProductCoverDefaultHint,
-  getProductCoverPreviewOverlayLabel,
-  hasCustomProductCover,
-} from '../../../utils/product-cover-display-hints';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../../../config/api.config';
 import axios from 'axios';
@@ -212,21 +207,24 @@ export function DetailsStep({
     );
   }
 
+  const coverPreviewSource = safeFormData.coverImage
+    ? { uri: getImageUrl(safeFormData.coverImage) }
+    : resolveProductCoverImageSource({
+        coverImage: null,
+        sellerAvatar: user?.avatar,
+        avatarFallbackEnabled: productCoverAvatarFallbackEnabled,
+      });
+
   return (
     <View style={styles.container}>
-      <View style={styles.pageHeader}>
-        <Text style={styles.pageTitle}>Detalhes do produto</Text>
-        <Text style={styles.pageSubtitle}>
-          Configure informações básicas, preço e preferências de exibição.
-        </Text>
-      </View>
+      <Text style={styles.pageTitle}>Detalhes</Text>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Informações básicas</Text>
+        <Text style={styles.sectionTitle}>Informações</Text>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>
-            Título do Produto <Text style={styles.required}>*</Text>
+            Título <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
             style={styles.input}
@@ -239,34 +237,10 @@ export function DetailsStep({
                 console.error('[DetailsStep] Erro ao atualizar título:', error);
               }
             }}
-            placeholder="Ex: Curso Completo de Marketing Digital"
+            placeholder="Nome do pacote"
             placeholderTextColor={COLORS.text.tertiary}
             maxLength={100}
           />
-          <Text style={styles.helperText}>{(safeFormData.title || '').length}/100 caracteres</Text>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Descrição (Opcional)</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={safeFormData.description || ''}
-            onChangeText={(text) => {
-              try {
-                const limitedText = text.slice(0, 1000);
-                setFormData((prev: any) => ({ ...prev, description: limitedText }));
-              } catch (error) {
-                console.error('[DetailsStep] Erro ao atualizar descrição:', error);
-              }
-            }}
-            placeholder="Descreva seu produto, o que o cliente vai receber, benefícios..."
-            placeholderTextColor={COLORS.text.tertiary}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-            maxLength={1000}
-          />
-          <Text style={styles.helperText}>{(safeFormData.description || '').length}/1000 caracteres</Text>
         </View>
 
         <View style={styles.inputGroup}>
@@ -274,9 +248,7 @@ export function DetailsStep({
             Categoria <Text style={styles.required}>*</Text>
           </Text>
           {lockCategory ? (
-            <Text style={styles.lockedHint}>
-              Produto aprovado: a categoria não pode ser alterada.
-            </Text>
+            <Text style={styles.lockedHint}>Categoria fixa após aprovação.</Text>
           ) : null}
           {loadingCategories ? (
             <ActivityIndicator size="small" color={COLORS.secondary.main} />
@@ -315,7 +287,29 @@ export function DetailsStep({
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Tags (Opcional)</Text>
+          <Text style={styles.label}>Descrição</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={safeFormData.description || ''}
+            onChangeText={(text) => {
+              try {
+                const limitedText = text.slice(0, 1000);
+                setFormData((prev: any) => ({ ...prev, description: limitedText }));
+              } catch (error) {
+                console.error('[DetailsStep] Erro ao atualizar descrição:', error);
+              }
+            }}
+            placeholder="Opcional"
+            placeholderTextColor={COLORS.text.tertiary}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+            maxLength={1000}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Tags</Text>
           <TextInput
             style={styles.input}
             value={safeFormData.tags || ''}
@@ -326,94 +320,59 @@ export function DetailsStep({
                 console.error('[DetailsStep] Erro ao atualizar tags:', error);
               }
             }}
-            placeholder="Ex: marketing, curso, tutorial, dicas (separadas por vírgula)"
+            placeholder="Separadas por vírgula"
             placeholderTextColor={COLORS.text.tertiary}
           />
-          <Text style={styles.helperText}>
-            Adicione palavras-chave para facilitar a busca do seu produto
-          </Text>
+        </View>
+
+        <View style={styles.coverBlock}>
+          <Text style={styles.label}>Capa (opcional)</Text>
+          <Text style={styles.coverHint}>Visível na vitrine. O conteúdo do pacote é privado.</Text>
+          <View style={styles.coverRow}>
+            <Image source={coverPreviewSource} style={styles.coverThumb} resizeMode="cover" />
+            <View style={styles.coverActions}>
+              <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
+                <TouchableOpacity
+                  style={styles.imageUploadButton}
+                  onPress={handleImageUpload}
+                  disabled={uploadingImage}
+                  activeOpacity={0.7}
+                >
+                  {uploadingImage ? (
+                    <ActivityIndicator size="small" color={COLORS.secondary.main} />
+                  ) : (
+                    <>
+                      <Ionicons name="cloud-upload-outline" size={16} color={COLORS.text.secondary} />
+                      <Text style={styles.imageUploadText}>
+                        {safeFormData.coverImage ? 'Trocar capa' : 'Enviar capa'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </PlanLocker>
+              {safeFormData.coverImage ? (
+                <TouchableOpacity
+                  onPress={() => {
+                    try {
+                      setFormData((prev: any) => ({ ...prev, coverImage: null }));
+                    } catch (error) {
+                      console.error('[DetailsStep] Erro ao remover imagem:', error);
+                    }
+                  }}
+                >
+                  <Text style={styles.coverRemoveText}>Remover</Text>
+                </TouchableOpacity>
+              ) : null}
+              <Text style={styles.helperText}>JPG, PNG ou GIF · máx. 5 MB</Text>
+            </View>
+          </View>
         </View>
       </View>
 
-      {/* Imagem de Capa */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Imagem de capa</Text>
-        <Text style={styles.helperText}>
-          {getProductCoverDefaultHint(productCoverAvatarFallbackEnabled)}
-        </Text>
-
-        <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
-          {safeFormData.coverImage && (
-            <View style={styles.imagePreviewContainer}>
-              <Image
-                source={{ uri: getImageUrl(safeFormData.coverImage) }}
-                style={styles.imagePreview}
-                resizeMode="cover"
-              />
-              <TouchableOpacity
-                style={styles.removeImageButton}
-                onPress={() => {
-                  try {
-                    setFormData((prev: any) => ({ ...prev, coverImage: null }));
-                  } catch (error) {
-                    console.error('[DetailsStep] Erro ao remover imagem:', error);
-                  }
-                }}
-              >
-                <Ionicons name="close-circle" size={24} color={COLORS.states.error} />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {!safeFormData.coverImage && (
-            <View style={styles.emptyImageBox}>
-              <Image
-                source={resolveProductCoverImageSource({
-                  coverImage: null,
-                  sellerAvatar: user?.avatar,
-                  avatarFallbackEnabled: productCoverAvatarFallbackEnabled,
-                })}
-                style={styles.defaultCoverPreview}
-                resizeMode="cover"
-              />
-              <Text style={styles.emptyImageText}>
-                {getProductCoverPreviewOverlayLabel(
-                  productCoverAvatarFallbackEnabled,
-                  hasCustomProductCover(safeFormData.coverImage)
-                )}
-              </Text>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={styles.imageUploadButton}
-            onPress={handleImageUpload}
-            disabled={uploadingImage}
-            activeOpacity={0.7}
-          >
-            {uploadingImage ? (
-              <ActivityIndicator size="small" color={COLORS.secondary.main} />
-            ) : (
-              <>
-                <Ionicons name="cloud-upload-outline" size={18} color={COLORS.text.secondary} />
-                <Text style={styles.imageUploadText}>
-                  {safeFormData.coverImage ? 'Trocar Capa' : 'Adicionar Capa'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.helperText}>Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 5MB</Text>
-        </PlanLocker>
-      </View>
-
-      {/* Tipo de Venda */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Tipo de venda</Text>
+        <Text style={styles.sectionTitle}>Como vender</Text>
         {lockPaymentAndPlan ? (
-          <Text style={styles.lockedHint}>
-            Após criar o produto, não é possível mudar entre venda única e assinatura nem trocar o plano
-            vinculado (proteção para quem já comprou).
-          </Text>
+          <Text style={styles.lockedHint}>Pagamento e plano não podem ser alterados após a criação.</Text>
         ) : null}
 
         <View style={[styles.radioGroup, lockPaymentAndPlan && styles.sectionDimmed]}>
@@ -441,13 +400,7 @@ export function DetailsStep({
                 {safeFormData.paymentMode === 'UNICO' && <View style={styles.radioCircleInner} />}
               </View>
               <View style={styles.radioTextContainer}>
-                <View style={styles.radioHeader}>
-                  <Ionicons name="cash-outline" size={18} color={COLORS.text.primary} />
-                  <Text style={styles.radioTitle}>Venda Única</Text>
-                </View>
-                <Text style={styles.radioDescription}>
-                  Cliente paga uma vez e tem acesso vitalício
-                </Text>
+                <Text style={styles.radioTitle}>Venda única</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -476,13 +429,7 @@ export function DetailsStep({
                 {safeFormData.paymentMode === 'ASSINATURA' && <View style={styles.radioCircleInner} />}
               </View>
               <View style={styles.radioTextContainer}>
-                <View style={styles.radioHeader}>
-                  <Ionicons name="repeat-outline" size={18} color={COLORS.text.primary} />
-                  <Text style={styles.radioTitle}>Assinatura</Text>
-                </View>
-                <Text style={styles.radioDescription}>
-                  Cliente paga periodicamente para manter acesso
-                </Text>
+                <Text style={styles.radioTitle}>Assinatura</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -509,7 +456,7 @@ export function DetailsStep({
               placeholderTextColor={COLORS.text.tertiary}
               keyboardType="numeric"
             />
-            <Text style={styles.helperText}>Preço mínimo: R$ 10,00</Text>
+            <Text style={styles.helperText}>Mín. R$ 10</Text>
           </View>
         )}
 
@@ -558,9 +505,8 @@ export function DetailsStep({
         )}
       </View>
 
-      {/* Configurações */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Configurações</Text>
+        <Text style={styles.sectionTitle}>Exibição</Text>
 
         <View style={styles.switchGroup}>
           <Text style={styles.switchLabel}>Permitir download dos arquivos</Text>
@@ -648,85 +594,69 @@ const styles = StyleSheet.create({
   container: {
     gap: 24,
   },
-  pageHeader: {
-    gap: 4,
-    marginBottom: 4,
-  },
   pageTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.text.primary,
-  },
-  pageSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: COLORS.text.secondary,
+    marginBottom: 4,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 16,
-  },
-  imagePreviewContainer: {
-    position: 'relative',
     marginBottom: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
   },
-  imagePreview: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
+  coverBlock: {
+    marginTop: 4,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border.light,
   },
-  removeImageButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 20,
-    padding: 4,
-  },
-  emptyImageBox: {
-    backgroundColor: COLORS.background.tertiary,
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: COLORS.border.light,
-    borderStyle: 'dashed',
-    overflow: 'hidden',
-  },
-  defaultCoverPreview: {
-    width: '100%',
-    height: 140,
-    borderRadius: 6,
-    marginBottom: 8,
-  },
-  emptyImageText: {
-    fontSize: 13,
+  coverHint: {
+    fontSize: 12,
     color: COLORS.text.secondary,
-    textAlign: 'center',
+    marginBottom: 10,
+    lineHeight: 16,
+  },
+  coverRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  coverThumb: {
+    width: 96,
+    height: 54,
+    borderRadius: 6,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  coverActions: {
+    flex: 1,
+    gap: 6,
+  },
+  coverRemoveText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.states.error,
   },
   imageUploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    alignSelf: 'flex-start',
+    gap: 6,
     backgroundColor: COLORS.background.tertiary,
     borderRadius: 8,
-    padding: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: COLORS.border.light,
   },
   imageUploadText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: COLORS.text.primary,
   },
   inputGroup: {
     marginBottom: 16,
