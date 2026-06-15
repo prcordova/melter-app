@@ -50,18 +50,24 @@ export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps)
   useEffect(() => {
     if (!ad?._id || !onSkip) return;
 
+    setTimeElapsed(0);
+    setCanSkip(false);
+
+    let elapsed = 0;
     const interval = setInterval(() => {
-      setTimeElapsed((prev) => {
-        const newTime = prev + 1;
-        if (newTime >= MIN_SKIP_TIME) {
-          setCanSkip(true);
-        }
-        if (newTime >= AUTO_SKIP_TIME && onSkipRef.current) {
-          onSkipRef.current();
-          return 0;
-        }
-        return newTime;
-      });
+      elapsed += 1;
+      setTimeElapsed(elapsed);
+
+      if (elapsed >= MIN_SKIP_TIME) {
+        setCanSkip(true);
+      }
+
+      if (elapsed >= AUTO_SKIP_TIME) {
+        elapsed = 0;
+        setTimeElapsed(0);
+        setCanSkip(false);
+        queueMicrotask(() => onSkipRef.current?.());
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -99,7 +105,7 @@ export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps)
 
   const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (!status.isLoaded || !status.didJustFinish) return;
-    onVideoEndRef.current?.();
+    queueMicrotask(() => onVideoEndRef.current?.());
   };
 
   const handleVideoLoaded = async () => {
