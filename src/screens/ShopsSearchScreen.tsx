@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -134,23 +134,24 @@ export function ShopsSearchScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchProducts(1);
-  }, [selectedCategory, sortMode, showAdultContent, showAdultContent ? genderFilter : null]);
+  const productFiltersKey = useMemo(
+    () =>
+      JSON.stringify({
+        selectedCategory,
+        sortMode,
+        searchQuery,
+        showAdultContent,
+        genderFilter: showAdultContent ? genderFilter : null,
+      }),
+    [selectedCategory, sortMode, searchQuery, showAdultContent, genderFilter]
+  );
 
-  useEffect(() => {
-    // Debounce na busca
-    const timer = setTimeout(() => {
-      fetchProducts(1);
-    }, searchQuery ? 500 : 0);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const fetchProducts = async (pageNum = 1) => {
+  const fetchProducts = useCallback(async (pageNum = 1) => {
     try {
       if (pageNum === 1) {
         if (!hasLoadedOnce) setLoading(true);
+        setBeyondProducts([]);
+        setHasMore(true);
       } else {
         setLoadingMore(true);
       }
@@ -225,19 +226,29 @@ export function ShopsSearchScreen() {
       console.error('[ShopsSearchScreen] Erro ao buscar produtos:', error);
       showToast.error('Erro', 'Não foi possível carregar os produtos');
       if (pageNum === 1) {
+        setProducts([]);
         setBeyondProducts([]);
+        setHasMore(false);
       }
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [selectedCategory, sortMode, searchQuery, showAdultContent, genderFilter]);
 
-  const loadMore = () => {
-    if (!loadingMore && hasMore) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchProducts(1);
+    }, searchQuery ? 500 : 0);
+
+    return () => clearTimeout(timer);
+  }, [productFiltersKey, fetchProducts, searchQuery]);
+
+  const loadMore = useCallback(() => {
+    if (!loadingMore && hasMore && !loading) {
       fetchProducts(page + 1);
     }
-  };
+  }, [loadingMore, hasMore, loading, page, fetchProducts]);
 
   const handleProductPress = async (product: Product) => {
     if (!product.userId?.username) {
@@ -269,7 +280,7 @@ export function ShopsSearchScreen() {
   );
 
   const renderListFooter = () => {
-    if (loadingMore) {
+    if (loadingMore && hasMore) {
       return (
         <View style={styles.footer}>
           <ActivityIndicator size="small" color={COLORS.secondary.main} animating />
@@ -448,8 +459,8 @@ export function ShopsSearchScreen() {
             data={products}
             renderItem={renderItem}
             keyExtractor={(item) => item._id}
-            onEndReached={loadMore}
-            onEndReachedThreshold={0.5}
+            onEndReached={hasMore ? loadMore : undefined}
+            onEndReachedThreshold={0.4}
             ListFooterComponent={renderFooter}
             ListEmptyComponent={renderEmpty}
             contentContainerStyle={styles.listContent}
