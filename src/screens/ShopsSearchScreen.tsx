@@ -7,19 +7,20 @@ import {
   ActivityIndicator,
   TextInput,
   Switch,
+  Platform,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ShopCard } from '../components/ShopCard';
 import { MarketplaceBeyondSearchDivider } from '../components/shop/MarketplaceBeyondSearchDivider';
 import { shopsApi } from '../services/api';
 import { COLORS } from '../theme/colors';
-import { Picker } from '@react-native-picker/picker';
 import { useNavigation, useScrollToTop } from '@react-navigation/native';
 import { showToast } from '../components/CustomToast';
 import { useAuth } from '../contexts/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { TouchableOpacity } from 'react-native';
 import { DiscoveryModeTabs } from '../components/DiscoveryModeTabs';
+import { SelectRow } from '../components/SelectRow';
 import {
   discoveryModeToTabName,
   type DiscoveryViewMode,
@@ -86,6 +87,16 @@ const MARKETPLACE_GENDER_FILTERS: MarketplaceGenderFilter[] = [
   'all',
 ];
 
+const MARKETPLACE_SORT_OPTIONS = MARKETPLACE_SORT_MODES.map((mode) => ({
+  value: mode,
+  label: MARKETPLACE_SORT_LABELS[mode],
+}));
+
+const MARKETPLACE_GENDER_OPTIONS = MARKETPLACE_GENDER_FILTERS.map((filter) => ({
+  value: filter,
+  label: MARKETPLACE_GENDER_LABELS[filter],
+}));
+
 export function ShopsSearchScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
@@ -98,7 +109,7 @@ export function ShopsSearchScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortMode, setSortMode] = useState<MarketplaceSortMode>('recent');
   const [genderFilter, setGenderFilter] = useState<MarketplaceGenderFilter>('women');
-  const [showAdultContent, setShowAdultContent] = useState(false);
+  const [showAdultContent, setShowAdultContent] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -347,7 +358,7 @@ export function ShopsSearchScreen() {
               onPress={handleMyShopPress}
               activeOpacity={0.7}
             >
-              <Ionicons name="storefront-outline" size={18} color="#ffffff" />
+              <Ionicons name="storefront-outline" size={16} color="#ffffff" />
               <Text style={styles.myShopButtonText}>Minha Loja</Text>
             </TouchableOpacity>
           )}
@@ -355,6 +366,7 @@ export function ShopsSearchScreen() {
 
         <View style={styles.discoveryModeRow}>
           <DiscoveryModeTabs
+            compact
             activeMode="shops"
             onModeChange={(mode: DiscoveryViewMode) => {
               if (mode === 'shops') return;
@@ -389,6 +401,7 @@ export function ShopsSearchScreen() {
               }}
               trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
               thumbColor="#ffffff"
+              style={styles.adultSwitch}
             />
           </View>
         </View>
@@ -396,44 +409,30 @@ export function ShopsSearchScreen() {
         {/* Filtros — ordenação (+ gênero quando +18) */}
         <View style={styles.filtersSection}>
           <View style={styles.sortRow}>
-            <View style={[styles.filterGroup, !showAdultContent && styles.filterGroupFull]}>
-              <Text style={styles.filterLabel}>Ordenar:</Text>
-              <View style={styles.pickerWrapper}>
-                <Picker
-                  selectedValue={sortMode}
-                  onValueChange={(value: MarketplaceSortMode) => setSortMode(value)}
-                  style={styles.picker}
-                  dropdownIconColor={COLORS.text.secondary}
-                >
-                  {MARKETPLACE_SORT_MODES.map((mode) => (
-                    <Picker.Item
-                      key={mode}
-                      label={MARKETPLACE_SORT_LABELS[mode]}
-                      value={mode}
-                    />
-                  ))}
-                </Picker>
+            <View style={[styles.filterInline, !showAdultContent && styles.filterInlineFull]}>
+              <Text style={styles.filterLabelInline}>Ordenar</Text>
+              <View style={styles.selectWrap}>
+                <SelectRow
+                  label="Ordenar"
+                  value={sortMode}
+                  options={MARKETPLACE_SORT_OPTIONS}
+                  onChange={(value) => setSortMode(value as MarketplaceSortMode)}
+                  size="compact"
+                />
               </View>
             </View>
 
             {showAdultContent ? (
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterLabel}>Perfil:</Text>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    selectedValue={genderFilter}
-                    onValueChange={(value: MarketplaceGenderFilter) => setGenderFilter(value)}
-                    style={styles.picker}
-                    dropdownIconColor={COLORS.text.secondary}
-                  >
-                    {MARKETPLACE_GENDER_FILTERS.map((filter) => (
-                      <Picker.Item
-                        key={filter}
-                        label={MARKETPLACE_GENDER_LABELS[filter]}
-                        value={filter}
-                      />
-                    ))}
-                  </Picker>
+              <View style={styles.filterInline}>
+                <Text style={styles.filterLabelInline}>Perfil</Text>
+                <View style={styles.selectWrap}>
+                  <SelectRow
+                    label="Perfil"
+                    value={genderFilter}
+                    options={MARKETPLACE_GENDER_OPTIONS}
+                    onChange={(value) => setGenderFilter(value as MarketplaceGenderFilter)}
+                    size="compact"
+                  />
                 </View>
               </View>
             ) : null}
@@ -475,14 +474,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 4,
   },
   discoveryModeRow: {
-    marginBottom: 12,
+    marginBottom: 6,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.text.primary,
     flex: 1,
@@ -490,22 +489,22 @@ const styles = StyleSheet.create({
   myShopButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: COLORS.secondary.main,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 6,
   },
   myShopButtonText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 6,
   },
   searchContainer: {
     flex: 1,
@@ -513,52 +512,53 @@ const styles = StyleSheet.create({
   searchInput: {
     backgroundColor: COLORS.background.paper,
     borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 6,
+    fontSize: 14,
     color: COLORS.text.primary,
     borderWidth: 1,
     borderColor: COLORS.border.light,
+    minHeight: 36,
   },
   adultToggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
+    gap: 4,
+    paddingVertical: 0,
   },
   adultToggleLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.text.primary,
   },
+  adultSwitch: {
+    transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }],
+  },
   filtersSection: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   sortRow: {
     flexDirection: 'row',
-    gap: 12,
-  },
-  filterGroup: {
-    flex: 1,
     gap: 8,
   },
-  filterGroupFull: {
+  filterInline: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterInlineFull: {
     flex: 1,
   },
-  filterLabel: {
-    fontSize: 14,
+  filterLabelInline: {
+    fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: COLORS.text.secondary,
+    minWidth: 52,
   },
-  pickerWrapper: {
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border.light,
-    overflow: 'hidden',
-  },
-  picker: {
-    color: COLORS.text.primary,
+  selectWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   listContent: {
     paddingBottom: 16,
@@ -633,18 +633,18 @@ const styles = StyleSheet.create({
   },
   skeletonSearch: {
     width: '100%',
-    height: 48,
-    borderRadius: 10,
+    height: 36,
+    borderRadius: 8,
     backgroundColor: '#e5e7eb',
   },
   skeletonFiltersRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
   },
   skeletonFilter: {
     flex: 1,
-    height: 54,
-    borderRadius: 10,
+    height: 34,
+    borderRadius: 8,
     backgroundColor: '#e5e7eb',
   },
   skeletonCard: {

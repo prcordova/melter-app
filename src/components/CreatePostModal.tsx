@@ -18,9 +18,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 import { Button } from './Button';
 import { COLORS } from '../theme/colors';
-import { postsApi } from '../services/api';
+import { postsApi, linksApi } from '../services/api';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { showToast } from './CustomToast';
 import { PlanLocker } from './PlanLocker';
@@ -40,6 +41,14 @@ interface CreatePostModalProps {
 
 type VisibilityType = 'PUBLIC' | 'FOLLOWERS' | 'FRIENDS';
 
+interface ProfileLink {
+  _id: string;
+  title: string;
+  url: string;
+  imageUrl?: string;
+  description?: string;
+}
+
 const CATEGORIES = [
   { value: 'noticias', label: '📰 Notícias' },
   { value: 'tecnologia', label: '💻 Tecnologia' },
@@ -58,6 +67,7 @@ const CATEGORIES = [
 
 export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }: CreatePostModalProps) {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
   const [content, setContent] = useState('');
@@ -65,14 +75,20 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
   const [visibility, setVisibility] = useState<VisibilityType>('PUBLIC');
   const [selectedImage, setSelectedImage] = useState<any>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedLinkId, setSelectedLinkId] = useState('');
+  const [myLinks, setMyLinks] = useState<ProfileLink[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showVisibilityPicker, setShowVisibilityPicker] = useState(false);
+  const [showLinkPicker, setShowLinkPicker] = useState(false);
 
   const isPro = user?.plan?.type === 'PRO' || user?.plan?.type === 'PRO_PLUS';
   const isStarter = user?.plan?.type === 'STARTER';
-  const canUploadImage = isStarter || isPro; // STARTER para cima pode fazer upload
+  const canUploadImage = isStarter || isPro;
+  const canPostWithoutLink = isStarter || isPro;
   const isEditing = !!editingPost;
+  const selectedLink = myLinks.find((link) => link._id === selectedLinkId) ?? null;
+  const showLinkMenuEmptyState = !canPostWithoutLink && myLinks.length === 0;
 
   useEffect(() => {
     if (visible) {
@@ -82,12 +98,36 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
         setCategory(editingPost.category || 'outros');
         setVisibility(editingPost.visibility || 'PUBLIC');
         setImagePreview(editingPost.imageUrl || null);
-        setSelectedImage(null); // Não precisamos do objeto de imagem, só a URL
+        setSelectedImage(null);
+        setSelectedLinkId('');
       } else {
         resetForm();
+        void fetchMyLinks();
       }
     }
   }, [visible, editingPost]);
+
+  const fetchMyLinks = async () => {
+    try {
+      const response = await linksApi.getLinks();
+      const raw = (response as { success?: boolean; data?: ProfileLink[] }).data ?? response;
+      const links = Array.isArray(raw) ? raw : [];
+      setMyLinks(
+        links
+          .map((item: ProfileLink & { id?: string }) => ({
+            _id: item._id || item.id || '',
+            title: item.title,
+            url: item.url,
+            imageUrl: item.imageUrl,
+            description: item.description,
+          }))
+          .filter((link) => link._id)
+      );
+    } catch (error) {
+      console.error('Erro ao buscar links:', error);
+      setMyLinks([]);
+    }
+  };
 
   const resetForm = () => {
     setContent('');
@@ -95,6 +135,14 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
     setVisibility('PUBLIC');
     setSelectedImage(null);
     setImagePreview(null);
+    setSelectedLinkId('');
+  };
+
+  const handleOpenLinksSettings = () => {
+    setShowLinkPicker(false);
+    onClose();
+    const parent = navigation.getParent();
+    parent?.navigate('ProfileStack', { screen: 'LinksSettings' });
   };
 
   const handlePickImage = async () => {
@@ -142,6 +190,14 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
       Alert.alert(
         'Muitas Hashtags',
         `Você usou ${hashtags.length} hashtags, mas o máximo permitido é 5. Remova ${hashtags.length - 5} hashtags.`
+      );
+      return;
+    }
+
+    if (!isEditing && !canPostWithoutLink && !selectedLinkId) {
+      Alert.alert(
+        'Link obrigatório',
+        'No plano FREE você precisa selecionar um link do seu perfil para postar.'
       );
       return;
     }
@@ -219,7 +275,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           imageUrl,
           visibility,
           category,
-          linkId: null,
+          linkId: selectedLinkId || null,
           hideAutoPreview: false,
         });
 
@@ -236,6 +292,11 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
     } finally {
       setLoading(false);
     }
+  };
+
+  const getLinkLabel = () => {
+    if (selectedLink) return `🔗 ${selectedLink.title}`;
+    return '🔗 Link';
   };
 
   const getCategoryLabel = () => {
@@ -362,10 +423,42 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
             </View>
           ) : null}
 
-          {/* Categoria e Upload Imagem - Lado a lado */}
+          {/* Preview do link selecionado */}
+          {!isEditing && selectedLink ? (
+            <View style={styles.linkPreviewContainer}>
+              {selectedLink.imageUrl ? (
+                <Image
+                  source={{ uri: selectedLink.imageUrl }}
+                  style={styles.linkPreviewImage}
+                  resizeMode="cover"
+                />
+              ) : null}
+              <View style={styles.linkPreviewInfo}>
+                <Text style={styles.linkPreviewTitle} numberOfLines={1}>
+                  {selectedLink.title}
+                </Text>
+                {selectedLink.description ? (
+                  <Text style={styles.linkPreviewDescription} numberOfLines={2}>
+                    {selectedLink.description}
+                  </Text>
+                ) : null}
+                <Text style={styles.linkPreviewUrl} numberOfLines={1}>
+                  {selectedLink.url}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setSelectedLinkId('')}
+                style={styles.removeLinkButton}
+                disabled={loading}
+              >
+                <Ionicons name="close-circle" size={22} color={COLORS.text.tertiary} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {/* Categoria, Link e Imagem */}
           <View style={styles.actionsRow}>
-            {/* Categoria */}
-            <View style={styles.sectionHalf}>
+            <View style={styles.sectionThird}>
               <Text style={styles.sectionTitle}>Categoria</Text>
               <TouchableOpacity
                 style={styles.picker}
@@ -377,8 +470,24 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
               </TouchableOpacity>
             </View>
 
-            {/* Botão Upload Imagem */}
-            <View style={styles.sectionHalf}>
+            {!isEditing ? (
+              <View style={styles.sectionThird}>
+                <Text style={styles.sectionTitle}>Link</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.picker,
+                    !canPostWithoutLink && !selectedLinkId && styles.pickerRequired,
+                  ]}
+                  onPress={() => setShowLinkPicker(true)}
+                  disabled={loading}
+                >
+                  <Text style={styles.pickerText} numberOfLines={1}>{getLinkLabel()}</Text>
+                  <Text style={styles.pickerArrow}>▼</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            <View style={[styles.sectionThird, isEditing && styles.sectionHalf]}>
               <Text style={styles.sectionTitle}>Imagem</Text>
               <PlanLocker
                 requiredPlan="STARTER"
@@ -403,16 +512,26 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={loading || !content.trim()}
+            disabled={
+              loading ||
+              !content.trim() ||
+              (!isEditing && !canPostWithoutLink && !selectedLinkId)
+            }
             style={[
               styles.postButtonContainer,
-              (!content.trim() || loading) && styles.postButtonContainerDisabled,
+              (loading ||
+                !content.trim() ||
+                (!isEditing && !canPostWithoutLink && !selectedLinkId)) &&
+                styles.postButtonContainerDisabled,
             ]}
           >
             <Text
               style={[
                 styles.postButtonText,
-                (!content.trim() || loading) && styles.postButtonTextDisabled,
+                (loading ||
+                  !content.trim() ||
+                  (!isEditing && !canPostWithoutLink && !selectedLinkId)) &&
+                  styles.postButtonTextDisabled,
               ]}
             >
               {loading ? (isEditing ? 'Atualizando...' : 'Postando...') : (isEditing ? 'Atualizar' : 'Postar')}
@@ -451,6 +570,72 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
               <Button
                 variant="outline"
                 onPress={() => setShowCategoryPicker(false)}
+              >
+                Fechar
+              </Button>
+            </Pressable>
+          </Pressable>
+        )}
+
+        {/* Link Picker */}
+        {showLinkPicker && (
+          <Pressable
+            style={styles.pickerModal}
+            onPress={() => setShowLinkPicker(false)}
+          >
+            <Pressable
+              style={styles.pickerModalContent}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <Text style={styles.pickerModalTitle}>Selecione um Link</Text>
+              {showLinkMenuEmptyState ? (
+                <View style={styles.linkEmptyState}>
+                  <Text style={styles.linkEmptyStateText}>
+                    Cadastre um link no seu perfil para poder postar no plano FREE.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.addLinkButton}
+                    onPress={handleOpenLinksSettings}
+                  >
+                    <Text style={styles.addLinkButtonText}>Adicionar Link</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <ScrollView>
+                  {canPostWithoutLink ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.pickerOption,
+                        !selectedLinkId && styles.pickerOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedLinkId('');
+                        setShowLinkPicker(false);
+                      }}
+                    >
+                      <Text style={styles.pickerOptionText}>Nenhum (post sem link)</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {myLinks.map((link) => (
+                    <TouchableOpacity
+                      key={link._id}
+                      style={[
+                        styles.pickerOption,
+                        selectedLinkId === link._id && styles.pickerOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedLinkId(link._id);
+                        setShowLinkPicker(false);
+                      }}
+                    >
+                      <Text style={styles.pickerOptionText}>🔗 {link.title}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+              <Button
+                variant="outline"
+                onPress={() => setShowLinkPicker(false)}
               >
                 Fechar
               </Button>
@@ -701,31 +886,42 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: 0,
   },
+  sectionThird: {
+    flex: 1,
+    marginBottom: 0,
+    minWidth: 0,
+  },
   actionsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   picker: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: COLORS.border.medium,
-    minHeight: 48,
+    minHeight: 40,
+  },
+  pickerRequired: {
+    borderColor: COLORS.secondary.main,
   },
   pickerText: {
-    fontSize: 15,
+    fontSize: 13,
     color: COLORS.text.primary,
+    flex: 1,
+    marginRight: 4,
   },
   pickerArrow: {
     fontSize: 12,
@@ -733,18 +929,79 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.border.medium,
-    minHeight: 48,
+    minHeight: 40,
   },
   uploadButtonText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
     color: COLORS.secondary.main,
+  },
+  linkPreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+    backgroundColor: COLORS.background.default,
+  },
+  linkPreviewImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.tertiary,
+  },
+  linkPreviewInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  linkPreviewTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 2,
+  },
+  linkPreviewDescription: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginBottom: 2,
+  },
+  linkPreviewUrl: {
+    fontSize: 11,
+    color: COLORS.secondary.main,
+  },
+  removeLinkButton: {
+    padding: 4,
+  },
+  linkEmptyState: {
+    marginBottom: 12,
+    gap: 10,
+  },
+  linkEmptyStateText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+  },
+  addLinkButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.secondary.main,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addLinkButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   upgradeNotice: {
     backgroundColor: `${COLORS.secondary.light}20`,

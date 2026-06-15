@@ -160,6 +160,7 @@ export function CommunityScreen() {
 
         <View style={styles.discoveryModeRow}>
           <DiscoveryModeTabs
+            compact
             activeMode="users"
             onModeChange={(mode: DiscoveryViewMode) => {
               if (mode === 'users') return;
@@ -208,7 +209,7 @@ export function CommunityScreen() {
         {/* Conteúdo da aba Explorar */}
         {activeTab === 'explore' && (
           <View style={styles.exploreContainer}>
-            <UsersSearchScreen hideHeader hideTitle />
+            <UsersSearchScreen hideHeader hideTitle compactFilters />
           </View>
         )}
 
@@ -218,7 +219,7 @@ export function CommunityScreen() {
             {/* Barra de Busca (apenas na aba amigos) */}
             {activeTab === 'friends' && (
               <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color={COLORS.text.tertiary} style={styles.searchIcon} />
+                <Ionicons name="search" size={18} color={COLORS.text.tertiary} style={styles.searchIcon} />
                 <TextInput
                   style={styles.searchInput}
                   placeholder="Buscar por nome..."
@@ -266,33 +267,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 4,
   },
   discoveryModeRow: {
-    marginBottom: 12,
+    marginBottom: 6,
   },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 8,
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 7,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 7,
   },
   activeTab: {
     backgroundColor: COLORS.secondary.main,
   },
   tabText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: COLORS.text.secondary,
   },
@@ -308,19 +309,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 16,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: COLORS.border.light,
+    minHeight: 36,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 6,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
-    fontSize: 15,
+    paddingVertical: 8,
+    fontSize: 14,
     color: COLORS.text.primary,
   },
   loadingContainer: {

@@ -8,14 +8,14 @@ import {
   TextInput,
   Alert,
   DeviceEventEmitter,
-  TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { UserCard } from '../components/UserCard';
+import { SelectRow } from '../components/SelectRow';
 import { userApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomOptionSheet } from '../components/ui/BottomOptionSheet';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation, useFocusEffect, useScrollToTop } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -55,6 +55,7 @@ const EXPLORER_FILTER_OPTIONS: { label: string; value: FilterType }[] = [
 interface UsersSearchScreenProps {
   hideHeader?: boolean;
   hideTitle?: boolean;
+  compactFilters?: boolean;
 }
 
 const usersCache = new Map<string, User[]>();
@@ -87,7 +88,11 @@ function mapUserFromApi(u: any): User | null {
   }
 }
 
-export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: UsersSearchScreenProps = {}) {
+export function UsersSearchScreen({
+  hideHeader = false,
+  hideTitle = false,
+  compactFilters = false,
+}: UsersSearchScreenProps = {}) {
   const { user: currentUser } = useAuth();
   const navigation = useNavigation<any>();
   const listRef = useRef<FlatList<User>>(null);
@@ -101,10 +106,6 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
-  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
-
-  const selectedFilterLabel =
-    EXPLORER_FILTER_OPTIONS.find((o) => o.value === selectedFilter)?.label ?? 'Filtro';
 
   const getCacheKey = (filter: FilterType, search: string, pageNum: number) =>
     `${filter}::${search.trim().toLowerCase()}::${pageNum}`;
@@ -329,11 +330,17 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
         {!hideTitle && <Text style={styles.title}>Buscar Pessoas</Text>}
 
         {/* Barra de Busca e Filtro na mesma linha */}
-        <View style={styles.searchAndFilterRow}>
+        <View
+          style={[
+            styles.searchAndFilterRow,
+            hideTitle && styles.searchAndFilterRowEmbedded,
+            compactFilters && styles.searchAndFilterRowCompact,
+          ]}
+        >
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={COLORS.text.tertiary} style={styles.searchIcon} />
+            <Ionicons name="search" size={18} color={COLORS.text.tertiary} style={styles.searchIcon} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, compactFilters && styles.searchInputCompact]}
               placeholder="Buscar por nome..."
               placeholderTextColor={COLORS.text.tertiary}
               value={searchQuery}
@@ -342,28 +349,16 @@ export function UsersSearchScreen({ hideHeader = false, hideTitle = false }: Use
               autoCorrect={false}
             />
           </View>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => setFilterSheetVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="filter" size={18} color={COLORS.secondary.main} />
-            <Text style={styles.filterButtonText} numberOfLines={1}>
-              {selectedFilterLabel}
-            </Text>
-            <Ionicons name="chevron-down" size={18} color={COLORS.text.secondary} />
-          </TouchableOpacity>
+          <View style={styles.filterSelectWrap}>
+            <SelectRow
+              label="Filtro"
+              value={selectedFilter}
+              options={EXPLORER_FILTER_OPTIONS}
+              onChange={(value) => setSelectedFilter(value as FilterType)}
+              size={compactFilters ? 'compact' : 'small'}
+            />
+          </View>
         </View>
-
-        <BottomOptionSheet
-          visible={filterSheetVisible}
-          title="Ordenar por"
-          subtitle="Como exibir pessoas no explorar"
-          options={EXPLORER_FILTER_OPTIONS}
-          selectedValue={selectedFilter}
-          onClose={() => setFilterSheetVisible(false)}
-          onSelect={(value) => setSelectedFilter(value)}
-        />
 
         {/* Lista de Usuários */}
         {loading ? (
@@ -404,55 +399,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.text.primary,
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: 8,
+    marginBottom: 6,
   },
   searchAndFilterRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 16, // Adicionar margem superior para não ficar colado nas tabs
-    marginBottom: 16,
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  searchAndFilterRowEmbedded: {
+    marginTop: 0,
+  },
+  searchAndFilterRowCompact: {
+    marginBottom: 6,
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 8,
+    paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: COLORS.border.light,
+    minHeight: 36,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 6,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: COLORS.text.primary,
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    minWidth: 128,
-    maxWidth: 150,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.secondary.main,
-  },
-  filterButtonText: {
-    flex: 1,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 6,
     fontSize: 14,
-    fontWeight: '600',
     color: COLORS.text.primary,
+  },
+  searchInputCompact: {
+    paddingVertical: Platform.OS === 'ios' ? 7 : 5,
+    fontSize: 13,
+  },
+  filterSelectWrap: {
+    width: 132,
+    flexShrink: 0,
   },
   listContent: {
     paddingBottom: 16,

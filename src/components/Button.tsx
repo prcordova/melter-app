@@ -15,7 +15,7 @@ interface ButtonProps extends TouchableOpacityProps {
   children: React.ReactNode;
   loading?: boolean;
   variant?: 'primary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   icon?: React.ReactNode;
 }
 
@@ -58,6 +58,7 @@ export function Button({
 
     // Tamanhos
     const sizeStyles: Record<string, ViewStyle> = {
+      xs: { paddingVertical: 4, paddingHorizontal: 10, minHeight: 28 },
       sm: { paddingVertical: 8, paddingHorizontal: 16, minHeight: 32 },
       md: { paddingVertical: 12, paddingHorizontal: 24, minHeight: 48 },
       lg: { paddingVertical: 16, paddingHorizontal: 32, minHeight: 56 },
@@ -92,6 +93,7 @@ export function Button({
 
     // Tamanhos de texto
     const sizeStyles: Record<string, TextStyle> = {
+      xs: { fontSize: 12 },
       sm: { fontSize: 14 },
       md: { fontSize: 16 },
       lg: { fontSize: 18 },

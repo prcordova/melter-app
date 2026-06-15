@@ -8,7 +8,7 @@ interface SelectOption {
   label: string;
 }
 
-type SelectRowSize = 'small' | 'medium' | 'large' | 'full';
+type SelectRowSize = 'compact' | 'small' | 'medium' | 'large' | 'full';
 
 interface SelectRowProps {
   label: string;
@@ -19,6 +19,7 @@ interface SelectRowProps {
 }
 
 const SIZE_WIDTH_MAP: Record<SelectRowSize, number | '100%'> = {
+  compact: '100%',
   small: 120,
   medium: 160,
   large: 220,
@@ -26,26 +27,62 @@ const SIZE_WIDTH_MAP: Record<SelectRowSize, number | '100%'> = {
 };
 
 const SIZE_MIN_DROPDOWN_MAP: Record<SelectRowSize, number> = {
+  compact: 140,
   small: 120,
   medium: 160,
   large: 220,
   full: 170,
 };
 
+const SIZE_TRIGGER_STYLE_MAP: Record<SelectRowSize, { minHeight: number; paddingHorizontal: number; borderRadius: number }> = {
+  compact: { minHeight: 34, paddingHorizontal: 10, borderRadius: 8 },
+  small: { minHeight: 40, paddingHorizontal: 10, borderRadius: 8 },
+  medium: { minHeight: 44, paddingHorizontal: 12, borderRadius: 10 },
+  large: { minHeight: 44, paddingHorizontal: 12, borderRadius: 10 },
+  full: { minHeight: 44, paddingHorizontal: 12, borderRadius: 10 },
+};
+
+const SIZE_TEXT_STYLE_MAP: Record<SelectRowSize, { fontSize: number }> = {
+  compact: { fontSize: 13 },
+  small: { fontSize: 13 },
+  medium: { fontSize: 14 },
+  large: { fontSize: 14 },
+  full: { fontSize: 14 },
+};
+
+const SIZE_CHEVRON_MAP: Record<SelectRowSize, number> = {
+  compact: 16,
+  small: 16,
+  medium: 18,
+  large: 18,
+  full: 18,
+};
+
 export function SelectRow({ label, value, options, onChange, size = 'full' }: SelectRowProps) {
   const [open, setOpen] = useState(false);
   const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 180 });
   const triggerRef = React.useRef<View>(null);
+  const triggerSizeStyle = SIZE_TRIGGER_STYLE_MAP[size];
+  const textSizeStyle = SIZE_TEXT_STYLE_MAP[size];
+  const chevronSize = SIZE_CHEVRON_MAP[size];
+  const isCompact = size === 'compact';
 
   const selectedLabel = useMemo(() => {
     return options.find((option) => option.value === value)?.label || label;
   }, [label, options, value]);
 
   return (
-    <View style={[styles.container, size !== 'full' && { width: SIZE_WIDTH_MAP[size] }]}>
+    <View style={[styles.container, size !== 'full' && size !== 'compact' && { width: SIZE_WIDTH_MAP[size] }]}>
       <View ref={triggerRef} collapsable={false}>
         <TouchableOpacity
-          style={styles.trigger}
+          style={[
+            styles.trigger,
+            {
+              minHeight: triggerSizeStyle.minHeight,
+              paddingHorizontal: triggerSizeStyle.paddingHorizontal,
+              borderRadius: triggerSizeStyle.borderRadius,
+            },
+          ]}
           onPress={() => {
             if (open) {
               setOpen(false);
@@ -66,10 +103,12 @@ export function SelectRow({ label, value, options, onChange, size = 'full' }: Se
           }}
           activeOpacity={0.75}
         >
-          <Text style={styles.triggerText}>{selectedLabel}</Text>
+          <Text style={[styles.triggerText, textSizeStyle]} numberOfLines={1}>
+            {selectedLabel}
+          </Text>
           <Ionicons
             name={open ? 'chevron-up' : 'chevron-down'}
-            size={18}
+            size={chevronSize}
             color={COLORS.secondary.main}
           />
         </TouchableOpacity>
@@ -99,14 +138,20 @@ export function SelectRow({ label, value, options, onChange, size = 'full' }: Se
                 return (
                   <TouchableOpacity
                     key={option.value}
-                    style={[styles.option, selected && styles.optionSelected]}
+                    style={[styles.option, isCompact && styles.optionCompact, selected && styles.optionSelected]}
                     onPress={() => {
                       onChange(option.value);
                       setOpen(false);
                     }}
                     activeOpacity={0.75}
                   >
-                    <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
+                    <Text
+                      style={[
+                        styles.optionText,
+                        isCompact && styles.optionTextCompact,
+                        selected && styles.optionTextSelected,
+                      ]}
+                    >
                       {option.label}
                     </Text>
                   </TouchableOpacity>
@@ -128,20 +173,18 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   trigger: {
-    minHeight: 44,
     borderWidth: 1,
     borderColor: COLORS.border.medium,
-    borderRadius: 10,
-    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.background.tertiary,
+    gap: 6,
   },
   triggerText: {
-    fontSize: 14,
     fontWeight: '600',
     color: COLORS.secondary.main,
+    flex: 1,
   },
   optionsWrap: {
     position: 'absolute',
@@ -168,6 +211,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
+  optionCompact: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
   optionSelected: {
     borderColor: COLORS.secondary.main,
     backgroundColor: `${COLORS.secondary.main}14`,
@@ -176,6 +224,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.secondary,
+  },
+  optionTextCompact: {
+    fontSize: 12,
   },
   optionTextSelected: {
     color: COLORS.secondary.main,
