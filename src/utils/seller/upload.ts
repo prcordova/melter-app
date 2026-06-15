@@ -1,4 +1,4 @@
-import { sellerVerificationApi } from '../services/api';
+import { sellerVerificationApi } from '../../services/api';
 
 export type SellerVerificationDocumentType = 'front' | 'back' | 'selfie' | 'videoProof';
 
