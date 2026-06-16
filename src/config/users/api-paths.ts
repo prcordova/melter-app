@@ -36,6 +36,7 @@ export const USERS_API = {
     acceptTerms: '/api/users/accept-terms',
     pushToken: '/api/users/push-token',
     changePassword: '/api/users/change-password',
+    setPassword: '/api/users/set-password',
     deletionStatus: '/api/users/deletion-status',
     deleteAccount: '/api/users/delete-account',
     cancelDeletion: '/api/users/cancel-deletion',
