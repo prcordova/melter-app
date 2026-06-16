@@ -12,6 +12,7 @@ export const AUTH_API = {
   googleCallback: '/api/auth/google/callback',
   googleHandoff: '/api/auth/google/handoff',
   googleConfig: '/api/auth/google/config',
+  googleLink: '/api/auth/google/link',
   verifyEmail: '/api/auth/verify-email',
   resendVerification: '/api/auth/resend-verification',
   forgotPassword: '/api/auth/forgot-password',
