@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, type ReactNode } from 'react';
 import {
   Modal,
   View,
@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Pressable,
+  Platform,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../theme/colors';
@@ -19,36 +22,71 @@ export interface CustomModalButton {
 
 export interface CustomModalProps {
   visible: boolean;
-  title: string;
-  message: string;
+  /** Modo alerta (padrão) — título, mensagem e botões. */
+  title?: string;
+  message?: string;
   buttons?: CustomModalButton[];
   onClose?: () => void;
   icon?: string;
   iconColor?: string;
-  top?: boolean; // Se true, anima de cima para baixo. Se false, anima de baixo para cima (padrão)
-  closeOnBackdropPress?: boolean; // Se true, fecha ao clicar fora (padrão: true quando não tem botões customizados)
+  top?: boolean;
+  closeOnBackdropPress?: boolean;
+  /** Modo conteúdo — layout customizado (ex.: criar post). Herda scroll lock do modal. */
+  children?: ReactNode;
+  animationType?: 'none' | 'slide' | 'fade';
+  overlayStyle?: StyleProp<ViewStyle>;
+}
+
+function useModalScrollLock(visible: boolean) {
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'web' || typeof document === 'undefined') {
+      return;
+    }
+
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+    };
+  }, [visible]);
 }
 
 export function CustomModal({
   visible,
-  title,
-  message,
+  title = '',
+  message = '',
   buttons = [],
   onClose,
   icon,
   iconColor = COLORS.primary.main,
   top = false,
   closeOnBackdropPress,
+  children,
+  animationType,
+  overlayStyle,
 }: CustomModalProps) {
+  const isContentMode = children != null;
+
+  useModalScrollLock(visible);
+
   // Se não tiver botões, criar um botão padrão "OK"
   const modalButtons = buttons.length > 0 
     ? buttons 
     : [{ text: 'OK', onPress: onClose || (() => {}), style: 'default' as const }];
 
   // Por padrão, fecha ao clicar fora se não tiver botões customizados
-  const shouldCloseOnBackdrop = closeOnBackdropPress !== undefined 
-    ? closeOnBackdropPress 
-    : buttons.length === 0;
+  const shouldCloseOnBackdrop = closeOnBackdropPress !== undefined
+    ? closeOnBackdropPress
+    : isContentMode
+      ? Boolean(onClose)
+      : buttons.length === 0;
 
   const handleBackdropPress = () => {
     if (onClose && shouldCloseOnBackdrop) {
@@ -56,11 +94,31 @@ export function CustomModal({
     }
   };
 
+  const resolvedAnimationType = animationType ?? (top ? 'slide' : 'fade');
+
+  if (isContentMode) {
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType={resolvedAnimationType}
+        onRequestClose={onClose}
+      >
+        <Pressable
+          style={[styles.overlay, top && styles.overlayTop, overlayStyle]}
+          onPress={handleBackdropPress}
+        >
+          {children}
+        </Pressable>
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       visible={visible}
       transparent={true}
-      animationType={top ? "slide" : "fade"}
+      animationType={resolvedAnimationType}
       onRequestClose={onClose}
     >
       <Pressable 

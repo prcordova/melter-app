@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Modal,
   View,
   Text,
   TextInput,
@@ -25,6 +24,7 @@ import { postsApi, linksApi } from '../services/api';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { showToast } from './CustomToast';
 import { PlanLocker } from './PlanLocker';
+import { CustomModal } from './CustomModal';
 
 interface CreatePostModalProps {
   visible: boolean;
@@ -315,13 +315,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <Pressable style={styles.overlay} onPress={onClose}>
+    <CustomModal visible={visible} onClose={onClose} animationType="fade" overlayStyle={styles.overlay}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoid}
@@ -701,8 +695,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
         )}
           </Pressable>
         </KeyboardAvoidingView>
-      </Pressable>
-    </Modal>
+    </CustomModal>
   );
 }
 
