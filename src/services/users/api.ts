@@ -20,12 +20,14 @@ export const userApi = {
     limit?: number;
     filter?: 'popular' | 'recent' | 'most-viewed' | 'most-liked';
     search?: string;
+    excludeFriends?: boolean;
   }) => {
     const queryParams = new URLSearchParams();
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.filter) queryParams.append('filter', params.filter);
     if (params.search) queryParams.append('search', params.search);
+    if (params.excludeFriends) queryParams.append('excludeFriends', 'true');
 
     const response = await api.get<ApiResponse<any>>(`/api/users?${queryParams.toString()}`);
     return response.data;

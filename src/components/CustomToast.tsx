@@ -11,6 +11,9 @@ const toastConfig = {
         borderLeftColor: COLORS.states.success,
         borderLeftWidth: 4,
         height: 60,
+        alignSelf: 'center',
+        width: '92%',
+        maxWidth: 420,
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}
       text1Style={{
@@ -31,6 +34,9 @@ const toastConfig = {
         borderLeftColor: COLORS.states.error,
         borderLeftWidth: 4,
         height: 60,
+        alignSelf: 'center',
+        width: '92%',
+        maxWidth: 420,
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}
       text1Style={{
@@ -51,6 +57,9 @@ const toastConfig = {
         borderLeftColor: COLORS.secondary.main,
         borderLeftWidth: 4,
         height: 60,
+        alignSelf: 'center',
+        width: '92%',
+        maxWidth: 420,
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}
       text1Style={{

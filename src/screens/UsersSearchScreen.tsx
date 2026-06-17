@@ -203,6 +203,7 @@ export function UsersSearchScreen({
         limit: 20,
         filter: selectedFilter,
         search: searchQuery.trim(),
+        excludeFriends: true,
       });
 
       // Verificar novamente se está montado antes de atualizar estado
