@@ -57,6 +57,7 @@ interface Product {
   showViews?: boolean;
   showLikes?: boolean;
   isAdultContent?: boolean;
+  isAiContent?: boolean;
   contentValidations?: {
     readTerms: boolean;
     noViolence: boolean;
@@ -127,6 +128,7 @@ export function CreateProductModal({
     showViews: true,
     showLikes: true,
     isAdultContent: false,
+    isAiContent: false,
     contentValidations: {
       readTerms: false,
       noViolence: false,
@@ -195,6 +197,7 @@ export function CreateProductModal({
         showViews: product.showViews !== undefined ? product.showViews : true,
         showLikes: product.showLikes !== undefined ? product.showLikes : true,
         isAdultContent: product.isAdultContent || false,
+        isAiContent: product.isAiContent || false,
         contentValidations: product.contentValidations || {
           readTerms: false,
           noViolence: false,
@@ -230,6 +233,7 @@ export function CreateProductModal({
         showViews: true,
         showLikes: true,
         isAdultContent: false,
+        isAiContent: false,
         contentValidations: {
           readTerms: false,
           noViolence: false,
@@ -1246,6 +1250,27 @@ export function CreateProductModal({
                 <Text style={styles.helperText}>
                   Marque apenas se o conteúdo contém material adulto. Conteúdo +18 é permitido, mas deve ser seu
                   próprio conteúdo.
+                </Text>
+
+                <View style={styles.switchGroup}>
+                  <Text style={styles.switchLabel}>
+                    ✨ Conteúdo gerado por inteligência artificial
+                  </Text>
+                  <Switch
+                    value={formData.isAiContent}
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({ ...prev, isAiContent: value }));
+                    }}
+                    trackColor={{
+                      false: COLORS.border.medium,
+                      true: COLORS.secondary.main,
+                    }}
+                    thumbColor={formData.isAiContent ? '#ffffff' : COLORS.text.tertiary}
+                  />
+                </View>
+                <Text style={styles.helperText}>
+                  Informe se o pacote utiliza mídia gerada por IA. Nossa equipe pode validar e aplicar o selo na
+                  vitrine após aprovação.
                 </Text>
 
                 {/* Confirmações Obrigatórias */}

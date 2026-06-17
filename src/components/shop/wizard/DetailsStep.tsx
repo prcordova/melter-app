@@ -565,6 +565,28 @@ export function DetailsStep({
           />
         </View>
 
+        <View style={styles.switchGroup}>
+          <Text style={styles.switchLabel}>Conteúdo gerado por IA</Text>
+          <Switch
+            value={Boolean(safeFormData.isAiContent)}
+            onValueChange={(value) => {
+              try {
+                setFormData((prev: any) => ({ ...prev, isAiContent: value }));
+              } catch (error) {
+                console.error('[DetailsStep] Erro ao atualizar isAiContent:', error);
+              }
+            }}
+            trackColor={{
+              false: COLORS.border.medium,
+              true: COLORS.secondary.main,
+            }}
+            thumbColor={safeFormData.isAiContent ? '#ffffff' : COLORS.text.tertiary}
+          />
+        </View>
+        <Text style={styles.helperText}>
+          Marque se o pacote utiliza mídia gerada por IA. A equipe pode validar e aplicar o selo na aprovação.
+        </Text>
+
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Comentários</Text>
           <View style={styles.pickerContainer}>

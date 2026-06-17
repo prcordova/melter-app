@@ -59,6 +59,7 @@ interface Product {
   salesCount?: number;
   isActive?: boolean;
   isAdultContent?: boolean;
+  isAiContent?: boolean;
   paymentMode?: 'UNICO' | 'ASSINATURA';
   subscriptionPlanId?: string;
   subscriptionPlan?: {

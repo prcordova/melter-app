@@ -32,6 +32,7 @@ interface Product {
   salesCount?: number;
   isActive?: boolean;
   isAdultContent?: boolean;
+  isAiContent?: boolean;
   paymentMode?: 'UNICO' | 'ASSINATURA';
   status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REQUIRES_CHANGES' | 'INACTIVE';
   subscriptionPlanId?: string;
@@ -132,8 +133,15 @@ export function ShopCard({
 
         {/* Badge +18 - canto direito superior */}
         {product.isAdultContent && (
-          <View style={styles.adultBadge}>
+          <View style={[styles.adultBadge, product.isAiContent && styles.adultBadgeWithAi]}>
             <Text style={styles.adultBadgeText}>+18</Text>
+          </View>
+        )}
+
+        {/* Selo IA — ao lado do +18 */}
+        {product.isAiContent && (
+          <View style={styles.aiBadge}>
+            <Ionicons name="sparkles" size={14} color="#ffffff" />
           </View>
         )}
 
@@ -285,6 +293,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+    zIndex: 2,
+  },
+  adultBadgeWithAi: {
+    right: 44,
+  },
+  aiBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: COLORS.secondary.main,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   adultBadgeText: {
     color: '#ffffff',

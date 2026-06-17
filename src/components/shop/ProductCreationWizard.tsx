@@ -105,6 +105,7 @@ export function ProductCreationWizard({
     allowComments: 'ALL' as 'ALL' | 'MODERATED' | 'NONE',
     showViews: true,
     showLikes: true,
+    isAiContent: false,
     layout: 'GRID' as 'GRID' | 'COURSE',
 
     // Step 3: Validações
@@ -197,6 +198,7 @@ export function ProductCreationWizard({
         allowComments: product.allowComments || 'ALL',
         showViews: product.showViews !== undefined ? product.showViews : true,
         showLikes: product.showLikes !== undefined ? product.showLikes : true,
+        isAiContent: Boolean(product.isAiContent),
         layout: product.layout || 'GRID',
         contentValidations: product.contentValidations || {
           readTerms: false,
@@ -229,6 +231,7 @@ export function ProductCreationWizard({
         allowComments: 'ALL',
         showViews: true,
         showLikes: true,
+        isAiContent: false,
         layout: 'GRID',
         contentValidations: {
           readTerms: false,
@@ -331,6 +334,7 @@ export function ProductCreationWizard({
       showLikes: formData.showLikes,
       allowCertificate: formData.allowCertificate,
       isAdultContent: formData.categoryId === 'conteudo-18',
+      isAiContent: Boolean(formData.isAiContent),
       contentValidations: formData.contentValidations,
       digital: {
         downloadUrl:
