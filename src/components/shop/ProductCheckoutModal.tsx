@@ -14,6 +14,7 @@ import { COLORS } from '../../theme/colors';
 import { resolveProductCoverImageSource } from '../../utils/product-cover-display';
 import { ordersApi } from '../../services/api';
 import { showToast } from '../CustomToast';
+import { getProductAiCheckoutDisclosureMessage } from '../../utils/product-ai-checkout-disclosure';
 
 export interface CheckoutProduct {
   _id: string;
@@ -23,6 +24,15 @@ export interface CheckoutProduct {
   coverImage?: string | null;
   paymentMode?: 'UNICO' | 'ASSINATURA';
   subscriptionPlan?: { price?: number } | null;
+  isAiContent?: boolean;
+  digital?: {
+    filesCount?: number;
+    contentStats?: {
+      videoCount: number;
+      imageCount: number;
+      documentCount: number;
+    } | null;
+  };
   userId?: { username?: string; avatar?: string };
 }
 
@@ -52,6 +62,7 @@ export function ProductCheckoutModal({
       ? product.subscriptionPlan.price
       : product.price;
   const canAfford = walletBalance >= price;
+  const aiDisclosureMessage = getProductAiCheckoutDisclosureMessage(product);
 
   const handleCheckout = async () => {
     if (!canAfford) {
@@ -127,6 +138,12 @@ export function ProductCheckoutModal({
                 Saldo insuficiente. Abra a carteira no menu do perfil para adicionar fundos.
               </Text>
             )}
+            {aiDisclosureMessage ? (
+              <View style={styles.aiNotice}>
+                <Ionicons name="sparkles" size={18} color={COLORS.secondary.main} />
+                <Text style={styles.aiNoticeText}>{aiDisclosureMessage}</Text>
+              </View>
+            ) : null}
           </ScrollView>
 
           <TouchableOpacity
@@ -224,6 +241,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.states.warning,
     marginBottom: 12,
+  },
+  aiNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.secondary.main,
+    backgroundColor: 'rgba(202, 57, 148, 0.08)',
+    marginBottom: 12,
+  },
+  aiNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.text.primary,
   },
   cta: {
     backgroundColor: COLORS.secondary.main,

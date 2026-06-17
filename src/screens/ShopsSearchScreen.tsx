@@ -109,7 +109,7 @@ export function ShopsSearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortMode, setSortMode] = useState<MarketplaceSortMode>('recent');
-  const [genderFilter, setGenderFilter] = useState<MarketplaceGenderFilter>('women');
+  const [genderFilter, setGenderFilter] = useState<MarketplaceGenderFilter>('all');
   const [showAdultContent, setShowAdultContent] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
