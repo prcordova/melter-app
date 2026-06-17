@@ -10,15 +10,15 @@ import {
   TextInput,
   Switch,
   useWindowDimensions,
-  Pressable,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Video, ResizeMode } from 'expo-av';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../CustomToast';
 import { sellerVerificationApi } from '../../services/api';
 import { SellerDocumentUploadField } from './SellerDocumentUploadField';
+import { SellerVerificationUploadWithExample } from './SellerVerificationUploadWithExample';
+import { SellerVerificationExampleViewerDialog } from './SellerVerificationExampleViewerDialog';
 import { SelectRow } from '../SelectRow';
 import {
   SELLER_VERIFICATION_MAX_IMAGE_SIZE_BYTES,
@@ -28,10 +28,15 @@ import {
   SELLER_VERIFICATION_MAX_VIDEO_SIZE_LABEL,
   SELLER_VERIFICATION_VIDEO_UPLOAD_HELPER_TEXT,
   SELLER_VERIFICATION_MAX_VIDEO_DURATION_SEC,
-  SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_VIDEO_URL,
-  SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_TITLE,
-  SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT,
-  SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_THUMB_WIDTH,
+  SELLER_VERIFICATION_DOCUMENT_FRONT_EXAMPLE,
+  SELLER_VERIFICATION_DOCUMENT_BACK_EXAMPLE,
+  SELLER_VERIFICATION_SELFIE_WITH_DOCUMENT_EXAMPLE,
+  SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE,
+  SELLER_VERIFICATION_DOCUMENT_FRONT_TIP,
+  SELLER_VERIFICATION_DOCUMENT_BACK_TIP,
+  SELLER_VERIFICATION_SELFIE_WITH_DOCUMENT_TIP,
+  SELLER_VERIFICATION_VIDEO_PROOF_TIP,
+  type SellerVerificationExampleMedia,
 } from '../../config/shops/seller-verification.config';
 import {
   getSellerVerificationFieldLabel,
@@ -186,8 +191,8 @@ export function SellerVerificationFormModal({
   const { width } = useWindowDimensions();
   const twoColumnPersonal = width >= 400;
   const twoColumnDocs = width >= 480;
-  /** Vídeo + miniatura exemplo lado a lado (telas estreitas empilham). */
-  const twoColumnVideoProof = width >= 520;
+  const isTinyScreen = width < 400;
+  const isUltraNarrowFooter = width < 350;
 
   const [displayData, setDisplayData] = useState<SellerVerificationFormData | undefined>(
     existingData
@@ -282,7 +287,7 @@ export function SellerVerificationFormModal({
   const lastHydratedSyncKeyRef = useRef<string | null>(null);
   const [pickingDoc, setPickingDoc] = useState<PickingKey | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [videoProofExampleViewerOpen, setVideoProofExampleViewerOpen] = useState(false);
+  const [exampleViewer, setExampleViewer] = useState<SellerVerificationExampleMedia | null>(null);
 
   const displayDataSyncKey = useMemo(() => {
     if (!displayData) return 'empty';
@@ -849,8 +854,8 @@ export function SellerVerificationFormModal({
   return (
     <>
       <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <View style={styles.overlay}>
-        <View style={styles.container}>
+      <View style={[styles.overlay, isTinyScreen && styles.overlayFull]}>
+        <View style={[styles.container, isTinyScreen && styles.containerFull]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{modalTitle}</Text>
             <TouchableOpacity onPress={handleClose} disabled={submitting}>
@@ -858,7 +863,10 @@ export function SellerVerificationFormModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            style={[styles.scroll, isTinyScreen && styles.scrollFull]}
+            contentContainerStyle={[styles.scrollContent, isTinyScreen && styles.scrollContentTiny]}
+          >
             {showCorrectionAlert ? (
               <View
                 style={[
@@ -982,63 +990,89 @@ export function SellerVerificationFormModal({
 
             <View style={[styles.docsGrid, !twoColumnDocs && styles.docsCol]}>
               {showDocumentFront ? (
-              <View style={[styles.docHalf, !twoColumnDocs && styles.fieldFull]}>
-                <SellerDocumentUploadField
-                  label="Documento — Frente"
-                  required={canEditField('documentFront')}
-                  viewOnly={!canEditField('documentFront')}
-                  highlight={needsFieldCorrection('documentFront')}
-                  previewUri={documentFrontPreview}
-                  placeholderText="Toque para enviar a frente"
-                  helperText={
-                    canEditField('documentFront')
-                      ? SELLER_VERIFICATION_UPLOAD_HELPER_TEXT
-                      : LOCKED_HINT
-                  }
-                  onPick={() => handlePick('documentFront')}
-                  onClear={() => handleClear('documentFront')}
-                  picking={pickingDoc === 'documentFront'}
-                />
+              <View style={styles.selfieSpan}>
+                <SellerVerificationUploadWithExample
+                  example={SELLER_VERIFICATION_DOCUMENT_FRONT_EXAMPLE}
+                  onOpenExample={setExampleViewer}
+                >
+                  <SellerDocumentUploadField
+                    label="Documento — Frente"
+                    required={canEditField('documentFront')}
+                    viewOnly={!canEditField('documentFront')}
+                    highlight={needsFieldCorrection('documentFront')}
+                    previewUri={documentFrontPreview}
+                    placeholderText="Toque para enviar a frente"
+                    helperText={
+                      canEditField('documentFront')
+                        ? SELLER_VERIFICATION_UPLOAD_HELPER_TEXT
+                        : LOCKED_HINT
+                    }
+                    tipText={
+                      canEditField('documentFront') ? SELLER_VERIFICATION_DOCUMENT_FRONT_TIP : undefined
+                    }
+                    onPick={() => handlePick('documentFront')}
+                    onClear={() => handleClear('documentFront')}
+                    picking={pickingDoc === 'documentFront'}
+                  />
+                </SellerVerificationUploadWithExample>
               </View>
               ) : null}
               {showDocumentBack ? (
-              <View style={[styles.docHalf, !twoColumnDocs && styles.fieldFull]}>
-                <SellerDocumentUploadField
-                  label="Documento — Verso"
-                  required={canEditField('documentBack')}
-                  viewOnly={!canEditField('documentBack')}
-                  highlight={needsFieldCorrection('documentBack')}
-                  previewUri={documentBackPreview}
-                  placeholderText="Toque para enviar o verso"
-                  helperText={
-                    canEditField('documentBack')
-                      ? SELLER_VERIFICATION_UPLOAD_HELPER_TEXT
-                      : LOCKED_HINT
-                  }
-                  onPick={() => handlePick('documentBack')}
-                  onClear={() => handleClear('documentBack')}
-                  picking={pickingDoc === 'documentBack'}
-                />
+              <View style={styles.selfieSpan}>
+                <SellerVerificationUploadWithExample
+                  example={SELLER_VERIFICATION_DOCUMENT_BACK_EXAMPLE}
+                  onOpenExample={setExampleViewer}
+                >
+                  <SellerDocumentUploadField
+                    label="Documento — Verso"
+                    required={canEditField('documentBack')}
+                    viewOnly={!canEditField('documentBack')}
+                    highlight={needsFieldCorrection('documentBack')}
+                    previewUri={documentBackPreview}
+                    placeholderText="Toque para enviar o verso"
+                    helperText={
+                      canEditField('documentBack')
+                        ? SELLER_VERIFICATION_UPLOAD_HELPER_TEXT
+                        : LOCKED_HINT
+                    }
+                    tipText={
+                      canEditField('documentBack') ? SELLER_VERIFICATION_DOCUMENT_BACK_TIP : undefined
+                    }
+                    onPick={() => handlePick('documentBack')}
+                    onClear={() => handleClear('documentBack')}
+                    picking={pickingDoc === 'documentBack'}
+                  />
+                </SellerVerificationUploadWithExample>
               </View>
               ) : null}
               {showSelfieField ? (
               <View style={styles.selfieSpan}>
-                <SellerDocumentUploadField
-                  label="Selfie com documento"
-                  required={canEditField('selfieWithDocument')}
-                  viewOnly={!canEditField('selfieWithDocument')}
-                  highlight={needsFieldCorrection('selfieWithDocument')}
-                  previewUri={selfiePreview}
-                  placeholderText="Selfie segurando o documento ao lado do rosto"
-                  helperText={
-                    canEditField('selfieWithDocument')
-                      ? SELLER_VERIFICATION_UPLOAD_HELPER_TEXT
-                      : LOCKED_HINT
-                  }
-                  onPick={() => handlePick('selfieWithDocument')}
-                  onClear={() => handleClear('selfieWithDocument')}
-                  picking={pickingDoc === 'selfieWithDocument'}
-                />
+                <SellerVerificationUploadWithExample
+                  example={SELLER_VERIFICATION_SELFIE_WITH_DOCUMENT_EXAMPLE}
+                  onOpenExample={setExampleViewer}
+                >
+                  <SellerDocumentUploadField
+                    label="Selfie com documento"
+                    required={canEditField('selfieWithDocument')}
+                    viewOnly={!canEditField('selfieWithDocument')}
+                    highlight={needsFieldCorrection('selfieWithDocument')}
+                    previewUri={selfiePreview}
+                    placeholderText="Selfie segurando o documento ao lado do rosto"
+                    helperText={
+                      canEditField('selfieWithDocument')
+                        ? SELLER_VERIFICATION_UPLOAD_HELPER_TEXT
+                        : LOCKED_HINT
+                    }
+                    tipText={
+                      canEditField('selfieWithDocument')
+                        ? SELLER_VERIFICATION_SELFIE_WITH_DOCUMENT_TIP
+                        : undefined
+                    }
+                    onPick={() => handlePick('selfieWithDocument')}
+                    onClear={() => handleClear('selfieWithDocument')}
+                    picking={pickingDoc === 'selfieWithDocument'}
+                  />
+                </SellerVerificationUploadWithExample>
               </View>
               ) : null}
               {showCopyOnlyCheckbox ? (
@@ -1083,58 +1117,29 @@ export function SellerVerificationFormModal({
                     ) bem visíveis. Isso comprova o vínculo entre a pessoa no vídeo e esta conta — não é
                     necessário falar nome ou CPF. Envie o arquivo abaixo.
                   </Text>
-                  <View
-                    style={[
-                      styles.videoProofExampleRow,
-                      !twoColumnVideoProof && styles.videoProofExampleRowStack,
-                    ]}
+                  <SellerVerificationUploadWithExample
+                    example={SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE}
+                    onOpenExample={setExampleViewer}
                   >
-                    <View style={styles.videoProofUploadGrow}>
-                      <SellerDocumentUploadField
-                        label="Vídeo prova"
-                        required={canEditField('videoProof')}
-                        viewOnly={!canEditField('videoProof')}
-                        variant="video"
-                        highlight={needsFieldCorrection('videoProof')}
-                        previewUri={videoProofPreview}
-                        placeholderText="Toque para escolher o vídeo"
-                        helperText={
-                          canEditField('videoProof')
-                            ? SELLER_VERIFICATION_VIDEO_UPLOAD_HELPER_TEXT
-                            : VIDEO_PROOF_LOCKED_HINT
-                        }
-                        onPick={handlePickVideoProof}
-                        onClear={handleClearVideoProof}
-                        picking={pickingDoc === 'videoProof'}
-                      />
-                    </View>
-                    <View
-                      style={[
-                        styles.videoProofExampleAside,
-                        twoColumnVideoProof && styles.videoProofExampleAsideWide,
-                      ]}
-                    >
-                      <Text style={styles.videoExampleCaption}>Exemplo — toque para ampliar e assistir</Text>
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={() => setVideoProofExampleViewerOpen(true)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Ampliar e reproduzir: ${SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_TITLE}`}
-                        style={styles.videoProofExampleThumbWrap}
-                      >
-                        <Video
-                          source={{ uri: SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_VIDEO_URL }}
-                          style={styles.videoProofExampleThumb}
-                          resizeMode={ResizeMode.COVER}
-                          isMuted
-                          shouldPlay={false}
-                        />
-                        <View style={styles.videoProofExamplePlayOverlay} pointerEvents="none">
-                          <Ionicons name="play-circle" size={44} color="#fff" />
-                        </View>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                    <SellerDocumentUploadField
+                      label="Vídeo prova"
+                      required={canEditField('videoProof')}
+                      viewOnly={!canEditField('videoProof')}
+                      variant="video"
+                      highlight={needsFieldCorrection('videoProof')}
+                      previewUri={videoProofPreview}
+                      placeholderText="Toque para escolher o vídeo"
+                      helperText={
+                        canEditField('videoProof')
+                          ? SELLER_VERIFICATION_VIDEO_UPLOAD_HELPER_TEXT
+                          : VIDEO_PROOF_LOCKED_HINT
+                      }
+                      tipText={canEditField('videoProof') ? SELLER_VERIFICATION_VIDEO_PROOF_TIP : undefined}
+                      onPick={handlePickVideoProof}
+                      onClear={handleClearVideoProof}
+                      picking={pickingDoc === 'videoProof'}
+                    />
+                  </SellerVerificationUploadWithExample>
                 </View>
               ) : null}
             </View>
@@ -1224,24 +1229,43 @@ export function SellerVerificationFormModal({
             ) : null}
           </ScrollView>
 
-          <View style={styles.footer}>
+          <View style={[styles.footer, isUltraNarrowFooter && styles.footerColumn]}>
             <TouchableOpacity
-              style={[styles.footerBtn, styles.cancelBtn]}
+              style={[
+                styles.footerBtn,
+                styles.cancelBtn,
+                isTinyScreen && styles.footerBtnCompact,
+                !isUltraNarrowFooter && styles.footerBtnRow,
+              ]}
               onPress={handleClose}
               disabled={submitting}
             >
-              <Text style={styles.cancelBtnText}>Cancelar</Text>
+              <Text
+                style={[styles.cancelBtnText, isTinyScreen && styles.footerBtnTextCompact]}
+                numberOfLines={1}
+              >
+                Cancelar
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.footerBtn, styles.submitBtn, submitting && styles.submitDisabled]}
+              style={[
+                styles.footerBtn,
+                styles.submitBtn,
+                submitting && styles.submitDisabled,
+                isTinyScreen && styles.footerBtnCompact,
+                !isUltraNarrowFooter && styles.footerBtnRow,
+              ]}
               onPress={handleSubmit}
               disabled={submitting}
             >
               {submitting ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.submitBtnText}>
-                  {isReviewMode ? 'Reenviar correção' : 'Enviar para aprovação'}
+                <Text
+                  style={[styles.submitBtnText, isTinyScreen && styles.footerBtnTextCompact]}
+                  numberOfLines={1}
+                >
+                  {isReviewMode ? 'Reenviar correção' : 'Enviar'}
                 </Text>
               )}
             </TouchableOpacity>
@@ -1250,44 +1274,10 @@ export function SellerVerificationFormModal({
       </View>
     </Modal>
 
-      <Modal
-        visible={videoProofExampleViewerOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setVideoProofExampleViewerOpen(false)}
-      >
-        <Pressable
-          style={styles.videoProofExampleBackdrop}
-          onPress={() => setVideoProofExampleViewerOpen(false)}
-        >
-          <Pressable
-            style={styles.videoProofExampleCard}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <TouchableOpacity
-              style={styles.videoProofExampleCloseBtn}
-              onPress={() => setVideoProofExampleViewerOpen(false)}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityRole="button"
-              accessibilityLabel="Fechar"
-            >
-              <Ionicons name="close" size={22} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.videoProofExampleModalTitle} numberOfLines={2}>
-              {SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_TITLE}
-            </Text>
-            <View style={styles.videoProofExampleModalBody}>
-              <Video
-                source={{ uri: SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_VIDEO_URL }}
-                style={styles.videoProofExampleModalVideo}
-                resizeMode={ResizeMode.CONTAIN}
-                useNativeControls
-                shouldPlay
-              />
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <SellerVerificationExampleViewerDialog
+        example={exampleViewer}
+        onClose={() => setExampleViewer(null)}
+      />
     </>
   );
 }
@@ -1298,12 +1288,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
+  overlayFull: {
+    justifyContent: 'flex-start',
+  },
   container: {
     backgroundColor: COLORS.background.paper,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '92%',
     overflow: 'hidden',
+  },
+  containerFull: {
+    flex: 1,
+    maxHeight: '100%',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
   },
   header: {
     flexDirection: 'row',
@@ -1322,7 +1321,9 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   scroll: { flexGrow: 0 },
+  scrollFull: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 24, gap: 4 },
+  scrollContentTiny: { paddingHorizontal: 12 },
   alert: {
     borderRadius: 10,
     padding: 12,
@@ -1377,103 +1378,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   videoInstructionStrong: { fontWeight: '700', color: COLORS.text.primary },
-  videoProofExampleRow: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-end',
-  },
-  videoProofExampleRowStack: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-  },
-  videoProofUploadGrow: {
-    flex: 1,
-    minWidth: 0,
-  },
-  videoProofExampleAside: {
-    width: '100%',
-    maxWidth: 320,
-    alignSelf: 'center',
-  },
-  videoProofExampleAsideWide: {
-    width: SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_THUMB_WIDTH,
-    maxWidth: SELLER_VERIFICATION_VIDEO_PROOF_EXAMPLE_THUMB_WIDTH,
-    alignSelf: 'flex-end',
-  },
-  videoExampleCaption: {
-    fontSize: 11,
-    color: COLORS.text.secondary,
-    marginBottom: 4,
-    lineHeight: 15,
-  },
-  videoProofExampleThumbWrap: {
-    position: 'relative',
-    width: '100%',
-    height: SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT,
-    borderRadius: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border.light,
-    backgroundColor: '#000',
-  },
-  videoProofExampleThumb: {
-    width: '100%',
-    height: '100%',
-  },
-  videoProofExamplePlayOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.25)',
-  },
-  videoProofExampleBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  videoProofExampleCard: {
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '85%',
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  videoProofExampleCloseBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoProofExampleModalTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingRight: 44,
-  },
-  videoProofExampleModalBody: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    paddingTop: 8,
-  },
-  videoProofExampleModalVideo: {
-    width: '100%',
-    aspectRatio: 3 / 4,
-    maxHeight: 480,
-    backgroundColor: '#000',
-    borderRadius: 8,
-  },
   sectionHighlight: {
     borderWidth: 2,
     borderColor: COLORS.states.error,
@@ -1516,10 +1420,24 @@ const styles = StyleSheet.create({
   termsDisabled: { opacity: 1 },
   footer: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: 10,
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.border.light,
+  },
+  footerColumn: {
+    flexDirection: 'column',
+  },
+  footerBtnRow: {
+    flex: 1,
+  },
+  footerBtnCompact: {
+    minHeight: 38,
+    paddingVertical: 8,
+  },
+  footerBtnTextCompact: {
+    fontSize: 13,
   },
   footerBtn: {
     flex: 1,
@@ -1528,6 +1446,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
+    alignSelf: 'stretch',
   },
   cancelBtn: {
     backgroundColor: COLORS.background.tertiary,

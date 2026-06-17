@@ -6,15 +6,13 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
-import {
-  SELLER_VERIFICATION_DOC_PREVIEW_HEIGHT,
-  SELLER_VERIFICATION_VIDEO_PROOF_PREVIEW_HEIGHT,
-  SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT,
-} from '../../config/shops/seller-verification.config';
+import { getSellerVerificationResponsiveLayout } from '../../config/shops/seller-verification.config';
+import { SellerVerificationFieldHelp } from './SellerVerificationFieldHelp';
 
 type Props = {
   label: string;
@@ -22,6 +20,7 @@ type Props = {
   viewOnly?: boolean;
   highlight?: boolean;
   helperText?: string;
+  tipText?: string;
   previewUri?: string | null;
   placeholderText: string;
   onPick?: () => void;
@@ -29,6 +28,9 @@ type Props = {
   picking?: boolean;
   /** `video` usa player de prévia em vez de imagem. */
   variant?: 'image' | 'video';
+  /** Sobrescreve alturas responsivas (sincronizar com exemplo ao lado). */
+  previewHeight?: number;
+  areaHeight?: number;
 };
 
 export function SellerDocumentUploadField({
@@ -37,23 +39,23 @@ export function SellerDocumentUploadField({
   viewOnly,
   highlight,
   helperText,
+  tipText,
   previewUri,
   placeholderText,
   onPick,
   onClear,
   picking,
   variant = 'image',
+  previewHeight: previewHeightProp,
+  areaHeight: areaHeightProp,
 }: Props) {
+  const { width: screenWidth } = useWindowDimensions();
+  const responsive = getSellerVerificationResponsiveLayout(screenWidth);
+  const previewHeight = previewHeightProp ?? responsive.previewHeight;
+  const areaHeight = areaHeightProp ?? responsive.areaHeight;
   const showPreview = Boolean(previewUri);
   const interactive = !viewOnly && onPick;
-  const previewHeight =
-    variant === 'video'
-      ? SELLER_VERIFICATION_VIDEO_PROOF_PREVIEW_HEIGHT
-      : SELLER_VERIFICATION_DOC_PREVIEW_HEIGHT;
-  const areaHeight =
-    variant === 'video'
-      ? SELLER_VERIFICATION_VIDEO_PROOF_AREA_HEIGHT
-      : previewHeight + 16;
+  const uploadIconSize = screenWidth < 400 ? 22 : 28;
 
   return (
     <View style={[styles.wrap, highlight && styles.wrapHighlight]}>
@@ -62,10 +64,15 @@ export function SellerDocumentUploadField({
           {label}
           {required ? ' *' : ''}
         </Text>
-        {helperText ? (
-          <Text style={styles.helper} numberOfLines={2}>
-            {helperText}
-          </Text>
+        {(helperText || tipText) ? (
+          <View style={styles.labelEnd}>
+            {helperText ? (
+              <Text style={styles.helper} numberOfLines={1}>
+                {helperText}
+              </Text>
+            ) : null}
+            {tipText && !viewOnly ? <SellerVerificationFieldHelp text={tipText} /> : null}
+          </View>
         ) : null}
       </View>
 
@@ -102,7 +109,7 @@ export function SellerDocumentUploadField({
           <View style={styles.placeholder}>
             <Ionicons
               name={variant === 'video' ? 'videocam-outline' : 'cloud-upload-outline'}
-              size={28}
+              size={uploadIconSize}
               color={viewOnly ? COLORS.text.tertiary : COLORS.text.secondary}
             />
             <Text style={styles.placeholderText}>
@@ -134,8 +141,19 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
     marginBottom: 6,
-    gap: 2,
+    flexWrap: 'wrap',
+  },
+  labelEnd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 'auto',
+    flexShrink: 0,
   },
   label: {
     fontSize: 12,

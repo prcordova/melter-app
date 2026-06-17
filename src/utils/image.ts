@@ -17,6 +17,11 @@ export const getImageUrl = (path?: string | null): string | undefined => {
     return `${API_CONFIG.BASE_URL}${path}`;
   }
 
+  if (path.startsWith('/assets/')) {
+    const base = (API_CONFIG.APP_URL || 'https://www.melter.com.br').replace(/\/$/, '');
+    return `${base}${path}`;
+  }
+
   // Para outros casos, assume que é um path relativo do S3
   return `${API_CONFIG.S3_URL}/${path}`;
 };
