@@ -36,6 +36,7 @@ import { PromotionsShopSection } from '../../components/promotions/PromotionsSho
 type PromotionsScreenParams = {
   hubSection?: PromotionsHubSection;
   openCreate?: boolean;
+  productId?: string;
 };
 
 // Interfaces
@@ -75,6 +76,7 @@ export function PromotionsScreen() {
   const route = useRoute<RouteProp<{ PromotionsSettings: PromotionsScreenParams }, 'PromotionsSettings'>>();
   const routeHubSection = route.params?.hubSection;
   const routeOpenCreate = route.params?.openCreate === true;
+  const routeProductId = route.params?.productId ?? null;
 
   const renderPromotionsSkeleton = useMemo(
     () => (
@@ -376,6 +378,7 @@ export function PromotionsScreen() {
         >
           <PromotionsShopSection
             autoOpenCreate={autoOpenShopCreate}
+            initialProductId={routeProductId}
             createOpen={shopCreateOpen}
             onCreateOpenChange={setShopCreateOpen}
           />

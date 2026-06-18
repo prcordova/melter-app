@@ -1308,6 +1308,14 @@ export function MyShopScreen() {
                                 label: primaryLabel(product, mode),
                                 onPress: () => handleProductPrimaryAction(product, mode),
                               }}
+                              secondaryFooterAction={
+                                isOwner && product.status === 'APPROVED'
+                                  ? {
+                                      label: 'Promover',
+                                      onPress: () => handlePromoteProductPress(product._id),
+                                    }
+                                  : undefined
+                              }
                             />
                           );
                         })}
@@ -1464,6 +1472,14 @@ export function MyShopScreen() {
                             label: primaryLabel(product, mode),
                             onPress: () => handleProductPrimaryAction(product, mode),
                           }}
+                          secondaryFooterAction={
+                            isOwner && product.status === 'APPROVED'
+                              ? {
+                                  label: 'Promover',
+                                  onPress: () => handlePromoteProductPress(product._id),
+                                }
+                              : undefined
+                          }
                         />
                       );
                     })}
@@ -1843,12 +1859,8 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     flexShrink: 0,
-  },
-  promotePackageButton: {
-    paddingHorizontal: 10,
-    minHeight: 32,
   },
   shareShopButton: {
     justifyContent: 'center',
