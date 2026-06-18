@@ -7,6 +7,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
 import { SelectRow } from '../SelectRow'
 import { ModalBottom } from '../ModalBottom'
 import { Button } from '../Button'
@@ -54,6 +55,7 @@ export function ShopPromotionModal({
   onSuccess,
   initialProductId,
 }: ShopPromotionModalProps) {
+  const navigation = useNavigation<any>()
   const { user, refreshUser } = useAuth()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -162,6 +164,15 @@ export function ShopPromotionModal({
     }
   }
 
+  const handleGoToShop = () => {
+    if (!user?.username) return
+    onClose()
+    navigation.navigate('ProfileStack', {
+      screen: 'MyShop',
+      params: { username: user.username },
+    })
+  }
+
   return (
     <ModalBottom visible={visible} onClose={onClose} maxHeight="92%">
       <View style={styles.header}>
@@ -176,9 +187,16 @@ export function ShopPromotionModal({
         {loading ? (
           <ActivityIndicator color={COLORS.secondary.main} style={{ marginVertical: 24 }} />
         ) : products.length === 0 ? (
-          <Text style={styles.warning}>
-            Nenhum pacote aprovado disponível. Publique e aguarde aprovação.
-          </Text>
+          <View style={styles.emptyState}>
+            <Text style={styles.warning}>
+              Nenhum pacote aprovado disponível. Publique e aguarde aprovação.
+            </Text>
+            {user?.username ? (
+              <Button onPress={handleGoToShop} style={styles.emptyCta}>
+                Criar primeiro pacote
+              </Button>
+            ) : null}
+          </View>
         ) : (
           <>
             <View style={styles.field}>
@@ -308,7 +326,16 @@ const styles = StyleSheet.create({
   warning: {
     fontSize: 14,
     color: COLORS.states.warning,
-    paddingVertical: 12,
+    textAlign: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    gap: 16,
+    paddingVertical: 16,
+  },
+  emptyCta: {
+    alignSelf: 'center',
+    minWidth: 0,
   },
   hint: {
     fontSize: 12,
