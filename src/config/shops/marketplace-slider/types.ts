@@ -43,6 +43,7 @@ export type MyShopMarketplacePromotion = {
   _id: string
   productId: string
   productTitle: string
+  categoryId: string
   status: ShopPromotionStatus
   packageTier: ShopPromotionPackageTier
   startDate: string

@@ -19,8 +19,12 @@ import type { MarketplacePromotionConfig } from '../../config/shops/marketplace-
 import type { ShopPromotionPackageTier } from '../../constants/marketplace-slider'
 import {
   calculateShopPromotionCost,
-  normalizeMarketplaceSliderPricing,
+  pricingFromPromotionConfig,
 } from '../../lib/shops/marketplace-slider/pricing'
+import {
+  resolveDefaultPromotionProductId,
+  sortPromotionProductsByNewest,
+} from '../../lib/shops/marketplace-slider/default-promotion-product'
 import { COLORS } from '../../theme/colors'
 
 type OwnerProduct = {
@@ -28,6 +32,7 @@ type OwnerProduct = {
   title: string
   categoryId?: string
   status: string
+  createdAt?: string
 }
 
 type ShopPromotionModalProps = {
@@ -38,18 +43,7 @@ type ShopPromotionModalProps = {
 }
 
 function pricingFromConfig(config: MarketplacePromotionConfig) {
-  const byTier = Object.fromEntries(config.packages.map((p) => [p.tier, p.baseCost])) as Record<
-    ShopPromotionPackageTier,
-    number
-  >
-  return normalizeMarketplaceSliderPricing({
-    costPerDay: byTier.day,
-    costPerWeek: byTier.week,
-    costPerMonth: byTier.month,
-    categoryMultipliers: Object.fromEntries(
-      config.categoryMultipliers.map((c) => [c.categoryId, c.multiplier])
-    ),
-  })
+  return pricingFromPromotionConfig(config)
 }
 
 export function ShopPromotionModal({
@@ -71,7 +65,7 @@ export function ShopPromotionModal({
 
   const canCustomCover = user?.plan?.type && user.plan.type !== 'FREE'
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (preferredProductId?: string | null) => {
     setLoading(true)
     try {
       const [configRes, productsRes] = await Promise.all([
@@ -82,10 +76,11 @@ export function ShopPromotionModal({
         setPromotionConfig(configRes.data)
       }
       if (productsRes.success && productsRes.data) {
-        const approved = (productsRes.data as OwnerProduct[]).filter(
-          (p) => p.status === 'APPROVED'
+        const approved = sortPromotionProductsByNewest(
+          (productsRes.data as OwnerProduct[]).filter((p) => p.status === 'APPROVED')
         )
         setProducts(approved)
+        setProductId(resolveDefaultPromotionProductId(approved, preferredProductId))
       }
     } catch {
       showToast.error('Erro', 'Não foi possível carregar dados da promoção')
@@ -96,12 +91,11 @@ export function ShopPromotionModal({
 
   useEffect(() => {
     if (!visible) return
-    void loadData()
-    setProductId(initialProductId ?? '')
     setPackageTier('day')
     setStartMode('immediate')
     setScheduledStartAt('')
     setPromotionCoverUrl('')
+    void loadData(initialProductId)
   }, [visible, initialProductId, loadData])
 
   const productOptions: SelectItem[] = useMemo(

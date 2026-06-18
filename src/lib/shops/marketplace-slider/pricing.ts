@@ -3,6 +3,7 @@ import {
   DEFAULT_MARKETPLACE_SLIDER_CONFIG,
   type ShopPromotionPackageTier,
 } from '../../../constants/marketplace-slider'
+import type { MarketplacePromotionConfig } from '../../../config/shops/marketplace-slider/types'
 
 export type MarketplaceSliderPricingConfig = {
   costPerDay: number
@@ -55,4 +56,21 @@ export function calculateShopPromotionCost(
       ? config.categoryMultipliers[categoryId]
       : 1
   return Math.round(base * multiplier * 100) / 100
+}
+
+export function pricingFromPromotionConfig(
+  config: MarketplacePromotionConfig
+): MarketplaceSliderPricingConfig {
+  const byTier = Object.fromEntries(config.packages.map((p) => [p.tier, p.baseCost])) as Record<
+    ShopPromotionPackageTier,
+    number
+  >
+  return normalizeMarketplaceSliderPricing({
+    costPerDay: byTier.day,
+    costPerWeek: byTier.week,
+    costPerMonth: byTier.month,
+    categoryMultipliers: Object.fromEntries(
+      config.categoryMultipliers.map((c) => [c.categoryId, c.multiplier])
+    ),
+  })
 }

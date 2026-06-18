@@ -15,6 +15,12 @@ export const MARKETPLACE_SLIDER_AUTO_SCROLL_MS = 6000
 
 export const MARKETPLACE_SLIDER_HEIGHT = 148
 
+export const PACKAGE_TIER_CALENDAR_DAYS = {
+  day: 1,
+  week: 7,
+  month: 30,
+} as const satisfies Record<ShopPromotionPackageTier, number>
+
 export const DEFAULT_MARKETPLACE_SLIDER_CONFIG = {
   costPerDay: 10,
   costPerWeek: 50,

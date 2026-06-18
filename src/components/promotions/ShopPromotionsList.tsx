@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -13,9 +13,18 @@ import { CustomModal } from '../CustomModal'
 import { Button } from '../Button'
 import { ModalBottom } from '../ModalBottom'
 import { showToast } from '../CustomToast'
+import { useAuth } from '../../contexts/AuthContext'
 import { marketplaceSliderApi } from '../../services/shops/marketplace-slider'
-import type { MyShopMarketplacePromotion } from '../../config/shops/marketplace-slider/types'
+import type {
+  MarketplacePromotionConfig,
+  MyShopMarketplacePromotion,
+} from '../../config/shops/marketplace-slider/types'
 import type { ShopPromotionPackageTier } from '../../constants/marketplace-slider'
+import { extendPromotionEndDate } from '../../lib/shops/marketplace-slider/dates'
+import {
+  calculateShopPromotionCost,
+  pricingFromPromotionConfig,
+} from '../../lib/shops/marketplace-slider/pricing'
 import { COLORS } from '../../theme/colors'
 
 type ShopPromotionsListProps = {
@@ -43,11 +52,14 @@ function statusColor(status: string): string {
 }
 
 export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<MyShopMarketplacePromotion[]>([])
+  const [promotionConfig, setPromotionConfig] = useState<MarketplacePromotionConfig | null>(null)
   const [extendTarget, setExtendTarget] = useState<MyShopMarketplacePromotion | null>(null)
   const [extendTier, setExtendTier] = useState<ShopPromotionPackageTier>('day')
   const [extendSaving, setExtendSaving] = useState(false)
+  const [extendConfigLoading, setExtendConfigLoading] = useState(false)
   const [cancelTarget, setCancelTarget] = useState<MyShopMarketplacePromotion | null>(null)
   const [cancelSaving, setCancelSaving] = useState(false)
 
@@ -68,6 +80,48 @@ export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) 
   useEffect(() => {
     void fetchRows()
   }, [fetchRows, refreshKey])
+
+  useEffect(() => {
+    if (!extendTarget) return
+    if (promotionConfig) return
+
+    let cancelled = false
+    setExtendConfigLoading(true)
+    void marketplaceSliderApi
+      .getPromotionConfig()
+      .then((response) => {
+        if (cancelled) return
+        if (response.success && response.data) {
+          setPromotionConfig(response.data)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          showToast.error('Erro', 'Não foi possível carregar preços')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setExtendConfigLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [extendTarget, promotionConfig])
+
+  const extendCost = useMemo(() => {
+    if (!extendTarget || !promotionConfig) return 0
+    return calculateShopPromotionCost(
+      extendTier,
+      extendTarget.categoryId,
+      pricingFromPromotionConfig(promotionConfig)
+    )
+  }, [extendTarget, extendTier, promotionConfig])
+
+  const newEndDate = useMemo(() => {
+    if (!extendTarget) return null
+    return extendPromotionEndDate(new Date(extendTarget.endDate), extendTier)
+  }, [extendTarget, extendTier])
 
   const handleExtend = async () => {
     if (!extendTarget) return
@@ -178,6 +232,26 @@ export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) 
           <Text style={styles.modalHint}>
             O tempo será adicionado ao fim da campanha atual.
           </Text>
+
+          {extendTarget ? (
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryLabel}>Pacote</Text>
+              <Text style={styles.summaryValue}>{extendTarget.productTitle}</Text>
+              <Text style={[styles.summaryLabel, styles.summarySpaced]}>Término atual</Text>
+              <Text style={styles.summaryValue}>
+                {format(new Date(extendTarget.endDate), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+              </Text>
+              {newEndDate ? (
+                <>
+                  <Text style={[styles.summaryLabel, styles.summarySpaced]}>Novo término</Text>
+                  <Text style={[styles.summaryValue, styles.summaryHighlight]}>
+                    {format(newEndDate, 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                  </Text>
+                </>
+              ) : null}
+            </View>
+          ) : null}
+
           <SelectRow
             label="Pacote de tempo"
             value={extendTier}
@@ -188,12 +262,31 @@ export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) 
               { value: 'month', label: 'Mensal (30 dias)' },
             ]}
           />
+
+          <View style={styles.costBox}>
+            {extendConfigLoading ? (
+              <ActivityIndicator color={COLORS.secondary.main} />
+            ) : (
+              <>
+                <Text style={styles.costLabel}>Custo estimado</Text>
+                <Text style={styles.costValue}>R$ {extendCost.toFixed(2)}</Text>
+                <Text style={styles.balance}>
+                  Saldo atual: R$ {(user?.wallet?.balance ?? 0).toFixed(2)}
+                </Text>
+              </>
+            )}
+          </View>
+
           <View style={styles.modalActions}>
             <Button variant="ghost" onPress={() => setExtendTarget(null)} disabled={extendSaving}>
               Cancelar
             </Button>
-            <Button loading={extendSaving} onPress={() => void handleExtend()}>
-              Confirmar
+            <Button
+              loading={extendSaving}
+              disabled={extendConfigLoading}
+              onPress={() => void handleExtend()}
+            >
+              Confirmar e pagar
             </Button>
           </View>
         </View>
@@ -320,6 +413,48 @@ const styles = StyleSheet.create({
   modalHint: {
     fontSize: 14,
     color: COLORS.text.secondary,
+  },
+  summaryBox: {
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: COLORS.background.tertiary,
+    gap: 2,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+  },
+  summarySpaced: {
+    marginTop: 8,
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  summaryHighlight: {
+    color: COLORS.secondary.main,
+  },
+  costBox: {
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: COLORS.background.tertiary,
+    gap: 4,
+    minHeight: 72,
+    justifyContent: 'center',
+  },
+  costLabel: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+  costValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  balance: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
   },
   modalActions: {
     flexDirection: 'row',
