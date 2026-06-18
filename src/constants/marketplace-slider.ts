@@ -15,6 +15,12 @@ export const MARKETPLACE_SLIDER_AUTO_SCROLL_MS = 6000
 
 export const MARKETPLACE_SLIDER_HEIGHT = 148
 
+/** Recuo dos CTAs dentro do slide (Ver mais / Saiba mais). */
+export const MARKETPLACE_SLIDER_ACTION_INSET = {
+  compact: 10,
+  regular: 12,
+} as const
+
 export const PACKAGE_TIER_CALENDAR_DAYS = {
   day: 1,
   week: 7,

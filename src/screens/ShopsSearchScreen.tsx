@@ -21,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { TouchableOpacity } from 'react-native';
 import { DiscoveryModeTabs } from '../components/DiscoveryModeTabs';
+import { Button } from '../components/Button';
 import { SelectRow } from '../components/SelectRow';
 import {
   discoveryModeToTabName,
@@ -380,15 +381,29 @@ export function ShopsSearchScreen() {
         <MarketplacePromotedShopsSlider showAdultContent={showAdultContent} />
 
         <View style={styles.discoveryModeRow}>
-          <DiscoveryModeTabs
-            compact
-            activeMode="shops"
-            onModeChange={(mode: DiscoveryViewMode) => {
-              if (mode === 'shops') return;
-              const parent = navigation.getParent();
-              parent?.navigate(discoveryModeToTabName(mode) as never);
-            }}
-          />
+          <View style={styles.discoveryTabsWrap}>
+            <DiscoveryModeTabs
+              compact
+              activeMode="shops"
+              onModeChange={(mode: DiscoveryViewMode) => {
+                if (mode === 'shops') return;
+                const parent = navigation.getParent();
+                parent?.navigate(discoveryModeToTabName(mode) as never);
+              }}
+            />
+          </View>
+          <Button
+            size="sm"
+            onPress={() =>
+              navigation.navigate('ProfileStack', {
+                screen: 'PromotionsSettings',
+                params: { hubSection: 'shop', openCreate: true },
+              })
+            }
+            style={styles.promoteButton}
+          >
+            Promover
+          </Button>
         </View>
 
         {/* Barra de Busca e Toggle +18 */}
@@ -493,7 +508,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   discoveryModeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
     marginBottom: 6,
+  },
+  discoveryTabsWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  promoteButton: {
+    flexShrink: 0,
   },
   title: {
     fontSize: 20,

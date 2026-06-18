@@ -7,6 +7,7 @@ import {
   ViewStyle,
   TextStyle,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENT_COLORS } from '../theme/colors';
@@ -16,7 +17,24 @@ interface ButtonProps extends TouchableOpacityProps {
   loading?: boolean;
   variant?: 'primary' | 'outline' | 'ghost';
   size?: 'xs' | 'sm' | 'md' | 'lg';
+  /** Quando false, ignora redução automática em telas menores. Padrão: true. */
+  responsive?: boolean;
   icon?: React.ReactNode;
+}
+
+function resolveResponsiveButtonSize(
+  requested: NonNullable<ButtonProps['size']>,
+  width: number
+): NonNullable<ButtonProps['size']> {
+  if (width < 600) {
+    if (requested === 'lg' || requested === 'md' || requested === 'sm') return 'xs';
+    return requested;
+  }
+  if (width < 900) {
+    if (requested === 'lg') return 'sm';
+    if (requested === 'md') return 'sm';
+  }
+  return requested;
 }
 
 // Configuração do gradiente
@@ -28,11 +46,15 @@ export function Button({
   loading = false,
   variant = 'primary',
   size = 'md',
+  responsive = true,
   disabled,
   style,
   icon,
   ...props
 }: ButtonProps) {
+  const { width } = useWindowDimensions();
+  const resolvedSize = responsive ? resolveResponsiveButtonSize(size, width) : size;
+
   const getContainerStyle = (): ViewStyle => {
     const baseStyle: ViewStyle = {
       borderRadius: 8,
@@ -81,7 +103,7 @@ export function Button({
 
     return {
       ...baseStyle,
-      ...sizeStyles[size],
+      ...sizeStyles[resolvedSize],
       ...variantStyles[variant],
     };
   };
@@ -108,7 +130,7 @@ export function Button({
 
     return {
       ...baseStyle,
-      ...sizeStyles[size],
+      ...sizeStyles[resolvedSize],
       ...variantStyles[variant],
     };
   };

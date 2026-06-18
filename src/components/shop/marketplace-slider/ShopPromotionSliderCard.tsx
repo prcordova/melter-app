@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   type ImageSourcePropType,
+  useWindowDimensions,
 } from 'react-native'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useNavigation } from '@react-navigation/native'
@@ -13,7 +14,11 @@ import type { MarketplaceSliderItem } from '../../../config/shops/marketplace-sl
 import { marketplaceSliderApi } from '../../../services/shops/marketplace-slider'
 import { getImageUrl } from '../../../utils/image'
 import { COLORS } from '../../../theme/colors'
-import { MARKETPLACE_SLIDER_HEIGHT } from '../../../constants/marketplace-slider'
+import {
+  MARKETPLACE_SLIDER_ACTION_INSET,
+  MARKETPLACE_SLIDER_HEIGHT,
+} from '../../../constants/marketplace-slider'
+import { Button } from '../../Button'
 
 type ShopPromotionSliderCardProps = {
   item: MarketplaceSliderItem
@@ -21,6 +26,10 @@ type ShopPromotionSliderCardProps = {
 
 export function ShopPromotionSliderCard({ item }: ShopPromotionSliderCardProps) {
   const navigation = useNavigation<any>()
+  const { width } = useWindowDimensions()
+  const actionInset = width < 600
+    ? MARKETPLACE_SLIDER_ACTION_INSET.compact
+    : MARKETPLACE_SLIDER_ACTION_INSET.regular
   const coverUri = item.coverUrl ? getImageUrl(item.coverUrl) : null
   const avatarUri = item.avatar ? getImageUrl(item.avatar) : null
 
@@ -33,21 +42,16 @@ export function ShopPromotionSliderCard({ item }: ShopPromotionSliderCardProps) 
   }
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.9}
-      onPress={handlePress}
-      accessibilityRole="button"
-    >
-      <View style={styles.coverWrap}>
+    <View style={styles.card}>
+      <TouchableOpacity style={styles.coverWrap} activeOpacity={0.9} onPress={handlePress}>
         {coverUri ? (
           <Image source={{ uri: coverUri }} style={styles.cover} resizeMode="cover" />
         ) : (
           <View style={[styles.cover, styles.coverFallback]} />
         )}
-      </View>
+      </TouchableOpacity>
 
-      <View style={styles.body}>
+      <TouchableOpacity style={styles.body} activeOpacity={0.9} onPress={handlePress}>
         <View style={styles.userRow}>
           {avatarUri ? (
             <Image source={{ uri: avatarUri } as ImageSourcePropType} style={styles.avatar} />
@@ -81,8 +85,14 @@ export function ShopPromotionSliderCard({ item }: ShopPromotionSliderCardProps) 
             </View>
           ) : null}
         </View>
+      </TouchableOpacity>
+
+      <View style={[styles.actionWrap, { right: actionInset, bottom: actionInset }]}>
+        <Button size="sm" onPress={handlePress} style={styles.actionButton}>
+          Ver mais
+        </Button>
       </View>
-    </TouchableOpacity>
+    </View>
   )
 }
 
@@ -95,6 +105,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background.paper,
     borderWidth: 1,
     borderColor: COLORS.border.light,
+    position: 'relative',
   },
   coverWrap: {
     width: '34%',
@@ -114,6 +125,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    paddingRight: 88,
     justifyContent: 'center',
     gap: 4,
   },
@@ -172,5 +184,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: COLORS.text.secondary,
+  },
+  actionWrap: {
+    position: 'absolute',
+    zIndex: 2,
+  },
+  actionButton: {
+    minWidth: 0,
   },
 })

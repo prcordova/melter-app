@@ -1,10 +1,14 @@
 import React from 'react'
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, Image, StyleSheet, useWindowDimensions } from 'react-native'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useNavigation } from '@react-navigation/native'
 import { getImageUrl } from '../../../utils/image'
 import { COLORS } from '../../../theme/colors'
-import { MARKETPLACE_SLIDER_HEIGHT } from '../../../constants/marketplace-slider'
+import {
+  MARKETPLACE_SLIDER_ACTION_INSET,
+  MARKETPLACE_SLIDER_HEIGHT,
+} from '../../../constants/marketplace-slider'
+import { Button } from '../../Button'
 
 type ShopPromotionPlaceholderCardProps = {
   imageUrl?: string | null
@@ -16,10 +20,14 @@ export function ShopPromotionPlaceholderCard({
   showText = true,
 }: ShopPromotionPlaceholderCardProps) {
   const navigation = useNavigation<any>()
+  const { width } = useWindowDimensions()
+  const actionInset = width < 600
+    ? MARKETPLACE_SLIDER_ACTION_INSET.compact
+    : MARKETPLACE_SLIDER_ACTION_INSET.regular
   const resolvedImage = imageUrl ? getImageUrl(imageUrl) : null
   const hasImage = Boolean(resolvedImage)
 
-  const handlePress = () => {
+  const handlePromote = () => {
     navigation.navigate('ProfileStack', {
       screen: 'PromotionsSettings',
       params: { hubSection: 'shop', openCreate: true },
@@ -27,13 +35,7 @@ export function ShopPromotionPlaceholderCard({
   }
 
   return (
-    <TouchableOpacity
-      style={[styles.card, hasImage && styles.cardWithImage]}
-      activeOpacity={0.9}
-      onPress={handlePress}
-      accessibilityRole="button"
-      accessibilityLabel="Anuncie aqui no marketplace"
-    >
+    <View style={[styles.card, hasImage && styles.cardWithImage]}>
       {hasImage ? (
         <>
           <Image source={{ uri: resolvedImage! }} style={styles.bgImage} resizeMode="cover" />
@@ -56,10 +58,15 @@ export function ShopPromotionPlaceholderCard({
           <Text style={[styles.description, hasImage && styles.descriptionOnImage]} numberOfLines={2}>
             Destaque seus pacotes no topo do marketplace e alcance mais compradores.
           </Text>
-          <Text style={[styles.cta, hasImage && styles.ctaOnImage]}>Promover agora →</Text>
         </View>
       ) : null}
-    </TouchableOpacity>
+
+      <View style={[styles.actionWrap, { right: actionInset, bottom: actionInset }]}>
+        <Button size="sm" onPress={handlePromote} style={styles.actionButton}>
+          Saiba mais
+        </Button>
+      </View>
+    </View>
   )
 }
 
@@ -72,6 +79,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border.light,
     justifyContent: 'center',
+    position: 'relative',
   },
   cardWithImage: {
     backgroundColor: '#111',
@@ -92,6 +100,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,
+    paddingRight: 96,
     gap: 6,
     maxWidth: '100%',
   },
@@ -116,13 +125,11 @@ const styles = StyleSheet.create({
   descriptionOnImage: {
     color: 'rgba(255,255,255,0.92)',
   },
-  cta: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.secondary.main,
-    marginTop: 2,
+  actionWrap: {
+    position: 'absolute',
+    zIndex: 2,
   },
-  ctaOnImage: {
-    color: COLORS.secondary.light ?? '#b8a0ff',
+  actionButton: {
+    minWidth: 0,
   },
 })
