@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
   Switch,
+  useWindowDimensions,
 } from 'react-native';
 import { COLORS } from '../../theme/colors';
 import { showToast } from '../CustomToast';
@@ -47,6 +48,8 @@ interface SubscriptionPlansContentProps {
 }
 
 export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlansContentProps) {
+  const { width: windowWidth } = useWindowDimensions();
+  const isNarrowPlansHeader = windowWidth < 600;
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -183,31 +186,33 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
       showsVerticalScrollIndicator={false}
       nestedScrollEnabled
     >
-      <View style={styles.header}>
-        <Text style={styles.title}>Planos de Assinatura</Text>
+      <View style={[styles.header, isNarrowPlansHeader && styles.headerNarrow]}>
+        <Text style={[styles.title, isNarrowPlansHeader && styles.titleNarrow]}>
+          Suas assinaturas
+        </Text>
         {!canCreatePlan || !canCreateActivePlan ? (
           <PlanLocker
             requiredPlan={userPlan === 'PRO' ? 'PRO_PLUS' : 'PRO'}
             currentPlan={userPlan}
           >
             <TouchableOpacity
-              style={[styles.createButton, styles.createButtonDisabled]}
+              style={[styles.createButton, styles.createButtonDisabled, isNarrowPlansHeader && styles.createButtonNarrow]}
               disabled={true}
             >
-              <Ionicons name="add" size={20} color="#FFFFFF" />
-              <Text style={styles.createButtonText}>
-                Criar assinatura ({currentPlansCount}/{maxSubscriptionPlans})
+              <Ionicons name="add" size={isNarrowPlansHeader ? 16 : 20} color="#FFFFFF" />
+              <Text style={[styles.createButtonText, isNarrowPlansHeader && styles.createButtonTextNarrow]}>
+                Criar ({currentPlansCount}/{maxSubscriptionPlans})
               </Text>
             </TouchableOpacity>
           </PlanLocker>
         ) : (
           <TouchableOpacity
-            style={styles.createButton}
+            style={[styles.createButton, isNarrowPlansHeader && styles.createButtonNarrow]}
             onPress={handleCreate}
           >
-            <Ionicons name="add" size={20} color="#FFFFFF" />
-            <Text style={styles.createButtonText}>
-              Criar assinatura ({currentPlansCount}/{maxSubscriptionPlans})
+            <Ionicons name="add" size={isNarrowPlansHeader ? 16 : 20} color="#FFFFFF" />
+            <Text style={[styles.createButtonText, isNarrowPlansHeader && styles.createButtonTextNarrow]}>
+              Criar ({currentPlansCount}/{maxSubscriptionPlans})
             </Text>
           </TouchableOpacity>
         )}
@@ -317,11 +322,21 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background.paper,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.background.tertiary,
+    gap: 8,
+  },
+  headerNarrow: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexWrap: 'wrap',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.text.primary,
+    flexShrink: 1,
+  },
+  titleNarrow: {
+    fontSize: 15,
   },
   createButton: {
     flexDirection: 'row',
@@ -331,6 +346,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
+    flexShrink: 0,
+  },
+  createButtonNarrow: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    gap: 4,
   },
   createButtonDisabled: {
     backgroundColor: COLORS.text.tertiary,
@@ -340,6 +361,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  createButtonTextNarrow: {
+    fontSize: 12,
   },
   warningBox: {
     flexDirection: 'row',

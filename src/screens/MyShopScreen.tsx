@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TextInput,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { getTabNavigator } from '../navigation/get-tab-navigator';
@@ -55,6 +56,10 @@ import { ShopSubscriptionPlansSection } from '../components/shop/ShopSubscriptio
 import { ProductCheckoutModal, type CheckoutProduct } from '../components/shop/ProductCheckoutModal';
 import { PlanLocker } from '../components/PlanLocker';
 import { Button } from '../components/Button';
+import {
+  SHOP_WORKSPACE_TABS_DENSITY,
+  resolveShopWorkspaceTabsDensity,
+} from '../constants/shop-workspace-tabs-density';
 import { BackArrow } from '../components/BackArrow';
 import { getFeatureLimit, hasFeatureAccess } from '../config/plan-features';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -124,6 +129,9 @@ export function MyShopScreen() {
   const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
   const { user, loading: authLoading, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const shopTabsDensity = resolveShopWorkspaceTabsDensity(windowWidth);
+  const shopTabsTokens = SHOP_WORKSPACE_TABS_DENSITY[shopTabsDensity];
 
   // Estados principais
   const [loading, setLoading] = useState(true);
@@ -939,7 +947,16 @@ export function MyShopScreen() {
         {/* Abas no topo — mesmo fundo do card de cadastro (web grey.50) */}
         {showTabs && (
           <View style={styles.tabsShell}>
-          <View style={styles.tabsContainer}>
+          <View
+            style={[
+              styles.tabsContainer,
+              {
+                paddingHorizontal: shopTabsTokens.shellPaddingH,
+                paddingTop: shopTabsTokens.shellPaddingV,
+                paddingBottom: shopTabsTokens.shellPaddingV,
+              },
+            ]}
+          >
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -947,12 +964,20 @@ export function MyShopScreen() {
               contentContainerStyle={styles.tabsScrollContent}
             >
               <TouchableOpacity
-                style={[styles.tab, activeTab === 'products' && styles.tabActive]}
+                style={[
+                  styles.tab,
+                  {
+                    paddingVertical: shopTabsTokens.tabPaddingV,
+                    paddingHorizontal: shopTabsTokens.tabPaddingH,
+                  },
+                  activeTab === 'products' && styles.tabActive,
+                ]}
                 onPress={() => handleTabChange('products')}
               >
                 <Text
                   style={[
                     styles.tabText,
+                    { fontSize: shopTabsTokens.tabFontSize },
                     activeTab === 'products' && styles.tabTextActive,
                   ]}
                 >
@@ -960,15 +985,47 @@ export function MyShopScreen() {
                 </Text>
               </TouchableOpacity>
 
+              {isOwner && sellerVerification?.status === 'approved' && (
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    {
+                      paddingVertical: shopTabsTokens.tabPaddingV,
+                      paddingHorizontal: shopTabsTokens.tabPaddingH,
+                    },
+                    activeTab === 'plans' && styles.tabActive,
+                  ]}
+                  onPress={() => handleTabChange('plans')}
+                >
+                  <Text
+                    style={[
+                      styles.tabText,
+                      { fontSize: shopTabsTokens.tabFontSize },
+                      activeTab === 'plans' && styles.tabTextActive,
+                    ]}
+                  >
+                    Assinaturas
+                  </Text>
+                </TouchableOpacity>
+              )}
+
               {showSecondaryShopTabs ? (
                 <>
                   <TouchableOpacity
-                    style={[styles.tab, activeTab === 'analytics' && styles.tabActive]}
+                    style={[
+                      styles.tab,
+                      {
+                        paddingVertical: shopTabsTokens.tabPaddingV,
+                        paddingHorizontal: shopTabsTokens.tabPaddingH,
+                      },
+                      activeTab === 'analytics' && styles.tabActive,
+                    ]}
                     onPress={() => handleTabChange('analytics')}
                   >
                     <Text
                       style={[
                         styles.tabText,
+                        { fontSize: shopTabsTokens.tabFontSize },
                         activeTab === 'analytics' && styles.tabTextActive,
                       ]}
                     >
@@ -977,12 +1034,20 @@ export function MyShopScreen() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.tab, activeTab === 'community' && styles.tabActive]}
+                    style={[
+                      styles.tab,
+                      {
+                        paddingVertical: shopTabsTokens.tabPaddingV,
+                        paddingHorizontal: shopTabsTokens.tabPaddingH,
+                      },
+                      activeTab === 'community' && styles.tabActive,
+                    ]}
                     onPress={() => handleTabChange('community')}
                   >
                     <Text
                       style={[
                         styles.tabText,
+                        { fontSize: shopTabsTokens.tabFontSize },
                         activeTab === 'community' && styles.tabTextActive,
                       ]}
                     >
@@ -991,32 +1056,7 @@ export function MyShopScreen() {
                   </TouchableOpacity>
                 </>
               ) : null}
-
-              {isOwner && sellerVerification?.status === 'approved' && (
-                <TouchableOpacity
-                  style={[styles.tab, activeTab === 'plans' && styles.tabActive]}
-                  onPress={() => handleTabChange('plans')}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      activeTab === 'plans' && styles.tabTextActive,
-                    ]}
-                  >
-                    Assinaturas
-                  </Text>
-                </TouchableOpacity>
-              )}
             </ScrollView>
-            {isOwner && sellerVerification?.status === 'approved' && (
-              <Button
-                size="sm"
-                onPress={() => handleTabChange('plans')}
-                style={styles.createSubscriptionBtn}
-              >
-                Editar assinaturas
-              </Button>
-            )}
           </View>
           </View>
         )}
@@ -1910,7 +1950,7 @@ const styles = StyleSheet.create({
   tabsShell: {
     marginHorizontal: 8,
     marginTop: 4,
-    marginBottom: 8,
+    marginBottom: 6,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border.light,
@@ -1918,28 +1958,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   tabsContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingRight: 12,
-    paddingBottom: 4,
-    paddingTop: 4,
+    justifyContent: 'center',
   },
   tabsScroll: {
-    flex: 1,
+    width: '100%',
   },
   tabsScrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
-  },
-  createSubscriptionBtn: {
-    marginBottom: 6,
-    flexShrink: 0,
+    justifyContent: 'center',
   },
   tab: {
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
@@ -1947,7 +1978,6 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.secondary.main,
   },
   tabText: {
-    fontSize: 12,
     fontWeight: '600',
     color: COLORS.text.secondary,
   },
