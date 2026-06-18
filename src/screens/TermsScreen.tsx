@@ -100,7 +100,7 @@ export function TermsScreen() {
           {/* Header */}
           <Text style={styles.title}>Termos de Uso e Política de Privacidade</Text>
           <Text style={styles.subtitle}>
-            Última atualização: 26 de Janeiro de 2025 • Versão {CURRENT_TERMS_VERSION}
+            Última atualização: 18 de Junho de 2026 • Versão {CURRENT_TERMS_VERSION}
           </Text>
 
           <View style={styles.divider} />
@@ -161,6 +161,12 @@ export function TermsScreen() {
               <Text style={styles.bold}>3.4 Saques:</Text> Vendedores podem solicitar saques via Pix. Há um valor mínimo 
               configurável e taxa de saque definida pelo administrador. Saques são processados em até 48 horas úteis.
             </Text>
+            <Text style={styles.sectionText}>
+              <Text style={styles.bold}>3.11 Contas inativas e saldo em carteira:</Text> Conta em abandono após{' '}
+              <Text style={styles.bold}>180 dias consecutivos sem login</Text>. A Melter poderá recolher saldo remanescente 
+              na carteira, quando permitido por lei, após esforços razoáveis de comunicação. Recomendamos sacar o saldo 
+              antes de longos períodos sem uso.
+            </Text>
 
             {/* 4. Produtos Digitais */}
             <Text style={styles.sectionTitle}>4. Produtos Digitais e Políticas de Compra</Text>
@@ -208,8 +214,18 @@ export function TermsScreen() {
             {/* 8. Promoções */}
             <Text style={styles.sectionTitle}>8. Promoções e Campanhas Publicitárias</Text>
             <Text style={styles.sectionText}>
-              <Text style={styles.bold}>8.1 Posts Patrocinados:</Text> Usuários podem promover seus posts pagando para 
-              aumentar sua visibilidade na plataforma.
+              <Text style={styles.bold}>8.1 Posts patrocinados:</Text> Promoção de posts com saldo da carteira. Conteúdo 
+              proibido (nudez explícita, violência, imagens impróprias, ilegal etc.) pode ser removido{' '}
+              <Text style={styles.bold}>sem aviso prévio e sem reembolso</Text>.
+            </Text>
+            <Text style={styles.sectionText}>
+              <Text style={styles.bold}>8.2 Campanhas customAd:</Text> Campanhas com aprovação admin e pagamento antecipado. 
+              Criativos devem respeitar as políticas. Rejeição na aprovação inicial gera reembolso; remoção por violação, não.
+            </Text>
+            <Text style={styles.sectionText}>
+              <Text style={styles.bold}>8.7 Promoção no marketplace (slider):</Text> Pacotes aprovados no carrossel de /shops, 
+              pacotes de tempo pagos com carteira. Cancelamento pelo usuário ou remoção por violação (imagens impróprias, nudez 
+              explícita, violência etc.) <Text style={styles.bold}>sem reembolso</Text>. Extensão soma tempo ao fim da campanha.
             </Text>
 
             {/* 9. Privacidade LGPD */}

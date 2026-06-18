@@ -54,6 +54,8 @@ interface ShopCardProps {
   statusChip?: { label: string };
   /** Botão de ação principal abaixo do card (Comprar / Assinar / Entrar / Editar) */
   footerAction?: { label: string; onPress: () => void };
+  /** Ação secundária ao lado da principal (ex.: Promover) */
+  secondaryFooterAction?: { label: string; onPress: () => void };
   /** De `meta.productCoverAvatarFallbackEnabled` (admin > Parâmetros). */
   avatarFallbackEnabled?: boolean;
 }
@@ -81,6 +83,7 @@ export function ShopCard({
   showRequiresChangesBadge = false,
   statusChip,
   footerAction,
+  secondaryFooterAction,
   avatarFallbackEnabled = true,
 }: ShopCardProps) {
   const imageSource = resolveProductCoverImageSource({
@@ -242,12 +245,30 @@ export function ShopCard({
         </View>
       )}
     </TouchableOpacity>
-    {footerAction && (
-      <TouchableOpacity style={styles.footerAction} onPress={footerAction.onPress} activeOpacity={0.85}>
-        <Ionicons name="play" size={14} color="#fff" />
-        <Text style={styles.footerActionText}>{footerAction.label}</Text>
-      </TouchableOpacity>
-    )}
+    {footerAction || secondaryFooterAction ? (
+      <View style={styles.footerActionsRow}>
+        {footerAction ? (
+          <TouchableOpacity
+            style={[styles.footerAction, secondaryFooterAction && styles.footerActionSplit]}
+            onPress={footerAction.onPress}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="play" size={14} color="#fff" />
+            <Text style={styles.footerActionText}>{footerAction.label}</Text>
+          </TouchableOpacity>
+        ) : null}
+        {secondaryFooterAction ? (
+          <TouchableOpacity
+            style={[styles.footerActionSecondary, footerAction && styles.footerActionSplit]}
+            onPress={secondaryFooterAction.onPress}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="megaphone-outline" size={14} color={COLORS.secondary.main} />
+            <Text style={styles.footerActionSecondaryText}>{secondaryFooterAction.label}</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    ) : null}
     </View>
   );
 }
@@ -484,13 +505,36 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     marginBottom: 6,
   },
+  footerActionsRow: {
+    flexDirection: 'row',
+  },
   footerAction: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     backgroundColor: COLORS.secondary.main,
     paddingVertical: 12,
+  },
+  footerActionSplit: {
+    flex: 1,
+  },
+  footerActionSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.background.paper,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border.light,
+    paddingVertical: 12,
+  },
+  footerActionSecondaryText: {
+    color: COLORS.secondary.main,
+    fontSize: 13,
+    fontWeight: '700',
   },
   footerActionText: {
     color: '#fff',

@@ -426,6 +426,13 @@ export function MyShopScreen() {
     setShowSettingsModal(true);
   };
 
+  const handlePromoteProductPress = (productId: string) => {
+    navigation.navigate('ProfileStack', {
+      screen: 'PromotionsSettings',
+      params: { hubSection: 'shop', openCreate: true, productId },
+    });
+  };
+
   // Handler para quando as configurações forem atualizadas
   const handleSettingsUpdated = async () => {
     await fetchShopSettings();
@@ -1836,7 +1843,12 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    flexShrink: 0,
+  },
+  promotePackageButton: {
+    paddingHorizontal: 10,
+    minHeight: 32,
   },
   shareShopButton: {
     justifyContent: 'center',

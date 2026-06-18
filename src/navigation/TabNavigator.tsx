@@ -14,6 +14,7 @@ import { COLORS } from '../theme/colors';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useUnreadMessages } from '../contexts/UnreadMessagesContext';
 import { useDiscoveryPreference } from '../contexts/DiscoveryPreferenceContext';
+import { TermsGuard } from '../components/TermsGuard';
 import type { DiscoveryViewMode } from '../utils/explorer-discovery-personalization';
 
 const Tab = createBottomTabNavigator();
@@ -57,7 +58,8 @@ export function TabNavigator() {
   }, [preference.modeButtonOrder]);
 
   return (
-    <Tab.Navigator
+    <>
+      <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: COLORS.secondary.main,
@@ -164,6 +166,8 @@ export function TabNavigator() {
         }}
       />
     </Tab.Navigator>
+    <TermsGuard />
+    </>
   );
 }
 
