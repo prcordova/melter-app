@@ -128,7 +128,9 @@ export function ShopPromotionPackagePicker({
         style={[styles.discountHint, !showDiscount && styles.discountHintHidden]}
         numberOfLines={2}
       >
-        {showDiscount ? `${selectedOffer.savingsPercent}% de desconto neste pacote` : ' '}
+        {showDiscount
+          ? `${selectedOffer.savingsPercent}% de desconto neste pacote · economiza R$ ${selectedOffer.savingsAmount.toFixed(2)}`
+          : ' '}
       </Text>
     </View>
   )
@@ -243,7 +245,7 @@ const styles = StyleSheet.create({
   discountHint: {
     marginTop: 8,
     minHeight: 32,
-    maxWidth: TRACK_WIDTH,
+    maxWidth: TRACK_WIDTH + 40,
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.states.success,
