@@ -12,7 +12,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -27,6 +27,16 @@ import { getImageUrl } from '../../utils/image';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CreateAdModal } from '../../components/promotions/CreateAdModal';
+import {
+  PromotionsHubPicker,
+  type PromotionsHubSection,
+} from '../../components/promotions/PromotionsHubPicker';
+import { PromotionsShopSection } from '../../components/promotions/PromotionsShopSection';
+
+type PromotionsScreenParams = {
+  hubSection?: PromotionsHubSection;
+  openCreate?: boolean;
+};
 
 // Interfaces
 interface Ad {
@@ -62,6 +72,10 @@ type AdStatus = 'ACTIVE' | 'INACTIVE' | 'PAUSED';
 type ActiveTab = 0 | 1; // 0 = Campanhas, 1 = Histórico
 
 export function PromotionsScreen() {
+  const route = useRoute<RouteProp<{ PromotionsSettings: PromotionsScreenParams }, 'PromotionsSettings'>>();
+  const routeHubSection = route.params?.hubSection;
+  const routeOpenCreate = route.params?.openCreate === true;
+
   const renderPromotionsSkeleton = useMemo(
     () => (
       <View style={styles.skeletonWrapper}>
@@ -93,6 +107,12 @@ export function PromotionsScreen() {
 
   const insets = useSafeAreaInsets();
   const { user, refreshUser } = useAuth();
+
+  const [hubSection, setHubSection] = useState<PromotionsHubSection>(
+    routeHubSection ?? 'ads'
+  );
+  const [autoOpenShopCreate] = useState(routeOpenCreate);
+  const [shopCreateOpen, setShopCreateOpen] = useState(routeOpenCreate);
   
   // Estados principais
   const [currentTab, setCurrentTab] = useState<ActiveTab>(0);
@@ -266,11 +286,25 @@ export function PromotionsScreen() {
     setDialogOpen(true);
   };
 
+  useEffect(() => {
+    if (routeHubSection) {
+      setHubSection(routeHubSection);
+    }
+  }, [routeHubSection]);
+
+  useEffect(() => {
+    if (routeOpenCreate) setShopCreateOpen(true);
+  }, [routeOpenCreate]);
+
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
       
       const loadData = async () => {
+        if (hubSection !== 'ads') {
+          if (isMounted) setLoading(false);
+          return;
+        }
         if (currentTab === 0) {
           if (isMounted) {
             await fetchAds();
@@ -287,11 +321,11 @@ export function PromotionsScreen() {
       return () => {
         isMounted = false;
       };
-    }, [currentTab, fetchAds, fetchHistory])
+    }, [currentTab, fetchAds, fetchHistory, hubSection])
   );
 
   // Renderização básica (estrutura inicial)
-  if (loading && ads.length === 0) {
+  if (loading && hubSection === 'ads' && ads.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -307,18 +341,47 @@ export function PromotionsScreen() {
         <BackButton title="Perfil" />
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>🎁 Promoções</Text>
-          {currentTab === 0 && (
-            <TouchableOpacity
-              style={styles.createButton}
-              onPress={handleOpenDialog}
-            >
-              <Ionicons name="add" size={20} color="#ffffff" />
-              <Text style={styles.createButtonText}>Criar Anúncio</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
+      <View style={styles.hubPickerWrap}>
+        <PromotionsHubPicker section={hubSection} onChange={setHubSection} />
+      </View>
+
+      <View style={styles.hubActionRow}>
+        {hubSection === 'shop' ? (
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={() => setShopCreateOpen(true)}
+          >
+            <Ionicons name="add" size={20} color="#ffffff" />
+            <Text style={styles.createButtonText}>Promover no marketplace</Text>
+          </TouchableOpacity>
+        ) : null}
+        {hubSection === 'ads' && currentTab === 0 ? (
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={handleOpenDialog}
+          >
+            <Ionicons name="add" size={20} color="#ffffff" />
+            <Text style={styles.createButtonText}>Criar Anúncio</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {hubSection === 'shop' ? (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <PromotionsShopSection
+            autoOpenCreate={autoOpenShopCreate}
+            createOpen={shopCreateOpen}
+            onCreateOpenChange={setShopCreateOpen}
+          />
+        </ScrollView>
+      ) : (
+        <>
       {/* Tabs */}
       <View style={styles.tabBar}>
         <TouchableOpacity
@@ -605,6 +668,8 @@ export function PromotionsScreen() {
         reactivatingAd={reactivatingAd}
         campaignConfig={campaignConfig}
       />
+        </>
+      )}
     </View>
   );
 }
@@ -619,6 +684,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border.light,
     paddingBottom: 12,
+  },
+  hubPickerWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  hubActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    minHeight: 44,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
   headerContent: {
     flexDirection: 'row',

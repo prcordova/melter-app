@@ -4,11 +4,13 @@
  * Documentação: melter/src/config/shops/shops.md — analytics: analytics/analytics.md (web)
  */
 import { SHOP_ANALYTICS_API } from './analytics/api-paths'
+import { MARKETPLACE_SLIDER_API } from './marketplace-slider/api-paths'
 
 export const SHOP_API = {
   marketplace: {
     sellers: '/api/shops',
     products: '/api/shops/products',
+    ...MARKETPLACE_SLIDER_API,
   },
   me: {
     settings: '/api/shops/me/settings',

@@ -12,6 +12,7 @@ import {
 import { Header } from '../components/Header';
 import { ShopCard } from '../components/ShopCard';
 import { MarketplaceBeyondSearchDivider } from '../components/shop/MarketplaceBeyondSearchDivider';
+import { MarketplacePromotedShopsSlider } from '../components/shop/marketplace-slider/MarketplacePromotedShopsSlider';
 import { shopsApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { useNavigation, useScrollToTop } from '@react-navigation/native';
@@ -375,6 +376,8 @@ export function ShopsSearchScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        <MarketplacePromotedShopsSlider showAdultContent={showAdultContent} />
 
         <View style={styles.discoveryModeRow}>
           <DiscoveryModeTabs
