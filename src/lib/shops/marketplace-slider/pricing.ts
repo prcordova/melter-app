@@ -1,6 +1,8 @@
 import { FIXED_CATEGORIES } from '../../../constants/categories'
 import {
   DEFAULT_MARKETPLACE_SLIDER_CONFIG,
+  PACKAGE_TIER_CALENDAR_DAYS,
+  SHOP_PROMOTION_PACKAGE_TIERS,
   type ShopPromotionPackageTier,
 } from '../../../constants/marketplace-slider'
 import type { MarketplacePromotionConfig } from '../../../config/shops/marketplace-slider/types'
@@ -10,6 +12,19 @@ export type MarketplaceSliderPricingConfig = {
   costPerWeek: number
   costPerMonth: number
   categoryMultipliers: Record<string, number>
+}
+
+export type ShopPromotionPackageOffer = {
+  tier: ShopPromotionPackageTier
+  calendarDays: number
+  cost: number
+  referenceCost: number
+  savingsAmount: number
+  savingsPercent: number
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100
 }
 
 export function normalizeMarketplaceSliderPricing(
@@ -56,6 +71,31 @@ export function calculateShopPromotionCost(
       ? config.categoryMultipliers[categoryId]
       : 1
   return Math.round(base * multiplier * 100) / 100
+}
+
+export function listShopPromotionPackageOffers(
+  categoryId: string | null | undefined,
+  config: MarketplaceSliderPricingConfig
+): ShopPromotionPackageOffer[] {
+  const dailyCost = calculateShopPromotionCost('day', categoryId, config)
+
+  return SHOP_PROMOTION_PACKAGE_TIERS.map((tier) => {
+    const calendarDays = PACKAGE_TIER_CALENDAR_DAYS[tier]
+    const cost = calculateShopPromotionCost(tier, categoryId, config)
+    const referenceCost = roundMoney(dailyCost * calendarDays)
+    const savingsAmount = roundMoney(Math.max(0, referenceCost - cost))
+    const savingsPercent =
+      referenceCost > 0 ? Math.round((savingsAmount / referenceCost) * 100) : 0
+
+    return {
+      tier,
+      calendarDays,
+      cost,
+      referenceCost,
+      savingsAmount,
+      savingsPercent,
+    }
+  })
 }
 
 export function pricingFromPromotionConfig(

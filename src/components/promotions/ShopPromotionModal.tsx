@@ -19,8 +19,10 @@ import type { MarketplacePromotionConfig } from '../../config/shops/marketplace-
 import type { ShopPromotionPackageTier } from '../../constants/marketplace-slider'
 import {
   calculateShopPromotionCost,
+  listShopPromotionPackageOffers,
   pricingFromPromotionConfig,
 } from '../../lib/shops/marketplace-slider/pricing'
+import { ShopPromotionPackagePicker } from './ShopPromotionPackagePicker'
 import {
   resolveDefaultPromotionProductId,
   sortPromotionProductsByNewest,
@@ -58,7 +60,7 @@ export function ShopPromotionModal({
   const [products, setProducts] = useState<OwnerProduct[]>([])
   const [promotionConfig, setPromotionConfig] = useState<MarketplacePromotionConfig | null>(null)
   const [productId, setProductId] = useState('')
-  const [packageTier, setPackageTier] = useState<ShopPromotionPackageTier>('day')
+  const [packageTier, setPackageTier] = useState<ShopPromotionPackageTier>('week')
   const [startMode, setStartMode] = useState<'immediate' | 'scheduled'>('immediate')
   const [scheduledStartAt, setScheduledStartAt] = useState('')
   const [promotionCoverUrl, setPromotionCoverUrl] = useState('')
@@ -91,7 +93,7 @@ export function ShopPromotionModal({
 
   useEffect(() => {
     if (!visible) return
-    setPackageTier('day')
+    setPackageTier('week')
     setStartMode('immediate')
     setScheduledStartAt('')
     setPromotionCoverUrl('')
@@ -113,6 +115,12 @@ export function ShopPromotionModal({
     const pricing = pricingFromConfig(promotionConfig)
     return calculateShopPromotionCost(packageTier, selectedProduct.categoryId, pricing)
   }, [promotionConfig, selectedProduct, packageTier])
+
+  const packageOffers = useMemo(() => {
+    if (!promotionConfig || !selectedProduct) return []
+    const pricing = pricingFromConfig(promotionConfig)
+    return listShopPromotionPackageOffers(selectedProduct.categoryId, pricing)
+  }, [promotionConfig, selectedProduct])
 
   const handleSubmit = async () => {
     if (!productId) {
@@ -182,15 +190,11 @@ export function ShopPromotionModal({
               />
             </View>
 
-            <SelectRow
+            <ShopPromotionPackagePicker
               label="Pacote de tempo"
+              offers={packageOffers}
               value={packageTier}
-              onChange={(v) => setPackageTier(v as ShopPromotionPackageTier)}
-              options={[
-                { value: 'day', label: 'Diária (1 dia)' },
-                { value: 'week', label: 'Semanal (7 dias)' },
-                { value: 'month', label: 'Mensal (30 dias)' },
-              ]}
+              onChange={setPackageTier}
             />
 
             <SelectRow

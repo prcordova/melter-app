@@ -8,7 +8,6 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Ionicons from '@expo/vector-icons/Ionicons'
-import { SelectRow } from '../SelectRow'
 import { CustomModal } from '../CustomModal'
 import { Button } from '../Button'
 import { ModalBottom } from '../ModalBottom'
@@ -23,8 +22,10 @@ import type { ShopPromotionPackageTier } from '../../constants/marketplace-slide
 import { extendPromotionEndDate } from '../../lib/shops/marketplace-slider/dates'
 import {
   calculateShopPromotionCost,
+  listShopPromotionPackageOffers,
   pricingFromPromotionConfig,
 } from '../../lib/shops/marketplace-slider/pricing'
+import { ShopPromotionPackagePicker } from './ShopPromotionPackagePicker'
 import { COLORS } from '../../theme/colors'
 
 type ShopPromotionsListProps = {
@@ -57,7 +58,7 @@ export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) 
   const [rows, setRows] = useState<MyShopMarketplacePromotion[]>([])
   const [promotionConfig, setPromotionConfig] = useState<MarketplacePromotionConfig | null>(null)
   const [extendTarget, setExtendTarget] = useState<MyShopMarketplacePromotion | null>(null)
-  const [extendTier, setExtendTier] = useState<ShopPromotionPackageTier>('day')
+  const [extendTier, setExtendTier] = useState<ShopPromotionPackageTier>('week')
   const [extendSaving, setExtendSaving] = useState(false)
   const [extendConfigLoading, setExtendConfigLoading] = useState(false)
   const [cancelTarget, setCancelTarget] = useState<MyShopMarketplacePromotion | null>(null)
@@ -122,6 +123,12 @@ export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) 
     if (!extendTarget) return null
     return extendPromotionEndDate(new Date(extendTarget.endDate), extendTier)
   }, [extendTarget, extendTier])
+
+  const extendPackageOffers = useMemo(() => {
+    if (!extendTarget || !promotionConfig) return []
+    const pricing = pricingFromPromotionConfig(promotionConfig)
+    return listShopPromotionPackageOffers(extendTarget.categoryId, pricing)
+  }, [extendTarget, promotionConfig])
 
   const handleExtend = async () => {
     if (!extendTarget) return
@@ -211,7 +218,7 @@ export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) 
                     size="sm"
                     onPress={() => {
                       setExtendTarget(row)
-                      setExtendTier('day')
+                      setExtendTier('week')
                     }}
                   >
                     Estender
@@ -252,15 +259,11 @@ export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) 
             </View>
           ) : null}
 
-          <SelectRow
+          <ShopPromotionPackagePicker
             label="Pacote de tempo"
+            offers={extendPackageOffers}
             value={extendTier}
-            onChange={(v) => setExtendTier(v as ShopPromotionPackageTier)}
-            options={[
-              { value: 'day', label: 'Diária (1 dia)' },
-              { value: 'week', label: 'Semanal (7 dias)' },
-              { value: 'month', label: 'Mensal (30 dias)' },
-            ]}
+            onChange={setExtendTier}
           />
 
           <View style={styles.costBox}>
