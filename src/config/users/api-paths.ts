@@ -42,6 +42,8 @@ export const USERS_API = {
     cancelDeletion: '/api/users/cancel-deletion',
     onboardingSeller: '/api/users/onboarding-seller',
     onboardingDiscoveryTrack: '/api/users/onboarding-discovery/track',
+    onboardingFollowSuggestions: '/api/users/onboarding-follow-suggestions',
+    onboardingFollowSuggestionsList: '/api/users/me/onboarding-follow-suggestions',
     twoFa: {
       setup: '/api/users/2fa/setup',
       verify: '/api/users/2fa/verify',
