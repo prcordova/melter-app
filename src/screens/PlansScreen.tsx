@@ -24,8 +24,8 @@ import {
   MARKETING_PLANS,
   buildPlanCardHighlights,
   formatPlanDisplayName,
-  formatPlanPriceBrl,
-  formatPlanPeriodTotalPriceBrl,
+  formatPlanPrice,
+  formatPlanPeriodTotalPrice,
 } from '../config/plans-marketing';
 import {
   PLAN_BILLING_INTERVALS,
@@ -58,10 +58,14 @@ export function PlansScreen() {
     name: meta.id,
     displayName: meta.displayName ?? meta.id,
     features: buildPlanCardHighlights(meta.id),
-    price: formatPlanPriceBrl(meta.id, checkoutBillingInterval),
+    price: formatPlanPrice(meta.id, checkoutBillingInterval, selectedPaymentGateway),
     periodTotal:
       meta.id !== 'FREE' && checkoutBillingInterval !== 'MONTHLY'
-        ? formatPlanPeriodTotalPriceBrl(meta.id, checkoutBillingInterval)
+        ? formatPlanPeriodTotalPrice(
+            meta.id,
+            checkoutBillingInterval,
+            selectedPaymentGateway
+          )
         : null,
     discountPercent:
       meta.id !== 'FREE' ? getPlanBillingDiscountPercent(checkoutBillingInterval) : 0,

@@ -6,9 +6,13 @@ import {
 } from './plan-features';
 import {
   formatPlatformPlanPriceBrl,
+  formatPlatformPlanPriceUsd,
   formatPlanPeriodTotalBrl,
+  formatPlanPeriodTotalUsd,
   type PlanBillingInterval,
 } from './plan-billing';
+
+export type PlanCheckoutGateway = 'STRIPE' | 'MERCADOPAGO'
 
 export type PlanMarketingId = PlanType;
 
@@ -46,11 +50,45 @@ export function formatPlanPriceBrl(
   return formatPlatformPlanPriceBrl(plan, interval);
 }
 
+export function formatPlanPriceUsd(
+  plan: PlanMarketingId,
+  interval: PlanBillingInterval = 'MONTHLY'
+): string {
+  return formatPlatformPlanPriceUsd(plan, interval);
+}
+
+export function formatPlanPrice(
+  plan: PlanMarketingId,
+  interval: PlanBillingInterval,
+  gateway: PlanCheckoutGateway
+): string {
+  return gateway === 'STRIPE'
+    ? formatPlanPriceUsd(plan, interval)
+    : formatPlanPriceBrl(plan, interval);
+}
+
 export function formatPlanPeriodTotalPriceBrl(
   plan: PlanMarketingId,
   interval: PlanBillingInterval
 ): string {
   return formatPlanPeriodTotalBrl(plan, interval);
+}
+
+export function formatPlanPeriodTotalPriceUsd(
+  plan: PlanMarketingId,
+  interval: PlanBillingInterval
+): string {
+  return formatPlanPeriodTotalUsd(plan, interval);
+}
+
+export function formatPlanPeriodTotalPrice(
+  plan: PlanMarketingId,
+  interval: PlanBillingInterval,
+  gateway: PlanCheckoutGateway
+): string {
+  return gateway === 'STRIPE'
+    ? formatPlanPeriodTotalPriceUsd(plan, interval)
+    : formatPlanPeriodTotalPriceBrl(plan, interval);
 }
 
 /** Destaques do card — só diferenciais por plano (sem loja, 2FA e suporte básico universais). */

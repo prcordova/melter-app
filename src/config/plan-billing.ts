@@ -1,5 +1,11 @@
-import { PLAN_PRICES } from './plan-prices';
+import { PLAN_PRICES, PLAN_PRICES_USD } from './plan-prices';
 import type { PlanType } from './plan-features';
+
+export type PlanPriceCurrency = 'BRL' | 'USD'
+
+function planPricesForCurrency(currency: PlanPriceCurrency): Record<PlanType, number> {
+  return currency === 'USD' ? PLAN_PRICES_USD : PLAN_PRICES
+}
 
 /** Periodicidade de cobrança dos planos da plataforma (STARTER, PRO, PRO+). */
 export const PLAN_BILLING_INTERVALS = ['MONTHLY', 'QUARTERLY', 'ANNUAL'] as const
@@ -37,9 +43,10 @@ export function isPlanBillingInterval(value: string): value is PlanBillingInterv
 
 export function getPlatformPlanBillingQuote(
   plan: PlanType,
-  interval: PlanBillingInterval = 'MONTHLY'
+  interval: PlanBillingInterval = 'MONTHLY',
+  currency: PlanPriceCurrency = 'BRL'
 ): PlatformPlanBillingQuote {
-  const monthlyBase = PLAN_PRICES[plan] ?? 0
+  const monthlyBase = planPricesForCurrency(currency)[plan] ?? 0
   const months = PLAN_BILLING_INTERVAL_MONTHS[interval]
   const subtotal = roundMoney(monthlyBase * months)
   const discountPercent = PLAN_BILLING_INTERVAL_DISCOUNT_PERCENT[interval]
@@ -66,17 +73,31 @@ export function formatMoneyBrl(value: number): string {
   return `R$ ${value.toFixed(2).replace('.', ',')}`
 }
 
+export function formatMoneyUsd(value: number): string {
+  return `US$ ${value.toFixed(2).replace('.', ',')}`
+}
+
+export function formatMoneyByCurrency(
+  value: number,
+  currency: PlanPriceCurrency
+): string {
+  return currency === 'USD' ? formatMoneyUsd(value) : formatMoneyBrl(value)
+}
+
 /** Valor exibido no card: mensal base (mensal) ou equivalente mensal com desconto (trimestral/anual). */
 export function getPlanCardMonthlyPriceLabel(
   plan: PlanType,
-  interval: PlanBillingInterval = 'MONTHLY'
+  interval: PlanBillingInterval = 'MONTHLY',
+  currency: PlanPriceCurrency = 'BRL'
 ): string {
-  if (plan === 'FREE') return 'R$ 0,00'
+  if (plan === 'FREE') {
+    return currency === 'USD' ? 'US$ 0,00' : 'R$ 0,00'
+  }
 
-  const quote = getPlatformPlanBillingQuote(plan, interval)
+  const quote = getPlatformPlanBillingQuote(plan, interval, currency)
   const amount =
     interval === 'MONTHLY' ? quote.monthlyBase : quote.perMonthEffective
-  return formatMoneyBrl(amount)
+  return formatMoneyByCurrency(amount, currency)
 }
 
 export function getPlanBillingDiscountPercent(
@@ -89,7 +110,14 @@ export function formatPlatformPlanPriceBrl(
   plan: PlanType,
   interval: PlanBillingInterval = 'MONTHLY'
 ): string {
-  return getPlanCardMonthlyPriceLabel(plan, interval)
+  return getPlanCardMonthlyPriceLabel(plan, interval, 'BRL')
+}
+
+export function formatPlatformPlanPriceUsd(
+  plan: PlanType,
+  interval: PlanBillingInterval = 'MONTHLY'
+): string {
+  return getPlanCardMonthlyPriceLabel(plan, interval, 'USD')
 }
 
 /** Total cobrado no período (trimestral/anual), para exibição no card. */
@@ -97,5 +125,12 @@ export function formatPlanPeriodTotalBrl(
   plan: PlanType,
   interval: PlanBillingInterval
 ): string {
-  return formatMoneyBrl(getPlatformPlanBillingQuote(plan, interval).total)
+  return formatMoneyBrl(getPlatformPlanBillingQuote(plan, interval, 'BRL').total)
+}
+
+export function formatPlanPeriodTotalUsd(
+  plan: PlanType,
+  interval: PlanBillingInterval
+): string {
+  return formatMoneyUsd(getPlatformPlanBillingQuote(plan, interval, 'USD').total)
 }
