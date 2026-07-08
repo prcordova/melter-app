@@ -11,16 +11,17 @@ function formatPlanLabel(plan: string): string {
 
 interface PlanLockerProps {
   children: React.ReactNode;
-  requiredPlan: 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
-  currentPlan?: 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
+  requiredPlan: 'FREE' | 'LITE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
+  currentPlan?: 'FREE' | 'LITE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
   isAdmin?: boolean;
 }
 
 const planValues = {
   FREE: 0,
-  STARTER: 1,
-  PRO: 2,
-  PRO_PLUS: 3,
+  LITE: 1,
+  STARTER: 2,
+  PRO: 3,
+  PRO_PLUS: 4,
 };
 
 export function PlanLocker({ children, requiredPlan, currentPlan = 'FREE', isAdmin = false }: PlanLockerProps) {

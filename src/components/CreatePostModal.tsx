@@ -24,6 +24,7 @@ import { postsApi, linksApi } from '../services/api';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { showToast } from './CustomToast';
 import { PlanLocker } from './PlanLocker';
+import { hasFeatureAccess } from '../config/plan-features';
 import { CustomModal } from './CustomModal';
 
 interface CreatePostModalProps {
@@ -82,10 +83,9 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
   const [showVisibilityPicker, setShowVisibilityPicker] = useState(false);
   const [showLinkPicker, setShowLinkPicker] = useState(false);
 
-  const isPro = user?.plan?.type === 'PRO' || user?.plan?.type === 'PRO_PLUS';
-  const isStarter = user?.plan?.type === 'STARTER';
-  const canUploadImage = isStarter || isPro;
-  const canPostWithoutLink = isStarter || isPro;
+  const userPlan = (user?.plan?.type || 'FREE') as import('../config/plan-features').PlanType;
+  const canUploadImage = hasFeatureAccess(userPlan, 'canUploadPostImages');
+  const canPostWithoutLink = hasFeatureAccess(userPlan, 'canPostWithoutLink');
   const isEditing = !!editingPost;
   const selectedLink = myLinks.find((link) => link._id === selectedLinkId) ?? null;
   const showLinkMenuEmptyState = !canPostWithoutLink && myLinks.length === 0;
@@ -149,7 +149,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
     if (!canUploadImage) {
       Alert.alert(
         'Upgrade Necessário',
-        'Apenas usuários STARTER ou superior podem fazer upload de imagens. Faça upgrade do seu plano!'
+        'Apenas usuários PRO ou superior podem enviar imagens em posts.'
       );
       return;
     }
@@ -366,7 +366,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
             <TextInput
               style={styles.textarea}
               placeholder={
-                isPro
+                canUploadImage
                   ? 'No que você está pensando?'
                   : 'Compartilhe algo...'
               }
@@ -484,8 +484,8 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
             <View style={[styles.sectionThird, isEditing && styles.sectionHalf]}>
               <Text style={styles.sectionTitle}>Imagem</Text>
               <PlanLocker
-                requiredPlan="STARTER"
-                currentPlan={user?.plan?.type as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS' || 'FREE'}
+                requiredPlan="PRO"
+                currentPlan={user?.plan?.type as 'FREE' | 'LITE' | 'STARTER' | 'PRO' | 'PRO_PLUS' || 'FREE'}
               >
                 <TouchableOpacity
                   style={styles.uploadButton}

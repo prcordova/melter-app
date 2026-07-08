@@ -1,4 +1,4 @@
-export type PlanType = 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
+export type PlanType = 'FREE' | 'LITE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
 
 /**
  * Configuração centralizada de features por plano
@@ -19,6 +19,7 @@ export interface PlanLimits {
   canChangeBackgroundMode: boolean  // full vs top
   canToggleBackgroundOverlay: boolean
   canCustomizeColors: boolean  // textColor, cardColor, cardTextColor
+  canCustomizeTextColor: boolean
   canCustomizeLikesColor: boolean
   canCustomizeButtonColors: boolean  // buttonBackgroundColor, buttonTextColor
   /** Gradiente / glow no nome (@user) no feed, perfil e explorer — apenas PRO e PRO+ */
@@ -70,15 +71,16 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadProductImages: false,
     canEnableShop: true,
     maxFileSizePerFile: 300,
-    maxTotalFileSize: 500,
+    maxTotalFileSize: 400,
     
     // Perfil - Aparência (identidade básica no FREE; modos avançados de fundo no PRO)
-    canUploadBackgroundImage: true,
+    canUploadBackgroundImage: false,
     canChangeBackgroundMode: false,
     canToggleBackgroundOverlay: false,
-    canCustomizeColors: true,
-    canCustomizeLikesColor: true,
-    canCustomizeButtonColors: true,
+    canCustomizeColors: false,
+    canCustomizeTextColor: false,
+    canCustomizeLikesColor: false,
+    canCustomizeButtonColors: false,
     canCustomizeUsernameDisplayEffect: false,
     canControlFollowListsPrivacy: false,
     canHideIdentityInPostReactions: false,
@@ -90,11 +92,11 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canCustomizeShopTitleDisplayEffect: false,
     
     // Links
-    maxLinks: 3,
+    maxLinks: 1,
     
     // Posts e Conteúdo
-    canUploadPostImages: true,  // Todos podem, mas com limite
-    maxImagesPerPost: 1,
+    canUploadPostImages: false,
+    maxImagesPerPost: 0,
     canPostWithoutLink: false,  // FREE precisa compartilhar um link
     
     // Monetização
@@ -112,6 +114,42 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     // Planos de Assinatura
     maxSubscriptionPlans: 1
   },
+
+  LITE: {
+    maxProducts: 1,
+    canCreateCategories: false,
+    canUploadProductImages: false,
+    canEnableShop: true,
+    maxFileSizePerFile: 300,
+    maxTotalFileSize: 500,
+    canUploadBackgroundImage: true,
+    canChangeBackgroundMode: false,
+    canToggleBackgroundOverlay: false,
+    canCustomizeColors: false,
+    canCustomizeTextColor: true,
+    canCustomizeLikesColor: false,
+    canCustomizeButtonColors: false,
+    canCustomizeUsernameDisplayEffect: false,
+    canControlFollowListsPrivacy: false,
+    canHideIdentityInPostReactions: false,
+    canHideStoryViewersList: false,
+    canUploadShopBackgroundImage: false,
+    canChangeShopBackgroundMode: false,
+    canToggleShopBackgroundOverlay: false,
+    canCustomizeShopTitleColor: false,
+    canCustomizeShopTitleDisplayEffect: false,
+    maxLinks: 3,
+    canUploadPostImages: false,
+    maxImagesPerPost: 0,
+    canPostWithoutLink: true,
+    canReceiveDonations: false,
+    hasAnalytics: false,
+    hasShopAnalytics: false,
+    hasPrioritySupport: false,
+    hasVerifiedBadge: false,
+    hasTwoFactorAuth: true,
+    maxSubscriptionPlans: 1,
+  },
   
   STARTER: {
     // Produtos e Loja
@@ -127,6 +165,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canChangeBackgroundMode: false,  // Sempre 'full'
     canToggleBackgroundOverlay: false, // Overlay de cor só a partir do PRO; FREE/STARTER ficam com opacidade 0
     canCustomizeColors: true,  // Pode personalizar cores
+    canCustomizeTextColor: true,
     canCustomizeLikesColor: true,
     canCustomizeButtonColors: true,
     canCustomizeUsernameDisplayEffect: false,
@@ -143,8 +182,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxLinks: 5,
     
     // Posts e Conteúdo
-    canUploadPostImages: true,
-    maxImagesPerPost: 2,
+    canUploadPostImages: false,
+    maxImagesPerPost: 0,
     canPostWithoutLink: true,  // STARTER pode postar sem link ✅
     
     // Monetização
@@ -177,6 +216,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canChangeBackgroundMode: true,  // Pode escolher full ou top
     canToggleBackgroundOverlay: true,  // Pode ligar/desligar
     canCustomizeColors: true,  // Pode personalizar cores
+    canCustomizeTextColor: true,
     canCustomizeLikesColor: true,
     canCustomizeButtonColors: true,
     canCustomizeUsernameDisplayEffect: true,
@@ -194,8 +234,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     
     // Posts e Conteúdo
     canUploadPostImages: true,
-    maxImagesPerPost: 5,
-    canPostWithoutLink: true,  // PRO pode postar sem link ✅
+    maxImagesPerPost: 1,
+    canPostWithoutLink: true,
     
     // Monetização
     canReceiveDonations: true,  // PRO pode receber doações
@@ -227,6 +267,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canChangeBackgroundMode: true,
     canToggleBackgroundOverlay: true,
     canCustomizeColors: true,
+    canCustomizeTextColor: true,
     canCustomizeLikesColor: true,
     canCustomizeButtonColors: true,
     canCustomizeUsernameDisplayEffect: true,
@@ -244,8 +285,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     
     // Posts e Conteúdo
     canUploadPostImages: true,
-    maxImagesPerPost: 20, // carrossel no feed (quando multi-imagem estiver ativo)
-    canPostWithoutLink: true,  // PRO_PLUS pode postar sem link ✅
+    maxImagesPerPost: 1,
+    canPostWithoutLink: true,
     
     // Monetização
     canReceiveDonations: true,
