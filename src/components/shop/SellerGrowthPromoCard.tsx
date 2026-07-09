@@ -2,11 +2,11 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
+import { ShopShareButton } from './ShopShareButton';
 import {
   getSellerGrowthPromoContent,
   getSellerShopApprovedContent,
   isSellerVerificationApproved,
-  shouldShowSellerGrowthPromo,
   type SellerGrowthPromoContent,
   type SellerGrowthPromoCta,
   type SellerGrowthPromoPlacement,
@@ -27,6 +27,7 @@ type Props = {
   variant?: SellerGrowthPromoVariant;
   placement?: SellerGrowthPromoPlacement;
   sellerStatus: SellerVerificationStatusValue;
+  username?: string;
   onAction: (action: SellerGrowthPromoNavigateAction) => void;
 };
 
@@ -55,16 +56,53 @@ function PromoCtaButton({
   );
 }
 
+function PromoCtaRow({
+  cta,
+  variant,
+  placement,
+  isApprovedShop,
+  username,
+  onAction,
+}: {
+  cta: SellerGrowthPromoCta;
+  variant: 'primary' | 'outline';
+  placement: SellerGrowthPromoPlacement;
+  isApprovedShop: boolean;
+  username?: string;
+  onAction: (action: SellerGrowthPromoNavigateAction) => void;
+}) {
+  if (cta.action === 'share_shop' && username) {
+    return (
+      <ShopShareButton
+        username={username}
+        label={cta.label}
+        size="sm"
+        variant={variant === 'primary' ? 'primary' : 'outline'}
+      />
+    );
+  }
+
+  return (
+    <PromoCtaButton
+      cta={cta}
+      variant={variant}
+      onPress={() => resolvePress(cta.action, isApprovedShop, placement, onAction)}
+    />
+  );
+}
+
 function PromoActions({
   content,
   onAction,
   placement,
   isApprovedShop,
+  username,
 }: {
   content: SellerGrowthPromoContent;
   onAction: (action: SellerGrowthPromoNavigateAction) => void;
   placement: SellerGrowthPromoPlacement;
   isApprovedShop: boolean;
+  username?: string;
 }) {
   const ctas: Array<{ cta: SellerGrowthPromoCta; variant: 'primary' | 'outline' }> = [];
   if (content.primaryCta) ctas.push({ cta: content.primaryCta, variant: 'primary' });
@@ -73,29 +111,17 @@ function PromoActions({
 
   if (ctas.length === 0) return null;
 
-  const resolvePress = (
-    action: SellerGrowthPromoCta['action'],
-    isApprovedShop: boolean
-  ) => {
-    if (action === 'shop' && placement === 'shop' && !isApprovedShop) {
-      onAction('openVerificationForm');
-      return;
-    }
-    if (action === 'share_shop') {
-      onAction('share_shop');
-      return;
-    }
-    onAction(action);
-  };
-
   return (
     <View style={styles.actions}>
       {ctas.map(({ cta, variant }) => (
-        <PromoCtaButton
+        <PromoCtaRow
           key={`${cta.action}-${cta.label}`}
           cta={cta}
           variant={variant}
-          onPress={() => resolvePress(cta.action, isApprovedShop)}
+          placement={placement}
+          isApprovedShop={isApprovedShop}
+          username={username}
+          onAction={onAction}
         />
       ))}
     </View>
@@ -106,10 +132,10 @@ export function SellerGrowthPromoCard({
   variant = 'large',
   placement = 'shop',
   sellerStatus,
+  username,
   onAction,
 }: Props) {
   const isApprovedShop = isSellerVerificationApproved(sellerStatus);
-  const showGrowthPromo = shouldShowSellerGrowthPromo(sellerStatus);
 
   const content = useMemo(() => {
     if (isApprovedShop) {
@@ -128,17 +154,18 @@ export function SellerGrowthPromoCard({
     isApprovedShop &&
     variant === 'small' &&
     placement === 'marketplace' &&
-    content.primaryCta
+    content.primaryCta?.action === 'share_shop' &&
+    username
   ) {
     return (
-      <TouchableOpacity
-        style={[styles.cta, styles.ctaPrimary, styles.inlineCta]}
-        onPress={() => resolvePress(content.primaryCta!.action, true, placement, onAction)}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="storefront-outline" size={18} color="#fff" />
-        <Text style={styles.ctaText}>{content.primaryCta.label}</Text>
-      </TouchableOpacity>
+      <View style={styles.inlineCtaWrap}>
+        <ShopShareButton
+          username={username}
+          label={content.primaryCta.label}
+          size="sm"
+          variant="primary"
+        />
+      </View>
     );
   }
 
@@ -179,6 +206,7 @@ export function SellerGrowthPromoCard({
         onAction={onAction}
         placement={placement}
         isApprovedShop={isApprovedShop}
+        username={username}
       />
     </View>
   );
@@ -215,11 +243,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border.medium,
     backgroundColor: COLORS.background.tertiary,
   },
-  inlineCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+  inlineCtaWrap: {
     alignSelf: 'flex-end',
     marginBottom: 16,
   },

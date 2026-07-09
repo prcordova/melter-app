@@ -34,6 +34,7 @@ import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 import { getImageUrl } from '../utils/image';
 import { UsernameGradientText } from '../components/UsernameGradientText';
 import { normalizeUsernameDisplayEffect } from '../types/username-display-effect';
+import { CustomCheckpoints } from '../components/seller-journey/CustomCheckpoints';
 
 export function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -707,6 +708,10 @@ export function ProfileScreen() {
               </View>
             </>
           )}
+        </View>
+
+        <View style={{ paddingHorizontal: 16, marginBottom: 4 }}>
+          <CustomCheckpoints variant="minimized" />
         </View>
 
         {/* Links do Usuário */}

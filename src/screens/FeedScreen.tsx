@@ -30,6 +30,7 @@ import {
 import { normalizeReactionsCount, applyOptimisticReaction } from '../utils/post-reactions';
 import { showToast } from '../components/CustomToast';
 import { DevScreenErrorBoundary } from '../components/DevScreenErrorBoundary';
+import { CustomCheckpoints } from '../components/seller-journey/CustomCheckpoints';
 
 export function FeedScreen() {
   const { user, refreshUser } = useAuth();
@@ -464,6 +465,7 @@ export function FeedScreen() {
             Criar Post
           </Button>
         </View>
+        <CustomCheckpoints variant="minimized" />
       </View>
     ),
     [storiesGroups, handleStoryClick, handleCreateStory]

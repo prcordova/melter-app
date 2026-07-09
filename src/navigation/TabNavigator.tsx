@@ -15,6 +15,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useUnreadMessages } from '../contexts/UnreadMessagesContext';
 import { useDiscoveryPreference } from '../contexts/DiscoveryPreferenceContext';
 import { TermsGuard } from '../components/TermsGuard';
+import { SellerJourneyFabOverlay } from '../components/seller-journey/SellerJourneyFabOverlay';
 import type { DiscoveryViewMode } from '../utils/explorer-discovery-personalization';
 
 const Tab = createBottomTabNavigator();
@@ -58,7 +59,7 @@ export function TabNavigator() {
   }, [preference.modeButtonOrder]);
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <Tab.Navigator
       screenOptions={{
         headerShown: false,
@@ -166,8 +167,9 @@ export function TabNavigator() {
         }}
       />
     </Tab.Navigator>
+    <SellerJourneyFabOverlay />
     <TermsGuard />
-    </>
+    </View>
   );
 }
 

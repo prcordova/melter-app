@@ -31,6 +31,7 @@ import {
   pickVerificationFormSeed,
 } from '../utils/seller/verification-fields';
 import { SellerGrowthPromoCard } from '../components/shop/SellerGrowthPromoCard';
+import { CustomCheckpoints } from '../components/seller-journey/CustomCheckpoints';
 import type { SellerGrowthPromoNavigateAction } from '../components/shop/SellerGrowthPromoCard';
 import { ProductCreationWizard } from '../components/shop/ProductCreationWizard';
 import { ShopCard } from '../components/ShopCard';
@@ -122,6 +123,7 @@ interface RouteParams {
   tab?: string;
   openProduct?: string;
   openPlan?: string;
+  openCreateProduct?: boolean;
 }
 
 export function MyShopScreen() {
@@ -235,6 +237,12 @@ export function MyShopScreen() {
   useEffect(() => {
     setPlanAutoOpenConsumed(false);
   }, [route.params?.openPlan, username]);
+
+  useEffect(() => {
+    if (!route.params?.openCreateProduct || !isOwner) return;
+    setShowCreateProductModal(true);
+    navigation.setParams({ openCreateProduct: undefined });
+  }, [route.params?.openCreateProduct, isOwner, navigation]);
 
   // Buscar configurações da loja (apenas para dono)
   const fetchShopSettings = async (): Promise<any[]> => {
@@ -856,6 +864,12 @@ export function MyShopScreen() {
           </View>
         )}
 
+        {isOwner ? (
+          <View style={{ paddingHorizontal: 12, paddingTop: 8 }}>
+            <CustomCheckpoints variant="minimized" />
+          </View>
+        ) : null}
+
         {/* Header + banner topo (modo top = fundo nesta faixa) */}
         <View
           style={[
@@ -1088,6 +1102,7 @@ export function MyShopScreen() {
                     variant="small"
                     placement="shop"
                     sellerStatus="approved"
+                    username={username}
                     onAction={handleGrowthPromoAction}
                   />
                 )}

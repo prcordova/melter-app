@@ -20,13 +20,18 @@ export function isSellerVerificationApproved(status: SellerVerificationStatusVal
   return status === 'approved';
 }
 
+export const SELLER_REACH_SHARE_CTA_LABEL = 'Compartilhar link da loja';
+
 export function getSellerShopApprovedContent(
   placement: SellerGrowthPromoPlacement,
   variant: SellerGrowthPromoVariant = 'large'
 ): SellerGrowthPromoContent {
   const compact = variant === 'small';
 
-  const sharePrimary: SellerGrowthPromoCta = { label: 'Copiar link da loja', action: 'share_shop' };
+  const sharePrimary: SellerGrowthPromoCta = {
+    label: SELLER_REACH_SHARE_CTA_LABEL,
+    action: 'share_shop',
+  };
   const manageSecondary: SellerGrowthPromoCta = { label: 'Gerenciar loja', action: 'shop' };
 
   const shareHint =

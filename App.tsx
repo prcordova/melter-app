@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { SellerJourneyProvider } from './src/contexts/SellerJourneyContext';
 import { DiscoveryPreferenceProvider } from './src/contexts/DiscoveryPreferenceContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { UnreadMessagesProvider } from './src/contexts/UnreadMessagesContext';
@@ -81,11 +82,13 @@ export default function App() {
         <AuthProvider>
           <NotificationProvider>
             <UnreadMessagesProvider>
+              <SellerJourneyProvider>
               <NavigationContainer>
                 <Navigation />
                 <StatusBar style="auto" />
                 <CustomToast />
               </NavigationContainer>
+              </SellerJourneyProvider>
             </UnreadMessagesProvider>
           </NotificationProvider>
         </AuthProvider>

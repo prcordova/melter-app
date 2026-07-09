@@ -22,6 +22,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { TouchableOpacity } from 'react-native';
 import { DiscoveryModeTabs } from '../components/DiscoveryModeTabs';
 import { Button } from '../components/Button';
+import { CustomCheckpoints } from '../components/seller-journey/CustomCheckpoints';
 import { SelectRow } from '../components/SelectRow';
 import {
   discoveryModeToTabName,
@@ -377,6 +378,8 @@ export function ShopsSearchScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        <CustomCheckpoints variant="minimized" />
 
         <MarketplacePromotedShopsSlider showAdultContent={showAdultContent} />
 
