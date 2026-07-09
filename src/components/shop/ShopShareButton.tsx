@@ -10,6 +10,7 @@ type ShopShareButtonProps = {
   size?: 'xs' | 'sm' | 'md';
   variant?: 'primary' | 'ghost' | 'outline';
   modalTitle?: string;
+  fullWidth?: boolean;
   onAfterShare?: (channel: ShopShareChannel) => void | Promise<void>;
 };
 
@@ -19,13 +20,19 @@ export function ShopShareButton({
   size = 'xs',
   variant = 'ghost',
   modalTitle,
+  fullWidth = false,
   onAfterShare,
 }: ShopShareButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button variant={variant} size={size} onPress={() => setOpen(true)}>
+      <Button
+        variant={variant}
+        size={size}
+        onPress={() => setOpen(true)}
+        style={fullWidth ? { width: '100%' } : undefined}
+      >
         {label}
       </Button>
       <ShopShareOptionsModal

@@ -73,12 +73,15 @@ function PromoCtaRow({
 }) {
   if (cta.action === 'share_shop' && username) {
     return (
-      <ShopShareButton
-        username={username}
-        label={cta.label}
-        size="sm"
-        variant={variant === 'primary' ? 'primary' : 'outline'}
-      />
+      <View style={styles.shareCtaWrap}>
+        <ShopShareButton
+          username={username}
+          label={cta.label}
+          size="sm"
+          variant={variant === 'primary' ? 'primary' : 'outline'}
+          fullWidth
+        />
+      </View>
     );
   }
 
@@ -111,19 +114,36 @@ function PromoActions({
 
   if (ctas.length === 0) return null;
 
+  const primaryCta = ctas.find((row) => row.variant === 'primary');
+  const secondaryCtas = ctas.filter((row) => row.variant !== 'primary');
+
   return (
     <View style={styles.actions}>
-      {ctas.map(({ cta, variant }) => (
+      {primaryCta ? (
         <PromoCtaRow
-          key={`${cta.action}-${cta.label}`}
-          cta={cta}
-          variant={variant}
+          cta={primaryCta.cta}
+          variant={primaryCta.variant}
           placement={placement}
           isApprovedShop={isApprovedShop}
           username={username}
           onAction={onAction}
         />
-      ))}
+      ) : null}
+      {secondaryCtas.length > 0 ? (
+        <View style={styles.actionsSecondary}>
+          {secondaryCtas.map(({ cta, variant }) => (
+            <PromoCtaRow
+              key={`${cta.action}-${cta.label}`}
+              cta={cta}
+              variant={variant}
+              placement={placement}
+              isApprovedShop={isApprovedShop}
+              username={username}
+              onAction={onAction}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -293,16 +313,26 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'column',
+    alignItems: 'stretch',
     gap: 8,
-    justifyContent: 'flex-end',
+    width: '100%',
+  },
+  actionsSecondary: {
+    flexDirection: 'column',
+    gap: 8,
+    width: '100%',
+  },
+  shareCtaWrap: {
+    width: '100%',
   },
   cta: {
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 8,
+    width: '100%',
     maxWidth: '100%',
+    alignItems: 'center',
   },
   ctaPrimary: {
     backgroundColor: COLORS.secondary.main,
