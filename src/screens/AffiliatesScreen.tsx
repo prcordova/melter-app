@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  Dimensions,
+  Pressable,
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -17,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker'
 import * as Clipboard from 'expo-clipboard'
 import { BackButton } from '../components/BackButton'
 import { PlanLocker } from '../components/PlanLocker'
+import { CustomModal } from '../components/CustomModal'
 import { showToast } from '../components/CustomToast'
 import { COLORS } from '../theme/colors'
 import { useAuth } from '../contexts/AuthContext'
@@ -39,7 +42,7 @@ const PLATFORM_OPTIONS: { value: AffiliatePlatform; label: string }[] = [
 ]
 
 type PlatformForm = AffiliatePlatformPayload & {
-  localPreviewUri?: string
+  screenshotPreviews: Array<{ key: string; uri: string }>
   uploading?: boolean
 }
 
@@ -50,6 +53,7 @@ function emptyPlatform(): PlatformForm {
     followersOrSubscribers: 0,
     monthlyViews: 0,
     screenshotKeys: [],
+    screenshotPreviews: [],
   }
 }
 
@@ -128,6 +132,7 @@ export function AffiliatesScreen() {
   const [month, setMonth] = useState(currentMonthKey())
   const [analytics, setAnalytics] = useState<AffiliateAnalyticsData | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [previewUri, setPreviewUri] = useState<string | null>(null)
 
   const planType = (user?.plan?.type || me?.planType || 'FREE') as
     | 'FREE'
@@ -191,6 +196,12 @@ export function AffiliatesScreen() {
   }
 
   const pickScreenshot = async (index: number) => {
+    const current = platforms[index]
+    if (current && current.screenshotKeys.length >= 5) {
+      showToast.error('Limite', 'Máximo de 5 prints por rede')
+      return
+    }
+
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
       showToast.error('Permissão', 'Libere acesso à galeria para enviar o print')
@@ -206,7 +217,7 @@ export function AffiliatesScreen() {
     const fileType = asset.mimeType || 'image/jpeg'
     const fileSize = asset.fileSize || 500_000
 
-    updatePlatform(index, { uploading: true, localPreviewUri: asset.uri })
+    updatePlatform(index, { uploading: true })
     try {
       const uploadRes = await affiliatesApi.getUploadUrl({ fileName, fileType, fileSize })
       if (!uploadRes.success || !uploadRes.data) {
@@ -220,16 +231,43 @@ export function AffiliatesScreen() {
         body: blob,
       })
       if (!put.ok) throw new Error('Falha ao enviar imagem ao storage')
-      updatePlatform(index, {
-        screenshotKeys: [uploadRes.data.fileKey],
-        uploading: false,
-        localPreviewUri: asset.uri,
-      })
+
+      const fileKey = uploadRes.data.fileKey
+      setPlatforms((prev) =>
+        prev.map((p, i) => {
+          if (i !== index) return p
+          if (p.screenshotKeys.includes(fileKey) || p.screenshotKeys.length >= 5) {
+            return { ...p, uploading: false }
+          }
+          return {
+            ...p,
+            screenshotKeys: [...p.screenshotKeys, fileKey].slice(0, 5),
+            screenshotPreviews: [
+              ...p.screenshotPreviews,
+              { key: fileKey, uri: asset.uri },
+            ].slice(0, 5),
+            uploading: false,
+          }
+        })
+      )
       showToast.success('Print enviado', 'Imagem anexada à rede')
     } catch (e) {
       updatePlatform(index, { uploading: false })
       showToast.error('Upload', e instanceof Error ? e.message : 'Erro no upload')
     }
+  }
+
+  const removeScreenshot = (platformIndex: number, shotIndex: number) => {
+    setPlatforms((prev) =>
+      prev.map((p, i) => {
+        if (i !== platformIndex) return p
+        return {
+          ...p,
+          screenshotKeys: p.screenshotKeys.filter((_, idx) => idx !== shotIndex),
+          screenshotPreviews: p.screenshotPreviews.filter((_, idx) => idx !== shotIndex),
+        }
+      })
+    )
   }
 
   const handleSubmit = async () => {
@@ -512,21 +550,51 @@ export function AffiliatesScreen() {
                       />
 
                       <TouchableOpacity
-                        style={styles.uploadBtn}
+                        style={[
+                          styles.uploadBtn,
+                          p.screenshotKeys.length >= 5 && styles.submitDisabled,
+                        ]}
                         onPress={() => void pickScreenshot(index)}
-                        disabled={p.uploading}
+                        disabled={p.uploading || p.screenshotKeys.length >= 5}
                       >
                         {p.uploading ? (
                           <ActivityIndicator color="#fff" />
                         ) : (
                           <Text style={styles.uploadBtnText}>
-                            {p.screenshotKeys.length ? 'Trocar print' : 'Enviar print'} (
-                            {p.screenshotKeys.length}/5)
+                            Enviar print ({p.screenshotKeys.length}/5)
                           </Text>
                         )}
                       </TouchableOpacity>
-                      {p.localPreviewUri ? (
-                        <Image source={{ uri: p.localPreviewUri }} style={styles.preview} />
+
+                      {p.screenshotPreviews.length > 0 ? (
+                        <View style={styles.previewStrip}>
+                          <Text style={styles.previewHint}>
+                            Prints ({p.screenshotPreviews.length}/5) — toque para ampliar
+                          </Text>
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.previewRow}
+                          >
+                            {p.screenshotPreviews.map((shot, shotIndex) => (
+                              <View key={`${shot.key}-${shotIndex}`} style={styles.previewThumbWrap}>
+                                <TouchableOpacity
+                                  activeOpacity={0.85}
+                                  onPress={() => setPreviewUri(shot.uri)}
+                                >
+                                  <Image source={{ uri: shot.uri }} style={styles.previewThumb} />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.previewRemove}
+                                  onPress={() => removeScreenshot(index, shotIndex)}
+                                  hitSlop={8}
+                                >
+                                  <Ionicons name="trash-outline" size={14} color="#fff" />
+                                </TouchableOpacity>
+                              </View>
+                            ))}
+                          </ScrollView>
+                        </View>
                       ) : null}
                     </View>
                   ))}
@@ -557,6 +625,31 @@ export function AffiliatesScreen() {
           </>
         )}
       </ScrollView>
+
+      <CustomModal
+        visible={Boolean(previewUri)}
+        onClose={() => setPreviewUri(null)}
+        closeOnBackdropPress
+        animationType="fade"
+        overlayStyle={styles.fullscreenOverlay}
+      >
+        <Pressable style={styles.fullscreenContent} onPress={(e) => e.stopPropagation()}>
+          <TouchableOpacity
+            style={styles.fullscreenClose}
+            onPress={() => setPreviewUri(null)}
+            hitSlop={12}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          {previewUri ? (
+            <Image
+              source={{ uri: previewUri }}
+              style={styles.fullscreenImage}
+              resizeMode="contain"
+            />
+          ) : null}
+        </Pressable>
+      </CustomModal>
     </View>
   )
 }
@@ -753,7 +846,62 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   uploadBtnText: { color: '#fff', fontWeight: '700' },
-  preview: { width: '100%', height: 140, borderRadius: 8, marginTop: 8 },
+  previewStrip: { marginTop: 12 },
+  previewHint: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  previewRow: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  previewThumbWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 10,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: COLORS.background.tertiary,
+  },
+  previewThumb: { width: '100%', height: '100%' },
+  previewRemove: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenOverlay: {
+    backgroundColor: 'rgba(0,0,0,0.94)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenContent: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenClose: {
+    position: 'absolute',
+    top: 48,
+    right: 20,
+    zIndex: 2,
+    padding: 8,
+  },
+  fullscreenImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height * 0.85,
+  },
   submitBtn: {
     marginTop: 16,
     backgroundColor: COLORS.secondary.main,
