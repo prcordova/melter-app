@@ -369,6 +369,8 @@ export function ProfileScreen() {
       (navigation as any).navigate('PromotionsSettings');
     } else if (screen === 'referral') {
       (navigation as any).navigate('Referral');
+    } else if (screen === 'affiliates') {
+      (navigation as any).navigate('Affiliates');
     } else if (screen === 'supportTickets') {
       (navigation as any).navigate('SupportTickets');
     } else {
@@ -404,6 +406,7 @@ export function ProfileScreen() {
     { id: 'profile', title: 'Ver Perfil', icon: 'person-outline', onPress: () => handleMenuPress('profile') },
     { id: 'shop', title: 'Minha Loja', icon: 'storefront-outline', onPress: () => handleMenuPress('shop') },
     { id: 'purchases', title: 'Compras', icon: 'bag-handle-outline', onPress: () => handleMenuPress('purchases') },
+    { id: 'affiliates', title: 'Afiliados', icon: 'people-outline', onPress: () => handleMenuPress('affiliates') },
     { id: 'wallet', title: 'Carteira', icon: 'wallet-outline', onPress: () => handleMenuPress('wallet'), badgeCount: 0 },
     { id: 'promotions', title: 'Promoções', icon: 'gift-outline', onPress: () => handleMenuPress('promotions') },
     { id: 'referral', title: 'Indique e Ganhe', icon: 'megaphone-outline', onPress: () => handleMenuPress('referral') },

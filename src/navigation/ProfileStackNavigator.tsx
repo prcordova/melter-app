@@ -17,6 +17,7 @@ import { SecurityScreen } from '../screens/settings/SecurityScreen';
 import { PrivacyScreen } from '../screens/settings/PrivacyScreen';
 import { PreferencesScreen } from '../screens/settings/PreferencesScreen';
 import { ReferralScreen } from '../screens/ReferralScreen';
+import { AffiliatesScreen } from '../screens/AffiliatesScreen';
 import { AccountVerificationScreen } from '../screens/AccountVerificationScreen';
 import { SupportTicketsScreen } from '../screens/SupportTicketsScreen';
 
@@ -69,6 +70,13 @@ export function ProfileStackNavigator() {
       <Stack.Screen 
         name="Referral" 
         component={ReferralScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="Affiliates"
+        component={AffiliatesScreen}
         options={{
           headerShown: false,
         }}

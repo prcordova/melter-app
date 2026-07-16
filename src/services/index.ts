@@ -22,4 +22,5 @@ export { shopCommunityApi } from './shop-community';
 export { supportTicketsApi } from './support-tickets';
 export type { SupportTicket } from './support-tickets';
 export { referralsApi } from './referrals';
+export { affiliatesApi } from './affiliates';
 export { sellerJourneyApi } from './seller-journey';
