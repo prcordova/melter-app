@@ -42,6 +42,14 @@ export const affiliatesApi = {
     return response.data
   },
 
+  deleteScreenshot: async (fileKey: string) => {
+    const qs = new URLSearchParams({ fileKey })
+    const response = await api.delete<ApiResponse<null>>(
+      `${AFFILIATES_API.upload}?${qs.toString()}`
+    )
+    return response.data
+  },
+
   getAnalytics: async (params?: {
     period?: AffiliateAnalyticsPeriod
     month?: string

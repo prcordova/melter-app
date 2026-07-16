@@ -11,6 +11,7 @@ export type AffiliatePlatform =
 export type AffiliatePlatformPayload = {
   platform: AffiliatePlatform
   handleOrUrl: string
+  contentCategory: string
   followersOrSubscribers: number
   monthlyViews: number
   screenshotKeys: string[]

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -31,6 +31,11 @@ import type {
   AffiliatePlatform,
   AffiliatePlatformPayload,
 } from '../services/affiliates'
+import {
+  AFFILIATE_CONTENT_CATEGORY_LABELS,
+  AFFILIATE_CONTENT_CATEGORY_VALUES,
+  type AffiliateContentCategory,
+} from '../constants/affiliate-content-categories'
 
 const PLATFORM_OPTIONS: { value: AffiliatePlatform; label: string }[] = [
   { value: 'instagram', label: 'Instagram' },
@@ -42,6 +47,7 @@ const PLATFORM_OPTIONS: { value: AffiliatePlatform; label: string }[] = [
 ]
 
 type PlatformForm = AffiliatePlatformPayload & {
+  contentCategory: AffiliateContentCategory | ''
   screenshotPreviews: Array<{ key: string; uri: string }>
   uploading?: boolean
 }
@@ -50,6 +56,7 @@ function emptyPlatform(): PlatformForm {
   return {
     platform: 'instagram',
     handleOrUrl: '',
+    contentCategory: '',
     followersOrSubscribers: 0,
     monthlyViews: 0,
     screenshotKeys: [],
@@ -133,6 +140,23 @@ export function AffiliatesScreen() {
   const [analytics, setAnalytics] = useState<AffiliateAnalyticsData | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [previewUri, setPreviewUri] = useState<string | null>(null)
+  const platformsRef = useRef(platforms)
+  const submittedRef = useRef(false)
+
+  useEffect(() => {
+    platformsRef.current = platforms
+  }, [platforms])
+
+  useEffect(() => {
+    return () => {
+      if (submittedRef.current) return
+      const keys = platformsRef.current.flatMap((p) => p.screenshotKeys)
+      keys.forEach((fileKey) => {
+        void affiliatesApi.deleteScreenshot(fileKey).catch(() => {})
+      })
+    }
+  }, [])
+
 
   const planType = (user?.plan?.type || me?.planType || 'FREE') as
     | 'FREE'
@@ -258,9 +282,11 @@ export function AffiliatesScreen() {
   }
 
   const removeScreenshot = (platformIndex: number, shotIndex: number) => {
+    let removedKey: string | undefined
     setPlatforms((prev) =>
       prev.map((p, i) => {
         if (i !== platformIndex) return p
+        removedKey = p.screenshotKeys[shotIndex]
         return {
           ...p,
           screenshotKeys: p.screenshotKeys.filter((_, idx) => idx !== shotIndex),
@@ -268,6 +294,11 @@ export function AffiliatesScreen() {
         }
       })
     )
+    if (removedKey) {
+      void affiliatesApi.deleteScreenshot(removedKey).catch(() => {
+        /* best-effort */
+      })
+    }
   }
 
   const handleSubmit = async () => {
@@ -278,6 +309,10 @@ export function AffiliatesScreen() {
     for (const [i, p] of platforms.entries()) {
       if (!p.handleOrUrl.trim()) {
         showToast.error('Validação', `Rede ${i + 1}: informe URL ou @handle`)
+        return
+      }
+      if (!p.contentCategory) {
+        showToast.error('Validação', `Rede ${i + 1}: selecione a categoria de conteúdo`)
         return
       }
       if (p.followersOrSubscribers < 1 || p.monthlyViews < 1) {
@@ -297,12 +332,14 @@ export function AffiliatesScreen() {
         platforms: platforms.map((p) => ({
           platform: p.platform,
           handleOrUrl: p.handleOrUrl.trim(),
+          contentCategory: p.contentCategory,
           followersOrSubscribers: p.followersOrSubscribers,
           monthlyViews: p.monthlyViews,
           screenshotKeys: p.screenshotKeys,
         })),
       })
       if (!res.success) throw new Error(res.message || 'Falha ao enviar')
+      submittedRef.current = true
       showToast.success('Enviado', 'Solicitação em análise')
       await loadMe()
     } catch (e) {
@@ -490,9 +527,17 @@ export function AffiliatesScreen() {
                         <Text style={styles.platformTitle}>Rede {index + 1}</Text>
                         {platforms.length > 1 ? (
                           <TouchableOpacity
-                            onPress={() =>
-                              setPlatforms((prev) => prev.filter((_, i) => i !== index))
-                            }
+                            onPress={() => {
+                              setPlatforms((prev) => {
+                                const removed = prev[index]
+                                if (removed?.screenshotKeys?.length) {
+                                  removed.screenshotKeys.forEach((fileKey) => {
+                                    void affiliatesApi.deleteScreenshot(fileKey).catch(() => {})
+                                  })
+                                }
+                                return prev.filter((_, i) => i !== index)
+                              })
+                            }}
                           >
                             <Ionicons name="trash-outline" size={20} color={COLORS.states.error} />
                           </TouchableOpacity>
@@ -524,6 +569,33 @@ export function AffiliatesScreen() {
                         placeholderTextColor={COLORS.text.tertiary}
                         autoCapitalize="none"
                       />
+
+                      <Text style={styles.fieldLabel}>Categoria de conteúdo</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {AFFILIATE_CONTENT_CATEGORY_VALUES.map((value) => (
+                          <TouchableOpacity
+                            key={value}
+                            style={[
+                              styles.platformChip,
+                              p.contentCategory === value && styles.platformChipActive,
+                            ]}
+                            onPress={() =>
+                              updatePlatform(index, {
+                                contentCategory: value as AffiliateContentCategory,
+                              })
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.platformChipText,
+                                p.contentCategory === value && { color: '#fff' },
+                              ]}
+                            >
+                              {AFFILIATE_CONTENT_CATEGORY_LABELS[value]}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
 
                       <Text style={styles.fieldLabel}>Seguidores / alcance</Text>
                       <TextInput
