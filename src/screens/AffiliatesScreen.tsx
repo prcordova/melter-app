@@ -369,9 +369,12 @@ export function AffiliatesScreen() {
       </View>
 
       <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        keyboardDismissMode="on-drag"
       >
         <Text style={styles.lead}>
           Divulgue a Melter com cupom exclusivo. Comissão na carteira em compras elegíveis (produto,
@@ -454,7 +457,12 @@ export function AffiliatesScreen() {
                   </TouchableOpacity>
                 </View>
                 {period === 'month' ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    nestedScrollEnabled
+                    style={{ marginBottom: 12 }}
+                  >
                     {monthOptions.map((m) => (
                       <TouchableOpacity
                         key={m}
@@ -545,7 +553,7 @@ export function AffiliatesScreen() {
                       </View>
 
                       <Text style={styles.fieldLabel}>Plataforma</Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled>
                         {PLATFORM_OPTIONS.map((o) => (
                           <TouchableOpacity
                             key={o.value}
@@ -571,7 +579,7 @@ export function AffiliatesScreen() {
                       />
 
                       <Text style={styles.fieldLabel}>Categoria de conteúdo</Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled>
                         {AFFILIATE_CONTENT_CATEGORY_VALUES.map((value) => (
                           <TouchableOpacity
                             key={value}
@@ -646,6 +654,7 @@ export function AffiliatesScreen() {
                           <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
+                            nestedScrollEnabled
                             contentContainerStyle={styles.previewRow}
                           >
                             {p.screenshotPreviews.map((shot, shotIndex) => (
@@ -741,7 +750,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
   },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16, paddingBottom: 64, flexGrow: 1 },
   lead: { color: COLORS.text.secondary, marginBottom: 12, lineHeight: 20 },
   infoBox: {
     backgroundColor: '#e0f2fe',
