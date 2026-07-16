@@ -28,3 +28,13 @@ export const SHOP_API = {
   subscriptionPlans: (username: string) =>
     `/api/subscription-plans/shop/${encodeURIComponent(username)}`,
 } as const
+
+/** Vídeo de apresentação do pacote — sync com melter web */
+export const PRESENTATION_VIDEO_API = {
+  upload: '/api/products/upload/presentation-video',
+  product: (productId: string) =>
+    `/api/products/${encodeURIComponent(productId)}/presentation-video`,
+  adminList: '/api/admin/marketplace/presentation-videos',
+  adminItem: (productId: string) =>
+    `/api/admin/marketplace/presentation-videos/${encodeURIComponent(productId)}`,
+} as const

@@ -10,6 +10,7 @@ export interface PlanLimits {
   maxProducts: number
   canCreateCategories: boolean
   canUploadProductImages: boolean
+  canUploadPresentationVideo: boolean
   canEnableShop: boolean
   maxFileSizePerFile: number // MB
   maxTotalFileSize: number // MB por produto
@@ -69,6 +70,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxProducts: 1,
     canCreateCategories: false,
     canUploadProductImages: false,
+    canUploadPresentationVideo: false,
     canEnableShop: true,
     maxFileSizePerFile: 300,
     maxTotalFileSize: 400,
@@ -119,6 +121,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxProducts: 1,
     canCreateCategories: false,
     canUploadProductImages: false,
+    canUploadPresentationVideo: false,
     canEnableShop: true,
     maxFileSizePerFile: 300,
     maxTotalFileSize: 500,
@@ -156,6 +159,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxProducts: 3,
     canCreateCategories: false,
     canUploadProductImages: true,
+    canUploadPresentationVideo: false,
     canEnableShop: true,
     maxFileSizePerFile: 500,
     maxTotalFileSize: 800,
@@ -207,6 +211,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxProducts: 10,
     canCreateCategories: false,  // Feature removida - categorias personalizadas não disponíveis
     canUploadProductImages: true,
+    canUploadPresentationVideo: true,
     canEnableShop: true,
     maxFileSizePerFile: 1000, // 1 GB por arquivo
     maxTotalFileSize: 3000, // 3 GB total por produto
@@ -258,6 +263,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxProducts: 20,
     canCreateCategories: true,  // PRO_PLUS pode criar categorias personalizadas
     canUploadProductImages: true,
+    canUploadPresentationVideo: true,
     canEnableShop: true,
     maxFileSizePerFile: 2000, // 2 GB por arquivo
     maxTotalFileSize: 5000, // 5 GB total por produto

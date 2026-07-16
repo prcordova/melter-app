@@ -386,6 +386,7 @@ export function ProductCreationWizard({
           <DetailsStep
             formData={formData}
             setFormData={setFormData}
+            productId={product?._id ? String(product._id) : null}
             lockPaymentAndPlan={Boolean(product?._id)}
             lockCategory={product?.status === 'APPROVED'}
             productCoverAvatarFallbackEnabled={productCoverAvatarFallbackEnabled}

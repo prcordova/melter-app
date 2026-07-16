@@ -23,6 +23,7 @@ import { API_CONFIG } from '../../../config/api.config';
 import axios from 'axios';
 import { PlanLocker } from '../../PlanLocker';
 import { FIXED_CATEGORIES } from '../../../constants/categories';
+import { PresentationVideoSellerPanel } from '../PresentationVideoSellerPanel';
 
 interface DetailsStepProps {
   formData: any;
@@ -32,6 +33,7 @@ interface DetailsStepProps {
   /** Produto aprovado: categoria fixa (alinhado ao backend). */
   lockCategory?: boolean;
   productCoverAvatarFallbackEnabled?: boolean;
+  productId?: string | null;
 }
 
 export function DetailsStep({
@@ -40,6 +42,7 @@ export function DetailsStep({
   lockPaymentAndPlan = false,
   lockCategory = false,
   productCoverAvatarFallbackEnabled = true,
+  productId = null,
 }: DetailsStepProps) {
   const { user } = useAuth();
   const [categories, setCategories] = useState<Array<{ _id: string; name: string }>>([]);
@@ -328,44 +331,67 @@ export function DetailsStep({
         <View style={styles.coverBlock}>
           <Text style={styles.label}>Capa (opcional)</Text>
           <Text style={styles.coverHint}>Visível na vitrine. O conteúdo do pacote é privado.</Text>
-          <View style={styles.coverRow}>
-            <Image source={coverPreviewSource} style={styles.coverThumb} resizeMode="cover" />
-            <View style={styles.coverActions}>
-              <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
-                <TouchableOpacity
-                  style={styles.imageUploadButton}
-                  onPress={handleImageUpload}
-                  disabled={uploadingImage}
-                  activeOpacity={0.7}
-                >
-                  {uploadingImage ? (
-                    <ActivityIndicator size="small" color={COLORS.secondary.main} />
-                  ) : (
-                    <>
-                      <Ionicons name="cloud-upload-outline" size={16} color={COLORS.text.secondary} />
-                      <Text style={styles.imageUploadText}>
-                        {safeFormData.coverImage ? 'Trocar capa' : 'Enviar capa'}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </PlanLocker>
-              {safeFormData.coverImage ? (
-                <TouchableOpacity
-                  onPress={() => {
-                    try {
-                      setFormData((prev: any) => ({ ...prev, coverImage: null }));
-                    } catch (error) {
-                      console.error('[DetailsStep] Erro ao remover imagem:', error);
-                    }
-                  }}
-                >
-                  <Text style={styles.coverRemoveText}>Remover</Text>
-                </TouchableOpacity>
-              ) : null}
-              <Text style={styles.helperText}>JPG, PNG ou GIF · máx. 5 MB</Text>
-            </View>
-          </View>
+          <PresentationVideoSellerPanel
+            besideCover
+            productId={productId}
+            value={safeFormData.presentationVideo}
+            onChange={(next) =>
+              setFormData((prev: any) => ({ ...prev, presentationVideo: next }))
+            }
+          >
+            {({ actions: videoActions, meta: videoMeta }) => (
+              <>
+                <View style={styles.coverRow}>
+                  <Image source={coverPreviewSource} style={styles.coverThumb} resizeMode="cover" />
+                  <View style={styles.coverActions}>
+                    <View style={styles.coverButtonsRow}>
+                      <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
+                        <TouchableOpacity
+                          style={styles.imageUploadButton}
+                          onPress={handleImageUpload}
+                          disabled={uploadingImage}
+                          activeOpacity={0.7}
+                        >
+                          {uploadingImage ? (
+                            <ActivityIndicator size="small" color={COLORS.secondary.main} />
+                          ) : (
+                            <>
+                              <Ionicons
+                                name="cloud-upload-outline"
+                                size={16}
+                                color={COLORS.text.secondary}
+                              />
+                              <Text style={styles.imageUploadText}>
+                                {safeFormData.coverImage ? 'Trocar capa' : 'Enviar capa'}
+                              </Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      </PlanLocker>
+                      {safeFormData.coverImage ? (
+                        <TouchableOpacity
+                          onPress={() => {
+                            try {
+                              setFormData((prev: any) => ({ ...prev, coverImage: null }));
+                            } catch (error) {
+                              console.error('[DetailsStep] Erro ao remover imagem:', error);
+                            }
+                          }}
+                        >
+                          <Text style={styles.coverRemoveText}>Remover</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                      {videoActions}
+                    </View>
+                    <Text style={styles.helperText}>
+                      Capa: JPG, PNG ou GIF · máx. 5 MB · Vídeo: PRO+ · 5 min / 100 MB
+                    </Text>
+                  </View>
+                </View>
+                {videoMeta}
+              </>
+            )}
+          </PresentationVideoSellerPanel>
         </View>
       </View>
 
@@ -657,6 +683,12 @@ const styles = StyleSheet.create({
   coverActions: {
     flex: 1,
     gap: 6,
+  },
+  coverButtonsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
   },
   coverRemoveText: {
     fontSize: 13,

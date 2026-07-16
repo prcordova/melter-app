@@ -15,6 +15,7 @@ import { resolveProductCoverImageSource } from '../../utils/product-cover-displa
 import { ordersApi } from '../../services/api';
 import { showToast } from '../CustomToast';
 import { getProductAiCheckoutDisclosureMessage } from '../../utils/product-ai-checkout-disclosure';
+import { Video, ResizeMode } from 'expo-av';
 
 export interface CheckoutProduct {
   _id: string;
@@ -22,6 +23,7 @@ export interface CheckoutProduct {
   description?: string;
   price: number;
   coverImage?: string | null;
+  presentationVideoUrl?: string | null;
   paymentMode?: 'UNICO' | 'ASSINATURA';
   subscriptionPlan?: { price?: number } | null;
   isAiContent?: boolean;
@@ -119,6 +121,15 @@ export function ProductCheckoutModal({
               </View>
             </View>
 
+            {product.presentationVideoUrl ? (
+              <Video
+                source={{ uri: product.presentationVideoUrl }}
+                style={styles.presentationVideo}
+                useNativeControls
+                resizeMode={ResizeMode.CONTAIN}
+              />
+            ) : null}
+
             <View style={styles.row}>
               <Text style={styles.label}>Valor</Text>
               <Text style={styles.price}>
@@ -199,6 +210,13 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 8,
     backgroundColor: COLORS.background.tertiary,
+  },
+  presentationVideo: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: '#000',
+    marginBottom: 16,
   },
   productMeta: {
     flex: 1,
