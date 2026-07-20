@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { BackButton } from '../components/BackButton';
 import { COLORS } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,10 +34,19 @@ import {
   type PlanBillingInterval,
 } from '../config/plan-billing';
 import { isEligibleForPlatformPlanTrial } from '../config/platform-plan-trial';
+import { parsePlansSubscribePlan } from '../config/plans/subscribe-intent';
+
+type PlansRouteParams = {
+  Plans?: {
+    subscribe?: string;
+    trial?: boolean;
+  };
+};
 
 export function PlansScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<PlansRouteParams, 'Plans'>>();
   const { user, refreshUser } = useAuth();
   const { modalProps, showConfirm } = useCustomModal();
 
@@ -51,6 +60,7 @@ export function PlansScreen() {
   const [loading, setLoading] = useState(false);
   const [fetchingPlan, setFetchingPlan] = useState(true);
   const [platformTrialEligible, setPlatformTrialEligible] = useState(false);
+  const subscribeIntentConsumedRef = useRef(false);
 
   const checkoutBillingInterval: PlanBillingInterval =
     selectedPaymentGateway === 'MERCADOPAGO' ? billingInterval : 'MONTHLY';
@@ -76,6 +86,17 @@ export function PlansScreen() {
   useEffect(() => {
     fetchUserPlan();
   }, []);
+
+  useEffect(() => {
+    if (fetchingPlan || subscribeIntentConsumedRef.current) return;
+    const plan = parsePlansSubscribePlan(route.params?.subscribe);
+    if (!plan) return;
+
+    subscribeIntentConsumedRef.current = true;
+    const wantTrial = route.params?.trial !== false;
+    void handleSubscribe(plan, { withTrial: wantTrial });
+    navigation.setParams({ subscribe: undefined, trial: undefined } as never);
+  }, [fetchingPlan, route.params?.subscribe, route.params?.trial]);
 
   useEffect(() => {
     if (selectedPaymentGateway === 'STRIPE') {
@@ -133,7 +154,14 @@ export function PlansScreen() {
       return;
     }
 
-    const withTrial = options?.withTrial === true;
+    const withTrial =
+      options?.withTrial === true &&
+      platformTrialEligible &&
+      isEligibleForPlatformPlanTrial({
+        planType: planName,
+        billingInterval: checkoutBillingInterval,
+        platformTrialUsedAt: null,
+      });
 
     // Se o plano está cancelado e o usuário quer renovar o mesmo plano, ir direto para checkout
     if (planStatus === 'CANCELLED' && planName === currentPlan) {

@@ -20,6 +20,7 @@ import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { shopApi, sellerVerificationApi, userApi, productsApi, categoriesApi } from '../services/api';
 import type { ShopPlanGate } from '../services/shop/api';
+import { buildPlansSubscribeNavParams } from '../config/plans/subscribe-intent';
 import { SellerVerificationStatusCard } from '../components/shop/SellerVerificationStatusCard';
 import { AppealModal } from '../components/shop/AppealModal';
 import {
@@ -1627,7 +1628,14 @@ export function MyShopScreen() {
         viewerUsername={username}
         shopPlanGate={shopPlanGate}
         onGoToPlans={() => {
-          navigation.navigate('ProfileStack' as never, { screen: 'Plans' } as never);
+          const params = buildPlansSubscribeNavParams({
+            planType: shopPlanGate?.minPlanToCreateShop || 'STARTER',
+            withTrial: true,
+          });
+          navigation.navigate(
+            'ProfileStack' as never,
+            { screen: 'Plans', params } as never
+          );
         }}
         onGoToProducts={() => {
           setShowVerificationForm(false);

@@ -80,7 +80,7 @@ export function SellerShopPlanRequiredStep({
           </TouchableOpacity>
         ) : null}
         <TouchableOpacity style={styles.primaryBtn} onPress={onGoToPlans} activeOpacity={0.8}>
-          <Text style={styles.primaryText}>Ver planos e assinar</Text>
+          <Text style={styles.primaryText}>Assinar plano grátis</Text>
         </TouchableOpacity>
       </View>
     </View>
