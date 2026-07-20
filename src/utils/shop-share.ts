@@ -33,6 +33,7 @@ export function buildShopShareUrl(username: string, baseUrl?: string): string {
   return `${base}${path}?ref=${ref}`;
 }
 
+/** Código de indicação (uso interno). O link real já inclui ?ref= no share. */
 export function getShopReferralCodeLabel(username: string): string {
   return `?ref=@${username}`;
 }

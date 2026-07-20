@@ -17,7 +17,7 @@ import { SELLER_JOURNEY_STEP_UI_ACTION } from '../../config/seller-journey/types
 import type { SellerJourneyStepStatus } from '../../config/seller-journey/types';
 import { SELLER_JOURNEY_STRINGS as t } from '../../config/seller-journey/strings';
 import { sellerJourneyApi } from '../../services/seller-journey';
-import { getShopReferralCodeLabel, type ShopShareChannel } from '../../utils/shop-share';
+import { type ShopShareChannel } from '../../utils/shop-share';
 import { showToast } from '../CustomToast';
 import { Button } from '../Button';
 import { ShopShareButton } from '../shop/ShopShareButton';
@@ -58,7 +58,6 @@ export function CustomCheckpoints({ variant = 'minimized', defaultExpanded = fal
   const [expanded, setExpanded] = useState(defaultExpanded || variant === 'fab');
 
   const username = data?.username ?? '';
-  const referralCodeLabel = username ? getShopReferralCodeLabel(username) : '';
   const percent = useMemo(
     () => progressPercent(data?.completedCount ?? 0, data?.totalCount ?? 0),
     [data?.completedCount, data?.totalCount]
@@ -138,9 +137,6 @@ export function CustomCheckpoints({ variant = 'minimized', defaultExpanded = fal
   };
 
   const renderStepRow = (step: SellerJourneyStepStatus) => {
-    const showReferralCode =
-      !step.completed && step.key === 'hasSharedShopLink' && referralCodeLabel;
-
     return (
       <View key={step.key} style={styles.stepRow}>
         <View style={styles.stepCheck}>
@@ -161,9 +157,6 @@ export function CustomCheckpoints({ variant = 'minimized', defaultExpanded = fal
           >
             {stepLabel(step.labelKey)}
           </Text>
-          {showReferralCode ? (
-            <Text style={styles.referralCode}>{referralCodeLabel}</Text>
-          ) : null}
           {!step.completed && step.hintKey ? (
             <Text style={styles.stepHint}>{stepHint(step.hintKey)}</Text>
           ) : null}
