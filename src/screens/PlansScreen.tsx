@@ -490,7 +490,7 @@ export function PlansScreen() {
                   </View>
                   {showTrial ? (
                     <Text style={styles.periodTotalText}>
-                      {`7 dias grátis · depois ${plan.price}/mês`}
+                      {`Hoje R$ 0 · 7 dias grátis · depois ${plan.price}/mês`}
                     </Text>
                   ) : plan.periodTotal && plan.discountPercent > 0 ? (
                     <Text style={styles.periodTotalText}>
