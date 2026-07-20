@@ -500,8 +500,15 @@ export function MyShopScreen() {
   const canPrepareShopCatalogWhilePending =
     isOwner &&
     (sellerVerification?.status === 'pending' || sellerVerification?.status === 'needs_review');
+  const canPrepareCatalogWithoutActiveShop =
+    isOwner &&
+    shopPlanGate != null &&
+    shopPlanGate.allowProductCreateWithoutActiveShop !== false;
   const showSecondaryShopTabs = isAdmin || ownerApproved;
-  const showTabs = isAdmin || (isOwner && (ownerApproved || canPrepareShopCatalogWhilePending));
+  const showTabs =
+    isAdmin ||
+    (isOwner &&
+      (ownerApproved || canPrepareShopCatalogWhilePending || canPrepareCatalogWithoutActiveShop));
   const shopIsPublicAndActive =
     Boolean(shopSettings?.isEnabled) && shopSettings?.visibility === 'public';
 
@@ -1121,13 +1128,17 @@ export function MyShopScreen() {
                     onAction={handleGrowthPromoAction}
                   />
                 )}
-                {isOwner && canPrepareShopCatalogWhilePending && (
+                {isOwner &&
+                  (canPrepareShopCatalogWhilePending || canPrepareCatalogWithoutActiveShop) &&
+                  !ownerApproved && (
                   <View style={styles.pendingAlert}>
                     <View style={styles.pendingAlertContent}>
                       <Ionicons name="information-circle" size={20} color={COLORS.primary.main} />
                       <View style={styles.pendingAlertText}>
                         <Text style={styles.pendingAlertTitle}>
-                          Cadastre produtos enquanto sua loja é analisada
+                          {canPrepareShopCatalogWhilePending
+                            ? 'Cadastre produtos enquanto sua loja é analisada'
+                            : 'Você já pode cadastrar produtos'}
                         </Text>
                         <Text style={styles.pendingAlertDescription}>
                           Eles vão para moderação como de sempre. Na vitrine pública só aparecem depois
@@ -1184,7 +1195,7 @@ export function MyShopScreen() {
                     <Text style={styles.emptyProductsTitle}>Esta loja ainda não tem produtos</Text>
                     <Text style={styles.emptyProductsText}>
                       {isOwner
-                        ? canPrepareShopCatalogWhilePending
+                        ? canPrepareShopCatalogWhilePending || canPrepareCatalogWithoutActiveShop
                           ? 'Você já pode criar seu primeiro produto. Ele vai para moderação; na vitrine pública só depois da aprovação da loja.'
                           : 'Comece criando seu primeiro produto!'
                         : 'O dono desta loja ainda não adicionou itens.'}
@@ -1441,9 +1452,40 @@ export function MyShopScreen() {
                 <Text style={styles.emptyProductsTitle}>Esta loja ainda não tem produtos</Text>
                 <Text style={styles.emptyProductsText}>
                   {isOwner
-                    ? 'Crie seu primeiro produto após a aprovação do cadastro de vendedor.'
+                    ? canPrepareCatalogWithoutActiveShop
+                      ? 'Você já pode criar seu primeiro produto. Ele vai para moderação; na vitrine pública só depois da aprovação da loja.'
+                      : 'Crie seu primeiro produto após a aprovação do cadastro de vendedor.'
                     : 'O dono desta loja ainda não adicionou itens.'}
                 </Text>
+                {isOwner && canPrepareCatalogWithoutActiveShop ? (
+                  !canCreateProduct() ? (
+                    <PlanLocker
+                      requiredPlan={getRequiredPlan()}
+                      currentPlan={(user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS'}
+                    >
+                      <TouchableOpacity
+                        style={[styles.createProductButton, styles.createProductButtonDisabled]}
+                        disabled
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
+                        <Text style={styles.createProductButtonText}>Criar Primeiro Produto</Text>
+                      </TouchableOpacity>
+                    </PlanLocker>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.createProductButton}
+                      onPress={() => {
+                        setEditingProduct(null);
+                        setShowCreateProductModal(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
+                      <Text style={styles.createProductButtonText}>Criar Primeiro Produto</Text>
+                    </TouchableOpacity>
+                  )
+                ) : null}
               </View>
             ) : (
               <>
@@ -1586,6 +1628,12 @@ export function MyShopScreen() {
         shopPlanGate={shopPlanGate}
         onGoToPlans={() => {
           navigation.navigate('ProfileStack' as never, { screen: 'Plans' } as never);
+        }}
+        onGoToProducts={() => {
+          setShowVerificationForm(false);
+          setActiveTab('products');
+          setEditingProduct(null);
+          setShowCreateProductModal(true);
         }}
       />
 

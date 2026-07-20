@@ -32,6 +32,7 @@ export type ShopPlanGate = {
   minPlanToCreateShop: string;
   canCreateShop: boolean;
   currentPlan: string;
+  allowProductCreateWithoutActiveShop?: boolean;
   productStorageLimits: {
     maxProducts: number;
     maxFileSizePerFile: number;

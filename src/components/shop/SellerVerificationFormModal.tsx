@@ -111,8 +111,10 @@ type Props = {
     canCreateShop: boolean;
     minPlanToCreateShop: string;
     currentPlan: string;
+    allowProductCreateWithoutActiveShop?: boolean;
   } | null;
   onGoToPlans?: () => void;
+  onGoToProducts?: () => void;
 };
 
 const LOCKED_HINT = 'Enviado anteriormente — somente leitura.';
@@ -200,6 +202,7 @@ export function SellerVerificationFormModal({
   viewerUsername,
   shopPlanGate = null,
   onGoToPlans,
+  onGoToProducts,
 }: Props) {
   const { width } = useWindowDimensions();
   const twoColumnPersonal = width >= 400;
@@ -887,10 +890,21 @@ export function SellerVerificationFormModal({
               <SellerShopPlanRequiredStep
                 minPlanToCreateShop={shopPlanGate.minPlanToCreateShop}
                 currentPlan={shopPlanGate.currentPlan}
+                allowProductCreateWithoutActiveShop={
+                  shopPlanGate.allowProductCreateWithoutActiveShop
+                }
                 onGoToPlans={() => {
                   onClose();
                   onGoToPlans?.();
                 }}
+                onGoToProducts={
+                  onGoToProducts
+                    ? () => {
+                        onClose();
+                        onGoToProducts();
+                      }
+                    : undefined
+                }
                 onDismiss={handleClose}
               />
             </ScrollView>
