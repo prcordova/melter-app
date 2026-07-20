@@ -33,6 +33,7 @@ import {
   getPlanBillingDiscountPercent,
   type PlanBillingInterval,
 } from '../config/plan-billing';
+import { isEligibleForPlatformPlanTrial } from '../config/platform-plan-trial';
 
 export function PlansScreen() {
   const insets = useSafeAreaInsets();
@@ -49,6 +50,7 @@ export function PlansScreen() {
   const [billingInterval, setBillingInterval] = useState<PlanBillingInterval>('MONTHLY');
   const [loading, setLoading] = useState(false);
   const [fetchingPlan, setFetchingPlan] = useState(true);
+  const [platformTrialEligible, setPlatformTrialEligible] = useState(false);
 
   const checkoutBillingInterval: PlanBillingInterval =
     selectedPaymentGateway === 'MERCADOPAGO' ? billingInterval : 'MONTHLY';
@@ -93,6 +95,7 @@ export function PlansScreen() {
         setPlanStatus(status);
         setGateway(userData.data.plan?.gateway || null);
         setPendingPlan(userData.data.plan?.pendingPlan || null);
+        setPlatformTrialEligible(Boolean(userData.data.plan?.platformTrialEligible));
       }
     } catch (error) {
       console.error('Erro ao buscar plano do usuário:', error);
@@ -121,15 +124,20 @@ export function PlansScreen() {
     }
   };
 
-  const handleSubscribe = async (planName: string) => {
+  const handleSubscribe = async (
+    planName: string,
+    options?: { withTrial?: boolean }
+  ) => {
     // Se o plano selecionado é o mesmo do atual, não fazer nada
     if (planName === currentPlan) {
       return;
     }
 
+    const withTrial = options?.withTrial === true;
+
     // Se o plano está cancelado e o usuário quer renovar o mesmo plano, ir direto para checkout
     if (planStatus === 'CANCELLED' && planName === currentPlan) {
-      await proceedWithCheckout(planName);
+      await proceedWithCheckout(planName, withTrial ? { withTrial: true } : undefined);
       return;
     }
 
@@ -145,7 +153,7 @@ export function PlansScreen() {
           : `Você está descendo de plano. Você continuará com o plano ${formatPlanDisplayName(currentPlan)} até ${expirationDate ? formatDate(expirationDate) : 'o final do período atual'}. Após essa data, seu plano será alterado automaticamente para ${formatPlanDisplayName(planName)}.`,
         async () => {
           if (isUpgrade) {
-            await proceedWithCheckout(planName);
+            await proceedWithCheckout(planName, withTrial ? { withTrial: true } : undefined);
           } else {
             await handleCancelAndProceed(planName);
           }
@@ -159,17 +167,21 @@ export function PlansScreen() {
     }
 
     // Se não tem plano (FREE) ou está cancelado/inativo e quer um plano diferente, ir direto para checkout
-    await proceedWithCheckout(planName);
+    await proceedWithCheckout(planName, withTrial ? { withTrial: true } : undefined);
   };
 
-  const proceedWithCheckout = async (planName: string) => {
+  const proceedWithCheckout = async (
+    planName: string,
+    options?: { withTrial?: boolean }
+  ) => {
     try {
       setLoading(true);
       
       const response = await paymentApi.createCheckoutSession(
         planName,
         selectedPaymentGateway,
-        checkoutBillingInterval
+        checkoutBillingInterval,
+        options?.withTrial ? { withTrial: true } : undefined
       );
       
       // Verificar diferentes formatos de resposta
@@ -445,6 +457,14 @@ export function PlansScreen() {
           {planCards.map((plan) => {
             const isCurrentPlan = plan.name === currentPlan;
             const planColor = plan.color;
+            const showTrial =
+              platformTrialEligible &&
+              isEligibleForPlatformPlanTrial({
+                planType: plan.name,
+                billingInterval: checkoutBillingInterval,
+                platformTrialUsedAt: null,
+              }) &&
+              !isCurrentPlan;
 
             return (
               <View
@@ -455,11 +475,11 @@ export function PlansScreen() {
                   plan.recommended && !isCurrentPlan && { borderColor: planColor, borderWidth: 2 },
                 ]}
               >
-                {plan.recommended && !isCurrentPlan && (
+                {plan.recommended && !isCurrentPlan ? (
                   <View style={[styles.recommendedBadge, { backgroundColor: planColor }]}>
                     <Text style={styles.recommendedText}>Mais Popular</Text>
                   </View>
-                )}
+                ) : null}
                 <View style={styles.planHeader}>
                   <Text style={[styles.planName, { color: planColor }]}>
                     {plan.displayName}
@@ -468,7 +488,11 @@ export function PlansScreen() {
                     <Text style={styles.planPrice}>{plan.price}</Text>
                     <Text style={styles.planPriceUnit}>/mês</Text>
                   </View>
-                  {plan.periodTotal && plan.discountPercent > 0 ? (
+                  {showTrial ? (
+                    <Text style={styles.periodTotalText}>
+                      {`7 dias grátis · depois ${plan.price}/mês`}
+                    </Text>
+                  ) : plan.periodTotal && plan.discountPercent > 0 ? (
                     <Text style={styles.periodTotalText}>
                       {checkoutBillingInterval === 'QUARTERLY'
                         ? `Plano trimestral — Total: ${plan.periodTotal}`
@@ -484,6 +508,28 @@ export function PlansScreen() {
                     </View>
                   ))}
                 </View>
+                {!isCurrentPlan && showTrial ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.subscribeButton,
+                      styles.trialButton,
+                      { borderColor: planColor },
+                    ]}
+                    onPress={() => handleSubscribe(plan.name, { withTrial: true })}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color={planColor} />
+                    ) : (
+                      <>
+                        <Ionicons name="time-outline" size={18} color={planColor} />
+                        <Text style={[styles.trialButtonText, { color: planColor }]}>
+                          Testar 7 dias grátis
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                ) : null}
                 <TouchableOpacity
                   style={[
                     styles.subscribeButton,
@@ -801,6 +847,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  trialButton: {
+    marginBottom: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  trialButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   subscribeButtonCurrent: {
     opacity: 0.7,

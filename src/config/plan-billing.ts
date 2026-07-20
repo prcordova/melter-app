@@ -11,6 +11,11 @@ function planPricesForCurrency(currency: PlanPriceCurrency): Record<PlanType, nu
 export const PLAN_BILLING_INTERVALS = ['MONTHLY', 'QUARTERLY', 'ANNUAL'] as const
 export type PlanBillingInterval = (typeof PLAN_BILLING_INTERVALS)[number]
 
+/**
+ * Trial 7 dias (1x): ver `platform-plan-trial.ts` — STARTER+ mensal no checkout Stripe/MP.
+ * Não se aplica a LITE nem a ciclos trimestral/anual.
+ */
+
 export const PLAN_BILLING_INTERVAL_MONTHS: Record<PlanBillingInterval, number> = {
   MONTHLY: 1,
   QUARTERLY: 3,
