@@ -54,6 +54,10 @@ import {
   parseBirthDateInput,
 } from '../../utils/seller/validation';
 import { uploadSellerVerificationFileDirect } from '../../utils/seller/upload';
+import {
+  SellerShopPlanRequiredStep,
+  shouldShowSellerShopPlanGate,
+} from './SellerShopPlanRequiredStep';
 
 function hasStoredSellerVideoProof(url?: string | null): boolean {
   return typeof url === 'string' && url.trim().length > 0;
@@ -102,6 +106,13 @@ type Props = {
   existingData?: SellerVerificationFormData;
   /** Para instruções do vídeo prova (papel com @usuário). */
   viewerUsername?: string;
+  /** Gate dinâmico — se bloqueado, mostra pre-step em vez do formulário. */
+  shopPlanGate?: {
+    canCreateShop: boolean;
+    minPlanToCreateShop: string;
+    currentPlan: string;
+  } | null;
+  onGoToPlans?: () => void;
 };
 
 const LOCKED_HINT = 'Enviado anteriormente — somente leitura.';
@@ -187,12 +198,15 @@ export function SellerVerificationFormModal({
   onSuccess,
   existingData,
   viewerUsername,
+  shopPlanGate = null,
+  onGoToPlans,
 }: Props) {
   const { width } = useWindowDimensions();
   const twoColumnPersonal = width >= 400;
   const twoColumnDocs = width >= 480;
   const isTinyScreen = width < 400;
   const isUltraNarrowFooter = width < 350;
+  const showPlanGate = shouldShowSellerShopPlanGate(shopPlanGate);
 
   const [displayData, setDisplayData] = useState<SellerVerificationFormData | undefined>(
     existingData
@@ -840,11 +854,13 @@ export function SellerVerificationFormModal({
     if (!submitting) onClose();
   };
 
-  const modalTitle = isReviewMode
-    ? displayData?.status === 'rejected'
-      ? 'Corrigir e reenviar cadastro'
-      : 'Revisar cadastro de vendedor'
-    : 'Cadastro de vendedor';
+  const modalTitle = showPlanGate
+    ? 'Plano necessário'
+    : isReviewMode
+      ? displayData?.status === 'rejected'
+        ? 'Corrigir e reenviar cadastro'
+        : 'Revisar cadastro de vendedor'
+      : 'Cadastro de vendedor';
 
   const birthDateParsedForUi = parseBirthDateInput(birthDateInput);
   const showBirthDateUnder18Error =
@@ -863,6 +879,22 @@ export function SellerVerificationFormModal({
             </TouchableOpacity>
           </View>
 
+          {showPlanGate && shopPlanGate ? (
+            <ScrollView
+              style={[styles.scroll, isTinyScreen && styles.scrollFull]}
+              contentContainerStyle={[styles.scrollContent, isTinyScreen && styles.scrollContentTiny]}
+            >
+              <SellerShopPlanRequiredStep
+                minPlanToCreateShop={shopPlanGate.minPlanToCreateShop}
+                currentPlan={shopPlanGate.currentPlan}
+                onGoToPlans={() => {
+                  onClose();
+                  onGoToPlans?.();
+                }}
+                onDismiss={handleClose}
+              />
+            </ScrollView>
+          ) : (
           <ScrollView
             style={[styles.scroll, isTinyScreen && styles.scrollFull]}
             contentContainerStyle={[styles.scrollContent, isTinyScreen && styles.scrollContentTiny]}
@@ -1228,7 +1260,9 @@ export function SellerVerificationFormModal({
             </>
             ) : null}
           </ScrollView>
+          )}
 
+          {!showPlanGate ? (
           <View style={[styles.footer, isUltraNarrowFooter && styles.footerColumn]}>
             <TouchableOpacity
               style={[
@@ -1270,6 +1304,7 @@ export function SellerVerificationFormModal({
               )}
             </TouchableOpacity>
           </View>
+          ) : null}
         </View>
       </View>
     </Modal>

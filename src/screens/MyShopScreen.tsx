@@ -19,6 +19,7 @@ import { COLORS } from '../theme/colors';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { shopApi, sellerVerificationApi, userApi, productsApi, categoriesApi } from '../services/api';
+import type { ShopPlanGate } from '../services/shop/api';
 import { SellerVerificationStatusCard } from '../components/shop/SellerVerificationStatusCard';
 import { AppealModal } from '../components/shop/AppealModal';
 import {
@@ -163,6 +164,7 @@ export function MyShopScreen() {
   const [shopListMeta, setShopListMeta] = useState<ShopProductsListMeta>(
     DEFAULT_SHOP_PRODUCTS_LIST_META
   );
+  const [shopPlanGate, setShopPlanGate] = useState<ShopPlanGate | null>(null);
 
   // Extrair parâmetros da rota
   const username = route.params?.username || user?.username || '';
@@ -247,7 +249,14 @@ export function MyShopScreen() {
   // Buscar configurações da loja (apenas para dono)
   const fetchShopSettings = async (): Promise<any[]> => {
     try {
-      const response = await shopApi.getSettings();
+      const [response, onboardingRes] = await Promise.all([
+        shopApi.getSettings(),
+        shopApi.getOnboardingContext().catch(() => null),
+      ]);
+
+      if (onboardingRes?.success && onboardingRes.data?.shopPlanGate) {
+        setShopPlanGate(onboardingRes.data.shopPlanGate);
+      }
 
       if (response.success && response.data) {
         setShopSettings(response.data as ShopSettings);
@@ -531,6 +540,11 @@ export function MyShopScreen() {
     const base = mapVerificationToFormData(sellerVerification);
     setVerificationFormData(base);
     setShowVerificationForm(true);
+
+    // Correção / KYC já iniciado: carrega dados. Gate de plano é o pre-step do modal.
+    if (shopPlanGate && !shopPlanGate.canCreateShop) {
+      return;
+    }
 
     const fresh = await fetchVerificationForForm();
     if (!fresh) return;
@@ -1092,6 +1106,7 @@ export function MyShopScreen() {
                       onOpenSupport={() => {
                         navigation.navigate('ProfileStack' as never, { screen: 'SupportTickets' } as never);
                       }}
+                      shopPlanGate={shopPlanGate}
                       compact
                     />
                     {/* Promo "Prepare o perfil" desativado temporariamente (getShopPlacementContent → null) */}
@@ -1402,6 +1417,7 @@ export function MyShopScreen() {
                 onOpenSupport={() => {
                   navigation.navigate('ProfileStack' as never, { screen: 'SupportTickets' } as never);
                 }}
+                shopPlanGate={shopPlanGate}
                 compact
               />
             )}
@@ -1567,6 +1583,10 @@ export function MyShopScreen() {
         onSuccess={handleVerificationSuccess}
         existingData={verificationFormData}
         viewerUsername={username}
+        shopPlanGate={shopPlanGate}
+        onGoToPlans={() => {
+          navigation.navigate('ProfileStack' as never, { screen: 'Plans' } as never);
+        }}
       />
 
       {/* Modal de Configurações da Loja */}

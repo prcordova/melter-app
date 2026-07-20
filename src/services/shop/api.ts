@@ -28,7 +28,40 @@ export type ShopAppearanceUpdatePayload = {
   titleDisplayEffect?: UsernameDisplayEffectConfig | null;
 };
 
+export type ShopPlanGate = {
+  minPlanToCreateShop: string;
+  canCreateShop: boolean;
+  currentPlan: string;
+  productStorageLimits: {
+    maxProducts: number;
+    maxFileSizePerFile: number;
+    maxTotalFileSize: number;
+    canUploadProductImages: boolean;
+  };
+  shopPlanMigration: {
+    enabled: boolean;
+    deadlineAt: string | null;
+    bannerEnabled: boolean;
+    noticeDays: number;
+    enforceAfterDeadline: boolean;
+  };
+};
+
+export type ShopOnboardingContextResponse = {
+  shop: ShopSettingsResponse;
+  platformPurposes?: string[];
+  sellerVerification?: unknown;
+  sellerNudge?: unknown;
+  shopPlanGate?: ShopPlanGate;
+};
+
 export const shopApi = {
+  getOnboardingContext: async () => {
+    const response = await api.get<ApiResponse<ShopOnboardingContextResponse>>(
+      SHOP_API.me.onboardingContext
+    );
+    return response.data;
+  },
   getSettings: async () => {
     const response = await api.get<ApiResponse<ShopSettingsResponse>>(SHOP_API.me.settings);
     return response.data;

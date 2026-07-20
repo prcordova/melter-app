@@ -34,6 +34,12 @@ interface SellerVerificationStatusCardProps {
   onRefresh?: () => void;
   onOpenSupport?: () => void;
   compact?: boolean;
+  /** Gate dinâmico (onboarding-context.shopPlanGate). */
+  shopPlanGate?: {
+    canCreateShop: boolean;
+    minPlanToCreateShop: string;
+    currentPlan: string;
+  } | null;
 }
 
 export function SellerVerificationStatusCard({
@@ -298,10 +304,10 @@ export function SellerVerificationStatusCard({
           </Text>
         )}
 
-        {/* Botão de ação */}
+        {/* Botão de ação — mesmo CTA; gate de plano fica no modal de cadastro */}
         {config.showButton && config.buttonAction && (
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: config.color }]}
+            style={[styles.button, styles.buttonCentered, { backgroundColor: config.color }]}
             onPress={config.buttonAction}
             activeOpacity={0.7}
           >
@@ -476,6 +482,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 12,
+  },
+  buttonCentered: {
+    alignSelf: 'center',
+  },
+  ctaRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   buttonText: {
     color: '#ffffff',
