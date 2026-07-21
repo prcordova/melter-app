@@ -205,6 +205,33 @@ export function ChatScreen() {
       const response = await userApi.getUserProfile(username);
       if (response.success) {
         setUserData(response.data);
+        const peerId = response.data._id || userId;
+        try {
+          const statusRes = await userApi.checkFriendshipStatus(peerId);
+          if (statusRes.success && statusRes.data) {
+            const status = statusRes.data.status as string | undefined;
+            const isRequester = Boolean(statusRes.data.isRequester);
+            if (status === 'ACCEPTED' || status === 'FRIENDLY') {
+              setFriendshipMode('friends');
+              setIsFriendshipRequester(false);
+            } else if (status === 'PENDING') {
+              setFriendshipMode('pending');
+              setIsFriendshipRequester(isRequester);
+              if (statusRes.data.friendshipId) {
+                setUserData((prev: any) =>
+                  prev ? { ...prev, friendshipId: statusRes.data.friendshipId } : prev
+                );
+              }
+            } else {
+              setFriendshipMode('none');
+              setIsFriendshipRequester(false);
+            }
+            return;
+          }
+        } catch (statusErr) {
+          console.warn('[ChatScreen] Fallback friendship via profile:', statusErr);
+        }
+
         const status = response.data.friendshipStatus as string | undefined;
         if (status === 'FRIENDS' || status === 'FRIENDLY') {
           setFriendshipMode('friends');
@@ -223,6 +250,41 @@ export function ChatScreen() {
     } catch (error) {
       console.error('[ChatScreen] Erro ao verificar amizade:', error);
       setFriendshipMode(user?.accountType === 'admin' ? 'friends' : 'none');
+    }
+  };
+
+  const handleAcceptFriendship = async () => {
+    const friendshipId = userData?.friendshipId;
+    if (!friendshipId) {
+      showToast.error('Solicitação não encontrada');
+      return;
+    }
+    try {
+      await userApi.acceptFriendRequest(friendshipId);
+      setFriendshipMode('friends');
+      setIsFriendshipRequester(false);
+      showToast.success('Solicitação aceita!');
+    } catch (error) {
+      console.error('[ChatScreen] Erro ao aceitar amizade:', error);
+      showToast.error('Erro ao aceitar solicitação');
+    }
+  };
+
+  const handleRejectFriendship = async () => {
+    const friendshipId = userData?.friendshipId;
+    if (!friendshipId) {
+      showToast.error('Solicitação não encontrada');
+      return;
+    }
+    try {
+      await userApi.rejectFriendRequest(friendshipId);
+      setFriendshipMode('none');
+      setIsFriendshipRequester(false);
+      showToast.success('Solicitação recusada');
+      navigation.goBack();
+    } catch (error) {
+      console.error('[ChatScreen] Erro ao recusar amizade:', error);
+      showToast.error('Erro ao recusar solicitação');
     }
   };
 
@@ -891,16 +953,35 @@ export function ChatScreen() {
               <Ionicons name="information-circle-outline" size={22} color={COLORS.secondary.main} />
               <Text style={styles.pendingFriendshipText}>
                 {isFriendshipRequester
-                  ? 'Pedido de amizade enviado. Você pode enviar uma mensagem que será entregue quando a amizade for aceita.'
-                  : 'Você recebeu um pedido de amizade. Envie uma mensagem para acompanhar sua resposta.'}
+                  ? 'Pedido de amizade enviado. Aguarde a aceitação para conversar.'
+                  : 'Você recebeu um pedido de amizade. Aceite para abrir a conversa, ou recuse se preferir.'}
               </Text>
-              <TouchableOpacity
-                style={styles.messageRequestButton}
-                onPress={() => setMessageRequestOpen(true)}
-              >
-                <Ionicons name="mail-outline" size={18} color="#fff" />
-                <Text style={styles.messageRequestButtonText}>Enviar solicitação de mensagem</Text>
-              </TouchableOpacity>
+              {!isFriendshipRequester ? (
+                <View style={styles.friendshipActionsRow}>
+                  <TouchableOpacity
+                    style={styles.acceptFriendshipButton}
+                    onPress={() => void handleAcceptFriendship()}
+                  >
+                    <Ionicons name="checkmark" size={18} color="#fff" />
+                    <Text style={styles.messageRequestButtonText}>Aceitar amizade</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.rejectFriendshipButton}
+                    onPress={() => void handleRejectFriendship()}
+                  >
+                    <Ionicons name="close" size={18} color={COLORS.text.primary} />
+                    <Text style={styles.rejectFriendshipButtonText}>Recusar</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.messageRequestButton}
+                  onPress={() => setMessageRequestOpen(true)}
+                >
+                  <Ionicons name="mail-outline" size={18} color="#fff" />
+                  <Text style={styles.messageRequestButtonText}>Enviar solicitação de mensagem</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : friendshipMode === 'none' ? (
             <View style={styles.notFriendsContainer}>
@@ -1288,6 +1369,40 @@ const styles = StyleSheet.create({
   },
   messageRequestButtonText: {
     color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  friendshipActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  acceptFriendshipButton: {
+    flex: 1,
+    minWidth: 140,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.secondary.main,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  rejectFriendshipButton: {
+    flex: 1,
+    minWidth: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.background.paper,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  rejectFriendshipButtonText: {
+    color: COLORS.text.primary,
     fontSize: 15,
     fontWeight: '600',
   },
