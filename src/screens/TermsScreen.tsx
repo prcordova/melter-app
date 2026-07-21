@@ -173,6 +173,20 @@ export function TermsScreen() {
               quando a lei aplicável exigir.
             </Text>
             <Text style={styles.sectionText}>
+              <Text style={styles.bold}>3.10.5 Cadastro de loja, pacotes e plano mínimo:</Text> A Melter pode permitir 
+              que você conclua o cadastro de vendedor e prepare pacotes digitais antes de assinar um plano pago. Quando 
+              houver plano mínimo configurado, a publicação de pacotes, a ativação da loja e ações de venda podem ficar 
+              pendentes de assinatura até sua conta atender ao plano exigido. Você será informado na loja quando essa 
+              etapa for necessária.
+            </Text>
+            <Text style={styles.sectionText}>
+              <Text style={styles.bold}>3.10.6 Reserva de direito — planos e loja:</Text> A Melter reserva-se o direito 
+              de exigir ou deixar de exigir plano ativo para publicar, ativar ou manter loja e produtos, alterar limites 
+              e cotas a qualquer momento (com ou sem aviso), inclusive via configuração administrativa. Se a exigência for 
+              relaxada, rascunhos elegíveis e lojas aprovadas podem ser publicados ou reativados automaticamente; se for 
+              reintroduzida, lojas e novas publicações voltam a depender do plano vigente.
+            </Text>
+            <Text style={styles.sectionText}>
               <Text style={styles.bold}>3.11 Contas inativas e saldo em carteira:</Text> Conta em abandono após{' '}
               <Text style={styles.bold}>180 dias consecutivos sem login</Text>. A Melter poderá recolher saldo remanescente 
               na carteira, quando permitido por lei, após esforços razoáveis de comunicação. Recomendamos sacar o saldo 
