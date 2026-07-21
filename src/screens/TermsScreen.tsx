@@ -162,6 +162,17 @@ export function TermsScreen() {
               configurável e taxa de saque definida pelo administrador. Saques são processados em até 48 horas úteis.
             </Text>
             <Text style={styles.sectionText}>
+              <Text style={styles.bold}>3.10 Planos da Plataforma Melter (STARTER, PRO e PRO+):</Text> A Melter oferece 
+              planos pagos com cobrança recorrente (mensal, trimestral ou anual, conforme a interface). Preços e benefícios 
+              podem ser alterados; alterações de preço para assinantes ativos valem na próxima cobrança, sem retroagir 
+              sobre o período já pago.
+            </Text>
+            <Text style={styles.sectionText}>
+              <Text style={styles.bold}>3.10.4 Sem reembolso proporcional:</Text> Não há reembolso automático de parcelas 
+              já pagas por cancelamento antecipado da assinatura do plano ou por alteração de preços/benefícios, salvo 
+              quando a lei aplicável exigir.
+            </Text>
+            <Text style={styles.sectionText}>
               <Text style={styles.bold}>3.11 Contas inativas e saldo em carteira:</Text> Conta em abandono após{' '}
               <Text style={styles.bold}>180 dias consecutivos sem login</Text>. A Melter poderá recolher saldo remanescente 
               na carteira, quando permitido por lei, após esforços razoáveis de comunicação. Recomendamos sacar o saldo 
@@ -263,6 +274,24 @@ export function TermsScreen() {
             <Text style={styles.sectionText}>
               <Text style={styles.bold}>12.2 Pela Plataforma:</Text> Podemos encerrar contas que violem estes termos, 
               com ou sem aviso prévio.
+            </Text>
+            <Text style={styles.sectionText}>
+              <Text style={styles.bold}>12.3 Cancelamento de planos da plataforma (STARTER, PRO, PRO+):</Text>
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Você pode cancelar a assinatura do plano a qualquer momento nas configurações ou em Planos.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • O cancelamento interrompe novas cobranças; o acesso aos benefícios do plano permanece até o fim do 
+              período já pago (data de expiração exibida na conta).
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • <Text style={styles.bold}>Não há reembolso</Text> proporcional do tempo não utilizado, salvo quando 
+              a lei aplicável exigir.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Após a expiração, a conta volta aos limites do plano gratuito (FREE), e recursos exclusivos podem ser 
+              desativados ou ajustados conforme as regras vigentes.
             </Text>
 
             {/* 13. Indicações */}
