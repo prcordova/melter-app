@@ -29,18 +29,18 @@ type Props = {
   minPlanToCreateShop: string;
   currentPlan: string;
   onGoToPlans: () => void;
-  onDismiss?: () => void;
-  dismissLabel?: string;
   allowProductCreateWithoutActiveShop?: boolean;
   onGoToProducts?: () => void;
 };
 
+/**
+ * Pre-step de plano: CTAs Cadastrar produtos + Teste grátis.
+ * Fechar via X / backdrop do modal pai.
+ */
 export function SellerShopPlanRequiredStep({
   minPlanToCreateShop,
   currentPlan,
   onGoToPlans,
-  onDismiss,
-  dismissLabel = 'Agora não',
   allowProductCreateWithoutActiveShop = true,
   onGoToProducts,
 }: Props) {
@@ -68,11 +68,6 @@ export function SellerShopPlanRequiredStep({
         </Text>
       ) : null}
       <View style={styles.actions}>
-        {onDismiss ? (
-          <TouchableOpacity style={styles.secondaryBtn} onPress={onDismiss} activeOpacity={0.75}>
-            <Text style={styles.secondaryText}>{dismissLabel}</Text>
-          </TouchableOpacity>
-        ) : null}
         {showProductsCta ? (
           <TouchableOpacity style={styles.outlineBtn} onPress={onGoToProducts} activeOpacity={0.8}>
             <Ionicons name="cube-outline" size={18} color={COLORS.primary.main} />
@@ -80,7 +75,7 @@ export function SellerShopPlanRequiredStep({
           </TouchableOpacity>
         ) : null}
         <TouchableOpacity style={styles.primaryBtn} onPress={onGoToPlans} activeOpacity={0.8}>
-          <Text style={styles.primaryText}>Assinar plano grátis</Text>
+          <Text style={styles.primaryText}>Teste grátis</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -133,15 +128,6 @@ const styles = StyleSheet.create({
   primaryText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 14,
-  },
-  secondaryBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  secondaryText: {
-    color: COLORS.text.secondary,
-    fontWeight: '600',
     fontSize: 14,
   },
   outlineBtn: {
