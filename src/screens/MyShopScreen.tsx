@@ -22,6 +22,8 @@ import { shopApi, sellerVerificationApi, userApi, productsApi, categoriesApi } f
 import type { ShopPlanGate } from '../services/shop/api';
 import { buildPlansSubscribeNavParams } from '../config/plans/subscribe-intent';
 import { SellerVerificationStatusCard } from '../components/shop/SellerVerificationStatusCard';
+import { SellerShopPlanPendingAlert } from '../components/shop/SellerShopPlanPendingAlert';
+import { shouldShowSellerShopPlanPendingAlert } from '../components/shop/SellerShopPlanRequiredStep';
 import { AppealModal } from '../components/shop/AppealModal';
 import {
   SellerVerificationFormModal,
@@ -549,11 +551,6 @@ export function MyShopScreen() {
     setVerificationFormData(base);
     setShowVerificationForm(true);
 
-    // Correção / KYC já iniciado: carrega dados. Gate de plano é o pre-step do modal.
-    if (shopPlanGate && !shopPlanGate.canCreateShop) {
-      return;
-    }
-
     const fresh = await fetchVerificationForForm();
     if (!fresh) return;
 
@@ -580,6 +577,14 @@ export function MyShopScreen() {
     } catch {
       showToast.error('Erro', 'Não foi possível copiar o link.');
     }
+  };
+
+  const handleGoToPlansFromShop = () => {
+    const params = buildPlansSubscribeNavParams({
+      planType: shopPlanGate?.minPlanToCreateShop || 'STARTER',
+      withTrial: true,
+    });
+    navigation.navigate('ProfileStack' as never, { screen: 'Plans', params } as never);
   };
 
   const handleGrowthPromoAction = (action: SellerGrowthPromoNavigateAction) => {
@@ -1102,6 +1107,12 @@ export function MyShopScreen() {
           <View style={styles.tabContent}>
             {activeTab === 'products' && (
               <View style={styles.productsContent}>
+                {isOwner && shopPlanGate && shouldShowSellerShopPlanPendingAlert(shopPlanGate) && (
+                  <SellerShopPlanPendingAlert
+                    gate={shopPlanGate}
+                    onGoToPlans={handleGoToPlansFromShop}
+                  />
+                )}
                 {isOwner && !ownerApproved && (
                   <>
                     <SellerVerificationStatusCard
@@ -1626,23 +1637,6 @@ export function MyShopScreen() {
         onSuccess={handleVerificationSuccess}
         existingData={verificationFormData}
         viewerUsername={username}
-        shopPlanGate={shopPlanGate}
-        onGoToPlans={() => {
-          const params = buildPlansSubscribeNavParams({
-            planType: shopPlanGate?.minPlanToCreateShop || 'STARTER',
-            withTrial: true,
-          });
-          navigation.navigate(
-            'ProfileStack' as never,
-            { screen: 'Plans', params } as never
-          );
-        }}
-        onGoToProducts={() => {
-          setShowVerificationForm(false);
-          setActiveTab('products');
-          setEditingProduct(null);
-          setShowCreateProductModal(true);
-        }}
       />
 
       {/* Modal de Configurações da Loja */}

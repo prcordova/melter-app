@@ -31,6 +31,7 @@ export type ShopAppearanceUpdatePayload = {
 export type ShopPlanGate = {
   minPlanToCreateShop: string;
   canCreateShop: boolean;
+  needsPlanToPublish?: boolean;
   currentPlan: string;
   allowProductCreateWithoutActiveShop?: boolean;
   productStorageLimits: {

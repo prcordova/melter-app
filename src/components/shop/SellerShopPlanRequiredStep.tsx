@@ -5,6 +5,7 @@ import { COLORS } from '../../theme/colors';
 
 export type SellerShopPlanGateInfo = {
   canCreateShop: boolean;
+  needsPlanToPublish?: boolean;
   minPlanToCreateShop: string;
   currentPlan: string;
   allowProductCreateWithoutActiveShop?: boolean;
@@ -15,11 +16,21 @@ function formatPlanLabel(plan: string): string {
   return plan || 'STARTER';
 }
 
-/** true quando o admin exige plano pago e o usuário ainda não pode criar loja. */
+/** @deprecated Pre-step removido — use shouldShowSellerShopPlanPendingAlert na loja. */
 export function shouldShowSellerShopPlanGate(
+  _gate: SellerShopPlanGateInfo | null | undefined
+): boolean {
+  return false;
+}
+
+/** Alerta pós-setup: cadastro/produto prontos, falta assinar plano mínimo. */
+export function shouldShowSellerShopPlanPendingAlert(
   gate: SellerShopPlanGateInfo | null | undefined
 ): boolean {
   if (!gate) return false;
+  if (typeof gate.needsPlanToPublish === 'boolean') {
+    return gate.needsPlanToPublish;
+  }
   if (gate.canCreateShop) return false;
   const min = (gate.minPlanToCreateShop || 'FREE').toUpperCase();
   return min !== 'FREE';
