@@ -264,6 +264,9 @@ export function ChatScreen() {
       setFriendshipMode('friends');
       setIsFriendshipRequester(false);
       showToast.success('Solicitação aceita!');
+      setMessages([]);
+      setPreviousDayDate(null);
+      await fetchMessages();
     } catch (error) {
       console.error('[ChatScreen] Erro ao aceitar amizade:', error);
       showToast.error('Erro ao aceitar solicitação');
@@ -339,32 +342,41 @@ export function ChatScreen() {
     );
   };
 
-  const fetchMessages = async (date?: string) => {
+  const fetchMessages = async (cursor?: string) => {
     if (!user?.id || !userId) return;
 
     try {
-      if (date) {
+      if (cursor) {
         setLoadingMore(true);
       } else {
         setLoading(true);
       }
 
-      const response = await messageApi.getMessages(user.id, userId, date);
+      const response = await messageApi.getMessages(
+        user.id,
+        userId,
+        cursor ? { before: cursor, limit: 50 } : { limit: 50 }
+      );
 
       if (response && response.success) {
         const rawList = response.data || [];
         const newMessages = rawList.map((m: Record<string, unknown>) =>
           normalizeChatMessage(m)
         );
-        // hasMore e previousDayDate vêm no nível superior da resposta
         const hasMore = (response as any).hasMore ?? false;
-        const previousDayDate = (response as any).previousDayDate ?? null;
-        
-        if (date) {
-          // Se carregando mensagens antigas, adicionar ao início
+        const nextBefore =
+          (response as any).nextBefore ?? (response as any).previousDayDate ?? null;
+
+        if (cursor) {
           setMessages((prev) => {
-            const combined = [...newMessages, ...prev];
-            return combined;
+            const byId = new Map<string, (typeof prev)[number]>();
+            for (const m of [...newMessages, ...prev]) {
+              byId.set(String(m._id), m);
+            }
+            return Array.from(byId.values()).sort(
+              (a, b) =>
+                new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
           });
         } else {
           setMessages(newMessages);
@@ -377,12 +389,7 @@ export function ChatScreen() {
         }
 
         setHasMore(hasMore);
-        setPreviousDayDate(previousDayDate);
-
-        // Se hoje não tem mensagens e tem mais dias, buscar o dia anterior automaticamente
-        if (!date && newMessages.length === 0 && hasMore && previousDayDate) {
-          fetchMessages(previousDayDate);
-        }
+        setPreviousDayDate(nextBefore);
       }
     } catch (error) {
       console.error('[ChatScreen] Erro ao carregar mensagens:', error);

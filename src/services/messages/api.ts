@@ -21,12 +21,20 @@ export const messageApi = {
     return response.data
   },
 
-  getMessages: async (userId: string, otherUserId: string, date?: string) => {
-    const url = date
-      ? MESSAGES_API.threadWithDate(userId, otherUserId, date)
-      : MESSAGES_API.thread(userId, otherUserId);
-    const response = await api.get<ApiResponse<any>>(url);
-    return response.data;
+  getMessages: async (
+    userId: string,
+    otherUserId: string,
+    opts?: string | { before?: string | null; limit?: number }
+  ) => {
+    const url =
+      typeof opts === 'string'
+        ? MESSAGES_API.threadWithDate(userId, otherUserId, opts)
+        : MESSAGES_API.threadPage(userId, otherUserId, {
+            limit: opts?.limit,
+            before: opts?.before,
+          })
+    const response = await api.get<ApiResponse<any>>(url)
+    return response.data
   },
 
   sendMessage: async (data: {

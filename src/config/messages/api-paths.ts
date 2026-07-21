@@ -17,6 +17,19 @@ export const MESSAGES_API = {
   requestsInbox: '/api/messages/requests/inbox',
   thread: (userId: string, otherUserId: string) =>
     `/api/messages/${encodeURIComponent(userId)}/${encodeURIComponent(otherUserId)}`,
+  threadPage: (
+    userId: string,
+    otherUserId: string,
+    params?: { limit?: number; before?: string | null }
+  ) => {
+    const q = new URLSearchParams()
+    if (params?.limit != null) q.set('limit', String(params.limit))
+    if (params?.before) q.set('before', params.before)
+    const qs = q.toString()
+    return qs
+      ? `${MESSAGES_API.thread(userId, otherUserId)}?${qs}`
+      : MESSAGES_API.thread(userId, otherUserId)
+  },
   threadWithDate: (userId: string, otherUserId: string, beforeDate: string) =>
     `${MESSAGES_API.thread(userId, otherUserId)}?beforeDate=${encodeURIComponent(beforeDate)}`,
   byId: (messageId: string) =>
