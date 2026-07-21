@@ -544,12 +544,21 @@ export function UserProfileScreen() {
   const handleMessagePress = () => {
     if (!user) return;
 
-    if (friendshipStatus === 'PENDING_SENT' || friendshipStatus === 'PENDING_RECEIVED') {
+    const isAdmin = currentUser?.accountType === 'admin';
+
+    if (
+      !isAdmin &&
+      (friendshipStatus === 'PENDING_SENT' || friendshipStatus === 'PENDING_RECEIVED')
+    ) {
       setMessageRequestOpen(true);
       return;
     }
 
-    if (friendshipStatus !== 'FRIENDS' && friendshipStatus !== 'FRIENDLY') {
+    if (
+      !isAdmin &&
+      friendshipStatus !== 'FRIENDS' &&
+      friendshipStatus !== 'FRIENDLY'
+    ) {
       showToast.info('Mensagens', 'Envie um pedido de amizade para conversar.');
       return;
     }

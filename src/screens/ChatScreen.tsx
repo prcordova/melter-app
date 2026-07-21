@@ -197,6 +197,11 @@ export function ChatScreen() {
   const checkFriendship = async () => {
     try {
       setFriendshipMode('loading');
+      if (user?.accountType === 'admin') {
+        setFriendshipMode('friends');
+        setIsFriendshipRequester(false);
+        return;
+      }
       const response = await userApi.getUserProfile(username);
       if (response.success) {
         setUserData(response.data);
@@ -217,7 +222,7 @@ export function ChatScreen() {
       }
     } catch (error) {
       console.error('[ChatScreen] Erro ao verificar amizade:', error);
-      setFriendshipMode('none');
+      setFriendshipMode(user?.accountType === 'admin' ? 'friends' : 'none');
     }
   };
 
