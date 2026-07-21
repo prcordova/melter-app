@@ -905,6 +905,7 @@ export function SellerVerificationFormModal({
                       }
                     : undefined
                 }
+                onDismiss={handleClose}
               />
             </ScrollView>
           ) : (
