@@ -16,16 +16,19 @@ type Props = {
 
 export function SellerShopPlanPendingAlert({ gate, onGoToPlans }: Props) {
   const planLabel = formatPlanLabel(gate.minPlanToCreateShop);
-  const currentLabel = formatPlanLabel(gate.currentPlan);
 
   return (
     <View style={styles.banner}>
       <Ionicons name="diamond-outline" size={22} color={COLORS.states.warning} />
       <View style={styles.content}>
-        <Text style={styles.title}>Assine o plano {planLabel} para publicar</Text>
+        <Text style={styles.title}>Ative sua loja e alcance milhares de pessoas</Text>
         <Text style={styles.body}>
-          Seu cadastro e produtos estão prontos. Para ativar a loja e enviar pacotes para moderação,
-          assine o plano {planLabel} ou superior. Plano atual: {currentLabel}.
+          Seu pacote já foi enviado para análise. Assine o plano {planLabel} (teste grátis) para
+          ativar a loja e aparecer no marketplace Melter.
+        </Text>
+        <Text style={styles.hint}>
+          Quanto antes você ativar, mais rápido compradores descobrem seu conteúdo na vitrine e no
+          /shops.
         </Text>
         <TouchableOpacity style={styles.cta} onPress={onGoToPlans} activeOpacity={0.85}>
           <Text style={styles.ctaText}>Teste grátis</Text>
@@ -59,6 +62,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: COLORS.text.secondary,
+  },
+  hint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.text.primary,
   },
   cta: {
     alignSelf: 'center',
