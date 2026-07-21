@@ -28,7 +28,7 @@ export function SellerShopPlanPendingAlert({ gate, onGoToPlans }: Props) {
           assine o plano {planLabel} ou superior. Plano atual: {currentLabel}.
         </Text>
         <TouchableOpacity style={styles.cta} onPress={onGoToPlans} activeOpacity={0.85}>
-          <Text style={styles.ctaText}>Ver planos</Text>
+          <Text style={styles.ctaText}>Teste grátis</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   cta: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,

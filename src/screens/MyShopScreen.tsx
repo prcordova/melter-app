@@ -1142,7 +1142,8 @@ export function MyShopScreen() {
                 )}
                 {isOwner &&
                   (canPrepareShopCatalogWhilePending || canPrepareCatalogWithoutActiveShop) &&
-                  !ownerApproved && (
+                  !ownerApproved &&
+                  products.length === 0 && (
                   <View style={styles.pendingAlert}>
                     <View style={styles.pendingAlertContent}>
                       <Ionicons name="information-circle" size={20} color={COLORS.primary.main} />
