@@ -179,7 +179,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadShopBackgroundImage: false,
     canChangeShopBackgroundMode: false,
     canToggleShopBackgroundOverlay: false,
-    canCustomizeShopTitleColor: false,
+    canCustomizeShopTitleColor: true,
     canCustomizeShopTitleDisplayEffect: false,
     
     // Links
@@ -684,7 +684,7 @@ export function validateShopAppearanceSettings(
   if (settings.titleColor && !limits.canCustomizeShopTitleColor) {
     return {
       valid: false,
-      error: 'Cor do título da loja disponível apenas nos planos PRO e PRO+',
+      error: 'Cor do título da loja disponível a partir do plano Starter',
     }
   }
 
