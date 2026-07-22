@@ -34,7 +34,7 @@ export const productsApi = {
   },
   deleteProduct: async (productId: string) => {
     const response = await api.patch<ApiResponse<any>>(`/api/products/${productId}`, {
-      status: 'INACTIVE',
+      status: 'REMOVED_BY_SELLER',
     });
     return response.data;
   },
