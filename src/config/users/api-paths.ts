@@ -65,6 +65,8 @@ export const USERS_API = {
       emailMarketing: '/api/users/preferences/email-marketing',
       categoryPreferences: '/api/users/preferences/category-preferences',
       location: '/api/users/preferences/location',
+      /** Preferências de exibição dos badges (verificado + Melter) — um PATCH. */
+      badges: '/api/users/preferences/badges',
     },
   },
 
