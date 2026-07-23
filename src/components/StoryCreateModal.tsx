@@ -46,7 +46,7 @@ export function StoryCreateModal({
   const videoRef = useRef<Video>(null);
   const [storyText, setStoryText] = useState('');
   const [loading, setLoading] = useState(false);
-  const [visibility, setVisibility] = useState<'public' | 'followers' | 'friends'>('followers');
+  const [visibility, setVisibility] = useState<'public' | 'followers' | 'friends'>('public');
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [facing, setFacing] = useState<'back' | 'front'>('back');
