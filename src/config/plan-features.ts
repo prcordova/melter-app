@@ -211,7 +211,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxProducts: 10,
     canCreateCategories: false,  // Feature removida - categorias personalizadas não disponíveis
     canUploadProductImages: true,
-    canUploadPresentationVideo: true,
+    canUploadPresentationVideo: false,
     canEnableShop: true,
     maxFileSizePerFile: 1000, // 1 GB por arquivo
     maxTotalFileSize: 3000, // 3 GB total por produto
