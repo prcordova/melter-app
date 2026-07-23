@@ -46,7 +46,7 @@ export function StoryCreateModal({
   const videoRef = useRef<Video>(null);
   const [storyText, setStoryText] = useState('');
   const [loading, setLoading] = useState(false);
-  const [visibility, setVisibility] = useState<'followers' | 'friends'>('followers');
+  const [visibility, setVisibility] = useState<'public' | 'followers' | 'friends'>('followers');
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [facing, setFacing] = useState<'back' | 'front'>('back');
@@ -56,11 +56,11 @@ export function StoryCreateModal({
   const [wasRecording, setWasRecording] = useState(false); // Rastrear se estava gravando para evitar tirar foto ao soltar
   const [cameraMode, setCameraMode] = useState<'picture' | 'video'>('picture');
   const cameraRef = useRef<CameraView>(null);
-  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingStartTimeRef = useRef<number>(0);
   const recordingPromiseRef = useRef<Promise<{ uri: string } | undefined> | null>(null);
   const pressStartTimeRef = useRef<number>(0);
-  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
 
@@ -752,7 +752,13 @@ export function StoryCreateModal({
                     onPress={() => setShowVisibilityMenu(!showVisibilityMenu)}
                   >
                     <Ionicons 
-                      name={visibility === 'friends' ? 'people' : 'people-outline'} 
+                      name={
+                        visibility === 'public'
+                          ? 'globe-outline'
+                          : visibility === 'friends'
+                            ? 'people'
+                            : 'people-outline'
+                      } 
                       size={24} 
                       color="#ffffff" 
                     />
@@ -761,6 +767,19 @@ export function StoryCreateModal({
                   {showVisibilityMenu && (
                     <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
                       <View style={styles.visibilityMenu}>
+                        <TouchableOpacity
+                          style={[
+                            styles.visibilityOption,
+                            visibility === 'public' && styles.visibilityOptionActive
+                          ]}
+                          onPress={() => {
+                            setVisibility('public');
+                            setShowVisibilityMenu(false);
+                          }}
+                        >
+                          <Ionicons name="globe-outline" size={20} color="#ffffff" />
+                          <Text style={styles.visibilityOptionText}>Público</Text>
+                        </TouchableOpacity>
                         <TouchableOpacity
                           style={[
                             styles.visibilityOption,
