@@ -47,6 +47,8 @@ export interface PlanLimits {
   /** Máx. de imagens por post no feed (carrossel quando > 1). Hoje o post usa 1 imageUrl; limite vale para marketing e futura API. */
   maxImagesPerPost: number
   canPostWithoutLink: boolean  // Permite postar no feed sem compartilhar um link
+  /** Negrito, itálico, cores, fundo e bullets no texto do post — LITE+ */
+  canCustomizePostRichText: boolean
   
   // Monetização
   canReceiveDonations: boolean
@@ -100,6 +102,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadPostImages: false,
     maxImagesPerPost: 0,
     canPostWithoutLink: false,  // FREE precisa compartilhar um link
+    canCustomizePostRichText: false,
     
     // Monetização
     canReceiveDonations: false,
@@ -145,6 +148,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadPostImages: false,
     maxImagesPerPost: 0,
     canPostWithoutLink: true,
+    canCustomizePostRichText: true,
     canReceiveDonations: false,
     hasAnalytics: false,
     hasShopAnalytics: false,
@@ -189,6 +193,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadPostImages: false,
     maxImagesPerPost: 0,
     canPostWithoutLink: true,  // STARTER pode postar sem link ✅
+    canCustomizePostRichText: true,
     
     // Monetização
     canReceiveDonations: true,  // STARTER pode receber doações
@@ -241,6 +246,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadPostImages: true,
     maxImagesPerPost: 1,
     canPostWithoutLink: true,
+    canCustomizePostRichText: true,
     
     // Monetização
     canReceiveDonations: true,  // PRO pode receber doações
@@ -293,6 +299,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadPostImages: true,
     maxImagesPerPost: 1,
     canPostWithoutLink: true,
+    canCustomizePostRichText: true,
     
     // Monetização
     canReceiveDonations: true,
