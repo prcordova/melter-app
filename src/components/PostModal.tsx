@@ -32,6 +32,7 @@ import { Avatar } from './Avatar';
 import { AdminPasswordModal } from './AdminPasswordModal';
 import { UsernameGradientText } from './UsernameGradientText';
 import { RichPostText } from './RichPostText';
+import { PostDoubleTapLike } from './PostDoubleTapLike';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 import {
   getPostAuthorDisplayLabel,
@@ -136,6 +137,13 @@ export function PostModal({
     } catch (err) {
       console.error('Erro ao reagir:', err);
       void fetchPost();
+    }
+  };
+
+  const handleDoubleTapLike = () => {
+    if (!post) return;
+    if (post.userReaction !== 'LIKE') {
+      void handleReact('LIKE');
     }
   };
 
@@ -397,11 +405,13 @@ export function PostModal({
                   </View>
 
                   {/* Post Content */}
-                  <RichPostText
-                    text={post.content || ''}
-                    style={styles.content}
-                    color={COLORS.text.primary}
-                  />
+                  <PostDoubleTapLike onLike={handleDoubleTapLike}>
+                    <RichPostText
+                      text={post.content || ''}
+                      style={styles.content}
+                      color={COLORS.text.primary}
+                    />
+                  </PostDoubleTapLike>
 
                   {/* Link Preview */}
                   {post.linkId && (
@@ -435,11 +445,13 @@ export function PostModal({
 
                   {/* Post Image */}
                   {post.imageUrl && (
-                    <Image
-                      source={{ uri: getAvatarUrl(post.imageUrl) }}
-                      style={styles.postImage}
-                      resizeMode="contain"
-                    />
+                    <PostDoubleTapLike onLike={handleDoubleTapLike}>
+                      <Image
+                        source={{ uri: getAvatarUrl(post.imageUrl) }}
+                        style={styles.postImage}
+                        resizeMode="contain"
+                      />
+                    </PostDoubleTapLike>
                   )}
 
                 </ScrollView>

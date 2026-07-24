@@ -34,6 +34,7 @@ import {
 import { Avatar } from './Avatar';
 import { UsernameGradientText } from './UsernameGradientText';
 import { RichPostText } from './RichPostText';
+import { PostDoubleTapLike } from './PostDoubleTapLike';
 
 interface PostCardProps {
   post: Post;
@@ -83,6 +84,14 @@ export function PostCard({
     if (post?._id) {
       onReact(post._id, reactionType);
       setShowReactions(false);
+    }
+  };
+
+  /** Double-tap Instagram-like: LIKE sem descurtir se já curtido. */
+  const handleDoubleTapLike = () => {
+    if (!post?._id) return;
+    if (post.userReaction !== 'LIKE') {
+      onReact(post._id, 'LIKE');
     }
   };
 
@@ -275,7 +284,9 @@ export function PostCard({
         </View>
 
         {originalPost.content && (
-          <RichPostText text={originalPost.content} style={styles.originalContent} color="#64748b" />
+          <PostDoubleTapLike onLike={handleDoubleTapLike}>
+            <RichPostText text={originalPost.content} style={styles.originalContent} color="#64748b" />
+          </PostDoubleTapLike>
         )}
 
         {/* Link no Post Original */}
@@ -388,11 +399,13 @@ export function PostCard({
 
       {/* Content (Comentário do compartilhamento ou conteúdo do post normal) */}
       {(post.originalPostId ? post.shareComment : post.content) && (
-        <RichPostText
-          text={(post.originalPostId ? post.shareComment : post.content) || ''}
-          style={styles.content}
-          color="#1e293b"
-        />
+        <PostDoubleTapLike onLike={handleDoubleTapLike}>
+          <RichPostText
+            text={(post.originalPostId ? post.shareComment : post.content) || ''}
+            style={styles.content}
+            color="#1e293b"
+          />
+        </PostDoubleTapLike>
       )}
 
       {/* Post original (compartilhamento) — respeita permissão como no web */}
@@ -443,13 +456,13 @@ export function PostCard({
 
       {/* Image (apenas para posts normais) */}
       {!post.originalPostId && post.imageUrl && (
-        <TouchableOpacity onPress={handleImagePress} activeOpacity={0.9}>
+        <PostDoubleTapLike onLike={handleDoubleTapLike} onSingleTap={handleImagePress}>
           <Image
             source={{ uri: getAvatarUrl(post.imageUrl) }}
             style={styles.postImage}
             resizeMode="cover"
           />
-        </TouchableOpacity>
+        </PostDoubleTapLike>
       )}
 
       {/* Reactions Summary */}
