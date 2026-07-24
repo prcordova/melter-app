@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, type ReactNode } from 'react'
+import React, { useCallback, useId, useRef, useState, type ReactNode } from 'react'
 import {
   Animated,
   StyleSheet,
@@ -7,16 +7,35 @@ import {
   type ViewStyle,
   Pressable,
 } from 'react-native'
+import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg'
+import { COLORS } from '../theme/colors'
 
 const DOUBLE_TAP_MS = 280
+const GRADIENT = COLORS.gradient.primary // roxo → rosa
 
 type PostDoubleTapLikeProps = {
   children: ReactNode
   onLike: () => void
   onSingleTap?: () => void
   disabled?: boolean
-  emoji?: string
   style?: StyleProp<ViewStyle>
+}
+
+function GradientHeart({ size, gradientId }: { size: number; gradientId: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Defs>
+        <LinearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <Stop offset="0%" stopColor={GRADIENT[0]} />
+          <Stop offset="100%" stopColor={GRADIENT[1]} />
+        </LinearGradient>
+      </Defs>
+      <Path
+        fill={`url(#${gradientId})`}
+        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+      />
+    </Svg>
+  )
 }
 
 /**
@@ -27,9 +46,9 @@ export function PostDoubleTapLike({
   onLike,
   onSingleTap,
   disabled = false,
-  emoji = '❤️',
   style,
 }: PostDoubleTapLikeProps) {
+  const reactId = useId().replace(/:/g, '')
   const lastTapRef = useRef(0)
   const singleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [burstKey, setBurstKey] = useState(0)
@@ -108,23 +127,30 @@ export function PostDoubleTapLike({
   }
 
   return (
-    <Pressable onPress={handlePress} disabled={disabled} style={style}>
+    <Pressable
+      onPress={handlePress}
+      disabled={disabled}
+      style={[style, burstKey > 0 ? styles.bursting : null]}
+    >
       <View style={styles.wrap}>
         {children}
         {burstKey > 0 ? (
           <View pointerEvents="none" style={styles.burstWrap}>
-            <Animated.Text
+            <Animated.View
               key={burstKey}
-              style={[
-                styles.burst,
-                {
-                  opacity,
-                  transform: [{ scale }],
-                },
-              ]}
+              style={{
+                opacity,
+                transform: [{ scale }],
+                // sombra rosa/roxa (sem borda preta de emoji)
+                shadowColor: GRADIENT[1],
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.55,
+                shadowRadius: 14,
+                elevation: 8,
+              }}
             >
-              {emoji}
-            </Animated.Text>
+              <GradientHeart size={72} gradientId={`like-heart-${reactId}-${burstKey}`} />
+            </Animated.View>
           </View>
         ) : null}
       </View>
@@ -135,17 +161,17 @@ export function PostDoubleTapLike({
 const styles = StyleSheet.create({
   wrap: {
     position: 'relative',
+    overflow: 'visible',
+  },
+  bursting: {
+    zIndex: 40,
+    overflow: 'visible',
   },
   burstWrap: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 20,
-  },
-  burst: {
-    fontSize: 72,
-    textShadowColor: 'rgba(0,0,0,0.35)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 12,
+    zIndex: 40,
+    overflow: 'visible',
   },
 })
