@@ -31,6 +31,7 @@ import { showToast } from './CustomToast';
 import { Avatar } from './Avatar';
 import { AdminPasswordModal } from './AdminPasswordModal';
 import { UsernameGradientText } from './UsernameGradientText';
+import { RichPostText } from './RichPostText';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 import {
   getPostAuthorDisplayLabel,
@@ -396,7 +397,11 @@ export function PostModal({
                   </View>
 
                   {/* Post Content */}
-                  <Text style={styles.content}>{post.content}</Text>
+                  <RichPostText
+                    text={post.content || ''}
+                    style={styles.content}
+                    color={COLORS.text.primary}
+                  />
 
                   {/* Link Preview */}
                   {post.linkId && (

@@ -33,6 +33,7 @@ import {
 
 import { Avatar } from './Avatar';
 import { UsernameGradientText } from './UsernameGradientText';
+import { RichPostText } from './RichPostText';
 
 interface PostCardProps {
   post: Post;
@@ -274,7 +275,7 @@ export function PostCard({
         </View>
 
         {originalPost.content && (
-          <Text style={styles.originalContent}>{originalPost.content}</Text>
+          <RichPostText text={originalPost.content} style={styles.originalContent} color="#64748b" />
         )}
 
         {/* Link no Post Original */}
@@ -387,9 +388,11 @@ export function PostCard({
 
       {/* Content (Comentário do compartilhamento ou conteúdo do post normal) */}
       {(post.originalPostId ? post.shareComment : post.content) && (
-        <Text style={styles.content}>
-          {post.originalPostId ? post.shareComment : post.content}
-        </Text>
+        <RichPostText
+          text={(post.originalPostId ? post.shareComment : post.content) || ''}
+          style={styles.content}
+          color="#1e293b"
+        />
       )}
 
       {/* Post original (compartilhamento) — respeita permissão como no web */}

@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
 import { getImageUrl } from '../../utils/image';
+import { stripRichTextMarkup } from '../../lib/rich-text';
 
 interface PostAnalytics {
   _id: string;
@@ -127,9 +128,10 @@ export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
           )}
           <View style={styles.postTextContainer}>
             <Text style={styles.postText} numberOfLines={3}>
-              {post.content.length > 100 
-                ? `${post.content.substring(0, 100)}...` 
-                : post.content}
+              {(() => {
+                const plain = stripRichTextMarkup(post.content || '')
+                return plain.length > 100 ? `${plain.substring(0, 100)}...` : plain
+              })()}
             </Text>
           </View>
         </View>
