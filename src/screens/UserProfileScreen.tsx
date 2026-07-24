@@ -963,7 +963,12 @@ export function UserProfileScreen() {
 
         {/* Info do Usuário */}
         <View style={styles.profileHeader}>
-          <View style={styles.avatarStatusRow}>
+          <View
+            style={[
+              styles.avatarStatusRow,
+              !showStatusBalloon ? styles.avatarStatusRowCentered : null,
+            ]}
+          >
             <View
               style={[
                 styles.avatarWrapper,
@@ -1729,6 +1734,9 @@ const styles = StyleSheet.create({
     marginTop: -50,
     minWidth: 0,
     width: '100%',
+  },
+  avatarStatusRowCentered: {
+    justifyContent: 'center',
   },
   avatarContainer: {
     position: 'relative',
