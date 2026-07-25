@@ -19,6 +19,7 @@ export const SHOP_API = {
     analytics: SHOP_ANALYTICS_API.me,
     likes: '/api/shops/me/likes',
     commentsModeration: '/api/shops/me/comments/moderation',
+    planAbandonFeedback: '/api/shops/me/plan-abandon-feedback',
   },
   verification: {
     root: '/api/shops/verification',
