@@ -7,7 +7,9 @@ import { User } from '../types';
 
 interface LoginResult {
   requires2FA?: boolean;
+  requiresCancelDeletion?: boolean;
   tempToken?: string;
+  deletionScheduledAt?: string | null;
   success?: boolean;
 }
 
@@ -18,6 +20,7 @@ interface AuthContextType {
   biometricUnlockRequired: boolean;
   clearBiometricUnlockRequirement: () => void;
   login: (username: string, password: string, twoFactorCode?: string, tempToken?: string) => Promise<LoginResult | undefined>;
+  confirmCancelDeletionLogin: (tempToken: string) => Promise<LoginResult | undefined>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -221,6 +224,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.requires2FA && response.tempToken) {
         return { requires2FA: true, tempToken: response.tempToken };
       }
+
+      if (response.requiresCancelDeletion && response.tempToken) {
+        return {
+          requiresCancelDeletion: true,
+          tempToken: response.tempToken,
+          deletionScheduledAt: response.deletionScheduledAt ?? null,
+        };
+      }
       
       // Verificar estrutura da resposta - token pode estar em response.token ou response.data.token
       const token = response.data?.token || response.token;
@@ -262,6 +273,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const confirmCancelDeletionLogin = async (cancelTempToken: string): Promise<LoginResult | undefined> => {
+    try {
+      const response = await authApi.confirmCancelDeletion(cancelTempToken);
+      if (response.requires2FA && response.tempToken) {
+        return { requires2FA: true, tempToken: response.tempToken };
+      }
+      const token = (response as any).data?.token || (response as any).token;
+      if (response.success && token) {
+        await AsyncStorage.setItem('token', token);
+        const userData = (response as any).data?.user || (response as any).user;
+        if (!userData) throw new Error('Dados do usuário não encontrados');
+        const nextUser: User = {
+          id: userData.id || userData._id,
+          username: userData.username,
+          email: userData.email,
+          avatar: userData.avatar,
+          following: userData.following,
+          plan: userData.plan,
+          accountType: userData.accountType,
+          twoFactor: userData.twoFactor,
+          verifiedBadge: userData.verifiedBadge,
+          wallet: userData.wallet,
+        };
+        setUser(nextUser);
+        await persistUserCache(nextUser);
+        setBiometricUnlockRequired(false);
+        return { success: true };
+      }
+      throw new Error((response as any).message || 'Não foi possível cancelar a exclusão');
+    } catch (error) {
+      console.error('Erro ao confirmar cancelamento de exclusão:', error);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
     setBiometricUnlockRequired(false);
@@ -276,6 +322,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         biometricUnlockRequired,
         clearBiometricUnlockRequirement,
         login,
+        confirmCancelDeletionLogin,
         logout,
         refreshUser,
       }}

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Switch,
+  Alert,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -24,7 +25,7 @@ import {
 } from '../services/biometricLogin';
 
 export function LoginScreen() {
-  const { login } = useAuth();
+  const { login, confirmCancelDeletionLogin } = useAuth();
   const navigation = useNavigation();
   const [formData, setFormData] = useState({
     username: '',
@@ -42,6 +43,45 @@ export function LoginScreen() {
   const [requires2FA, setRequires2FA] = useState(false);
   const [tempToken, setTempToken] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
+
+  const promptCancelDeletion = (token: string, scheduledAt?: string | null) => {
+    const dateHint = scheduledAt
+      ? `\n\nExclusão prevista para ${new Date(scheduledAt).toLocaleString('pt-BR')}.`
+      : '';
+    Alert.alert(
+      'Conta em período de exclusão',
+      `Ao entrar, o pedido de exclusão será cancelado e sua conta volta ao normal.${dateHint}`,
+      [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Entrar e cancelar exclusão',
+          onPress: () => {
+            void (async () => {
+              try {
+                setLoading(true);
+                const result = await confirmCancelDeletionLogin(token);
+                if (result?.requires2FA && result.tempToken) {
+                  setRequires2FA(true);
+                  setTempToken(result.tempToken);
+                }
+              } catch (e) {
+                const err = e as AxiosError<{ message?: string; code?: string }>;
+                const msg =
+                  err.response?.data?.code === 'ACCOUNT_DELETION_EXPIRED'
+                    ? err.response.data.message ||
+                      'Há um problema com esta conta. Crie uma nova conta utilizando outro e-mail.'
+                    : err.response?.data?.message || 'Não foi possível concluir o login.';
+                setError(msg);
+                showToast.error('Login', msg);
+              } finally {
+                setLoading(false);
+              }
+            })();
+          },
+        },
+      ]
+    );
+  };
 
   useEffect(() => {
     (async () => {
@@ -80,6 +120,12 @@ export function LoginScreen() {
         return;
       }
 
+      if (result?.requiresCancelDeletion && result?.tempToken) {
+        setLoading(false);
+        promptCancelDeletion(result.tempToken, result.deletionScheduledAt);
+        return;
+      }
+
       // Login bem-sucedido — opcionalmente guardar credenciais para biometria
       if (result?.success && saveWithBiometric && canUseBiometric) {
         try {
@@ -95,10 +141,16 @@ export function LoginScreen() {
 
       // A navegação será tratada automaticamente pelo AuthContext
     } catch (error) {
-      const err = error as AxiosError<{ message: string; requiresVerification?: boolean; email?: string }>;
+      const err = error as AxiosError<{ message: string; requiresVerification?: boolean; email?: string; code?: string }>;
       console.error('[LOGIN] Erro no login:', err);
 
-      if (err.response?.data?.requiresVerification && err.response?.data?.email) {
+      if (err.response?.data?.code === 'ACCOUNT_DELETION_EXPIRED') {
+        const msg =
+          err.response.data.message ||
+          'Há um problema com esta conta. Crie uma nova conta utilizando outro e-mail.';
+        setError(msg);
+        showToast.error('Login', msg);
+      } else if (err.response?.data?.requiresVerification && err.response?.data?.email) {
         const userEmail = err.response.data.email;
         showToast.info('Verificação Necessária', 'Você precisa verificar seu e-mail antes de fazer login.');
         setTimeout(() => {
@@ -132,6 +184,9 @@ export function LoginScreen() {
         setRequires2FA(true);
         setTempToken(result.tempToken);
         showToast.info('2FA', 'Conta com 2FA: digite o código do autenticador.');
+      } else if (result?.requiresCancelDeletion && result?.tempToken) {
+        setFormData((prev) => ({ ...prev, username, password }));
+        promptCancelDeletion(result.tempToken, result.deletionScheduledAt);
       }
     } catch (e: any) {
       if (e?.code === 'BIOMETRIC_CANCELLED') {

@@ -52,5 +52,10 @@ export interface LoginResult {
   token?: string;
   tempToken?: string;
   success?: boolean;
+  requires2FA?: boolean;
+  requiresCancelDeletion?: boolean;
+  deletionScheduledAt?: string | null;
+  code?: string;
+  message?: string;
   data?: AuthResponse;
 }

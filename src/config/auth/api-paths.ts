@@ -6,6 +6,7 @@
 export const AUTH_API = {
   login: '/api/auth/login',
   login2fa: '/api/auth/login/2fa',
+  confirmCancelDeletion: '/api/auth/login/confirm-cancel-deletion',
   register: '/api/auth/register',
   registerGoogle: '/api/auth/register/google',
   registerModerateAvatar: '/api/auth/register/moderate-avatar',

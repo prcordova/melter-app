@@ -36,6 +36,14 @@ export const authApi = {
     });
     return response.data;
   },
+
+  confirmCancelDeletion: async (tempToken: string): Promise<LoginResult> => {
+    const response = await api.post<LoginResult>(AUTH_API.confirmCancelDeletion, {
+      tempToken,
+      accessSource: 'app',
+    });
+    return response.data;
+  },
   register: async (userData: {
     username: string;
     email: string;
