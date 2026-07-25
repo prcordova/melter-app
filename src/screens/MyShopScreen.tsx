@@ -475,10 +475,16 @@ export function MyShopScreen() {
 
   const sellerVerification = shopSettings?.sellerVerification;
 
-  // Verificar se pode criar mais produtos (incluindo produtos pendentes no limite)
+  // Verificar se pode criar mais produtos (limites efetivos = gate / admin)
   const getProductLimits = () => {
-    const planType = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
-    const maxProducts = getFeatureLimit(planType, 'maxProducts');
+    const planType = (user?.plan?.type || 'FREE') as
+      | 'FREE'
+      | 'LITE'
+      | 'STARTER'
+      | 'PRO'
+      | 'PRO_PLUS';
+    const maxProducts =
+      shopPlanGate?.productStorageLimits?.maxProducts ?? getFeatureLimit(planType, 'maxProducts');
     // Incluir produtos pendentes no limite (eles já "gastam" o recurso)
     const currentProducts = products.filter((p: any) => p.status !== 'INACTIVE').length;
     return { max: maxProducts, current: currentProducts };
@@ -629,8 +635,14 @@ export function MyShopScreen() {
     const list = await fetchShopSettings();
     // Após envio do cadastro da loja: abrir wizard do primeiro pacote se ainda não existir nenhum.
     if (!isOwner) return;
-    const planType = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
-    const maxProducts = getFeatureLimit(planType, 'maxProducts');
+    const planType = (user?.plan?.type || 'FREE') as
+      | 'FREE'
+      | 'LITE'
+      | 'STARTER'
+      | 'PRO'
+      | 'PRO_PLUS';
+    const maxProducts =
+      shopPlanGate?.productStorageLimits?.maxProducts ?? getFeatureLimit(planType, 'maxProducts');
     if (list.length >= maxProducts) return;
     if (list.length > 0) return;
     setActiveTab('products');

@@ -68,14 +68,14 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   FREE: {
-    // Produtos e Loja
-    maxProducts: 1,
+    // Produtos e Loja — FREE é perfil/comunidade; venda digital começa no LITE+
+    maxProducts: 0,
     canCreateCategories: false,
     canUploadProductImages: false,
     canUploadPresentationVideo: false,
     canEnableShop: true,
-    maxFileSizePerFile: 300,
-    maxTotalFileSize: 400,
+    maxFileSizePerFile: 0,
+    maxTotalFileSize: 0,
     
     // Perfil - Aparência (identidade básica no FREE; modos avançados de fundo no PRO)
     canUploadBackgroundImage: false,
