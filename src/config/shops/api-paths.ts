@@ -20,6 +20,8 @@ export const SHOP_API = {
     likes: '/api/shops/me/likes',
     commentsModeration: '/api/shops/me/comments/moderation',
     planAbandonFeedback: '/api/shops/me/plan-abandon-feedback',
+    platformReview: '/api/shops/me/platform-review',
+    platformReviewSnooze: '/api/shops/me/platform-review/snooze',
   },
   verification: {
     root: '/api/shops/verification',
@@ -28,6 +30,15 @@ export const SHOP_API = {
   },
   subscriptionPlans: (username: string) =>
     `/api/subscription-plans/shop/${encodeURIComponent(username)}`,
+} as const
+
+/** Prova social pública + moderação admin — sync com melter web */
+export const PLATFORM_REVIEWS_API = {
+  socialProof: '/api/platform-reviews/social-proof',
+  adminList: '/api/admin/platform-reviews',
+  adminItem: (id: string) => `/api/admin/platform-reviews/${encodeURIComponent(id)}`,
+  adminActivate: (userId: string) =>
+    `/api/admin/users/${encodeURIComponent(userId)}/platform-review/activate`,
 } as const
 
 /** Vídeo de apresentação do pacote — sync com melter web */
