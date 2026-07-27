@@ -279,8 +279,15 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
         }
       }
     } catch (error: any) {
-      console.error(`Erro ao ${isEditing ? 'atualizar' : 'criar'} post:`, error);
-      Alert.alert('Erro', error.response?.data?.message || `Não foi possível ${isEditing ? 'atualizar' : 'criar'} o post`);
+      const data = error?.response?.data
+      const base = data?.message || `Não foi possível ${isEditing ? 'atualizar' : 'criar'} o post`
+      const reason = typeof data?.reason === 'string' && data.reason.trim() ? data.reason.trim() : ''
+      console.error(`Erro ao ${isEditing ? 'atualizar' : 'criar'} post:`, {
+        status: error?.response?.status,
+        code: data?.code,
+        message: data?.message,
+      })
+      Alert.alert('Erro', reason ? `${base}\n\n${reason}` : base)
     } finally {
       setLoading(false);
     }

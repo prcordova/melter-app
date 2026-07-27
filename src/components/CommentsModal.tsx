@@ -161,11 +161,19 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
         fetchComments();
       }
     } catch (error) {
-      console.error('[CommentsModal] Erro ao enviar:', error);
-      if ((error as any).response?.status === 404) {
-        Alert.alert('Erro', 'Post não encontrado ou endpoint inválido (404)');
+      const ax = error as { response?: { status?: number; data?: { message?: string; reason?: string; code?: string } } }
+      const data = ax.response?.data
+      console.error('[CommentsModal] Erro ao enviar:', {
+        status: ax.response?.status,
+        code: data?.code,
+        message: data?.message,
+      })
+      if (ax.response?.status === 404) {
+        Alert.alert('Erro', 'Post não encontrado ou endpoint inválido (404)')
       } else {
-        Alert.alert('Erro', 'Não foi possível enviar o comentário');
+        const base = data?.message || 'Não foi possível enviar o comentário'
+        const reason = typeof data?.reason === 'string' && data.reason.trim() ? data.reason.trim() : ''
+        Alert.alert('Erro', reason ? `${base}\n\n${reason}` : base)
       }
     } finally {
       setSending(false);
