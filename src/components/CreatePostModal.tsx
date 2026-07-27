@@ -85,10 +85,10 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
 
   const userPlan = (user?.plan?.type || 'FREE') as import('../config/plan-features').PlanType;
   const canUploadImage = hasFeatureAccess(userPlan, 'canUploadPostImages');
-  const canPostWithoutLink = hasFeatureAccess(userPlan, 'canPostWithoutLink');
+  const canAttachPostLink = hasFeatureAccess(userPlan, 'canAttachPostLink');
   const isEditing = !!editingPost;
   const selectedLink = myLinks.find((link) => link._id === selectedLinkId) ?? null;
-  const showLinkMenuEmptyState = !canPostWithoutLink && myLinks.length === 0;
+  const showLinkMenuEmptyState = canAttachPostLink && myLinks.length === 0;
 
   useEffect(() => {
     if (visible) {
@@ -194,14 +194,6 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
       return;
     }
 
-    if (!isEditing && !canPostWithoutLink && !selectedLinkId) {
-      Alert.alert(
-        'Link obrigatório',
-        'No plano FREE você precisa selecionar um link do seu perfil para postar.'
-      );
-      return;
-    }
-
     try {
       setLoading(true);
 
@@ -275,7 +267,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           imageUrl,
           visibility,
           category,
-          linkId: selectedLinkId || null,
+          linkId: canAttachPostLink ? selectedLinkId || null : null,
           hideAutoPreview: false,
         });
 
@@ -467,17 +459,19 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
             {!isEditing ? (
               <View style={styles.sectionThird}>
                 <Text style={styles.sectionTitle}>Link</Text>
-                <TouchableOpacity
-                  style={[
-                    styles.picker,
-                    !canPostWithoutLink && !selectedLinkId && styles.pickerRequired,
-                  ]}
-                  onPress={() => setShowLinkPicker(true)}
-                  disabled={loading}
+                <PlanLocker
+                  requiredPlan="STARTER"
+                  currentPlan={user?.plan?.type as 'FREE' | 'LITE' | 'STARTER' | 'PRO' | 'PRO_PLUS' || 'FREE'}
                 >
-                  <Text style={styles.pickerText} numberOfLines={1}>{getLinkLabel()}</Text>
-                  <Text style={styles.pickerArrow}>▼</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.picker}
+                    onPress={() => setShowLinkPicker(true)}
+                    disabled={loading || !canAttachPostLink}
+                  >
+                    <Text style={styles.pickerText} numberOfLines={1}>{getLinkLabel()}</Text>
+                    <Text style={styles.pickerArrow}>▼</Text>
+                  </TouchableOpacity>
+                </PlanLocker>
               </View>
             ) : null}
 
@@ -506,26 +500,16 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={
-              loading ||
-              !content.trim() ||
-              (!isEditing && !canPostWithoutLink && !selectedLinkId)
-            }
+            disabled={loading || !content.trim()}
             style={[
               styles.postButtonContainer,
-              (loading ||
-                !content.trim() ||
-                (!isEditing && !canPostWithoutLink && !selectedLinkId)) &&
-                styles.postButtonContainerDisabled,
+              (loading || !content.trim()) && styles.postButtonContainerDisabled,
             ]}
           >
             <Text
               style={[
                 styles.postButtonText,
-                (loading ||
-                  !content.trim() ||
-                  (!isEditing && !canPostWithoutLink && !selectedLinkId)) &&
-                  styles.postButtonTextDisabled,
+                (loading || !content.trim()) && styles.postButtonTextDisabled,
               ]}
             >
               {loading ? (isEditing ? 'Atualizando...' : 'Postando...') : (isEditing ? 'Atualizar' : 'Postar')}
@@ -585,7 +569,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
               {showLinkMenuEmptyState ? (
                 <View style={styles.linkEmptyState}>
                   <Text style={styles.linkEmptyStateText}>
-                    Cadastre um link no seu perfil para poder postar no plano FREE.
+                    Cadastre um link no seu perfil para anexar ao post.
                   </Text>
                   <TouchableOpacity
                     style={styles.addLinkButton}
@@ -596,20 +580,18 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
                 </View>
               ) : (
                 <ScrollView>
-                  {canPostWithoutLink ? (
-                    <TouchableOpacity
-                      style={[
-                        styles.pickerOption,
-                        !selectedLinkId && styles.pickerOptionSelected,
-                      ]}
-                      onPress={() => {
-                        setSelectedLinkId('');
-                        setShowLinkPicker(false);
-                      }}
-                    >
-                      <Text style={styles.pickerOptionText}>Nenhum (post sem link)</Text>
-                    </TouchableOpacity>
-                  ) : null}
+                  <TouchableOpacity
+                    style={[
+                      styles.pickerOption,
+                      !selectedLinkId && styles.pickerOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setSelectedLinkId('');
+                      setShowLinkPicker(false);
+                    }}
+                  >
+                    <Text style={styles.pickerOptionText}>Nenhum (post sem link)</Text>
+                  </TouchableOpacity>
                   {myLinks.map((link) => (
                     <TouchableOpacity
                       key={link._id}

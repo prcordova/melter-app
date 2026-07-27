@@ -46,7 +46,12 @@ export interface PlanLimits {
   canUploadPostImages: boolean
   /** Máx. de imagens por post no feed (carrossel quando > 1). Hoje o post usa 1 imageUrl; limite vale para marketing e futura API. */
   maxImagesPerPost: number
-  canPostWithoutLink: boolean  // Permite postar no feed sem compartilhar um link
+  /**
+   * @deprecated Todos podem postar sem link. Preferir `canAttachPostLink`.
+   */
+  canPostWithoutLink: boolean
+  /** Anexar link do perfil ao post — STARTER+ */
+  canAttachPostLink: boolean
   /** Negrito, itálico, cores, fundo e bullets no texto do post — LITE+ */
   canCustomizePostRichText: boolean
   
@@ -101,7 +106,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     // Posts e Conteúdo
     canUploadPostImages: false,
     maxImagesPerPost: 0,
-    canPostWithoutLink: false,  // FREE precisa compartilhar um link
+    canPostWithoutLink: true,
+    canAttachPostLink: false,
     canCustomizePostRichText: false,
     
     // Monetização
@@ -148,6 +154,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadPostImages: false,
     maxImagesPerPost: 0,
     canPostWithoutLink: true,
+    canAttachPostLink: false,
     canCustomizePostRichText: true,
     canReceiveDonations: false,
     hasAnalytics: false,
@@ -192,7 +199,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     // Posts e Conteúdo
     canUploadPostImages: false,
     maxImagesPerPost: 0,
-    canPostWithoutLink: true,  // STARTER pode postar sem link ✅
+    canPostWithoutLink: true,
+    canAttachPostLink: true,
     canCustomizePostRichText: true,
     
     // Monetização
@@ -246,6 +254,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadPostImages: true,
     maxImagesPerPost: 1,
     canPostWithoutLink: true,
+    canAttachPostLink: true,
     canCustomizePostRichText: true,
     
     // Monetização
@@ -299,6 +308,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadPostImages: true,
     maxImagesPerPost: 1,
     canPostWithoutLink: true,
+    canAttachPostLink: true,
     canCustomizePostRichText: true,
     
     // Monetização
