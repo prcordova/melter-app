@@ -173,8 +173,22 @@ export function PlansScreen() {
 
     // Se já tem plano ativo (não FREE) e quer trocar
     if (currentPlan !== 'FREE' && planStatus === 'ACTIVE') {
-      // Se já tem plano, mostrar diálogo de confirmação
       const isUpgrade = getPlanHierarchy(planName) > getPlanHierarchy(currentPlan);
+
+      if (isUpgrade && withTrial) {
+        showConfirm(
+          'Iniciar teste grátis',
+          `Você vai testar ${formatPlanDisplayName(planName)} por 7 dias. Seu plano ${formatPlanDisplayName(currentPlan)} continua cobrando normalmente. Se cancelar o teste ou ele expirar sem cobrança do novo, você volta para ${formatPlanDisplayName(currentPlan)}. Se não cancelar, ao fim do teste o novo plano é cobrado e o anterior é cancelado.`,
+          async () => {
+            await proceedWithCheckout(planName, { withTrial: true });
+          },
+          {
+            confirmText: 'Continuar para o teste',
+            cancelText: 'Voltar',
+          }
+        );
+        return;
+      }
       
       showConfirm(
         'Trocar de Plano',
@@ -254,16 +268,21 @@ export function PlansScreen() {
     }
   };
 
-  const handleCancelAndProceed = async (newPlan: string) => {
+  const handleCancelAndProceed = async (newPlan: string, options?: { withTrial?: boolean }) => {
     try {
       setLoading(true);
-      const response = await paymentApi.cancelSubscription(newPlan);
-      if (response.success) {
-        showToast.success('Plano agendado com sucesso');
-        await fetchUserPlan();
-        if (refreshUser) {
-          await refreshUser();
+      // Trial de upgrade: não cancela o plano pago atual
+      if (!options?.withTrial) {
+        const response = await paymentApi.cancelSubscription(newPlan);
+        if (!response.success) {
+          showToast.error('Erro ao preparar troca de plano');
+          return;
         }
+      }
+      await proceedWithCheckout(newPlan, options);
+      await fetchUserPlan();
+      if (refreshUser) {
+        await refreshUser();
       }
     } catch (error: any) {
       console.error('Erro ao cancelar assinatura:', error);
@@ -278,17 +297,24 @@ export function PlansScreen() {
     showConfirm(
       'Confirmar Cancelamento',
       revokeImmediately
-        ? `Você está no teste grátis de 7 dias (não é um mês pago). Ao cancelar agora, os benefícios são encerrados na hora e nenhuma cobrança será feita. Se não cancelar, ao fim do teste o Mercado Pago cobra automaticamente.`
+        ? `Você está no teste grátis de 7 dias. Ao cancelar agora, o teste encerra na hora. Se você tinha um plano pago antes, ele será restaurado; caso contrário, os benefícios do teste caem. Se não cancelar, ao fim do teste a cobrança é automática.`
         : `Tem certeza que deseja cancelar sua assinatura do plano ${formatPlanDisplayName(currentPlan)}? Você continuará tendo acesso aos recursos do plano até o final do período atual.`,
       async () => {
         try {
           setLoading(true);
           const response = await paymentApi.cancelSubscription();
           if (response.success) {
+            const restored = Boolean(
+              (response as { data?: { previousPlanRestored?: boolean }; previousPlanRestored?: boolean })
+                ?.data?.previousPlanRestored ||
+                (response as { previousPlanRestored?: boolean }).previousPlanRestored
+            );
             showToast.success(
-              revokeImmediately
-                ? 'Assinatura cancelada. Benefícios encerrados.'
-                : 'Assinatura cancelada com sucesso'
+              restored
+                ? 'Teste cancelado. Plano anterior restaurado.'
+                : revokeImmediately
+                  ? 'Assinatura cancelada. Benefícios encerrados.'
+                  : 'Assinatura cancelada com sucesso'
             );
             await fetchUserPlan();
             if (refreshUser) {
@@ -303,7 +329,7 @@ export function PlansScreen() {
         }
       },
       {
-        confirmText: 'Confirmar Cancelamento',
+        confirmText: revokeImmediately ? 'Cancelar teste agora' : 'Confirmar Cancelamento',
         cancelText: 'Voltar',
         destructive: true,
       }
