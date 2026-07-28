@@ -59,3 +59,19 @@ export function isOnPlatformPlanTrial(params: {
   const windowMs = (PLATFORM_PLAN_TRIAL_DAYS + 1) * 24 * 60 * 60 * 1000
   return exp - used <= windowMs
 }
+
+/**
+ * Cancelamento durante o trial (7 dias, antes da 1ª cobrança):
+ * perde benefícios na hora — não é “mês pago até o fim”.
+ * Após virar pagante real (PRO/STARTER/PRO+ cobrado), mantém acesso até a expiração.
+ */
+export function shouldRevokePlatformPlanBenefitsOnCancel(params: {
+  planType?: string | null | undefined
+  platformTrialUsedAt?: Date | string | null
+  expirationDate?: Date | string | null
+}): boolean {
+  return isOnPlatformPlanTrial({
+    platformTrialUsedAt: params.platformTrialUsedAt,
+    expirationDate: params.expirationDate,
+  })
+}

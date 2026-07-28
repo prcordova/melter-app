@@ -60,6 +60,7 @@ export function PlansScreen() {
   const [loading, setLoading] = useState(false);
   const [fetchingPlan, setFetchingPlan] = useState(true);
   const [platformTrialEligible, setPlatformTrialEligible] = useState(false);
+  const [platformTrialActive, setPlatformTrialActive] = useState(false);
   const subscribeIntentConsumedRef = useRef(false);
 
   const checkoutBillingInterval: PlanBillingInterval =
@@ -117,6 +118,7 @@ export function PlansScreen() {
         setGateway(userData.data.plan?.gateway || null);
         setPendingPlan(userData.data.plan?.pendingPlan || null);
         setPlatformTrialEligible(Boolean(userData.data.plan?.platformTrialEligible));
+        setPlatformTrialActive(Boolean(userData.data.plan?.platformTrialActive));
       }
     } catch (error) {
       console.error('Erro ao buscar plano do usuário:', error);
@@ -272,15 +274,22 @@ export function PlansScreen() {
   };
 
   const handleCancelPlan = async () => {
+    const revokeImmediately = platformTrialActive;
     showConfirm(
       'Confirmar Cancelamento',
-      `Tem certeza que deseja cancelar sua assinatura do plano ${formatPlanDisplayName(currentPlan)}? Você continuará tendo acesso aos recursos do plano até o final do período atual.`,
+      revokeImmediately
+        ? `Você está no teste grátis de 7 dias (não é um mês pago). Ao cancelar agora, os benefícios são encerrados na hora e nenhuma cobrança será feita. Se não cancelar, ao fim do teste o Mercado Pago cobra automaticamente.`
+        : `Tem certeza que deseja cancelar sua assinatura do plano ${formatPlanDisplayName(currentPlan)}? Você continuará tendo acesso aos recursos do plano até o final do período atual.`,
       async () => {
         try {
           setLoading(true);
           const response = await paymentApi.cancelSubscription();
           if (response.success) {
-            showToast.success('Assinatura cancelada com sucesso');
+            showToast.success(
+              revokeImmediately
+                ? 'Assinatura cancelada. Benefícios encerrados.'
+                : 'Assinatura cancelada com sucesso'
+            );
             await fetchUserPlan();
             if (refreshUser) {
               await refreshUser();
