@@ -14,6 +14,8 @@ interface PlanLockerProps {
   requiredPlan: 'FREE' | 'LITE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
   currentPlan?: 'FREE' | 'LITE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
   isAdmin?: boolean;
+  /** `compact` — badge menor para toolbars/botões de ação. */
+  variant?: 'default' | 'compact';
 }
 
 const planValues = {
@@ -24,9 +26,16 @@ const planValues = {
   PRO_PLUS: 4,
 };
 
-export function PlanLocker({ children, requiredPlan, currentPlan = 'FREE', isAdmin = false }: PlanLockerProps) {
+export function PlanLocker({
+  children,
+  requiredPlan,
+  currentPlan = 'FREE',
+  isAdmin = false,
+  variant = 'default',
+}: PlanLockerProps) {
   const navigation = useNavigation();
-  
+  const isCompact = variant === 'compact';
+
   const hasAccess = isAdmin || planValues[currentPlan] >= planValues[requiredPlan];
 
   const handleUpgradePress = () => {
@@ -48,9 +57,11 @@ export function PlanLocker({ children, requiredPlan, currentPlan = 'FREE', isAdm
         onPress={handleUpgradePress}
         activeOpacity={0.8}
       >
-        <View style={styles.lockBadge}>
-          <Ionicons name="lock-closed" size={16} color="#ffffff" />
-          <Text style={styles.lockText}>{formatPlanLabel(requiredPlan)}</Text>
+        <View style={isCompact ? styles.lockBadgeCompact : styles.lockBadge}>
+          <Ionicons name="lock-closed" size={isCompact ? 11 : 16} color="#ffffff" />
+          <Text style={isCompact ? styles.lockTextCompact : styles.lockText}>
+            {formatPlanLabel(requiredPlan)}
+          </Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -84,10 +95,24 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
   },
+  lockBadgeCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: COLORS.secondary.main,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+    maxWidth: '100%',
+  },
   lockText: {
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
   },
+  lockTextCompact: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
 });
-

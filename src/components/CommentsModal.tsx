@@ -26,6 +26,8 @@ import { Comment } from '../types/feed';
 import { getCommentAuthor } from '../utils/comment-author';
 
 import { Avatar } from './Avatar';
+import { PlanLocker } from './PlanLocker';
+import { resolveUserPlanType } from '../config/plan-features';
 
 interface CommentsModalProps {
   visible: boolean;
@@ -37,6 +39,7 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  const currentPlan = resolveUserPlanType(user?.plan?.type);
   
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
@@ -262,15 +265,21 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
               </TouchableOpacity>
 
               {!isReply && (
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={() => {
-                    setReplyingTo(comment);
-                    setCommentText(`@${author.username} `);
-                  }}
+                <PlanLocker
+                  requiredPlan="LITE"
+                  currentPlan={currentPlan}
+                  variant="compact"
                 >
-                  <Text style={styles.actionText}>Responder</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.actionButton}
+                    onPress={() => {
+                      setReplyingTo(comment);
+                      setCommentText(`@${author.username} `);
+                    }}
+                  >
+                    <Text style={styles.actionText}>Responder</Text>
+                  </TouchableOpacity>
+                </PlanLocker>
               )}
             </View>
           </View>
@@ -378,28 +387,34 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
                 </View>
               )}
 
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder={replyingTo ? "Escreva sua resposta..." : "Escreva um comentário..."}
-                  placeholderTextColor={COLORS.text.tertiary}
-                  value={commentText}
-                  onChangeText={setCommentText}
-                  multiline
-                  maxLength={500}
-                />
-                <TouchableOpacity
-                  style={[styles.sendButton, (!commentText.trim() || sending) && styles.sendButtonDisabled]}
-                  onPress={handleSendComment}
-                  disabled={!commentText.trim() || sending}
-                >
-                  {sending ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Ionicons name="send" size={20} color="#fff" />
-                  )}
-                </TouchableOpacity>
-              </View>
+              <PlanLocker
+                requiredPlan="LITE"
+                currentPlan={currentPlan}
+                variant="compact"
+              >
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={replyingTo ? "Escreva sua resposta..." : "Escreva um comentário..."}
+                    placeholderTextColor={COLORS.text.tertiary}
+                    value={commentText}
+                    onChangeText={setCommentText}
+                    multiline
+                    maxLength={500}
+                  />
+                  <TouchableOpacity
+                    style={[styles.sendButton, (!commentText.trim() || sending) && styles.sendButtonDisabled]}
+                    onPress={handleSendComment}
+                    disabled={!commentText.trim() || sending}
+                  >
+                    {sending ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Ionicons name="send" size={20} color="#fff" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </PlanLocker>
             </View>
           </View>
         </View>

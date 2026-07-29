@@ -35,6 +35,8 @@ import { Avatar } from './Avatar';
 import { UsernameGradientText } from './UsernameGradientText';
 import { RichPostText } from './RichPostText';
 import { PostDoubleTapLike } from './PostDoubleTapLike';
+import { PlanLocker } from './PlanLocker';
+import { resolveUserPlanType } from '../config/plan-features';
 
 interface PostCardProps {
   post: Post;
@@ -72,6 +74,7 @@ export function PostCard({
 
   const authorLabel = getPostAuthorDisplayLabel(post.userId);
   const authorNavUsername = getPostAuthorUsernameForNav(post.userId);
+  const currentPlan = resolveUserPlanType(user?.plan?.type);
   /** Web (`PostCard`): mostra `post.userId.username` no gradiente; fallback só se vier vazio. */
   const authorUsernameForHeader =
     typeof post.userId.username === 'string' && post.userId.username.trim()
@@ -531,15 +534,21 @@ export function PostCard({
         </TouchableOpacity>
 
         {/* Share */}
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleSharePress}
+        <PlanLocker
+          requiredPlan="LITE"
+          currentPlan={currentPlan}
+          variant="compact"
         >
-          <Text style={styles.actionIcon}>🔄</Text>
-          <Text style={styles.actionText}>
-            {post.sharesCount || 0}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleSharePress}
+          >
+            <Text style={styles.actionIcon}>🔄</Text>
+            <Text style={styles.actionText}>
+              {post.sharesCount || 0}
+            </Text>
+          </TouchableOpacity>
+        </PlanLocker>
       </View>
 
       {/* Modais */}
