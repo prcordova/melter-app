@@ -11,6 +11,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { StoriesGroup } from '../types/feed';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
+import { PlanLocker } from './PlanLocker';
+import { resolveUserPlanType } from '../config/plan-features';
 
 interface StoriesCarouselProps {
   storiesGroups: StoriesGroup[];
@@ -113,34 +115,39 @@ export function StoriesCarousel({
 
   const renderCreateStory = () => {
     return (
-      <TouchableOpacity
-        style={styles.storyItem}
-        onPress={onCreateStory}
+      <PlanLocker
+        requiredPlan="LITE"
+        currentPlan={resolveUserPlanType(user?.plan?.type)}
       >
-        <View style={[styles.storyCard, styles.createStoryCard]}>
-          {getAvatarUrl(user?.avatar) ? (
-            <Image
-              source={{ uri: getAvatarUrl(user?.avatar) }}
-              style={styles.storyPreview}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.storyPreview, styles.storyPreviewPlaceholder]}>
-              <Text style={styles.placeholderText}>
-                {getUserInitials(user?.username || 'U')}
-              </Text>
-            </View>
-          )}
-          <View style={styles.createStoryOverlay}>
-            <View style={styles.addIconContainer}>
-              <Ionicons name="add" size={24} color="#ffffff" />
-            </View>
-            <View style={styles.usernameContainer}>
-              <Text style={styles.storyUsername}>Criar Story</Text>
+        <TouchableOpacity
+          style={styles.storyItem}
+          onPress={onCreateStory}
+        >
+          <View style={[styles.storyCard, styles.createStoryCard]}>
+            {getAvatarUrl(user?.avatar) ? (
+              <Image
+                source={{ uri: getAvatarUrl(user?.avatar) }}
+                style={styles.storyPreview}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.storyPreview, styles.storyPreviewPlaceholder]}>
+                <Text style={styles.placeholderText}>
+                  {getUserInitials(user?.username || 'U')}
+                </Text>
+              </View>
+            )}
+            <View style={styles.createStoryOverlay}>
+              <View style={styles.addIconContainer}>
+                <Ionicons name="add" size={24} color="#ffffff" />
+              </View>
+              <View style={styles.usernameContainer}>
+                <Text style={styles.storyUsername}>Criar Story</Text>
+              </View>
             </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </PlanLocker>
     );
   };
 

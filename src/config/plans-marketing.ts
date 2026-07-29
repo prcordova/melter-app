@@ -109,6 +109,8 @@ export function buildPlanCardHighlights(plan: PlanMarketingId): string[] {
         `Até ${l.maxLinks} links no perfil`,
         `${l.maxProducts} produto digital (mais espaço no pacote)`,
         `${store.perFile} por arquivo · ${store.perProduct} por pacote`,
+        'Criar posts no feed',
+        'Criar stories',
         'Posts no feed sem precisar de link',
         'Imagem de fundo personalizada',
         'Cor do texto e da bio',
