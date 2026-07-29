@@ -43,6 +43,10 @@ export interface PlanLimits {
   maxLinks: number
   
   // Posts e Conteúdo
+  /** Criar post no feed — LITE+ (teste; FREE bloqueado) */
+  canCreateFeedPosts: boolean
+  /** Criar story — LITE+ (teste; FREE bloqueado) */
+  canCreateStories: boolean
   canUploadPostImages: boolean
   /** Máx. de imagens por post no feed (carrossel quando > 1). Hoje o post usa 1 imageUrl; limite vale para marketing e futura API. */
   maxImagesPerPost: number
@@ -104,6 +108,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxLinks: 1,
     
     // Posts e Conteúdo
+    canCreateFeedPosts: false,
+    canCreateStories: false,
     canUploadPostImages: false,
     maxImagesPerPost: 0,
     canPostWithoutLink: true,
@@ -151,6 +157,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canCustomizeShopTitleColor: false,
     canCustomizeShopTitleDisplayEffect: false,
     maxLinks: 3,
+    canCreateFeedPosts: true,
+    canCreateStories: true,
     canUploadPostImages: false,
     maxImagesPerPost: 0,
     canPostWithoutLink: true,
@@ -197,6 +205,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxLinks: 5,
     
     // Posts e Conteúdo
+    canCreateFeedPosts: true,
+    canCreateStories: true,
     canUploadPostImages: false,
     maxImagesPerPost: 0,
     canPostWithoutLink: true,
@@ -251,6 +261,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxLinks: 10,
     
     // Posts e Conteúdo
+    canCreateFeedPosts: true,
+    canCreateStories: true,
     canUploadPostImages: true,
     maxImagesPerPost: 1,
     canPostWithoutLink: true,
@@ -305,6 +317,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     maxLinks: 50,
     
     // Posts e Conteúdo
+    canCreateFeedPosts: true,
+    canCreateStories: true,
     canUploadPostImages: true,
     maxImagesPerPost: 1,
     canPostWithoutLink: true,

@@ -30,6 +30,8 @@ import {
 import { normalizeReactionsCount, applyOptimisticReaction } from '../utils/post-reactions';
 import { showToast } from '../components/CustomToast';
 import { DevScreenErrorBoundary } from '../components/DevScreenErrorBoundary';
+import { PlanLocker } from '../components/PlanLocker';
+import { resolveUserPlanType } from '../config/plan-features';
 
 export function FeedScreen() {
   const { user, refreshUser } = useAuth();
@@ -460,9 +462,14 @@ export function FeedScreen() {
           onCreateStory={handleCreateStory}
         />
         <View style={styles.createPostContainer}>
-          <Button onPress={handleCreatePost} style={styles.createPostButton}>
-            Criar Post
-          </Button>
+          <PlanLocker
+            requiredPlan="LITE"
+            currentPlan={resolveUserPlanType(user?.plan?.type)}
+          >
+            <Button onPress={handleCreatePost} style={styles.createPostButton}>
+              Criar Post
+            </Button>
+          </PlanLocker>
         </View>
       </View>
     ),
