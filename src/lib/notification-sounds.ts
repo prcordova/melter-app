@@ -45,6 +45,7 @@ const TYPE_TO_CATEGORY: Record<string, NotificationSoundCategory> = {
   SUBSCRIPTION_RENEWAL_REMINDER: 'commerce',
   SUBSCRIPTION_LOW_BALANCE: 'commerce',
   SUBSCRIPTION_CANCELLED: 'commerce',
+  PLATFORM_PLAN_PAYMENT_FAILED: 'commerce',
 };
 
 let memoryCache: NotificationSoundPrefs | null = null;
