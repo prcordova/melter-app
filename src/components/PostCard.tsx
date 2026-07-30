@@ -37,6 +37,7 @@ import { RichPostText } from './RichPostText';
 import { PostDoubleTapLike } from './PostDoubleTapLike';
 import { PlanLocker } from './PlanLocker';
 import { resolveUserPlanType } from '../config/plan-features';
+import { useFeedPlanGates } from '../hooks/useFeedPlanGates';
 
 interface PostCardProps {
   post: Post;
@@ -75,6 +76,8 @@ export function PostCard({
   const authorLabel = getPostAuthorDisplayLabel(post.userId);
   const authorNavUsername = getPostAuthorUsernameForNav(post.userId);
   const currentPlan = resolveUserPlanType(user?.plan?.type);
+  const { requiredPlan } = useFeedPlanGates();
+  const shareRequiredPlan = requiredPlan('minPlanToSharePosts');
   /** Web (`PostCard`): mostra `post.userId.username` no gradiente; fallback só se vier vazio. */
   const authorUsernameForHeader =
     typeof post.userId.username === 'string' && post.userId.username.trim()
@@ -535,7 +538,7 @@ export function PostCard({
 
         {/* Share */}
         <PlanLocker
-          requiredPlan="LITE"
+          requiredPlan={shareRequiredPlan}
           currentPlan={currentPlan}
           variant="compact"
         >

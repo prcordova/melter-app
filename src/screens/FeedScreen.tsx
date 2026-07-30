@@ -32,9 +32,12 @@ import { showToast } from '../components/CustomToast';
 import { DevScreenErrorBoundary } from '../components/DevScreenErrorBoundary';
 import { PlanLocker } from '../components/PlanLocker';
 import { resolveUserPlanType } from '../config/plan-features';
+import { useFeedPlanGates } from '../hooks/useFeedPlanGates';
 
 export function FeedScreen() {
   const { user, refreshUser } = useAuth();
+  const { requiredPlan } = useFeedPlanGates();
+  const createPostRequiredPlan = requiredPlan('minPlanToCreateFeedPosts');
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const listRef = useRef<FlatList<Post>>(null);
@@ -463,7 +466,7 @@ export function FeedScreen() {
         />
         <View style={styles.createPostContainer}>
           <PlanLocker
-            requiredPlan="LITE"
+            requiredPlan={createPostRequiredPlan}
             currentPlan={resolveUserPlanType(user?.plan?.type)}
           >
             <Button onPress={handleCreatePost} style={styles.createPostButton}>

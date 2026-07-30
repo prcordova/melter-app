@@ -109,7 +109,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     
     // Posts e Conteúdo
     canCreateFeedPosts: false,
-    canCreateStories: false,
+    canCreateStories: true,
     canUploadPostImages: false,
     maxImagesPerPost: 0,
     canPostWithoutLink: true,

@@ -102,6 +102,7 @@ export function buildPlanCardHighlights(plan: PlanMarketingId): string[] {
         `Até ${l.maxLinks} link no perfil`,
         `${l.maxProducts} produto digital`,
         `${store.perFile} por arquivo · ${store.perProduct} por pacote`,
+        'Criar stories',
         'Posts no feed exigem link compartilhado',
       ];
     case 'LITE':
@@ -110,7 +111,6 @@ export function buildPlanCardHighlights(plan: PlanMarketingId): string[] {
         `${l.maxProducts} produto digital (mais espaço no pacote)`,
         `${store.perFile} por arquivo · ${store.perProduct} por pacote`,
         'Criar posts no feed',
-        'Criar stories',
         'Posts no feed sem precisar de link',
         'Imagem de fundo personalizada',
         'Cor do texto e da bio',

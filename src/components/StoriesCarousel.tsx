@@ -13,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { PlanLocker } from './PlanLocker';
 import { resolveUserPlanType } from '../config/plan-features';
+import { useFeedPlanGates } from '../hooks/useFeedPlanGates';
 
 interface StoriesCarouselProps {
   storiesGroups: StoriesGroup[];
@@ -26,6 +27,8 @@ export function StoriesCarousel({
   onCreateStory,
 }: StoriesCarouselProps) {
   const { user } = useAuth();
+  const { requiredPlan } = useFeedPlanGates();
+  const storiesRequiredPlan = requiredPlan('minPlanToCreateStories');
 
   // Verificar se o usuário já tem stories
   const userHasStories = storiesGroups.some(
@@ -116,7 +119,7 @@ export function StoriesCarousel({
   const renderCreateStory = () => {
     return (
       <PlanLocker
-        requiredPlan="LITE"
+        requiredPlan={storiesRequiredPlan}
         currentPlan={resolveUserPlanType(user?.plan?.type)}
       >
         <TouchableOpacity

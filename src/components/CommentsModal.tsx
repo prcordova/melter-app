@@ -28,6 +28,7 @@ import { getCommentAuthor } from '../utils/comment-author';
 import { Avatar } from './Avatar';
 import { PlanLocker } from './PlanLocker';
 import { resolveUserPlanType } from '../config/plan-features';
+import { useFeedPlanGates } from '../hooks/useFeedPlanGates';
 
 interface CommentsModalProps {
   visible: boolean;
@@ -40,6 +41,8 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const currentPlan = resolveUserPlanType(user?.plan?.type);
+  const { requiredPlan } = useFeedPlanGates();
+  const commentRequiredPlan = requiredPlan('minPlanToCommentPosts');
   
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
@@ -266,7 +269,7 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
 
               {!isReply && (
                 <PlanLocker
-                  requiredPlan="LITE"
+                  requiredPlan={commentRequiredPlan}
                   currentPlan={currentPlan}
                   variant="compact"
                 >
@@ -388,7 +391,7 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
               )}
 
               <PlanLocker
-                requiredPlan="LITE"
+                requiredPlan={commentRequiredPlan}
                 currentPlan={currentPlan}
                 variant="compact"
               >
