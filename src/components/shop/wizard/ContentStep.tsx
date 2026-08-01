@@ -15,7 +15,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../../theme/colors';
 import { showToast } from '../../CustomToast';
 import { useAuth } from '../../../contexts/AuthContext';
-import { PLAN_LIMITS, validateFileSize, PlanType } from '../../../config/plan-features';
+import { getProductCreationStorageLimits, validateFileSize, PlanType } from '../../../config/plan-features';
 import { getImageUrl } from '../../../utils/image';
 import type { PackContentDeliveryMode } from '../ProductCreationWizard';
 import { MediaUploadPickerRow } from '../../ui/MediaUploadPickerRow';
@@ -42,22 +42,20 @@ export function ContentStep({
   useEffect(() => {
     if (formData.files && formData.files.length > 0) {
       const userPlan = (user?.plan?.type || 'FREE') as PlanType;
-      const planLimits = PLAN_LIMITS[userPlan];
-      const maxFileSize = planLimits.maxFileSizePerFile * 1024 * 1024;
-      const maxTotalSize = planLimits.maxTotalFileSize * 1024 * 1024;
+      const storageLimits = getProductCreationStorageLimits(userPlan);
+      const maxFileSize = storageLimits.maxFileSizePerFileBytes;
+      const maxTotalSize = storageLimits.maxTotalFileSizeBytes;
 
       const errors: string[] = [];
       const currentTotalSize = formData.files.reduce((total: number, file: any) => total + (file.size || 0), 0);
 
-      // Verificar se o tamanho total excede o limite
       if (currentTotalSize > maxTotalSize) {
-        errors.push(`Limite total de tamanho atingido (máx ${planLimits.maxTotalFileSize}MB)`);
+        errors.push(`Limite total de tamanho atingido (máx ${storageLimits.maxTotalFileSizeMb}MB)`);
       }
 
-      // Verificar cada arquivo individual
       formData.files.forEach((file: any) => {
         if (file.size > maxFileSize) {
-          errors.push(`${file.name}: Arquivo muito grande (máx ${planLimits.maxFileSizePerFile}MB)`);
+          errors.push(`${file.name}: Arquivo muito grande (máx ${storageLimits.maxFileSizePerFileMb}MB)`);
         }
       });
 
@@ -124,9 +122,9 @@ export function ContentStep({
 
         // Obter limites do plano do usuário
         const userPlan = (user?.plan?.type || 'FREE') as PlanType;
-        const planLimits = PLAN_LIMITS[userPlan];
-        const maxFileSize = planLimits.maxFileSizePerFile * 1024 * 1024; // converter MB para bytes
-        const maxTotalSize = planLimits.maxTotalFileSize * 1024 * 1024; // converter MB para bytes
+        const storageLimits = getProductCreationStorageLimits(userPlan);
+        const maxFileSize = storageLimits.maxFileSizePerFileBytes;
+        const maxTotalSize = storageLimits.maxTotalFileSizeBytes;
 
         for (let i = 0; i < result.assets.length; i++) {
           const asset = result.assets[i];
@@ -141,13 +139,13 @@ export function ContentStep({
           }
 
           if (fileSize > maxFileSize) {
-            errors.push(`${asset.fileName || `arquivo_${i}`}: Arquivo muito grande (máx ${planLimits.maxFileSizePerFile}MB)`);
+            errors.push(`${asset.fileName || `arquivo_${i}`}: Arquivo muito grande (máx ${storageLimits.maxFileSizePerFileMb}MB)`);
             continue;
           }
 
           const newTotalSize = currentTotalSize + validFiles.reduce((sum, f) => sum + f.size, 0) + fileSize;
           if (newTotalSize > maxTotalSize) {
-            errors.push(`${asset.fileName || `arquivo_${i}`}: Limite total de tamanho atingido (máx ${planLimits.maxTotalFileSize}MB)`);
+            errors.push(`${asset.fileName || `arquivo_${i}`}: Limite total de tamanho atingido (máx ${storageLimits.maxTotalFileSizeMb}MB)`);
             continue;
           }
 
@@ -379,7 +377,7 @@ export function ContentStep({
             <View style={styles.summaryBox}>
               <Text style={styles.summaryText}>
                 Total: {formatFileSize(getTotalFileSize())} /{' '}
-                {PLAN_LIMITS[(user?.plan?.type || 'FREE') as PlanType].maxTotalFileSize}MB
+                {getProductCreationStorageLimits((user?.plan?.type || 'FREE') as PlanType).maxTotalFileSizeMb}MB
               </Text>
             </View>
           </>

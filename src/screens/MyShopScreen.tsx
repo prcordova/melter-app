@@ -488,7 +488,12 @@ export function MyShopScreen() {
       shopPlanGate?.productStorageLimits?.maxProducts ??
       getFeatureLimit(planType, 'maxProducts');
     // Incluir produtos pendentes no limite (eles já "gastam" o recurso)
-    const currentProducts = products.filter((p: any) => p.status !== 'INACTIVE').length;
+    const currentProducts = products.filter(
+      (p: any) =>
+        p.status !== 'INACTIVE' &&
+        p.status !== 'REMOVED_BY_SELLER' &&
+        p.status !== 'DRAFT'
+    ).length;
     return { max: maxProducts, current: currentProducts };
   };
 

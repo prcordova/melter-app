@@ -388,6 +388,62 @@ export function getProductStorageLimits(userPlan: PlanType) {
   }
 }
 
+const PLAN_ORDER_CREATE: PlanType[] = [
+  'FREE',
+  'LITE',
+  'STARTER',
+  'PRO',
+  'PRO_PLUS',
+]
+
+/**
+ * Cota de arquivo no funil de criação (antes do plano mínimo).
+ * FREE/LITE usam STARTER (ou minPlan) — não 0 MB.
+ */
+export function getProductCreationStorageLimits(
+  userPlan: PlanType,
+  options?: {
+    minPlanToCreateShop?: string | null
+    resolvedMb?: {
+      maxFileSizePerFile?: number
+      maxTotalFileSize?: number
+    } | null
+  }
+) {
+  const resolvedPerFile = options?.resolvedMb?.maxFileSizePerFile
+  const resolvedTotal = options?.resolvedMb?.maxTotalFileSize
+  if (
+    typeof resolvedPerFile === 'number' &&
+    resolvedPerFile > 0 &&
+    typeof resolvedTotal === 'number' &&
+    resolvedTotal >= 0
+  ) {
+    return {
+      maxFileSizePerFileMb: resolvedPerFile,
+      maxTotalFileSizeMb: resolvedTotal,
+      maxFileSizePerFileBytes: resolvedPerFile * 1024 * 1024,
+      maxTotalFileSizeBytes: resolvedTotal * 1024 * 1024,
+    }
+  }
+
+  const minRaw = (options?.minPlanToCreateShop || 'STARTER').toUpperCase()
+  const minPlan = (PLAN_ORDER_CREATE.includes(minRaw as PlanType)
+    ? minRaw
+    : 'STARTER') as PlanType
+  const userIdx = PLAN_ORDER_CREATE.indexOf(userPlan)
+  const minIdx = PLAN_ORDER_CREATE.indexOf(minPlan)
+  const effective =
+    userIdx >= 0 && minIdx >= 0 && userIdx >= minIdx ? userPlan : minPlan
+  return getProductStorageLimits(effective)
+}
+
+export function productStatusOccupiesShopSlot(
+  status: string | null | undefined
+): boolean {
+  const s = String(status || '').toUpperCase()
+  return s !== 'INACTIVE' && s !== 'REMOVED_BY_SELLER' && s !== 'DRAFT'
+}
+
 export function formatPlanStorageLimit(megabytes: number): string {
   if (megabytes >= 1024) {
     const gigabytes = megabytes / 1024
@@ -398,22 +454,30 @@ export function formatPlanStorageLimit(megabytes: number): string {
 }
 
 /**
- * Validar tamanho de arquivo baseado no plano
+ * Validar tamanho de arquivo baseado no plano.
+ * No funil de criação, usa cota STARTER (ou minPlan) se o plano atual for inferior.
  */
 export function validateFileSize(
   userPlan: PlanType,
   fileSize: number, // em bytes
-  currentTotalSize: number = 0 // tamanho total atual do produto em bytes
+  currentTotalSize: number = 0, // tamanho total atual do produto em bytes
+  options?: {
+    minPlanToCreateShop?: string | null
+    resolvedMb?: {
+      maxFileSizePerFile?: number
+      maxTotalFileSize?: number
+    } | null
+  }
 ): { valid: boolean; error?: string } {
-  const limits = PLAN_LIMITS[userPlan]
-  const maxFileSizeBytes = limits.maxFileSizePerFile * 1024 * 1024 // converter MB para bytes
-  const maxTotalSizeBytes = limits.maxTotalFileSize * 1024 * 1024 // converter MB para bytes
+  const limits = getProductCreationStorageLimits(userPlan, options)
+  const maxFileSizeBytes = limits.maxFileSizePerFileBytes
+  const maxTotalSizeBytes = limits.maxTotalFileSizeBytes
   
   // Verificar tamanho do arquivo individual
   if (fileSize > maxFileSizeBytes) {
     return {
       valid: false,
-      error: `Arquivo muito grande. Máximo ${limits.maxFileSizePerFile}MB por arquivo no plano ${userPlan}`
+      error: `Arquivo muito grande. Máximo ${limits.maxFileSizePerFileMb}MB por arquivo no plano ${userPlan}`
     }
   }
   
@@ -421,7 +485,7 @@ export function validateFileSize(
   if (currentTotalSize + fileSize > maxTotalSizeBytes) {
     return {
       valid: false,
-      error: `Limite de tamanho total atingido. Máximo ${limits.maxTotalFileSize}MB por produto no plano ${userPlan}`
+      error: `Limite de tamanho total atingido. Máximo ${limits.maxTotalFileSizeMb}MB por produto no plano ${userPlan}`
     }
   }
   
