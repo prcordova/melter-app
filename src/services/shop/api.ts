@@ -40,6 +40,13 @@ export type ShopPlanGate = {
     maxTotalFileSize: number;
     canUploadProductImages: boolean;
   };
+  /** Cota para montar pacote PENDING (abaixo do mínimo = cota do min plan). */
+  productCreationLimits?: {
+    maxProducts: number;
+    maxFileSizePerFile: number;
+    maxTotalFileSize: number;
+    canUploadProductImages?: boolean;
+  };
   shopPlanMigration: {
     enabled: boolean;
     deadlineAt: string | null;

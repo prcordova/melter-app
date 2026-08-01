@@ -475,7 +475,7 @@ export function MyShopScreen() {
 
   const sellerVerification = shopSettings?.sellerVerification;
 
-  // Verificar se pode criar mais produtos (limites efetivos = gate / admin)
+  // Verificar se pode criar mais produtos (limites de criação = cota do min plan se ainda sem plano)
   const getProductLimits = () => {
     const planType = (user?.plan?.type || 'FREE') as
       | 'FREE'
@@ -484,7 +484,9 @@ export function MyShopScreen() {
       | 'PRO'
       | 'PRO_PLUS';
     const maxProducts =
-      shopPlanGate?.productStorageLimits?.maxProducts ?? getFeatureLimit(planType, 'maxProducts');
+      shopPlanGate?.productCreationLimits?.maxProducts ??
+      shopPlanGate?.productStorageLimits?.maxProducts ??
+      getFeatureLimit(planType, 'maxProducts');
     // Incluir produtos pendentes no limite (eles já "gastam" o recurso)
     const currentProducts = products.filter((p: any) => p.status !== 'INACTIVE').length;
     return { max: maxProducts, current: currentProducts };
@@ -496,13 +498,24 @@ export function MyShopScreen() {
     return limits.current < limits.max;
   };
 
-  // Determinar qual plano é necessário quando o limite é atingido
+  // Upgrade sugerido ao atingir cota de criação (paywall pós-pacote é outro fluxo)
   const getRequiredPlan = (): 'STARTER' | 'PRO' | 'PRO_PLUS' => {
-    const planType = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
-    if (planType === 'FREE') return 'STARTER';
+    const planType = (user?.plan?.type || 'FREE') as
+      | 'FREE'
+      | 'LITE'
+      | 'STARTER'
+      | 'PRO'
+      | 'PRO_PLUS';
+    if (shopPlanGate && !shopPlanGate.canCreateShop) {
+      const min = shopPlanGate.minPlanToCreateShop || 'STARTER';
+      if (min === 'STARTER' || min === 'LITE' || min === 'FREE') return 'PRO';
+      if (min === 'PRO') return 'PRO_PLUS';
+      return 'PRO_PLUS';
+    }
+    if (planType === 'FREE' || planType === 'LITE') return 'STARTER';
     if (planType === 'STARTER') return 'PRO';
     if (planType === 'PRO') return 'PRO_PLUS';
-    return 'PRO_PLUS'; // Se já é PRO_PLUS, não há upgrade
+    return 'PRO_PLUS';
   };
 
   const ownerApproved = sellerVerification?.status === 'approved';
@@ -642,7 +655,9 @@ export function MyShopScreen() {
       | 'PRO'
       | 'PRO_PLUS';
     const maxProducts =
-      shopPlanGate?.productStorageLimits?.maxProducts ?? getFeatureLimit(planType, 'maxProducts');
+      shopPlanGate?.productCreationLimits?.maxProducts ??
+      shopPlanGate?.productStorageLimits?.maxProducts ??
+      getFeatureLimit(planType, 'maxProducts');
     if (list.length >= maxProducts) return;
     if (list.length > 0) return;
     setActiveTab('products');
