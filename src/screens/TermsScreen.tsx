@@ -168,9 +168,12 @@ export function TermsScreen() {
               sobre o período já pago.
             </Text>
             <Text style={styles.sectionText}>
-              <Text style={styles.bold}>3.10.4 Sem reembolso proporcional:</Text> Não há reembolso automático de parcelas 
-              já pagas por cancelamento antecipado da assinatura do plano ou por alteração de preços/benefícios, salvo 
-              quando a lei aplicável exigir.
+              <Text style={styles.bold}>3.10.4 Experimentação e reembolso:</Text> Em ofertas de
+              experimentação (quando disponíveis, tipicamente 7 dias), o valor do plano é cobrado na
+              adesão. Se você cancelar dentro dessa janela, a Melter solicita reembolso integral da
+              primeira cobrança e encerra os benefícios na hora (ou restaura o plano anterior, se
+              aplicável). Fora dessa janela, não há reembolso automático de parcelas já pagas por
+              cancelamento antecipado ou alteração de preços/benefícios, salvo quando a lei exigir.
             </Text>
             <Text style={styles.sectionText}>
               <Text style={styles.bold}>3.10.5 Cadastro de loja, pacotes e plano mínimo:</Text> A Melter pode permitir 
@@ -296,12 +299,16 @@ export function TermsScreen() {
               • Você pode cancelar a assinatura do plano a qualquer momento nas configurações ou em Planos.
             </Text>
             <Text style={styles.bulletPoint}>
-              • O cancelamento interrompe novas cobranças; o acesso aos benefícios do plano permanece até o fim do 
-              período já pago (data de expiração exibida na conta).
+              • O cancelamento interrompe novas cobranças. Fora da experimentação, o acesso permanece
+              até o fim do período já pago.
             </Text>
             <Text style={styles.bulletPoint}>
-              • <Text style={styles.bold}>Não há reembolso</Text> proporcional do tempo não utilizado, salvo quando 
-              a lei aplicável exigir.
+              • Na janela de experimentação (quando aplicável): cancelar em até 7 dias encerra o
+              acesso na hora e solicita reembolso integral da primeira cobrança.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Fora dessa janela, <Text style={styles.bold}>não há reembolso</Text> proporcional do
+              tempo não utilizado, salvo quando a lei aplicável exigir.
             </Text>
             <Text style={styles.bulletPoint}>
               • Após a expiração, a conta volta aos limites do plano gratuito (FREE), e recursos exclusivos podem ser 

@@ -33,8 +33,13 @@ import {
   getPlanBillingDiscountPercent,
   type PlanBillingInterval,
 } from '../config/plan-billing';
-import { isEligibleForPlatformPlanTrial } from '../config/platform-plan-trial';
+import {
+  DEFAULT_PLATFORM_PLAN_OFFER_DAYS,
+  isEligibleForPlatformPlanTrial,
+  type PlatformPlanOfferMode,
+} from '../config/platform-plan-trial';
 import { parsePlansSubscribePlan } from '../config/plans/subscribe-intent';
+import { api } from '../services/http-client';
 
 type PlansRouteParams = {
   Plans?: {
@@ -61,6 +66,8 @@ export function PlansScreen() {
   const [fetchingPlan, setFetchingPlan] = useState(true);
   const [platformTrialEligible, setPlatformTrialEligible] = useState(false);
   const [platformTrialActive, setPlatformTrialActive] = useState(false);
+  const [offerMode, setOfferMode] = useState<PlatformPlanOfferMode>('MONEY_BACK');
+  const [offerDays, setOfferDays] = useState(DEFAULT_PLATFORM_PLAN_OFFER_DAYS);
   const subscribeIntentConsumedRef = useRef(false);
 
   const checkoutBillingInterval: PlanBillingInterval =
@@ -86,6 +93,43 @@ export function PlansScreen() {
 
   useEffect(() => {
     fetchUserPlan();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void api
+      .get<{
+        success?: boolean;
+        data?: {
+          platformPlanFreeTrialEnabled?: boolean;
+          platformPlanOfferMode?: PlatformPlanOfferMode;
+          platformPlanOfferDays?: number;
+        };
+      }>('/api/plans/features')
+      .then((res) => {
+        if (cancelled) return;
+        const data = res.data?.data;
+        if (!data) return;
+        const mode =
+          data.platformPlanOfferMode === 'FREE_TRIAL' ||
+          data.platformPlanOfferMode === 'MONEY_BACK' ||
+          data.platformPlanOfferMode === 'DIRECT'
+            ? data.platformPlanOfferMode
+            : data.platformPlanFreeTrialEnabled === false
+              ? 'DIRECT'
+              : 'MONEY_BACK';
+        setOfferMode(mode);
+        if (
+          typeof data.platformPlanOfferDays === 'number' &&
+          data.platformPlanOfferDays > 0
+        ) {
+          setOfferDays(data.platformPlanOfferDays);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -159,6 +203,7 @@ export function PlansScreen() {
     const withTrial =
       options?.withTrial === true &&
       platformTrialEligible &&
+      offerMode !== 'DIRECT' &&
       isEligibleForPlatformPlanTrial({
         planType: planName,
         billingInterval: checkoutBillingInterval,
@@ -177,8 +222,12 @@ export function PlansScreen() {
 
       if (isUpgrade && withTrial) {
         showConfirm(
-          'Iniciar teste grátis',
-          `Você vai testar ${formatPlanDisplayName(planName)} por 7 dias. Seu plano ${formatPlanDisplayName(currentPlan)} continua cobrando normalmente. Se cancelar o teste ou ele expirar sem cobrança do novo, você volta para ${formatPlanDisplayName(currentPlan)}. Se não cancelar, ao fim do teste o novo plano é cobrado e o anterior é cancelado.`,
+          offerMode === 'FREE_TRIAL'
+            ? `Testar grátis ${offerDays} dias`
+            : `Experimentar ${offerDays} dias`,
+          offerMode === 'FREE_TRIAL'
+            ? `Você vai testar ${formatPlanDisplayName(planName)} grátis por ${offerDays} dias. Seu plano ${formatPlanDisplayName(currentPlan)} continua cobrando normalmente. Se cancelar o teste ou ele expirar sem cobrança do novo, você volta para ${formatPlanDisplayName(currentPlan)}. Se não cancelar, ao fim do teste o novo plano é cobrado e o anterior é cancelado.`
+            : `Você vai testar ${formatPlanDisplayName(planName)} por ${offerDays} dias (cobrança na adesão). Seu plano ${formatPlanDisplayName(currentPlan)} continua cobrando normalmente. Se cancelar o teste ou ele expirar, você volta para ${formatPlanDisplayName(currentPlan)}. Se não cancelar, o novo plano segue e o anterior é cancelado.`,
           async () => {
             await proceedWithCheckout(planName, { withTrial: true });
           },
@@ -297,7 +346,7 @@ export function PlansScreen() {
     showConfirm(
       'Confirmar Cancelamento',
       revokeImmediately
-        ? `Você está no teste grátis de 7 dias. Ao cancelar agora, o teste encerra na hora. Se você tinha um plano pago antes, ele será restaurado; caso contrário, os benefícios do teste caem. Se não cancelar, ao fim do teste a cobrança é automática.`
+        ? `Você está na experimentação de ${offerDays} dias (valor já cobrado). Ao cancelar agora, o acesso encerra na hora e solicitamos reembolso. Se você tinha um plano pago antes, ele será restaurado. Se não cancelar em ${offerDays} dias, não há reembolso e a assinatura segue.`
         : `Tem certeza que deseja cancelar sua assinatura do plano ${formatPlanDisplayName(currentPlan)}? Você continuará tendo acesso aos recursos do plano até o final do período atual.`,
       async () => {
         try {
@@ -522,6 +571,7 @@ export function PlansScreen() {
             const planColor = plan.color;
             const showTrial =
               platformTrialEligible &&
+              offerMode !== 'DIRECT' &&
               isEligibleForPlatformPlanTrial({
                 planType: plan.name,
                 billingInterval: checkoutBillingInterval,
@@ -553,7 +603,9 @@ export function PlansScreen() {
                   </View>
                   {showTrial ? (
                     <Text style={styles.periodTotalText}>
-                      {`Hoje R$ 0 · 7 dias grátis · depois ${plan.price}/mês`}
+                      {offerMode === 'FREE_TRIAL'
+                        ? `Teste grátis por ${offerDays} dias · cancele antes do fim e não será cobrado`
+                        : `Cobramos ${plan.price} agora · experimente ${offerDays} dias · cancele nesse prazo para reembolso 100%`}
                     </Text>
                   ) : plan.periodTotal && plan.discountPercent > 0 ? (
                     <Text style={styles.periodTotalText}>
@@ -587,7 +639,7 @@ export function PlansScreen() {
                       <>
                         <Ionicons name="time-outline" size={18} color={planColor} />
                         <Text style={[styles.trialButtonText, { color: planColor }]}>
-                          Testar 7 dias grátis
+                          {offerMode === 'FREE_TRIAL' ? `Testar grátis ${offerDays} dias` : `Experimentar ${offerDays} dias`}
                         </Text>
                       </>
                     )}

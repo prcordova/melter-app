@@ -1,9 +1,29 @@
 import type { PlanBillingInterval } from './plan-billing'
 
-/** Dias de teste grátis no checkout de planos PLATFORM (cartão no mesmo fluxo). */
-export const PLATFORM_PLAN_TRIAL_DAYS = 7
+export const PLATFORM_PLAN_OFFER_MODES = [
+  'FREE_TRIAL',
+  'MONEY_BACK',
+  'DIRECT',
+] as const
 
-/** Planos que podem entrar no trial (LITE fora). */
+export type PlatformPlanOfferMode = (typeof PLATFORM_PLAN_OFFER_MODES)[number]
+
+export const DEFAULT_PLATFORM_PLAN_OFFER_DAYS = 7
+export const PLATFORM_PLAN_TRIAL_DAYS = DEFAULT_PLATFORM_PLAN_OFFER_DAYS
+
+export function isPlatformPlanOfferMode(
+  value: unknown
+): value is PlatformPlanOfferMode {
+  return (
+    typeof value === 'string' &&
+    (PLATFORM_PLAN_OFFER_MODES as readonly string[]).includes(value)
+  )
+}
+
+/**
+ * Soft offer 1x: STARTER+ mensal e `platformTrialUsedAt` ainda vazio.
+ * O modo vigente (FREE_TRIAL / MONEY_BACK / DIRECT) vem da API `/plans/features`.
+ */
 export const PLATFORM_PLAN_TRIAL_ELIGIBLE_TYPES = [
   'STARTER',
   'PRO',
@@ -22,10 +42,6 @@ export function isPlatformPlanTrialEligibleType(
   )
 }
 
-/**
- * Trial 1x por conta: STARTER+ mensal e `platformTrialUsedAt` ainda vazio.
- * Vale para FREE e upgrade.
- */
 export function isEligibleForPlatformPlanTrial(params: {
   planType: string | null | undefined
   billingInterval: PlanBillingInterval | string | null | undefined
@@ -45,33 +61,49 @@ export function addPlatformPlanTrialDays(
   return result
 }
 
-/** Usuário ainda no período de trial (antes da 1ª cobrança). */
+/** Dentro da janela soft (trial unpaid ou money-back). */
 export function isOnPlatformPlanTrial(params: {
   platformTrialUsedAt?: Date | string | null
   expirationDate?: Date | string | null
+  platformOfferDaysAtStart?: number | null
+  days?: number | null
 }): boolean {
-  if (!params.platformTrialUsedAt || !params.expirationDate) return false
+  if (!params.platformTrialUsedAt) return false
   const used = new Date(params.platformTrialUsedAt).getTime()
-  const exp = new Date(params.expirationDate).getTime()
+  if (Number.isNaN(used)) return false
   const now = Date.now()
-  if (Number.isNaN(used) || Number.isNaN(exp)) return false
-  if (now < used || now >= exp) return false
-  const windowMs = (PLATFORM_PLAN_TRIAL_DAYS + 1) * 24 * 60 * 60 * 1000
-  return exp - used <= windowMs
+  if (now < used) return false
+
+  const days =
+    typeof params.platformOfferDaysAtStart === 'number' &&
+    params.platformOfferDaysAtStart > 0
+      ? params.platformOfferDaysAtStart
+      : typeof params.days === 'number' && params.days > 0
+        ? params.days
+        : PLATFORM_PLAN_TRIAL_DAYS
+
+  if (params.expirationDate) {
+    const exp = new Date(params.expirationDate).getTime()
+    if (!Number.isNaN(exp) && now < exp) {
+      const legacyWindowMs = (days + 1) * 24 * 60 * 60 * 1000
+      if (exp - used <= legacyWindowMs) return true
+    }
+  }
+
+  return now < used + days * 24 * 60 * 60 * 1000
 }
 
-/**
- * Cancelamento durante o trial (7 dias, antes da 1ª cobrança):
- * perde benefícios na hora — não é “mês pago até o fim”.
- * Após virar pagante real (PRO/STARTER/PRO+ cobrado), mantém acesso até a expiração.
- */
 export function shouldRevokePlatformPlanBenefitsOnCancel(params: {
   planType?: string | null | undefined
   platformTrialUsedAt?: Date | string | null
   expirationDate?: Date | string | null
+  platformOfferDaysAtStart?: number | null
+  days?: number | null
 }): boolean {
   return isOnPlatformPlanTrial({
     platformTrialUsedAt: params.platformTrialUsedAt,
     expirationDate: params.expirationDate,
+    platformOfferDaysAtStart: params.platformOfferDaysAtStart,
+    days: params.days,
   })
 }
