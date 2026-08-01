@@ -52,6 +52,24 @@ export function isEligibleForPlatformPlanTrial(params: {
   return isPlatformPlanTrialEligibleType(params.planType)
 }
 
+export function formatPlatformOfferDaysLabel(
+  days: number,
+  locale: string = 'pt'
+): string {
+  const n =
+    typeof days === 'number' && Number.isFinite(days) && days > 0
+      ? Math.floor(days)
+      : DEFAULT_PLATFORM_PLAN_OFFER_DAYS
+  const lang = locale.toLowerCase().startsWith('en')
+    ? 'en'
+    : locale.toLowerCase().startsWith('es')
+      ? 'es'
+      : 'pt'
+  if (lang === 'en') return n === 1 ? '1 day' : `${n} days`
+  if (lang === 'es') return n === 1 ? '1 día' : `${n} días`
+  return n === 1 ? '1 dia' : `${n} dias`
+}
+
 export function addPlatformPlanTrialDays(
   from: Date,
   days: number = PLATFORM_PLAN_TRIAL_DAYS

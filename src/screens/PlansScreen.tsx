@@ -35,6 +35,7 @@ import {
 } from '../config/plan-billing';
 import {
   DEFAULT_PLATFORM_PLAN_OFFER_DAYS,
+  formatPlatformOfferDaysLabel,
   isEligibleForPlatformPlanTrial,
   type PlatformPlanOfferMode,
 } from '../config/platform-plan-trial';
@@ -223,11 +224,11 @@ export function PlansScreen() {
       if (isUpgrade && withTrial) {
         showConfirm(
           offerMode === 'FREE_TRIAL'
-            ? `Testar grátis ${offerDays} dias`
-            : `Experimentar ${offerDays} dias`,
+            ? `Testar grátis ${formatPlatformOfferDaysLabel(offerDays)}`
+            : `Experimentar ${formatPlatformOfferDaysLabel(offerDays)}`,
           offerMode === 'FREE_TRIAL'
-            ? `Você vai testar ${formatPlanDisplayName(planName)} grátis por ${offerDays} dias. Seu plano ${formatPlanDisplayName(currentPlan)} continua cobrando normalmente. Se cancelar o teste ou ele expirar sem cobrança do novo, você volta para ${formatPlanDisplayName(currentPlan)}. Se não cancelar, ao fim do teste o novo plano é cobrado e o anterior é cancelado.`
-            : `Você vai testar ${formatPlanDisplayName(planName)} por ${offerDays} dias (cobrança na adesão). Seu plano ${formatPlanDisplayName(currentPlan)} continua cobrando normalmente. Se cancelar o teste ou ele expirar, você volta para ${formatPlanDisplayName(currentPlan)}. Se não cancelar, o novo plano segue e o anterior é cancelado.`,
+            ? `Você vai testar ${formatPlanDisplayName(planName)} grátis por ${formatPlatformOfferDaysLabel(offerDays)}. Seu plano ${formatPlanDisplayName(currentPlan)} continua cobrando normalmente. Se cancelar o teste ou ele expirar sem cobrança do novo, você volta para ${formatPlanDisplayName(currentPlan)}. Se não cancelar, ao fim do teste o novo plano é cobrado e o anterior é cancelado.`
+            : `Você vai testar ${formatPlanDisplayName(planName)} por ${formatPlatformOfferDaysLabel(offerDays)} (cobrança na adesão). Seu plano ${formatPlanDisplayName(currentPlan)} continua cobrando normalmente. Se cancelar o teste ou ele expirar, você volta para ${formatPlanDisplayName(currentPlan)}. Se não cancelar, o novo plano segue e o anterior é cancelado.`,
           async () => {
             await proceedWithCheckout(planName, { withTrial: true });
           },
@@ -346,7 +347,7 @@ export function PlansScreen() {
     showConfirm(
       'Confirmar Cancelamento',
       revokeImmediately
-        ? `Você está na experimentação de ${offerDays} dias (valor já cobrado). Ao cancelar agora, o acesso encerra na hora e solicitamos reembolso. Se você tinha um plano pago antes, ele será restaurado. Se não cancelar em ${offerDays} dias, não há reembolso e a assinatura segue.`
+        ? `Você está na experimentação de ${formatPlatformOfferDaysLabel(offerDays)} (valor já cobrado). Ao cancelar agora, o acesso encerra na hora e solicitamos reembolso. Se você tinha um plano pago antes, ele será restaurado. Se não cancelar em ${formatPlatformOfferDaysLabel(offerDays)}, não há reembolso e a assinatura segue.`
         : `Tem certeza que deseja cancelar sua assinatura do plano ${formatPlanDisplayName(currentPlan)}? Você continuará tendo acesso aos recursos do plano até o final do período atual.`,
       async () => {
         try {
@@ -604,8 +605,8 @@ export function PlansScreen() {
                   {showTrial ? (
                     <Text style={styles.periodTotalText}>
                       {offerMode === 'FREE_TRIAL'
-                        ? `Teste grátis por ${offerDays} dias · cancele antes do fim e não será cobrado`
-                        : `Cobramos ${plan.price} agora · experimente ${offerDays} dias · cancele nesse prazo para reembolso 100%`}
+                        ? `Teste grátis por ${formatPlatformOfferDaysLabel(offerDays)} · cancele antes do fim e não será cobrado`
+                        : `Cobramos ${plan.price} agora · experimente ${formatPlatformOfferDaysLabel(offerDays)} · cancele nesse prazo para reembolso 100%`}
                     </Text>
                   ) : plan.periodTotal && plan.discountPercent > 0 ? (
                     <Text style={styles.periodTotalText}>
@@ -639,7 +640,7 @@ export function PlansScreen() {
                       <>
                         <Ionicons name="time-outline" size={18} color={planColor} />
                         <Text style={[styles.trialButtonText, { color: planColor }]}>
-                          {offerMode === 'FREE_TRIAL' ? `Testar grátis ${offerDays} dias` : `Experimentar ${offerDays} dias`}
+                          {offerMode === 'FREE_TRIAL' ? `Testar grátis ${formatPlatformOfferDaysLabel(offerDays)}` : `Experimentar ${formatPlatformOfferDaysLabel(offerDays)}`}
                         </Text>
                       </>
                     )}

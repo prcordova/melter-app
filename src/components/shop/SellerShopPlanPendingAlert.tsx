@@ -6,6 +6,7 @@ import type { SellerShopPlanGateInfo } from './SellerShopPlanRequiredStep';
 import { api } from '../../services/http-client';
 import {
   DEFAULT_PLATFORM_PLAN_OFFER_DAYS,
+  formatPlatformOfferDaysLabel,
   type PlatformPlanOfferMode,
 } from '../../config/platform-plan-trial';
 
@@ -65,13 +66,13 @@ export function SellerShopPlanPendingAlert({ gate, onGoToPlans }: Props) {
   const ctaLabel = !softOffer
     ? 'Assinar agora'
     : offerMode === 'FREE_TRIAL'
-      ? `Testar grátis ${offerDays} dias`
-      : `Experimentar ${offerDays} dias`;
+      ? `Testar grátis ${formatPlatformOfferDaysLabel(offerDays)}`
+      : `Experimentar ${formatPlatformOfferDaysLabel(offerDays)}`;
   const bodyOffer = !softOffer
     ? `Assine o plano ${planLabel} para ativar a loja e aparecer no marketplace Melter.`
     : offerMode === 'FREE_TRIAL'
-      ? `Seu pacote já foi enviado para análise. Teste grátis o plano ${planLabel} por ${offerDays} dias para ativar a loja e aparecer no marketplace Melter.`
-      : `Seu pacote já foi enviado para análise. Assine o plano ${planLabel} (experimente ${offerDays} dias) para ativar a loja e aparecer no marketplace Melter.`;
+      ? `Seu pacote já foi enviado para análise. Teste grátis o plano ${planLabel} por ${formatPlatformOfferDaysLabel(offerDays)} para ativar a loja e aparecer no marketplace Melter.`
+      : `Seu pacote já foi enviado para análise. Assine o plano ${planLabel} (experimente ${formatPlatformOfferDaysLabel(offerDays)}) para ativar a loja e aparecer no marketplace Melter.`;
 
   return (
     <View style={styles.banner}>
