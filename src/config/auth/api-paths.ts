@@ -20,4 +20,6 @@ export const AUTH_API = {
   forgotPassword: '/api/auth/forgot-password',
   verifyResetToken: '/api/auth/verify-reset-token',
   resetPassword: '/api/auth/reset-password',
+  logout: '/api/auth/logout',
+  planSession: '/api/auth/plan-session',
 } as const
