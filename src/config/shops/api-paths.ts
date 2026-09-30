@@ -41,6 +41,12 @@ export const PLATFORM_REVIEWS_API = {
     `/api/admin/users/${encodeURIComponent(userId)}/platform-review/activate`,
 } as const
 
+/** Admin Sistema → Lojas e produtos — sync com melter web */
+export const SHOP_ADMIN_SETTINGS_API = {
+  shopProducts: '/api/admin/settings/shop-products',
+  releasePlanGatedMarketplace: '/api/admin/settings/shop-products/release-marketplace',
+} as const
+
 /** Vídeo de apresentação do pacote — sync com melter web */
 export const PRESENTATION_VIDEO_API = {
   upload: '/api/products/upload/presentation-video',
