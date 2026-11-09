@@ -28,6 +28,9 @@ import {
   migrateLegacyBiometricLogin,
   clearBiometricLogin,
 } from '../services/biometricLogin';
+import * as Clipboard from 'expo-clipboard';
+
+const TWO_FACTOR_CODE_LENGTH = 6;
 
 export function LoginScreen() {
   const styles = useThemedStyles(createStyles);
@@ -50,6 +53,7 @@ export function LoginScreen() {
   const [requires2FA, setRequires2FA] = useState(false);
   const [tempToken, setTempToken] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [rejectedCode, setRejectedCode] = useState<string | null>(null);
 
   const promptCancelDeletion = (token: string, scheduledAt?: string | null) => {
     const dateHint = scheduledAt
@@ -106,7 +110,8 @@ export function LoginScreen() {
     }, [refreshBioConfigured])
   );
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (codeOverride?: string) => {
+    const code = codeOverride ?? twoFactorCode;
     setError('');
     setLoading(true);
 
@@ -114,9 +119,21 @@ export function LoginScreen() {
       const result = await login(
         formData.username,
         formData.password,
-        requires2FA ? twoFactorCode : undefined,
+        requires2FA ? code : undefined,
         tempToken || undefined
       );
+
+      if (requires2FA && result?.success === false) {
+        setTwoFactorCode('');
+        setRejectedCode(code);
+        if (result.sessionExpired) {
+          handleBack();
+          setError('O tempo para digitar o código acabou. Entre com usuário e senha novamente.');
+        } else {
+          setError(`${result.message || 'Código inválido'}. Aguarde o próximo código no autenticador.`);
+        }
+        return;
+      }
 
       // Se requer 2FA, mostrar campo de código
       if (result?.requires2FA && result?.tempToken) {
@@ -175,7 +192,31 @@ export function LoginScreen() {
     setRequires2FA(false);
     setTempToken(null);
     setTwoFactorCode('');
+    setRejectedCode(null);
     setError('');
+  };
+
+  /** Com 6 dígitos envia sozinho — exceto o mesmo código já recusado (precisa de um novo do autenticador). */
+  const applyTwoFactorCode = (raw: string) => {
+    const digits = raw.replace(/\D/g, '').slice(0, TWO_FACTOR_CODE_LENGTH);
+    setTwoFactorCode(digits);
+    if (digits.length === TWO_FACTOR_CODE_LENGTH && !loading && digits !== rejectedCode) {
+      void handleSubmit(digits);
+    }
+  };
+
+  const handlePasteTwoFactorCode = async () => {
+    const text = await Clipboard.getStringAsync().catch(() => '');
+    const match = text.match(/\d{6}/);
+    if (!match) {
+      showToast.error('2FA', 'Nenhum código de 6 dígitos na área de transferência.');
+      return;
+    }
+    if (match[0] === rejectedCode) {
+      setError('Esse código já foi recusado. Copie o próximo código do autenticador.');
+      return;
+    }
+    applyTwoFactorCode(match[0]);
   };
 
   const isFormValid = formData.username.length >= 3 && formData.password.length >= 6;
@@ -264,17 +305,25 @@ export function LoginScreen() {
                   <Input
                     label="Código de 6 dígitos"
                     value={twoFactorCode}
-                    onChangeText={(text) => setTwoFactorCode(text.replace(/\D/g, ''))}
+                    onChangeText={applyTwoFactorCode}
                     placeholder="000000"
                     keyboardType="number-pad"
-                    maxLength={6}
+                    textContentType="oneTimeCode"
+                    autoComplete="one-time-code"
+                    maxLength={TWO_FACTOR_CODE_LENGTH}
                     editable={Boolean(!loading)}
+                    autoFocus
                     style={styles.twoFactorInput}
+                    rightIcon={<Ionicons name="clipboard-outline" size={22} color={colors.secondary.main} />}
+                    onRightIconPress={loading ? undefined : () => void handlePasteTwoFactorCode()}
+                    helperText="Toque no ícone para colar o código copiado"
                   />
 
                   <Button
-                    onPress={handleSubmit}
-                    disabled={Boolean(twoFactorCode.length !== 6 || loading)}
+                    onPress={() => void handleSubmit()}
+                    disabled={Boolean(
+                      twoFactorCode.length !== TWO_FACTOR_CODE_LENGTH || twoFactorCode === rejectedCode || loading
+                    )}
                     style={styles.submitButton}
                   >
                     {loading ? 'Verificando...' : 'Verificar'}
@@ -355,7 +404,7 @@ export function LoginScreen() {
                   ) : null}
 
                   <Button
-                    onPress={handleSubmit}
+                    onPress={() => void handleSubmit()}
                     disabled={Boolean(!isFormValid || loading)}
                     style={styles.submitButton}
                   >

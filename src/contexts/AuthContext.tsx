@@ -13,6 +13,10 @@ interface LoginResult {
   tempToken?: string;
   deletionScheduledAt?: string | null;
   success?: boolean;
+  /** Recusa sem exceção (ex.: código 2FA inválido — `api` não lança em 4xx). */
+  message?: string;
+  /** 401 no 2FA: o token temporário expirou — precisa digitar usuário e senha de novo. */
+  sessionExpired?: boolean;
 }
 
 interface AuthContextType {
@@ -281,6 +285,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setBiometricUnlockRequired(false);
 
         return { success: true };
+      }
+
+      if (twoFactorCode && tempToken) {
+        return {
+          success: false,
+          message: response.message || 'Código inválido',
+          sessionExpired: response.code === 'TWO_FACTOR_SESSION_EXPIRED',
+        };
       }
     } catch (error) {
       console.error('Erro no login:', error);
