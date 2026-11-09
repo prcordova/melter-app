@@ -46,6 +46,8 @@ interface ShopSettingsModalProps {
     titleDisplayEffect?: UsernameDisplayEffectConfig | null;
   } | null;
   onNavigateToPlans?: () => void;
+  /** 403 `requiresSellerVerification` ao ativar a loja. */
+  onOpenVerification?: () => void;
 }
 
 export function ShopSettingsModal({
@@ -57,6 +59,7 @@ export function ShopSettingsModal({
   isAdultShop = false,
   initialSettings,
   onNavigateToPlans,
+  onOpenVerification,
 }: ShopSettingsModalProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
@@ -134,8 +137,22 @@ export function ShopSettingsModal({
         showToast.success('Sucesso', 'Configurações atualizadas com sucesso!');
         onSettingsUpdated();
         onClose();
+        return;
+      }
+
+      const gate = response as typeof response & {
+        upgradeRequired?: boolean;
+        requiresSellerVerification?: boolean;
+      };
+      const message = response.message || 'Erro ao atualizar configurações';
+      if (gate.upgradeRequired && onNavigateToPlans) {
+        showConfirm('Plano necessário', message, onNavigateToPlans, { confirmText: 'Ver planos' });
+      } else if (gate.requiresSellerVerification && onOpenVerification) {
+        showConfirm('Verificação necessária', message, onOpenVerification, {
+          confirmText: 'Enviar documentos',
+        });
       } else {
-        showToast.error('Erro', response.message || 'Erro ao atualizar configurações');
+        showToast.error('Erro', message);
       }
     } catch (error: any) {
       console.error('[ShopSettingsModal] Erro ao salvar configurações:', error);

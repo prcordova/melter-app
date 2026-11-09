@@ -21,6 +21,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { productsApi } from '../services/api';
 import { BackArrow } from '../components/BackArrow';
 import { getImageUrl } from '../utils/image';
+import { isExternalProductLinkFile } from '../lib/product-external-links';
 import * as ScreenCapture from 'expo-screen-capture';
 import ImageViewing from 'react-native-image-viewing';
 
@@ -338,19 +339,7 @@ export function ProductScreen() {
 
   // Buscar links também no array files (caso o link tenha sido salvo como arquivo)
   const links = files
-    .filter((f) => {
-      // Verificar se é um link (documento com URL válida)
-      if (f.fileType !== 'document' || !f.url || typeof f.url !== 'string') {
-        return false;
-      }
-      const trimmed = f.url.trim();
-      // Aceitar URLs que começam com http ou que são válidas (mais de 3 caracteres)
-      return trimmed.length > 3 && (
-        trimmed.startsWith('http://') || 
-        trimmed.startsWith('https://') ||
-        trimmed.includes('.') // URLs válidas geralmente contêm ponto
-      );
-    })
+    .filter((f) => isExternalProductLinkFile(f))
     .map((f) => ({
       ...f,
       url: normalizeUrl(f.url),
@@ -358,7 +347,7 @@ export function ProductScreen() {
   const images = files.filter((f) => f.fileType === 'image');
   const videos = files.filter((f) => f.fileType === 'video');
   const documents = files.filter(
-    (f) => f.fileType === 'document' && f.url && !f.url.startsWith('http')
+    (f) => f.fileType === 'document' && f.url && !isExternalProductLinkFile(f)
   );
 
   // Verificar se há conteúdo (links também contam como conteúdo)
@@ -585,7 +574,7 @@ export function ProductScreen() {
               <TouchableOpacity
                 key={index}
                 style={styles.documentCard}
-                onPress={() => handleOpenLink(doc.url)}
+                onPress={() => handleOpenLink(getImageUrl(doc.url) || doc.url)}
               >
                 <Ionicons name="document-outline" size={24} color={colors.primary.main} />
                 <View style={styles.documentInfo}>

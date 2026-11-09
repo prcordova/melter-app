@@ -169,31 +169,22 @@ export function ContentStep({
           showToast.error('Erro', 'Alguns arquivos excedem os limites do seu plano atual');
         }
 
-        // Processar apenas arquivos válidos
-        for (let i = 0; i < validFiles.length; i++) {
-          const asset = validFiles[i];
-          const fileId = Date.now().toString() + i;
+        const batchId = Date.now().toString();
+        const newFiles = validFiles.map((asset, i) => ({
+          id: `${batchId}-${i}`,
+          name: asset.fileName || `arquivo_${i}.${asset.uri.split('.').pop()}`,
+          size: asset.fileSize || 0,
+          type: asset.mimeType || 'application/octet-stream',
+          file: asset, // enviado ao S3 no publish (rascunho)
+          url: null,
+          uri: asset.uri,
+        }));
 
-          // Simular progresso
-          for (let progress = 0; progress <= 100; progress += 20) {
-            setUploadProgress((prev) => ({ ...prev, [fileId]: progress }));
-            await new Promise((resolve) => setTimeout(resolve, 50));
-          }
-
-          const newFile = {
-            id: fileId,
-            name: asset.fileName || `arquivo_${i}.${asset.uri.split('.').pop()}`,
-            size: asset.fileSize || 0,
-            type: asset.mimeType || 'application/octet-stream',
-            file: asset, // Manter o arquivo original para upload posterior
-            url: null, // URL será definida após upload
-            uri: asset.uri,
-          };
-
-          setFormData({
-            ...formData,
-            files: [...formData.files, newFile],
-          });
+        if (newFiles.length > 0) {
+          setFormData((prev: any) => ({
+            ...prev,
+            files: [...(prev.files || []), ...newFiles],
+          }));
         }
 
         if (validFiles.length > 0) {

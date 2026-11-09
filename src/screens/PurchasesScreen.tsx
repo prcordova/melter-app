@@ -153,8 +153,7 @@ export function PurchasesScreen() {
           params: { username: purchase.productId.userId.username },
         });
       } else {
-        // TODO: Navegar para tela de visualização do produto
-        showToast.info('Produto', `Abrindo ${purchase.productId.title}`);
+        navigation.navigate('Product', { productId: purchase.productId._id });
       }
     }
   };

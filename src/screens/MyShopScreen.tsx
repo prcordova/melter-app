@@ -39,6 +39,13 @@ import { SellerGrowthPromoCard } from '../components/shop/SellerGrowthPromoCard'
 import { CustomCheckpoints } from '../components/seller-journey/CustomCheckpoints';
 import type { SellerGrowthPromoNavigateAction } from '../components/shop/SellerGrowthPromoCard';
 import { ProductCreationWizard } from '../components/shop/ProductCreationWizard';
+import { ProductDraftResumeModal } from '../components/shop/wizard/ProductDraftResumeModal';
+import {
+  saveProductEdit,
+  useProductDraftSession,
+} from '../components/shop/wizard/useProductDraftSession';
+import { ProductUploadError } from '../utils/products/upload';
+import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { ShopCard } from '../components/ShopCard';
 import { SubscriptionPlansContent } from '../components/shop/SubscriptionPlansContent';
 import { ShopSettingsModal } from '../components/shop/ShopSettingsModal';
@@ -72,7 +79,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api.config';
 import { buildShopShareUrl } from '../utils/shop-share';
 import * as Clipboard from 'expo-clipboard';
-import axios from 'axios';
 import {
   DEFAULT_SHOP_PRODUCTS_LIST_META,
   normalizeShopProductsListMeta,
@@ -165,6 +171,17 @@ export function MyShopScreen() {
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [wizardSaving, setWizardSaving] = useState(false);
+  const [wizardProgress, setWizardProgress] = useState(0);
+  const { showConfirm, modalProps, hideModal } = useCustomModal();
+  const closeProductWizard = useCallback(() => {
+    setShowCreateProductModal(false);
+    setEditingProduct(null);
+  }, []);
+  const draftSession = useProductDraftSession({
+    active: showCreateProductModal && !editingProduct,
+    onAbort: closeProductWizard,
+  });
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [pendingProductsCount, setPendingProductsCount] = useState(0);
   const [shopListMeta, setShopListMeta] = useState<ShopProductsListMeta>(
@@ -243,14 +260,25 @@ export function MyShopScreen() {
     if (!openProductId || isOwner) return;
     const product = products.find((p: any) => p._id === openProductId);
     if (!product) return;
+    navigation.setParams({ openProduct: undefined });
+    const status = product.purchaseStatus;
+    if (status?.hasPurchased || status?.accessVia === 'SUBSCRIPTION_PLAN') {
+      if (product.type === 'DIGITAL_PACK' && status?.isActive !== false) {
+        navigation.navigate('Product', { productId: product._id });
+      } else {
+        navigation.navigate('Purchases');
+      }
+      return;
+    }
     const subId = product.subscriptionPlanId || product.subscriptionPlan?._id;
     if (product.paymentMode === 'ASSINATURA' && subId) {
       setPlanAutoOpenConsumed(false);
+      setPendingOpenPlanId(String(subId));
       return;
     }
     setCheckoutProduct(product as CheckoutProduct);
     setShowCheckoutModal(true);
-  }, [loading, loadingProducts, products, route.params?.openProduct, isOwner]);
+  }, [loading, loadingProducts, products, route.params?.openProduct, isOwner, navigation]);
 
   useEffect(() => {
     setPlanAutoOpenConsumed(false);
@@ -327,7 +355,7 @@ export function MyShopScreen() {
           productsData = await Promise.all(
             productsData.map(async (p: any) => {
               try {
-                const st = await productsApi.getPurchaseStatus(p._id);
+                const st = await productsApi.getPurchaseStatus(p._id, { forShop: true });
                 if (st.success && st.data) {
                   return { ...p, purchaseStatus: st.data };
                 }
@@ -622,6 +650,46 @@ export function MyShopScreen() {
       withTrial: true,
     });
     navigation.navigate('ProfileStack' as never, { screen: 'Plans', params } as never);
+  };
+
+  const handleWizardSave = async (wizardData: any) => {
+    setWizardSaving(true);
+    setWizardProgress(5);
+    try {
+      if (editingProduct?._id) {
+        await saveProductEdit(editingProduct, wizardData, setWizardProgress);
+        showToast.success('Sucesso', 'Produto atualizado com sucesso!');
+        void fetchProducts();
+        closeProductWizard();
+        return;
+      }
+
+      const result = await draftSession.publish(wizardData, setWizardProgress);
+      void fetchProducts();
+      closeProductWizard();
+      const message = result.message || 'Pacote enviado para análise!';
+      if (result.pendingPlanActivation) {
+        showConfirm('Pacote enviado para análise', message, handleGoToPlansFromShop, {
+          confirmText: 'Ver planos',
+          cancelText: 'Depois',
+        });
+      } else {
+        showToast.success('Sucesso', message);
+      }
+    } catch (error: any) {
+      console.error('[MyShopScreen] Erro ao salvar produto:', error);
+      const message = error?.message || 'Erro ao salvar produto';
+      if (error instanceof ProductUploadError && error.upgradeRequired) {
+        showConfirm('Limite do plano', message, handleGoToPlansFromShop, {
+          confirmText: 'Ver planos',
+        });
+      } else {
+        showToast.error('Erro', message);
+      }
+    } finally {
+      setWizardSaving(false);
+      setWizardProgress(0);
+    }
   };
 
   const handleGrowthPromoAction = (action: SellerGrowthPromoNavigateAction) => {
@@ -1695,8 +1763,17 @@ export function MyShopScreen() {
         username={username}
         isAdultShop={Boolean(sellerVerification?.isAdultContent)}
         onNavigateToPlans={() => {
-          setActiveTab('plans');
+          setShowSettingsModal(false);
+          handleGoToPlansFromShop();
         }}
+        onOpenVerification={
+          ['pending', 'appeal'].includes(sellerVerification?.status ?? '')
+            ? undefined
+            : () => {
+                setShowSettingsModal(false);
+                void openVerificationForm();
+              }
+        }
       />
 
       <ProductCheckoutModal
@@ -1715,188 +1792,45 @@ export function MyShopScreen() {
       />
 
       {/* Wizard de Criação de Produto */}
+      <ProductDraftResumeModal
+        visible={showCreateProductModal && !editingProduct && draftSession.resumeVisible}
+        drafts={draftSession.drafts}
+        busy={draftSession.busy}
+        onClose={draftSession.closeResume}
+        onContinue={(draftId) => {
+          draftSession.continueDraft(draftId).catch((error: Error) => {
+            showToast.error('Erro', error.message || 'Não foi possível carregar o rascunho');
+          });
+        }}
+        onDiscard={(draftId) => {
+          draftSession
+            .discardDraft(draftId)
+            .then(() => showToast.success('Rascunho descartado'))
+            .catch((error: Error) => {
+              showToast.error('Erro', error.message || 'Não foi possível descartar o rascunho');
+            });
+        }}
+        onCreateNew={draftSession.createNew}
+      />
+
       <ProductCreationWizard
-        key={editingProduct?._id || 'new-product'}
-        visible={showCreateProductModal}
+        key={editingProduct?._id || draftSession.resumedDraft?._id || 'new-product'}
+        visible={
+          showCreateProductModal &&
+          (Boolean(editingProduct) || (draftSession.resolved && !draftSession.resumeVisible))
+        }
         productCoverAvatarFallbackEnabled={
           shopListMeta.productCoverAvatarFallbackEnabled
         }
         storageOptions={productStorageOptions}
-        onClose={() => {
-          setShowCreateProductModal(false);
-          setEditingProduct(null);
-        }}
-        onSave={async (wizardData) => {
-          try {
-            // Preparar dados para o backend
-            // Buscar o primeiro link válido (com URL preenchida e com mais de 3 caracteres)
-            const validLink = wizardData.links && wizardData.links.length > 0
-              ? wizardData.links.find((link: any) => 
-                  link.url && 
-                  typeof link.url === 'string' && 
-                  link.url.trim() !== '' &&
-                  link.url.trim().length > 3
-                )
-              : null;
-            
-            const downloadUrl = validLink ? validLink.url.trim() : '';
-            const fileName = validLink ? (validLink.title || '').trim() : '';
-
-            const productData = {
-              ...wizardData,
-              type: 'DIGITAL_PACK',
-              subscriptionPlanId:
-                wizardData.paymentMode === 'ASSINATURA' ? wizardData.subscriptionPlanId : undefined,
-              subscriptionScope: wizardData.paymentMode === 'ASSINATURA' ? 'LOJA' : undefined,
-              price: wizardData.paymentMode === 'ASSINATURA' ? 0 : wizardData.price,
-              digital: {
-                downloadUrl,
-                fileName,
-                allowDownload: wizardData.allowDownload,
-                fileSize: 0,
-                files: wizardData.files || [],
-              },
-            };
-
-            const normalizeCategoryId = (v: any) => {
-              if (v == null || v === '') return '';
-              if (typeof v === 'object' && v !== null && '_id' in v) {
-                return String((v as { _id: string })._id);
-              }
-              return String(v);
-            };
-
-            /** PATCH valida com schema parcial: não enviar campos só do wizard nem type inválido no enum legado. */
-            const toUpdatePayload = (data: typeof productData) => {
-              const {
-                links: _l,
-                modules: _m,
-                files: _f,
-                contentValidations: _c,
-                type: _t,
-                ...rest
-              } = data as any;
-              return rest;
-            };
-
-            // Se há arquivos, criar produto primeiro para obter ID
-            let productId = editingProduct?._id;
-
-            if (wizardData.files && wizardData.files.length > 0 && !productId) {
-              // Criar produto temporário
-              const tempPayload = {
-                ...productData,
-                digital: {
-                  ...productData.digital,
-                  files: [],
-                },
-              };
-
-              const createResponse = await productsApi.createProduct(tempPayload);
-              if (createResponse.success && createResponse.data) {
-                productId = createResponse.data._id;
-              } else {
-                throw new Error('Erro ao criar produto');
-              }
-
-              // Upload dos arquivos - sempre usando presigned URL e upload direto ao S3
-              for (let i = 0; i < wizardData.files.length; i++) {
-                const fileData = wizardData.files[i];
-                if (fileData.file || fileData.uri) {
-                  const fileUri = fileData.uri || fileData.file.uri;
-                  const fileType = fileData.type || fileData.file.mimeType || 'application/octet-stream';
-                  const fileName = fileData.name || fileData.file.fileName || 'arquivo';
-                  const fileSize = fileData.size || fileData.file.size || 0;
-
-                  try {
-                    // 1. Obter presigned URL (backend valida tudo aqui)
-                    const presignedResponse = await productsApi.getPresignedUploadUrl(
-                      productId,
-                      fileName,
-                      fileType,
-                      fileSize,
-                      i
-                    );
-
-                    if (!presignedResponse.success || !presignedResponse.data) {
-                      throw new Error(presignedResponse.message || 'Erro ao obter URL de upload');
-                    }
-
-                    // 2. Fazer upload direto para S3 usando a presigned URL
-                    const fileBlob = await fetch(fileUri).then(res => res.blob());
-                    
-                    await axios.put(presignedResponse.data.presignedUrl, fileBlob, {
-                      headers: {
-                        'Content-Type': fileType,
-                      },
-                      timeout: 600000, // 10 minutos para uploads grandes
-                      onUploadProgress: (progressEvent) => {
-                        // Progresso silencioso (sem logs)
-                      },
-                    });
-
-                    // 3. Registrar o arquivo no backend após upload bem-sucedido
-                    await productsApi.registerFile(
-                      productId,
-                      presignedResponse.data.fileUrl,
-                      fileName,
-                      fileType,
-                      fileSize,
-                      fileData.customFileName,
-                      fileData.description,
-                      i
-                    );
-                  } catch (uploadError: any) {
-                    console.error('[MyShopScreen] Erro no upload do arquivo:', uploadError);
-                    const errorMessage = uploadError.response?.data?.message || uploadError.message || 'Erro ao fazer upload do arquivo';
-                    showToast.error('Erro', errorMessage);
-                    throw uploadError;
-                  }
-                }
-              }
-            } else if (!productId) {
-              // Criar produto sem arquivos
-              await productsApi.createProduct(productData);
-            } else {
-              const pm = editingProduct?.paymentMode || 'UNICO';
-              let patch = toUpdatePayload(productData);
-              patch = {
-                ...patch,
-                paymentMode: pm,
-                subscriptionPlanId:
-                  pm === 'ASSINATURA' ? editingProduct?.subscriptionPlanId : undefined,
-                subscriptionScope:
-                  pm === 'ASSINATURA'
-                    ? editingProduct?.subscriptionScope || 'LOJA'
-                    : undefined,
-                price: pm === 'ASSINATURA' ? 0 : wizardData.price,
-              };
-              if (editingProduct?.status === 'APPROVED') {
-                patch = {
-                  ...patch,
-                  categoryId: normalizeCategoryId(editingProduct.categoryId),
-                };
-              }
-              await productsApi.updateProduct(productId, patch);
-            }
-
-            showToast.success(
-              'Sucesso',
-              editingProduct?._id ? 'Produto atualizado com sucesso!' : 'Produto criado com sucesso!'
-            );
-            fetchProducts();
-            setShowCreateProductModal(false);
-            setEditingProduct(null);
-          } catch (error: any) {
-            console.error('[MyShopScreen] Erro ao salvar produto:', error);
-            showToast.error(
-              'Erro',
-              error.response?.data?.message || 'Erro ao salvar produto'
-            );
-          }
-        }}
-        product={editingProduct}
+        onClose={closeProductWizard}
+        onSave={(wizardData) => void handleWizardSave(wizardData)}
+        saving={wizardSaving}
+        overallProgress={wizardProgress}
+        product={editingProduct ?? draftSession.resumedDraft}
       />
+
+      <CustomModal {...modalProps} onClose={hideModal} />
     </View>
   );
 }

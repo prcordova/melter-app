@@ -523,7 +523,10 @@ export function StoryCreateModal({
           panY: 0,
         },
           visibility: visibilityToUpload,
-          duration: isVideoToUpload ? Math.min(30, videoEndTimeToUpload - videoStartTimeToUpload) : 10,
+          // API: inteiro entre 3 e 30 segundos
+          duration: isVideoToUpload
+            ? Math.min(30, Math.max(3, Math.round(videoEndTimeToUpload - videoStartTimeToUpload)))
+            : 10,
       };
 
       const response = await storiesApi.createStory(storyData);

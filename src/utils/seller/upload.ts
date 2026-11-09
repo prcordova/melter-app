@@ -1,4 +1,5 @@
 import { sellerVerificationApi } from '../../services/api';
+import { putBlobToPresignedUrl, readFileBlob } from '../presigned-upload';
 
 export type SellerVerificationDocumentType = 'front' | 'back' | 'selfie' | 'videoProof';
 
@@ -7,48 +8,6 @@ type PickedSellerVerificationFile = {
   mimeType?: string | null;
   fileName?: string | null;
 };
-
-async function readFileBlob(uri: string): Promise<Blob> {
-  try {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    if (blob.size > 0) return blob;
-  } catch {
-    // fallback abaixo
-  }
-
-  return new Promise<Blob>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', uri, true);
-    xhr.responseType = 'blob';
-    xhr.onload = () => {
-      if (xhr.status === 200 || xhr.status === 0) {
-        resolve(xhr.response);
-      } else {
-        reject(new Error(`Erro ao ler arquivo: ${xhr.status}`));
-      }
-    };
-    xhr.onerror = () => reject(new Error('Erro de rede ao ler arquivo'));
-    xhr.send();
-  });
-}
-
-function putBlobToPresignedUrl(url: string, blob: Blob, contentType: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', url, true);
-    xhr.setRequestHeader('Content-Type', contentType);
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
-        return;
-      }
-      reject(new Error(`Erro ao enviar documento (${xhr.status})`));
-    };
-    xhr.onerror = () => reject(new Error('Erro de rede ao enviar documento'));
-    xhr.send(blob);
-  });
-}
 
 export async function uploadSellerVerificationFileDirect(options: {
   file: PickedSellerVerificationFile;

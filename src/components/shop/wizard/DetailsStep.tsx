@@ -55,7 +55,9 @@ export function DetailsStep({
   >([]);
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-
+  const [priceText, setPriceText] = useState(() =>
+    formData?.price != null ? String(formData.price) : '10'
+  );
 
   // Garantir que formData existe
   const safeFormData = formData || {
@@ -471,21 +473,26 @@ export function DetailsStep({
               Preço (R$) <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={styles.input}
-              value={String(safeFormData.price || 10)}
+              style={[styles.input, Number(safeFormData.price) < 10 && styles.inputError]}
+              value={priceText}
               onChangeText={(text) => {
-                try {
-                  const numValue = Math.max(10, Number(text) || 10);
-                  setFormData((prev: any) => ({ ...prev, price: numValue }));
-                } catch (error) {
-                  console.error('[DetailsStep] Erro ao atualizar preço:', error);
-                }
+                const sanitized = text.replace(/[^0-9.,]/g, '');
+                setPriceText(sanitized);
+                const numValue = Number(sanitized.replace(',', '.'));
+                setFormData((prev: any) => ({
+                  ...prev,
+                  price: Number.isFinite(numValue) ? numValue : 0,
+                }));
               }}
               placeholder="10.00"
               placeholderTextColor={colors.text.tertiary}
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
             />
-            <Text style={styles.helperText}>Mín. R$ 10</Text>
+            <Text
+              style={[styles.helperText, Number(safeFormData.price) < 10 && styles.errorHelperText]}
+            >
+              Mín. R$ 10
+            </Text>
           </View>
         )}
 
@@ -744,6 +751,12 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     fontSize: 12,
     color: c.text.secondary,
     marginTop: 4,
+  },
+  inputError: {
+    borderColor: c.states.error,
+  },
+  errorHelperText: {
+    color: c.states.error,
   },
   errorText: {
     fontSize: 16,

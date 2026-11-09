@@ -622,11 +622,9 @@ export function SellerVerificationFormModal({
 
   const handleSubmit = async () => {
     const requiresField = (field: string) => {
+      // Mesma regra do servidor: vídeo exigido se "só cópia" ou se pedido na correção.
       if (field === 'videoProof') {
-        return (
-          (!isReviewMode && documentIsCopyOnly) ||
-          (isReviewMode && mustResubmitField('videoProof'))
-        );
+        return documentIsCopyOnly || mustResubmitField('videoProof');
       }
       return !isReviewMode || mustResubmitField(field);
     };
@@ -641,7 +639,7 @@ export function SellerVerificationFormModal({
         showToast.error('CPF', 'CPF inválido. Verifique os dígitos.');
         return;
       }
-    } else if (cpfNumbers.length !== 11) {
+    } else if (!isCorrectionOnlyMode && cpfNumbers.length !== 11) {
       showToast.error('CPF', 'CPF ausente. Recarregue ou entre em contato com o suporte.');
       return;
     }
@@ -661,7 +659,7 @@ export function SellerVerificationFormModal({
     }
 
     if (!isCorrectionOnlyMode) {
-      if (!ageConfirmed || !contentOwnershipConfirmed || !adultContentAware) {
+      if (!ageConfirmed || !contentOwnershipConfirmed || (isAdultContent && !adultContentAware)) {
         showToast.error('Termos', 'Confirme todos os termos obrigatórios');
         return;
       }
@@ -711,6 +709,8 @@ export function SellerVerificationFormModal({
       if (mustResubmitField('videoProof')) {
         return Boolean(videoProofFile);
       }
+      // Correção sem pedir o vídeo e "só cópia" já declarado antes: o servidor reaproveita o vídeo anterior.
+      if (isCorrectionOnlyMode && displayData?.documentIsCopyOnly) return true;
       return Boolean(
         videoProofFile || isRemoteSellerVerificationAssetUrl(videoProofPreview)
       );

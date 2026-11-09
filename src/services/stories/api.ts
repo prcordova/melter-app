@@ -182,9 +182,14 @@ export const storiesApi = {
           throw new Error(`Erro ao fazer upload para S3: status ${s3UploadResponse.status}`);
         }
 
-        // 4. Registrar upload no backend
+        // 4. Registrar upload no backend (mesma chave privada `stories/<userId>/...` que o web grava no story)
+        const storageKey: string | undefined =
+          presignedResponse.data.fileKey || presignedResponse.data.storageKey;
+        if (!storageKey) {
+          throw new Error('Chave de armazenamento não retornada após upload');
+        }
         const formData = new FormData();
-        formData.append('fileUrl', presignedResponse.data.fileUrl);
+        formData.append('fileUrl', storageKey);
         formData.append('fileName', fileName);
         
         // Se for vídeo, adicionar parâmetros de corte
@@ -238,7 +243,7 @@ export const storiesApi = {
     const response = await api.get<ApiResponse<{
       presignedUrl: string;
       fileKey: string;
-      fileUrl: string;
+      storageKey: string;
       metadata: any;
     }>>('/api/stories/upload-presigned', {
       params: {

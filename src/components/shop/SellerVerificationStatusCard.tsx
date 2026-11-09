@@ -9,6 +9,10 @@ import {
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import {
+  getSellerVerificationFieldLabels,
+  resolveFieldsToReviewForClient,
+} from '../../utils/seller/verification-fields';
 
 const SELLER_ONBOARDING_PAID_ACCESS = {
   title: 'Ninguém acessa o produto sem pagar',
@@ -90,7 +94,7 @@ export function SellerVerificationStatusCard({
       case 'rejected':
         return {
           title: 'Cadastro Rejeitado',
-          description: sellerVerification.rejectionReason || 'Seu cadastro foi rejeitado.',
+          description: 'Corrija os itens indicados e reenvie o cadastro.',
           icon: 'close-circle-outline' as const,
           color: colors.states.error,
           bgColor: isDark ? 'rgba(220, 38, 38, 0.12)' : '#FEF2F2',
@@ -150,7 +154,7 @@ export function SellerVerificationStatusCard({
       case 'needs_review':
         return {
           title: 'Revisão Necessária',
-          description: sellerVerification.needsReviewReason || 'Seu cadastro precisa ser revisado.',
+          description: 'O administrador pediu ajustes no seu cadastro.',
           icon: 'warning-outline' as const,
           color: colors.states.warning,
           bgColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
@@ -158,7 +162,6 @@ export function SellerVerificationStatusCard({
           showButton: true,
           buttonText: 'Abrir para Revisão',
           buttonAction: onOpenForm,
-          needsReviewReasons: sellerVerification.needsReviewReasons,
         };
 
       case 'approved':
@@ -187,6 +190,22 @@ export function SellerVerificationStatusCard({
 
   const config = getStatusConfig();
   const showPaidAccessBanner = !sellerVerification;
+  const isCorrectionStatus =
+    sellerVerification?.status === 'rejected' || sellerVerification?.status === 'needs_review';
+  const reasonText = isCorrectionStatus
+    ? sellerVerification?.status === 'rejected'
+      ? sellerVerification.rejectionReason
+      : sellerVerification?.needsReviewReason
+    : null;
+  const fieldLabels = isCorrectionStatus
+    ? getSellerVerificationFieldLabels(
+        resolveFieldsToReviewForClient({
+          status: sellerVerification?.status ?? null,
+          fieldsToReview: sellerVerification?.fieldsToReview,
+          rejectionReason: sellerVerification?.rejectionReason,
+        })
+      )
+    : [];
 
   return (
     <View
@@ -227,43 +246,26 @@ export function SellerVerificationStatusCard({
       <View style={styles.content}>
         <Text style={styles.description}>{config.description}</Text>
 
-        {/* Motivo de rejeição/revisão em destaque */}
-        {(sellerVerification?.rejectionReason ||
-          sellerVerification?.needsReviewReason) && (
+        {/* Motivo (uma vez) + itens a corrigir — igual SellerShopOnboardingStatusCard (web) */}
+        {reasonText ? (
           <View style={styles.reasonBox}>
             <Text style={styles.reasonLabel}>
-              {sellerVerification.status === 'rejected' ? 'Motivo:' : 'Observações do Administrador:'}
+              {sellerVerification?.status === 'rejected' ? 'Motivo:' : 'Observações do administrador:'}
             </Text>
-            <Text style={styles.reasonText}>
-              {sellerVerification.rejectionReason || sellerVerification.needsReviewReason}
-            </Text>
+            <Text style={styles.reasonText}>{reasonText}</Text>
           </View>
-        )}
+        ) : null}
 
-        {/* Itens que precisam ser corrigidos */}
-        {config.needsReviewReasons && config.needsReviewReasons.length > 0 && (
+        {fieldLabels.length > 0 ? (
           <View style={styles.reasonsList}>
-            <Text style={styles.reasonsListTitle}>Itens que precisam ser corrigidos:</Text>
-            {config.needsReviewReasons.map((reason, index) => {
-              const reasonLabels: Record<string, string> = {
-                selfie_issue: 'Problemas na selfie',
-                document_illegible: 'Documento ilegível',
-                invalid_cpf: 'CPF inválido',
-                document_expired: 'Documento vencido',
-                document_mismatch: 'Documento não corresponde aos dados',
-                missing_document_back: 'Falta documento verso',
-                poor_photo_quality: 'Qualidade das fotos insuficiente',
-                incomplete_data: 'Dados incompletos',
-                other: 'Outro motivo',
-              };
-              return (
-                <Text key={index} style={styles.reasonItem}>
-                  • {reasonLabels[reason] || reason}
-                </Text>
-              );
-            })}
+            <Text style={styles.reasonsListTitle}>Corrigir e reenviar:</Text>
+            {fieldLabels.map((label) => (
+              <Text key={label} style={styles.reasonItem}>
+                • {label}
+              </Text>
+            ))}
           </View>
-        )}
+        ) : null}
 
         {/* Justificativa de appeal */}
         {config.appealReason && (

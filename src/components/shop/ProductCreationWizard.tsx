@@ -20,11 +20,20 @@ import { ContentStep, type ProductStorageOptions } from './wizard/ContentStep';
 import { DetailsStep } from './wizard/DetailsStep';
 import { ReviewStep } from './wizard/ReviewStep';
 import { showToast } from '../CustomToast';
+import { DEFAULT_PACK_CATEGORY_ID } from '../../constants/categories';
+import {
+  buildWizardDigitalPayload,
+  mapProductDigitalToWizard,
+  normalizeDraftTitleForWizard,
+  resolveWizardCategoryId,
+  type PackContentDeliveryMode,
+} from '../../lib/products/product-wizard-form';
 
 export interface ProductCreationWizardProps {
   visible: boolean;
   onClose: () => void;
   onSave: (formData: any) => void;
+  /** Produto em edição ou rascunho retomado (`status: 'DRAFT'`). */
   product?: any;
   saving?: boolean;
   overallProgress?: number;
@@ -36,35 +45,7 @@ export interface ProductCreationWizardProps {
 
 const steps = ['Conteúdo', 'Detalhes', 'Revisão'];
 
-export type PackContentDeliveryMode = 'FILES_ONLY' | 'FILES_AND_LINKS';
-
-/** Arquivos da API usam fileType + url; o wizard espera type (MIME), uri e id. */
-function mapApiFilesToWizardFiles(files: any[]): any[] {
-  if (!Array.isArray(files)) return [];
-  return files.map((f: any, index: number) => {
-    const rawUrl = f.url || f.uri || '';
-    const uri = f.uri || rawUrl;
-    const fileType = f.fileType || 'document';
-    const type =
-      f.type ||
-      f.mimeType ||
-      (fileType === 'image'
-        ? 'image/jpeg'
-        : fileType === 'video'
-          ? 'video/mp4'
-          : 'application/octet-stream');
-    return {
-      ...f,
-      id: f.id || f._id || `existing-file-${index}`,
-      uri,
-      url: rawUrl,
-      type,
-      fileType,
-      name: f.name || f.customFileName || f.fileName || 'arquivo',
-      size: f.size ?? f.fileSize ?? 0,
-    };
-  });
-}
+export type { PackContentDeliveryMode };
 
 export function ProductCreationWizard({
   visible,
@@ -81,6 +62,8 @@ export function ProductCreationWizard({
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const isTinyScreen = windowWidth < 400;
+  const isDraft = product?.status === 'DRAFT';
+  const isEditing = Boolean(product) && !isDraft;
   const [activeStep, setActiveStep] = useState(0);
   const [showMediaRequiredError, setShowMediaRequiredError] = useState(false);
   /** Dentro de Modal, o Android ignora muito o KAV; padding extra libera rolagem dos links. */
@@ -166,30 +149,21 @@ export function ProductCreationWizard({
   // Preencher dados se estiver editando
   useEffect(() => {
     if (product && visible) {
-      const editLinks = product.digital?.downloadUrl
-          ? [
-              {
-                id: '1',
-                url: product.digital.downloadUrl,
-                title: product.digital.fileName || '',
-                description: '',
-              },
-            ]
-          : [];
+      const { files, links, contentDeliveryMode } = mapProductDigitalToWizard(product);
+      if (isDraft && typeof product.draftWizardStep === 'number') {
+        setActiveStep(Math.max(0, Math.min(steps.length - 1, product.draftWizardStep)));
+      }
 
       setFormData({
-        contentDeliveryMode: editLinks.length > 0 ? 'FILES_AND_LINKS' : 'FILES_ONLY',
-        files: mapApiFilesToWizardFiles(product.digital?.files || []),
-        links: editLinks,
+        contentDeliveryMode,
+        files,
+        links,
         modules: [],
-        title: product.title || '',
+        title: normalizeDraftTitleForWizard(product.title),
         description: product.description || '',
         tags: product.tags || '',
         price: product.price || 10,
-        categoryId:
-          typeof product.categoryId === 'object' && product.categoryId?._id
-            ? product.categoryId._id
-            : product.categoryId || '',
+        categoryId: resolveWizardCategoryId(product),
         coverImage: product.coverImage || null,
         paymentMode: product.paymentMode || 'UNICO',
         subscriptionScope: product.subscriptionScope || undefined,
@@ -226,7 +200,7 @@ export function ProductCreationWizard({
         description: '',
         tags: '',
         price: 10,
-        categoryId: '',
+        categoryId: DEFAULT_PACK_CATEGORY_ID,
         coverImage: null,
         paymentMode: 'UNICO',
         subscriptionScope: undefined,
@@ -255,7 +229,7 @@ export function ProductCreationWizard({
     try {
       switch (step) {
         case 0: {
-          if (!product && !formData.contentDeliveryMode) return false;
+          if (!isEditing && !formData.contentDeliveryMode) return false;
           return true;
         }
         case 1: // Detalhes
@@ -320,60 +294,12 @@ export function ProductCreationWizard({
   };
 
   const handleSave = () => {
-    // Preparar dados para o backend
-    const productData = {
-      title: formData.title,
-      description: formData.description,
-      tags: formData.tags,
-      categoryId: formData.categoryId,
-      coverImage: formData.coverImage,
-      type: 'DIGITAL_PACK',
-      paymentMode: formData.paymentMode,
-      subscriptionPlanId:
-        formData.paymentMode === 'ASSINATURA' ? formData.subscriptionPlanId : undefined,
-      subscriptionScope: formData.paymentMode === 'ASSINATURA' ? 'LOJA' : undefined,
-      price: formData.paymentMode === 'ASSINATURA' ? 0 : formData.price,
-      isActive: true,
-      stock: null,
-      allowComments: formData.allowComments,
-      showViews: formData.showViews,
-      showLikes: formData.showLikes,
-      allowCertificate: formData.allowCertificate,
+    onSave({
+      ...formData,
       isAdultContent: formData.categoryId === 'conteudo-18',
       isAiContent: Boolean(formData.isAiContent),
-      contentValidations: formData.contentValidations,
-      digital: {
-        downloadUrl:
-          formData.contentDeliveryMode === 'FILES_AND_LINKS' &&
-          formData.links &&
-          formData.links.length > 0
-            ? formData.links.find(
-                (link: { url?: string }) =>
-                  link.url &&
-                  typeof link.url === 'string' &&
-                  link.url.trim() !== '' &&
-                  link.url.trim().length > 3
-              )?.url || ''
-            : '',
-        fileName:
-          formData.contentDeliveryMode === 'FILES_AND_LINKS' &&
-          formData.links &&
-          formData.links.length > 0
-            ? formData.links.find(
-                (link: { url?: string; title?: string }) =>
-                  link.url &&
-                  typeof link.url === 'string' &&
-                  link.url.trim() !== '' &&
-                  link.url.trim().length > 3
-              )?.title || ''
-            : '',
-        allowDownload: formData.allowDownload,
-        fileSize: 0,
-        files: formData.files || [],
-      },
-    };
-
-    onSave(productData);
+      digital: buildWizardDigitalPayload(formData),
+    });
   };
 
   const getStepContent = () => {
@@ -383,7 +309,7 @@ export function ProductCreationWizard({
           <ContentStep
             formData={formData}
             setFormData={setFormData}
-            isEditing={Boolean(product)}
+            isEditing={isEditing}
             showMediaRequiredError={showMediaRequiredError}
             storageOptions={storageOptions}
           />
@@ -394,7 +320,7 @@ export function ProductCreationWizard({
             formData={formData}
             setFormData={setFormData}
             productId={product?._id ? String(product._id) : null}
-            lockPaymentAndPlan={Boolean(product?._id)}
+            lockPaymentAndPlan={isEditing}
             lockCategory={product?.status === 'APPROVED'}
             productCoverAvatarFallbackEnabled={productCoverAvatarFallbackEnabled}
           />
@@ -447,7 +373,7 @@ export function ProductCreationWizard({
               ]}
             >
               <Text style={styles.title}>
-                {product ? 'Editar Produto' : 'Criar Produto Digital'}
+                {isEditing ? 'Editar Produto' : 'Criar Produto Digital'}
               </Text>
               <TouchableOpacity onPress={handleClose} disabled={saving}>
                 <Ionicons name="close" size={24} color={colors.text.primary} />
@@ -509,7 +435,9 @@ export function ProductCreationWizard({
                 <View style={styles.progressBarContainer}>
                   <View style={[styles.progressBar, { width: `${overallProgress}%` }]} />
                 </View>
-                <Text style={styles.progressText}>Criando produto... {overallProgress}%</Text>
+                <Text style={styles.progressText}>
+                  {isEditing ? 'Salvando...' : 'Enviando pacote...'} {overallProgress}%
+                </Text>
               </View>
             )}
 
@@ -539,7 +467,7 @@ export function ProductCreationWizard({
                 style={[styles.button, styles.backButton]}
                 onPress={
                   activeStep === 0
-                    ? formData.contentDeliveryMode && !product
+                    ? formData.contentDeliveryMode && !isEditing
                       ? resetContentDeliveryChoice
                       : handleClose
                     : handleBack
@@ -548,7 +476,7 @@ export function ProductCreationWizard({
               >
                 <Text style={styles.backButtonText}>
                   {activeStep === 0
-                    ? formData.contentDeliveryMode && !product
+                    ? formData.contentDeliveryMode && !isEditing
                       ? 'Voltar'
                       : 'Cancelar'
                     : 'Voltar'}
@@ -568,7 +496,11 @@ export function ProductCreationWizard({
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
                   <Text style={styles.nextButtonText}>
-                    {activeStep === steps.length - 1 ? 'Criar Produto' : 'Avançar'}
+                    {activeStep === steps.length - 1
+                      ? isEditing
+                        ? 'Salvar'
+                        : 'Enviar para análise'
+                      : 'Avançar'}
                   </Text>
                 )}
               </TouchableOpacity>

@@ -47,6 +47,20 @@ export const SHOP_ADMIN_SETTINGS_API = {
   releasePlanGatedMarketplace: '/api/admin/settings/shop-products/release-marketplace',
 } as const
 
+/** Rascunhos de pacote + upload privado de arquivos — sync com melter web */
+export const PRODUCT_DRAFTS_API = {
+  root: '/api/products/drafts',
+  item: (productId: string) => `/api/products/drafts/${encodeURIComponent(productId)}`,
+  publish: (productId: string) =>
+    `/api/products/drafts/${encodeURIComponent(productId)}/publish`,
+  discard: (productId: string) =>
+    `/api/products/drafts/${encodeURIComponent(productId)}/discard`,
+  cleanupEmpty: (productId: string) =>
+    `/api/products/drafts/${encodeURIComponent(productId)}/cleanup-empty`,
+  uploadFiles: '/api/products/upload/files',
+  uploadCover: '/api/products/upload/cover',
+} as const
+
 /** Vídeo de apresentação do pacote — sync com melter web */
 export const PRESENTATION_VIDEO_API = {
   upload: '/api/products/upload/presentation-video',
