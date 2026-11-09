@@ -11,7 +11,6 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
-  Linking,
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,6 +33,8 @@ import { AdminPasswordModal } from './AdminPasswordModal';
 import { UsernameGradientText } from './UsernameGradientText';
 import { RichPostText } from './RichPostText';
 import { PostDoubleTapLike } from './PostDoubleTapLike';
+import { LinkPreviewCard, postLinkToPreview, type LinkPreviewData } from './LinkPreviewCard';
+import { useLinkPreview } from '../hooks/useLinkPreview';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 import {
   getPostAuthorDisplayLabel,
@@ -77,6 +78,9 @@ export function PostModal({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
   const [adminPasswordIntent, setAdminPasswordIntent] = useState<'delete' | 'visibility' | null>(null);
+  const { preview: autoLinkPreview, loading: autoLinkPreviewLoading } = useLinkPreview(post?.content, {
+    enabled: Boolean(post && !post.linkId && !post.originalPostId && !post.hideAutoPreview),
+  });
 
   useEffect(() => {
     if (visible && postId) {
@@ -417,34 +421,13 @@ export function PostModal({
                   </PostDoubleTapLike>
 
                   {/* Link Preview */}
-                  {post.linkId && (
-                    <TouchableOpacity
-                      style={styles.linkCard}
-                      onPress={() => {
-                        if (post.linkId?.url) {
-                          Linking.openURL(post.linkId.url);
-                        }
-                      }}
-                    >
-                      {post.linkId.imageUrl && (
-                        <Image
-                          source={{ uri: getAvatarUrl(post.linkId.imageUrl) }}
-                          style={styles.linkImage}
-                        />
-                      )}
-                      <View style={styles.linkInfo}>
-                        <Text style={styles.linkTitle}>🔗 {post.linkId.title}</Text>
-                        {post.linkId.description && (
-                          <Text style={styles.linkDescription} numberOfLines={2}>
-                            {post.linkId.description}
-                          </Text>
-                        )}
-                        <Text style={styles.linkUrl} numberOfLines={1}>
-                          {post.linkId.url}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
+                  {post.linkId?.url ? (
+                    <LinkPreviewCard preview={postLinkToPreview(post.linkId)} confirmBeforeNavigate />
+                  ) : autoLinkPreviewLoading ? (
+                    <LinkPreviewCard preview={{} as LinkPreviewData} loading />
+                  ) : autoLinkPreview ? (
+                    <LinkPreviewCard preview={autoLinkPreview} confirmBeforeNavigate />
+                  ) : null}
 
                   {/* Post Image */}
                   {post.imageUrl && (
@@ -783,40 +766,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     color: c.text.primary,
     lineHeight: 24,
     marginBottom: 16,
-  },
-  linkCard: {
-    flexDirection: 'row',
-    backgroundColor: c.background.tertiary,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  linkImage: {
-    width: 100,
-    height: 100,
-    backgroundColor: c.background.default,
-  },
-  linkInfo: {
-    flex: 1,
-    padding: 12,
-    alignItems: 'center',
-  },
-  linkTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.text.primary,
-    marginBottom: 4,
-    textAlign: 'center',
-    alignSelf: 'stretch',
-  },
-  linkDescription: {
-    fontSize: 12,
-    color: c.text.secondary,
-    marginBottom: 4,
-  },
-  linkUrl: {
-    fontSize: 11,
-    color: c.secondary.main,
   },
   postImage: {
     width: '100%',

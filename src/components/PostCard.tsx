@@ -5,7 +5,6 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  Linking,
   Alert,
   Modal,
   Pressable,
@@ -13,7 +12,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import ImageViewing from 'react-native-image-viewing';
-import { Post, ReactionType, REACTIONS } from '../types/feed';
+import { Post, ReactionType, REACTIONS, REACTION_LABELS } from '../types/feed';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
@@ -39,6 +38,37 @@ import { PostDoubleTapLike } from './PostDoubleTapLike';
 import { PlanLocker } from './PlanLocker';
 import { resolveUserPlanType } from '../config/plan-features';
 import { useFeedPlanGates } from '../hooks/useFeedPlanGates';
+import { useLinkPreview } from '../hooks/useLinkPreview';
+import { LinkPreviewCard, postLinkToPreview, type LinkPreviewData } from './LinkPreviewCard';
+import { getFixedCategory } from '../constants/categories';
+import { getPostVisibilityOption } from '../constants/post-visibility';
+
+const ADULT_CATEGORY_COLOR = '#CA3994';
+
+/** Borda do avatar por selo/plano (web `PostCard` header). */
+function getAvatarRingColor(user: Post['userId']): string | null {
+  if (user?.verifiedBadge?.isVerified) return 'rgba(236, 72, 153, 0.8)';
+  switch (user?.plan?.type) {
+    case 'PRO_PLUS':
+      return '#9333ea';
+    case 'PRO':
+      return '#FFD700';
+    case 'STARTER':
+      return '#0ea5e9';
+    default:
+      return null;
+  }
+}
+
+function topReactionEmojis(counts: Post['reactionsCount'], limit = 3): string[] {
+  if (!counts) return [];
+  return (Object.keys(REACTIONS) as ReactionType[])
+    .map((type) => ({ emoji: REACTIONS[type], n: Number(counts[type] ?? 0) }))
+    .filter((item) => item.n > 0)
+    .sort((a, b) => b.n - a.n)
+    .slice(0, limit)
+    .map((item) => item.emoji);
+}
 
 interface PostCardProps {
   post: Post;
@@ -68,6 +98,9 @@ export function PostCard({
   const [showOriginalPostModal, setShowOriginalPostModal] = useState(false);
   const [originalPostId, setOriginalPostId] = useState<string | null>(null);
   const { requiredPlan } = useFeedPlanGates();
+  const { preview: autoLinkPreview, loading: autoLinkPreviewLoading } = useLinkPreview(post?.content, {
+    enabled: Boolean(post && !post.linkId && !post.originalPostId && !post.hideAutoPreview),
+  });
 
   const authorId = getPostAuthorObjectId(post?.userId);
   const isValidPost =
@@ -202,31 +235,17 @@ export function PostCard({
     }
   };
 
-  const handleLinkPress = () => {
-    if (post.linkId?.url) {
-      Linking.openURL(post.linkId.url);
-    }
-  };
-
-  // Encontrar a reação mais comum
-  const getTopReaction = (): ReactionType | null => {
-    if (!post?.reactionsCount || typeof post.reactionsCount !== 'object') return null;
-    const counts = post.reactionsCount;
-    let maxCount = 0;
-    let topReaction: ReactionType | null = null;
-
-    // Iterar apenas sobre as chaves de reação válidas
-    (Object.keys(REACTIONS) as ReactionType[]).forEach((key) => {
-      if (counts[key] > maxCount) {
-        maxCount = counts[key];
-        topReaction = key;
-      }
-    });
-
-    return topReaction;
-  };
-
-  const topReaction = getTopReaction();
+  const totalReactions =
+    post.reactionsCount && typeof post.reactionsCount.total === 'number' ? post.reactionsCount.total : 0;
+  const reactionEmojis = totalReactions > 0 ? topReactionEmojis(post.reactionsCount) : [];
+  const commentsCount = post.commentsCount || 0;
+  const viewsCount = post.viewsCount || 0;
+  const sharesCount = post.sharesCount || 0;
+  const hasEngagementStats = totalReactions > 0 || commentsCount > 0 || viewsCount > 0 || sharesCount > 0;
+  const avatarRingColor = getAvatarRingColor(post.userId);
+  const visibilityOption = getPostVisibilityOption(post.visibility);
+  const category = getFixedCategory(post.category || 'outros');
+  const isAdultCategory = category?._id === 'conteudo-18';
 
   const renderOriginalPost = (originalPost: Post) => {
     if (!originalPost || !originalPost.userId || typeof originalPost.userId !== 'object') return null;
@@ -299,29 +318,11 @@ export function PostCard({
         )}
 
         {/* Link no Post Original */}
-        {originalPost.linkId && (
-          <TouchableOpacity
-            style={[styles.linkPreview, { marginBottom: 0, marginTop: 8 }]}
-            onPress={() => originalPost.linkId?.url && Linking.openURL(originalPost.linkId.url)}
-            activeOpacity={0.7}
-          >
-            {originalPost.linkId.imageUrl && (
-              <Image
-                source={{ uri: originalPost.linkId.imageUrl }}
-                style={[styles.linkImage, { height: 120 }]}
-                resizeMode="cover"
-              />
-            )}
-            <View style={styles.linkInfo}>
-              <Text style={[styles.linkTitle, { fontSize: 13 }]} numberOfLines={1}>
-                {originalPost.linkId.title}
-              </Text>
-              <Text style={styles.linkUrl} numberOfLines={1}>
-                {originalPost.linkId.url}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        {originalPost.linkId?.url ? (
+          <View style={styles.originalLinkWrap}>
+            <LinkPreviewCard preview={postLinkToPreview(originalPost.linkId)} confirmBeforeNavigate compact />
+          </View>
+        ) : null}
 
         {/* Imagem no Post Original */}
         {originalPost.imageUrl && (
@@ -345,14 +346,15 @@ export function PostCard({
     <View style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
-        <Avatar 
-          user={{ 
-            username: authorUsernameForHeader,
-            avatar: post.userId?.avatar,
-          }} 
-          size={40}
-          style={styles.avatar}
-        />
+        <View style={[styles.avatarRing, avatarRingColor ? { borderColor: avatarRingColor } : null]}>
+          <Avatar
+            user={{
+              username: authorUsernameForHeader,
+              avatar: post.userId?.avatar,
+            }}
+            size={40}
+          />
+        </View>
         <View style={styles.headerInfo}>
           <TouchableOpacity 
             onPress={handleUserPress}
@@ -395,15 +397,34 @@ export function PostCard({
             {post.createdAt ? getTimeAgo(post.createdAt) : ''}
           </Text>
         </View>
-        <TouchableOpacity 
-          onPress={(e) => {
-            e.stopPropagation();
-            handleMenuPress();
-          }} 
-          style={styles.menuButton}
-        >
-          <Ionicons name="ellipsis-horizontal" size={20} color={colors.text.secondary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <View style={styles.metaChip} accessibilityLabel={`Visibilidade: ${visibilityOption.label}`}>
+            <Ionicons name={visibilityOption.icon} size={13} color={colors.text.secondary} />
+          </View>
+          {category ? (
+            <View
+              style={[styles.metaChip, isAdultCategory && styles.metaChipAdult]}
+              accessibilityLabel={`Categoria: ${category.name}`}
+            >
+              <Ionicons
+                name={category.icon as React.ComponentProps<typeof Ionicons>['name']}
+                size={13}
+                color={isAdultCategory ? ADULT_CATEGORY_COLOR : colors.text.secondary}
+              />
+            </View>
+          ) : null}
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              handleMenuPress();
+            }}
+            style={styles.menuButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Opções do post"
+          >
+            <Ionicons name="ellipsis-vertical" size={18} color={colors.text.secondary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Content (Comentário do compartilhamento ou conteúdo do post normal) */}
@@ -433,35 +454,19 @@ export function PostCard({
         )
       ) : null}
 
-      {/* Link Preview (apenas para posts normais) */}
-      {!post.originalPostId && post.linkId && typeof post.linkId === 'object' && (
-        <TouchableOpacity
-          style={styles.linkPreview}
-          onPress={handleLinkPress}
-          activeOpacity={0.7}
-        >
-          {post.linkId?.imageUrl && (
-            <Image
-              source={{ uri: post.linkId.imageUrl }}
-              style={styles.linkImage}
-              resizeMode="cover"
-            />
-          )}
-          <View style={styles.linkInfo}>
-            <Text style={styles.linkTitle} numberOfLines={2}>
-              {post.linkId?.title || ''}
-            </Text>
-            {post.linkId?.description && (
-              <Text style={styles.linkDescription} numberOfLines={2}>
-                {post.linkId.description}
-              </Text>
-            )}
-            <Text style={styles.linkUrl} numberOfLines={1}>
-              {post.linkId?.url || ''}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      )}
+      {/* Link do perfil anexado (apenas posts normais) */}
+      {!post.originalPostId && post.linkId && typeof post.linkId === 'object' && post.linkId.url ? (
+        <LinkPreviewCard preview={postLinkToPreview(post.linkId)} confirmBeforeNavigate />
+      ) : null}
+
+      {/* Preview automático do 1º link do texto */}
+      {!post.originalPostId && !post.linkId && (autoLinkPreviewLoading || autoLinkPreview) ? (
+        autoLinkPreviewLoading || !autoLinkPreview ? (
+          <LinkPreviewCard preview={{} as LinkPreviewData} loading />
+        ) : (
+          <LinkPreviewCard preview={autoLinkPreview} confirmBeforeNavigate />
+        )
+      ) : null}
 
       {/* Image (apenas para posts normais) */}
       {!post.originalPostId && post.imageUrl && (
@@ -474,87 +479,96 @@ export function PostCard({
         </PostDoubleTapLike>
       )}
 
-      {/* Reactions Summary */}
-      {post.reactionsCount && 
-       typeof post.reactionsCount === 'object' && 
-       typeof post.reactionsCount.total === 'number' && 
-       post.reactionsCount.total > 0 && (
-        <View style={styles.reactionsSummary}>
-          {topReaction && (
-            <Text style={styles.topReactionEmoji}>{REACTIONS[topReaction]}</Text>
-          )}
-          <Text style={styles.reactionsSummaryText}>
-            {post.reactionsCount.total} {post.reactionsCount.total === 1 ? 'reação' : 'reações'}
-          </Text>
-        </View>
-      )}
-
-      {/* Actions */}
-      <View style={styles.actions}>
-        {/* Reactions */}
-        <View style={styles.reactionContainer}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setShowReactions(!showReactions)}
-          >
-            <Text style={styles.actionIcon}>
-              {post.userReaction && REACTIONS[post.userReaction]
-                ? REACTIONS[post.userReaction]
-                : '👍'}
-            </Text>
-            <Text style={[
-              styles.actionText,
-              post.userReaction && styles.actionTextActive
-            ]}>
-              {(post.reactionsCount && typeof post.reactionsCount === 'object' && typeof post.reactionsCount.total === 'number') 
-                ? post.reactionsCount.total 
-                : 0}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Menu de reações */}
-          {showReactions && (
-            <View style={styles.reactionsMenu}>
-              {(Object.keys(REACTIONS) as ReactionType[]).map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={styles.reactionButton}
-                  onPress={() => handleReactionPress(type)}
-                >
-                  <Text style={styles.reactionEmoji}>{REACTIONS[type]}</Text>
+      {/* Contadores + ações (web: PostEngagementStats + PostActionBar) */}
+      <View style={styles.footerSection}>
+        {hasEngagementStats ? (
+          <View style={styles.statsRow}>
+            {totalReactions > 0 ? (
+              <View style={styles.statItem}>
+                <View style={styles.statEmojis}>
+                  {reactionEmojis.map((emoji, i) => (
+                    <Text key={`${emoji}-${i}`} style={[styles.statEmoji, i > 0 && styles.statEmojiOverlap]}>
+                      {emoji}
+                    </Text>
+                  ))}
+                </View>
+                <Text style={styles.statText}>{totalReactions}</Text>
+              </View>
+            ) : (
+              <View />
+            )}
+            <View style={styles.statsRight}>
+              {commentsCount > 0 ? (
+                <TouchableOpacity style={styles.statItem} onPress={handleCommentPress} activeOpacity={0.7}>
+                  <Ionicons name="chatbubble-outline" size={14} color={colors.text.secondary} />
+                  <Text style={styles.statText}>{commentsCount}</Text>
                 </TouchableOpacity>
-              ))}
+              ) : null}
+              {viewsCount > 0 ? (
+                <View style={styles.statItem}>
+                  <Ionicons name="eye-outline" size={14} color={colors.text.secondary} />
+                  <Text style={styles.statText}>{viewsCount}</Text>
+                </View>
+              ) : null}
+              {sharesCount > 0 ? (
+                <View style={styles.statItem}>
+                  <Ionicons name="share-social-outline" size={14} color={colors.text.secondary} />
+                  <Text style={styles.statText}>{sharesCount}</Text>
+                </View>
+              ) : null}
             </View>
-          )}
+          </View>
+        ) : null}
+
+        <View style={styles.actions}>
+          <View style={[styles.actionSlot, styles.reactionContainer]}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setShowReactions(!showReactions)}
+              onLongPress={() => setShowReactions(true)}
+              activeOpacity={0.7}
+            >
+              {post.userReaction && REACTIONS[post.userReaction] ? (
+                <Text style={styles.actionEmoji}>{REACTIONS[post.userReaction]}</Text>
+              ) : (
+                <Ionicons name="thumbs-up-outline" size={19} color={colors.text.secondary} />
+              )}
+              <Text style={[styles.actionText, post.userReaction && styles.actionTextActive]}>
+                {post.userReaction ? REACTION_LABELS[post.userReaction] : REACTION_LABELS.LIKE}
+              </Text>
+            </TouchableOpacity>
+
+            {showReactions && (
+              <View style={styles.reactionsMenu}>
+                {(Object.keys(REACTIONS) as ReactionType[]).map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={styles.reactionButton}
+                    onPress={() => handleReactionPress(type)}
+                  >
+                    <Text style={styles.reactionEmoji}>{REACTIONS[type]}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.actionSlot}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleCommentPress} activeOpacity={0.7}>
+              <Ionicons name="chatbubble-outline" size={19} color={colors.text.secondary} />
+              <Text style={styles.actionText}>Comentar</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.actionSlot}>
+            <PlanLocker requiredPlan={shareRequiredPlan} currentPlan={currentPlan} variant="compact">
+              <TouchableOpacity style={styles.actionButton} onPress={handleSharePress} activeOpacity={0.7}>
+                <Ionicons name="share-social-outline" size={19} color={colors.text.secondary} />
+                <Text style={styles.actionText}>Compartilhar</Text>
+              </TouchableOpacity>
+            </PlanLocker>
+          </View>
         </View>
-
-        {/* Comments */}
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleCommentPress}
-        >
-          <Text style={styles.actionIcon}>💬</Text>
-          <Text style={styles.actionText}>
-            {post.commentsCount || 0}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Share */}
-        <PlanLocker
-          requiredPlan={shareRequiredPlan}
-          currentPlan={currentPlan}
-          variant="compact"
-        >
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleSharePress}
-          >
-            <Text style={styles.actionIcon}>🔄</Text>
-            <Text style={styles.actionText}>
-              {post.sharesCount || 0}
-            </Text>
-          </TouchableOpacity>
-        </PlanLocker>
       </View>
 
       {/* Modais */}
@@ -668,11 +682,33 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  avatarRing: {
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 8,
+    flexShrink: 0,
+  },
+  metaChip: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.border.light,
     backgroundColor: c.background.tertiary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metaChipAdult: {
+    borderColor: `${ADULT_CATEGORY_COLOR}66`,
+  },
+  originalLinkWrap: {
+    marginTop: 8,
   },
   avatarPlaceholder: {
     backgroundColor: c.secondary.main,
@@ -691,8 +727,10 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     minWidth: 0,
   },
   menuButton: {
-    padding: 8,
-    marginLeft: 8,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitleRow: {
     flexDirection: 'row',
@@ -754,39 +792,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     lineHeight: 22,
     marginBottom: 12,
   },
-  linkPreview: {
-    borderWidth: 1,
-    borderColor: c.border.medium,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  linkImage: {
-    width: '100%',
-    height: 180,
-    backgroundColor: c.background.tertiary,
-  },
-  linkInfo: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  linkTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.text.primary,
-    marginBottom: 4,
-    textAlign: 'center',
-    alignSelf: 'stretch',
-  },
-  linkDescription: {
-    fontSize: 13,
-    color: c.text.secondary,
-    marginBottom: 6,
-  },
-  linkUrl: {
-    fontSize: 12,
-    color: c.secondary.light,
-  },
   postImage: {
     width: '100%',
     height: 300,
@@ -794,12 +799,51 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     backgroundColor: c.background.tertiary,
     marginBottom: 12,
   },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 12,
+  footerSection: {
     borderTopWidth: 1,
     borderTopColor: c.divider,
+    paddingTop: 8,
+    gap: 6,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    minHeight: 24,
+  },
+  statsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statEmojis: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statEmoji: {
+    fontSize: 14,
+  },
+  statEmojiOverlap: {
+    marginLeft: -3,
+  },
+  statText: {
+    fontSize: 13,
+    color: c.text.secondary,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  actionSlot: {
+    flex: 1,
+    alignItems: 'center',
+    minWidth: 0,
   },
   reactionContainer: {
     position: 'relative',
@@ -807,11 +851,12 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    paddingVertical: 4,
+    minHeight: 36,
     paddingHorizontal: 8,
   },
-  actionIcon: {
+  actionEmoji: {
     fontSize: 18,
   },
   actionText: {
@@ -845,19 +890,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   reactionEmoji: {
     fontSize: 24,
-  },
-  reactionsSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 6,
-  },
-  topReactionEmoji: {
-    fontSize: 16,
-  },
-  reactionsSummaryText: {
-    fontSize: 13,
-    color: c.text.secondary,
   },
   // Menu Styles
   menuOverlay: {

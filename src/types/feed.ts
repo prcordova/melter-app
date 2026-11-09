@@ -74,6 +74,8 @@ export interface Post {
   sharesCount?: number;
   originalPostId?: Post | null; // Objeto Post completo quando populado
   shareComment?: string | null;
+  /** Autor removeu o preview automático do 1º link do texto. */
+  hideAutoPreview?: boolean;
   createdAt: string | Date;
 }
 
@@ -151,5 +153,16 @@ export const REACTIONS: Record<ReactionType, string> = {
   STRONG: '💪',
   SAD: '😢',
   ANGRY: '😠',
+};
+
+/** Rótulos do botão de reação (web `EmojiReactionPicker/types`). */
+export const REACTION_LABELS: Record<ReactionType, string> = {
+  LIKE: 'Curtir',
+  LOVE: 'Amei',
+  HAPPY: 'Haha',
+  FIRE: 'Foguinho',
+  STRONG: 'Força',
+  SAD: 'Tristeza',
+  ANGRY: 'Raiva',
 };
 

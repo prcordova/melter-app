@@ -16,7 +16,7 @@ export const MARKETPLACE_SLIDER_AUTO_SCROLL_MS = 6000
 export const MARKETPLACE_SLIDER_HEIGHT = 148
 
 /** "Anuncie aqui" sozinho (sem lojas promovidas). */
-export const MARKETPLACE_SLIDER_COMPACT_HEIGHT = 56
+export const MARKETPLACE_SLIDER_COMPACT_HEIGHT = 104
 
 /** Recuo do CTA "Ver mais" dentro do slide de loja promovida. */
 export const MARKETPLACE_SLIDER_ACTION_INSET = {

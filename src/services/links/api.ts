@@ -4,7 +4,25 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../../config/api.config';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
 
+export interface LinkPreviewData {
+  url: string;
+  title: string;
+  description: string;
+  image: string | null;
+  favicon?: string | null;
+  site: string;
+  type: 'website' | 'youtube';
+}
+
 export const linksApi = {
+  /** Metadados Open Graph / YouTube (mesma rota do web `useLinkPreview`). */
+  getPreview: async (url: string) => {
+    const response = await api.get<ApiResponse<LinkPreviewData>>(
+      `/api/link-preview?url=${encodeURIComponent(url)}`
+    );
+    return response.data;
+  },
+
   getLinks: async () => {
     const response = await api.get<ApiResponse<any>>('/api/links');
     return response.data;

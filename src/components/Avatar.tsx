@@ -37,6 +37,8 @@ export function Avatar({
   const { colors } = useAppTheme();
   const avatarUrl = getAvatarUrl(user.avatar);
   const initials = getUserInitials(user.username || '');
+  const [failedUrl, setFailedUrl] = React.useState<string | null>(null);
+  const showImage = Boolean(avatarUrl) && failedUrl !== avatarUrl;
 
   const handlePress = () => {
     if (onPress) {
@@ -72,10 +74,11 @@ export function Avatar({
       activeOpacity={0.7}
       style={containerStyle}
     >
-      {avatarUrl ? (
+      {showImage ? (
         <Image
           source={{ uri: avatarUrl }}
           style={contentStyle}
+          onError={() => setFailedUrl(avatarUrl ?? null)}
         />
       ) : (
         <View style={[contentStyle, styles.placeholder, { backgroundColor: colors.secondary.main }]}>

@@ -11,7 +11,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
 import { useNavigation, useRoute, useScrollToTop } from '@react-navigation/native';
-import { Button } from '../components/Button';
 import { Header } from '../components/Header';
 import { CreatePostModal } from '../components/CreatePostModal';
 import { PostModal } from '../components/PostModal';
@@ -32,7 +31,7 @@ import {
 import { normalizeReactionsCount, applyOptimisticReaction } from '../utils/post-reactions';
 import { showToast } from '../components/CustomToast';
 import { DevScreenErrorBoundary } from '../components/DevScreenErrorBoundary';
-import { PlanLocker } from '../components/PlanLocker';
+import { FeedComposerCard } from '../components/feed/FeedComposerCard';
 import { resolveUserPlanType } from '../config/plan-features';
 import { useFeedPlanGates } from '../hooks/useFeedPlanGates';
 
@@ -469,18 +468,17 @@ export function FeedScreen() {
           onCreateStory={handleCreateStory}
         />
         <View style={styles.createPostContainer}>
-          <PlanLocker
-            requiredPlan={createPostRequiredPlan}
+          <FeedComposerCard
+            username={user?.username ?? ''}
+            avatar={user?.avatar}
             currentPlan={resolveUserPlanType(user?.plan?.type)}
-          >
-            <Button onPress={handleCreatePost} style={styles.createPostButton}>
-              Criar Post
-            </Button>
-          </PlanLocker>
+            requiredPlan={createPostRequiredPlan}
+            onOpen={handleCreatePost}
+          />
         </View>
       </View>
     ),
-    [storiesGroups, handleStoryClick, handleCreateStory, styles]
+    [storiesGroups, handleStoryClick, handleCreateStory, styles, user?.username, user?.avatar, user?.plan?.type, createPostRequiredPlan]
   );
 
   // Footer Component
@@ -615,12 +613,8 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     marginBottom: 8,
   },
   createPostContainer: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  createPostButton: {
-    minWidth: 200,
+    paddingTop: 12,
+    paddingBottom: 4,
   },
   listContent: {
     paddingHorizontal: 16,

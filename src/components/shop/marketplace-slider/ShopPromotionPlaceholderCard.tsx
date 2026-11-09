@@ -5,7 +5,9 @@ import { useNavigation } from '@react-navigation/native'
 import { getImageUrl } from '../../../utils/image'
 import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext'
 import type { AppPalette } from '../../../theme/palettes'
+import { Button } from '../../Button'
 import {
+  MARKETPLACE_SLIDER_ACTION_INSET,
   MARKETPLACE_SLIDER_COMPACT_HEIGHT,
   MARKETPLACE_SLIDER_HEIGHT,
 } from '../../../constants/marketplace-slider'
@@ -13,7 +15,7 @@ import {
 type ShopPromotionPlaceholderCardProps = {
   imageUrl?: string | null
   showText?: boolean
-  /** Sem promoções ativas: faixa baixa em vez da altura do slider. */
+  /** Sem promoções ativas: altura reduzida em vez da altura do slider. */
   compact?: boolean
 }
 
@@ -27,6 +29,7 @@ export function ShopPromotionPlaceholderCard({
   const navigation = useNavigation<any>()
   const resolvedImage = imageUrl ? getImageUrl(imageUrl) : null
   const hasImage = Boolean(resolvedImage)
+  const actionInset = compact ? MARKETPLACE_SLIDER_ACTION_INSET.compact : MARKETPLACE_SLIDER_ACTION_INSET.regular
 
   const handlePress = () => {
     navigation.navigate('ProfileStack', {
@@ -57,28 +60,26 @@ export function ShopPromotionPlaceholderCard({
       )}
 
       {showText ? (
-        <View style={[styles.content, compact && styles.contentCompact]}>
-          <Ionicons
-            name="megaphone-outline"
-            size={compact ? 20 : 22}
-            color={hasImage ? '#fff' : colors.text.primary}
-          />
-          <View style={styles.textWrap}>
+        <View style={styles.content}>
+          <View style={styles.titleRow}>
+            <Ionicons
+              name="megaphone-outline"
+              size={20}
+              color={hasImage ? '#fff' : colors.secondary.main}
+            />
             <Text style={[styles.title, hasImage && styles.titleOnImage]}>Anuncie aqui</Text>
-            <Text
-              style={[styles.description, hasImage && styles.descriptionOnImage]}
-              numberOfLines={compact ? 1 : 2}
-            >
-              Destaque seus pacotes no topo do marketplace.
-            </Text>
           </View>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={hasImage ? '#fff' : colors.text.secondary}
-          />
+          <Text style={[styles.description, hasImage && styles.descriptionOnImage]} numberOfLines={2}>
+            Destaque seus pacotes no topo do marketplace.
+          </Text>
         </View>
       ) : null}
+
+      <View style={[styles.action, { right: actionInset, bottom: actionInset }]}>
+        <Button size="sm" responsive={false} onPress={handlePress}>
+          Promover
+        </Button>
+      </View>
     </TouchableOpacity>
   )
 }
@@ -90,7 +91,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     backgroundColor: `${c.primary.main}14`,
     borderWidth: 1,
     borderColor: c.border.light,
-    justifyContent: 'center',
     position: 'relative',
   },
   cardWithImage: {
@@ -110,20 +110,14 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   content: {
     position: 'relative',
     zIndex: 1,
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  contentCompact: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  textWrap: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
+    gap: 8,
   },
   title: {
     fontSize: 15,
@@ -137,8 +131,13 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     fontSize: 12,
     color: c.text.secondary,
     lineHeight: 16,
+    marginRight: 96,
   },
   descriptionOnImage: {
     color: 'rgba(255,255,255,0.92)',
+  },
+  action: {
+    position: 'absolute',
+    zIndex: 2,
   },
 })

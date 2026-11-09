@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable, type ViewInstance } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  Pressable,
+  Dimensions,
+  type ViewInstance,
+} from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
@@ -17,7 +26,15 @@ interface SelectRowProps {
   options: SelectOption[];
   onChange: (value: string) => void;
   size?: SelectRowSize;
+  /** Gatilho só com ícone (36×36); o `label` vira título do dropdown. */
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
+  /** Destaca o ícone (ex.: valor diferente do padrão). */
+  iconActive?: boolean;
 }
+
+const ICON_TRIGGER_SIZE = 36;
+const ICON_DROPDOWN_WIDTH = 190;
+const DROPDOWN_SCREEN_MARGIN = 8;
 
 const SIZE_WIDTH_MAP: Record<SelectRowSize, number | '100%'> = {
   compact: '100%',
@@ -59,7 +76,15 @@ const SIZE_CHEVRON_MAP: Record<SelectRowSize, number> = {
   full: 18,
 };
 
-export function SelectRow({ label, value, options, onChange, size = 'full' }: SelectRowProps) {
+export function SelectRow({
+  label,
+  value,
+  options,
+  onChange,
+  size = 'full',
+  icon,
+  iconActive = false,
+}: SelectRowProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const [open, setOpen] = useState(false);
@@ -74,47 +99,71 @@ export function SelectRow({ label, value, options, onChange, size = 'full' }: Se
     return options.find((option) => option.value === value)?.label || label;
   }, [label, options, value]);
 
+  const handleTriggerPress = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    if (triggerRef.current) {
+      triggerRef.current.measureInWindow((x, y, width, height) => {
+        const dropdownWidth = icon ? ICON_DROPDOWN_WIDTH : Math.max(width, SIZE_MIN_DROPDOWN_MAP[size]);
+        const maxX = Dimensions.get('window').width - dropdownWidth - DROPDOWN_SCREEN_MARGIN;
+        setDropdownLayout({
+          x: Math.max(DROPDOWN_SCREEN_MARGIN, Math.min(x, maxX)),
+          y: y + height + 6,
+          width: dropdownWidth,
+        });
+        setOpen(true);
+      });
+      return;
+    }
+    setOpen(true);
+  };
+
   return (
-    <View style={[styles.container, size !== 'full' && size !== 'compact' && { width: SIZE_WIDTH_MAP[size] }]}>
+    <View
+      style={[
+        styles.container,
+        icon ? styles.containerIcon : size !== 'full' && size !== 'compact' && { width: SIZE_WIDTH_MAP[size] },
+      ]}
+    >
       <View ref={triggerRef} collapsable={false}>
-        <TouchableOpacity
-          style={[
-            styles.trigger,
-            {
-              minHeight: triggerSizeStyle.minHeight,
-              paddingHorizontal: triggerSizeStyle.paddingHorizontal,
-              borderRadius: triggerSizeStyle.borderRadius,
-            },
-          ]}
-          onPress={() => {
-            if (open) {
-              setOpen(false);
-              return;
-            }
-            if (triggerRef.current) {
-              triggerRef.current.measureInWindow((x, y, width, height) => {
-                setDropdownLayout({
-                  x,
-                  y: y + height + 6,
-                  width: Math.max(width, SIZE_MIN_DROPDOWN_MAP[size]),
-                });
-                setOpen(true);
-              });
-              return;
-            }
-            setOpen(true);
-          }}
-          activeOpacity={0.75}
-        >
-          <Text style={[styles.triggerText, textSizeStyle]} numberOfLines={1}>
-            {selectedLabel}
-          </Text>
-          <Ionicons
-            name={open ? 'chevron-up' : 'chevron-down'}
-            size={chevronSize}
-            color={colors.secondary.main}
-          />
-        </TouchableOpacity>
+        {icon ? (
+          <TouchableOpacity
+            style={[styles.iconTrigger, (open || iconActive) && styles.iconTriggerActive]}
+            onPress={handleTriggerPress}
+            activeOpacity={0.75}
+            accessibilityLabel={`${label}: ${selectedLabel}`}
+          >
+            <Ionicons
+              name={icon}
+              size={18}
+              color={open || iconActive ? colors.secondary.main : colors.text.secondary}
+            />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[
+              styles.trigger,
+              {
+                minHeight: triggerSizeStyle.minHeight,
+                paddingHorizontal: triggerSizeStyle.paddingHorizontal,
+                borderRadius: triggerSizeStyle.borderRadius,
+              },
+            ]}
+            onPress={handleTriggerPress}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.triggerText, textSizeStyle]} numberOfLines={1}>
+              {selectedLabel}
+            </Text>
+            <Ionicons
+              name={open ? 'chevron-up' : 'chevron-down'}
+              size={chevronSize}
+              color={colors.secondary.main}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       {open && (
@@ -136,6 +185,7 @@ export function SelectRow({ label, value, options, onChange, size = 'full' }: Se
               ]}
               onPress={(event) => event.stopPropagation()}
             >
+              {icon ? <Text style={styles.dropdownTitle}>{label}</Text> : null}
               {options.map((option) => {
                 const selected = option.value === value;
                 return (
@@ -174,6 +224,30 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     position: 'relative',
     zIndex: 20,
     alignSelf: 'flex-start',
+  },
+  containerIcon: {
+    width: ICON_TRIGGER_SIZE,
+  },
+  iconTrigger: {
+    width: ICON_TRIGGER_SIZE,
+    height: ICON_TRIGGER_SIZE,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.border.light,
+    backgroundColor: c.background.paper,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconTriggerActive: {
+    borderColor: c.secondary.main,
+  },
+  dropdownTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: c.text.tertiary,
+    textTransform: 'uppercase',
+    paddingHorizontal: 4,
+    paddingTop: 2,
   },
   trigger: {
     borderWidth: 1,

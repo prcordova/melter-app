@@ -1,3 +1,5 @@
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../http-client';
 import { API_CONFIG } from '../../config/api.config';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
@@ -29,6 +31,31 @@ export const postsApi = {
     hideAutoPreview?: boolean;
   }) => {
     const response = await api.post<ApiResponse<any>>('/api/posts', data);
+    return response.data;
+  },
+
+  /** Upload da imagem do post (PRO+) — retorna `imageUrl` para `createPost`/`updatePost`. */
+  uploadImage: async (image: { uri: string; mimeType?: string | null; fileName?: string | null }) => {
+    const token = await AsyncStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('image', {
+      uri: image.uri,
+      type: image.mimeType || 'image/jpeg',
+      name: image.fileName || `post_${Date.now()}.jpg`,
+    } as any);
+
+    const response = await axios.post<{ success: boolean; imageUrl?: string; message?: string }>(
+      `${API_CONFIG.BASE_URL}/api/posts/upload-image`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 60000,
+        validateStatus: (status) => status < 500,
+      }
+    );
     return response.data;
   },
 

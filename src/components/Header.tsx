@@ -456,18 +456,20 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     borderBottomColor: c.divider,
   },
   logoContainer: {
-    flex: 1,
+    flexShrink: 0,
   },
   centerContainer: {
-    flex: 2,
+    flex: 1,
+    minWidth: 0,
     alignItems: 'center',
+    paddingHorizontal: 8,
   },
   rightContainer: {
-    flex: 1,
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 12,
+    gap: 10,
   },
   logo: {
     fontSize: 24,

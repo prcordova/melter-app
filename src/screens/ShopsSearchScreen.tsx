@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   TextInput,
-  Switch,
   Platform,
   useWindowDimensions,
 } from 'react-native';
@@ -22,7 +21,6 @@ import { showToast } from '../components/CustomToast';
 import { useAuth } from '../contexts/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { TouchableOpacity } from 'react-native';
-import { Button } from '../components/Button';
 import { SelectRow } from '../components/SelectRow';
 import {
   marketplaceSortModeToQuery,
@@ -397,7 +395,7 @@ export function ShopsSearchScreen() {
 
         <MarketplacePromotedShopsSlider showAdultContent={showAdultContent} />
 
-        {/* Busca + toggle +18 + Promover (< 400px: busca vira lupa com dropdown) */}
+        {/* Busca + +18 + ordenar + perfil numa linha (< 400px: busca vira lupa com dropdown) */}
         <View style={styles.searchRowWrap}>
           <View style={styles.searchRow}>
             {isNarrow ? (
@@ -417,71 +415,49 @@ export function ShopsSearchScreen() {
             ) : (
               <View style={styles.searchContainer}>{renderSearchInput(false)}</View>
             )}
-            <View style={styles.adultToggleContainer}>
-              <Text style={styles.adultToggleLabel}>+18</Text>
-              <Switch
-                value={showAdultContent}
-                onValueChange={(value) => {
-                  setShowAdultContent(value);
-                  if (value) {
-                    setGenderFilter('women');
-                  }
-                }}
-                trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
-                thumbColor="#ffffff"
-                style={styles.adultSwitch}
-              />
-            </View>
-            {isNarrow ? <View style={styles.searchRowSpacer} /> : null}
-            <Button
-              size="sm"
-              onPress={() =>
-                navigation.navigate('ProfileStack', {
-                  screen: 'PromotionsSettings',
-                  params: { hubSection: 'shop', openCreate: true },
-                })
-              }
-              style={styles.promoteButton}
+            <TouchableOpacity
+              style={[styles.adultToggle, showAdultContent && styles.adultToggleActive]}
+              onPress={() => {
+                const next = !showAdultContent;
+                setShowAdultContent(next);
+                if (next) setGenderFilter('women');
+              }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: showAdultContent }}
+              activeOpacity={0.7}
             >
-              Promover
-            </Button>
+              <Ionicons
+                name={showAdultContent ? 'checkbox' : 'square-outline'}
+                size={16}
+                color={showAdultContent ? colors.secondary.main : colors.text.secondary}
+              />
+              <Text style={[styles.adultToggleLabel, showAdultContent && styles.adultToggleLabelActive]}>
+                +18
+              </Text>
+            </TouchableOpacity>
+            {isNarrow ? <View style={styles.searchRowSpacer} /> : null}
+            <SelectRow
+              label="Ordenar por"
+              icon="swap-vertical"
+              iconActive={sortMode !== 'recent'}
+              value={sortMode}
+              options={MARKETPLACE_SORT_OPTIONS}
+              onChange={(value) => setSortMode(value as MarketplaceSortMode)}
+            />
+            {showAdultContent ? (
+              <SelectRow
+                label="Perfil buscado"
+                icon="person-circle-outline"
+                iconActive={genderFilter !== 'all'}
+                value={genderFilter}
+                options={MARKETPLACE_GENDER_OPTIONS}
+                onChange={(value) => setGenderFilter(value as MarketplaceGenderFilter)}
+              />
+            ) : null}
           </View>
           {isNarrow && searchOpen ? (
             <View style={styles.searchDropdown}>{renderSearchInput(true)}</View>
           ) : null}
-        </View>
-
-        {/* Filtros — ordenação (+ gênero quando +18) */}
-        <View style={styles.filtersSection}>
-          <View style={styles.sortRow}>
-            <View style={[styles.filterInline, !showAdultContent && styles.filterInlineFull]}>
-              <Text style={styles.filterLabelInline}>Ordenar</Text>
-              <View style={styles.selectWrap}>
-                <SelectRow
-                  label="Ordenar"
-                  value={sortMode}
-                  options={MARKETPLACE_SORT_OPTIONS}
-                  onChange={(value) => setSortMode(value as MarketplaceSortMode)}
-                  size="compact"
-                />
-              </View>
-            </View>
-
-            {showAdultContent ? (
-              <View style={styles.filterInline}>
-                <Text style={styles.filterLabelInline}>Perfil</Text>
-                <View style={styles.selectWrap}>
-                  <SelectRow
-                    label="Perfil"
-                    value={genderFilter}
-                    options={MARKETPLACE_GENDER_OPTIONS}
-                    onChange={(value) => setGenderFilter(value as MarketplaceGenderFilter)}
-                    size="compact"
-                  />
-                </View>
-              </View>
-            ) : null}
-          </View>
         </View>
 
         {/* Lista de Produtos */}
@@ -522,9 +498,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
   },
-  promoteButton: {
-    flexShrink: 0,
-  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -554,7 +527,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 6,
+    marginBottom: 10,
   },
   searchContainer: {
     flex: 1,
@@ -612,45 +585,27 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     borderColor: c.border.light,
     minHeight: 36,
   },
-  adultToggleContainer: {
+  adultToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 0,
+    height: 36,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.border.light,
+    backgroundColor: c.background.paper,
+  },
+  adultToggleActive: {
+    borderColor: c.secondary.main,
   },
   adultToggleLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: c.text.primary,
-  },
-  adultSwitch: {
-    transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }],
-  },
-  filtersSection: {
-    marginBottom: 8,
-  },
-  sortRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterInline: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  filterInlineFull: {
-    flex: 1,
-  },
-  filterLabelInline: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: c.text.secondary,
-    minWidth: 52,
   },
-  selectWrap: {
-    flex: 1,
-    minWidth: 0,
+  adultToggleLabelActive: {
+    color: c.secondary.main,
   },
   listContent: {
     paddingBottom: 16,

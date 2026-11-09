@@ -4,13 +4,14 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BackButton } from '../../components/BackButton';
+import { Button } from '../../components/Button';
 import { AddBalanceModal } from '../../components/wallet/AddBalanceModal';
 import { WithdrawModal } from '../../components/wallet/WithdrawModal';
 import { PaymentStatusModal } from '../../components/wallet/PaymentStatusModal';
@@ -343,56 +344,61 @@ export function WalletSettingsScreen() {
       >
         {/* Card Principal de Saldo */}
         <View style={styles.balanceCard}>
+          <LinearGradient
+            colors={colors.gradient.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.balanceAccent}
+          />
           <View style={styles.balanceHeader}>
-            <Ionicons name="wallet" size={28} color="#ffffff" />
-            <Text style={styles.balanceTitle}>Saldo Disponível</Text>
+            <Ionicons name="wallet-outline" size={18} color={colors.secondary.main} />
+            <Text style={styles.balanceTitle}>Saldo disponível</Text>
           </View>
-          <Text style={styles.balanceAmount}>R$ {walletData.balance.toFixed(2)}</Text>
+          <Text style={styles.balanceAmount} numberOfLines={1} adjustsFontSizeToFit>
+            R$ {walletData.balance.toFixed(2)}
+          </Text>
           <View style={styles.balanceActions}>
-            <TouchableOpacity
-              style={[styles.balanceButton, styles.addButton]}
+            <Button
+              size="sm"
+              responsive={false}
+              style={styles.balanceButton}
+              icon={<Ionicons name="add" size={18} color="#ffffff" />}
               onPress={() => setAddBalanceModalOpen(true)}
             >
-              <Ionicons name="add" size={20} color={colors.states.success} />
-              <Text style={[styles.balanceButtonText, styles.addButtonText]}>
-                💰 Adicionar
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.balanceButton, styles.withdrawButton]}
+              Adicionar saldo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              responsive={false}
+              style={styles.balanceButton}
+              icon={<Ionicons name="arrow-up" size={18} color={colors.secondary.main} />}
               onPress={() => setWithdrawModalOpen(true)}
             >
-              <Ionicons name="send" size={20} color={colors.primary.main} />
-              <Text style={[styles.balanceButtonText, styles.withdrawButtonText]}>
-                💸 Solicitar Saque
-              </Text>
-            </TouchableOpacity>
+              Solicitar saque
+            </Button>
           </View>
         </View>
 
         {/* Estatísticas */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, styles.statIconSuccess]}>
-              <Ionicons name="trending-up" size={24} color={colors.states.success} />
+            <View style={styles.statHeader}>
+              <Ionicons name="trending-up" size={16} color={colors.states.success} />
+              <Text style={styles.statLabel} numberOfLines={1}>Total recebido</Text>
             </View>
-            <View style={styles.statContent}>
-              <Text style={styles.statLabel}>Total Recebido</Text>
-              <Text style={[styles.statValue, styles.statValueSuccess]}>
-                R$ {walletData.totalEarned.toFixed(2)}
-              </Text>
-            </View>
+            <Text style={[styles.statValue, styles.statValueSuccess]} numberOfLines={1} adjustsFontSizeToFit>
+              R$ {walletData.totalEarned.toFixed(2)}
+            </Text>
           </View>
           <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, styles.statIconError]}>
-              <Ionicons name="trending-down" size={24} color={colors.states.error} />
+            <View style={styles.statHeader}>
+              <Ionicons name="trending-down" size={16} color={colors.states.error} />
+              <Text style={styles.statLabel} numberOfLines={1}>Total gasto</Text>
             </View>
-            <View style={styles.statContent}>
-              <Text style={styles.statLabel}>Total Gasto</Text>
-              <Text style={[styles.statValue, styles.statValueError]}>
-                R$ {walletData.totalSpent.toFixed(2)}
-              </Text>
-            </View>
+            <Text style={[styles.statValue, styles.statValueError]} numberOfLines={1} adjustsFontSizeToFit>
+              R$ {walletData.totalSpent.toFixed(2)}
+            </Text>
           </View>
         </View>
 
@@ -477,60 +483,50 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     paddingBottom: 20,
   },
   balanceCard: {
-    margin: 20,
-    marginBottom: 16,
-    padding: 24,
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 12,
+    padding: 20,
+    paddingTop: 22,
     borderRadius: 16,
-    backgroundColor: c.isDark ? c.primary.dark : c.primary.main,
+    backgroundColor: c.background.paper,
+    borderWidth: 1,
+    borderColor: c.border.light,
     position: 'relative',
     overflow: 'hidden',
+  },
+  balanceAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
   },
   balanceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    gap: 6,
+    marginBottom: 6,
   },
   balanceTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#ffffff',
+    color: c.text.secondary,
   },
   balanceAmount: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 20,
+    color: c.text.primary,
+    marginBottom: 16,
   },
   balanceActions: {
     flexDirection: 'row',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 10,
   },
   balanceButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-  },
-  addButton: {
-    backgroundColor: '#ffffff',
-  },
-  withdrawButton: {
-    backgroundColor: '#ffffff',
-  },
-  balanceButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  addButtonText: {
-    color: c.states.success,
-  },
-  withdrawButtonText: {
-    color: c.primary.main,
+    flexGrow: 1,
+    flexBasis: 140,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -540,39 +536,28 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 16,
+    minWidth: 0,
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: c.background.tertiary,
+    backgroundColor: c.background.paper,
     borderWidth: 1,
     borderColor: c.border.light,
   },
-  statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  statHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statIconSuccess: {
-    backgroundColor: c.states.success + '20',
-  },
-  statIconError: {
-    backgroundColor: c.states.error + '20',
-  },
-  statContent: {
-    flex: 1,
+    gap: 6,
   },
   statLabel: {
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: '600',
     color: c.text.secondary,
-    marginBottom: 4,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
   },
   statValueSuccess: {

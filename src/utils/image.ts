@@ -1,29 +1,69 @@
 import { API_CONFIG } from '../config/api.config';
 
+/** Mesmos prefixos do web (`melter/src/lib/s3-private.config`, profile/shop media). */
+const PRODUCT_FILES_PREFIX = 'product-files/';
+const LEGACY_PROFILE_PRIVATE_PREFIX = 'profile-private/';
+const PROFILE_MEDIA_SEGMENT = 'profile-media';
+const SHOP_MEDIA_SEGMENT = 'shop-media';
+
+function apiBase(): string {
+  return API_CONFIG.BASE_URL.replace(/\/$/, '');
+}
+
+function extractProductFileKey(stored: string): string | null {
+  if (stored.startsWith(PRODUCT_FILES_PREFIX)) return stored.split('?')[0] ?? stored;
+  const loose = stored.match(/product-files\/[^/]+\/[^/]+\/[^\s?#]+/i);
+  return loose ? loose[0] : null;
+}
+
+function isPrivateMediaRef(stored: string, segment: string): boolean {
+  const key = extractProductFileKey(stored) ?? stored;
+  return key.startsWith(PRODUCT_FILES_PREFIX) && key.includes(`/${segment}/`);
+}
+
 /**
- * Processa URL de imagem do S3 ou servidor local
- * Baseado em: melter/utils/url.ts
+ * Processa URL de imagem do S3 ou servidor local.
+ * Espelha `melter/utils/url.ts` (mídia privada de perfil/loja passa pelo proxy assinado da API).
  */
 export const getImageUrl = (path?: string | null): string | undefined => {
-  if (!path) return undefined;
+  if (path == null) return undefined;
+  const s = String(path).trim();
+  if (!s) return undefined;
 
-  // Se a URL já começa com https://, é uma URL completa do S3
-  if (path.startsWith('https://')) {
-    return path;
+  if (s.startsWith('/api/media/profile-private') || s.startsWith('/api/media/shop-private')) {
+    return `${apiBase()}${s}`;
   }
 
-  // Se começa com /uploads/, é uma URL antiga (servidor local)
-  if (path.startsWith('/uploads/')) {
-    return `${API_CONFIG.BASE_URL}${path}`;
+  if (s.startsWith('https://') || s.startsWith('http://')) {
+    return s;
   }
 
-  if (path.startsWith('/assets/')) {
-    const base = (API_CONFIG.APP_URL || 'https://www.melter.com.br').replace(/\/$/, '');
-    return `${base}${path}`;
+  if (isPrivateMediaRef(s, SHOP_MEDIA_SEGMENT)) {
+    return `${apiBase()}/api/media/shop-private?key=${encodeURIComponent(s)}`;
   }
 
-  // Para outros casos, assume que é um path relativo do S3
-  return `${API_CONFIG.S3_URL}/${path}`;
+  if (s.startsWith(LEGACY_PROFILE_PRIVATE_PREFIX) || isPrivateMediaRef(s, PROFILE_MEDIA_SEGMENT)) {
+    return `${apiBase()}/api/media/profile-private?key=${encodeURIComponent(s)}`;
+  }
+
+  // Bucket privado: só via URL assinada pela API (produto / stories / KYC).
+  if (
+    s.startsWith(PRODUCT_FILES_PREFIX) ||
+    s.startsWith('stories/') ||
+    s.startsWith('seller-verification/')
+  ) {
+    return undefined;
+  }
+
+  if (s.startsWith('/uploads/')) {
+    return `${apiBase()}${s}`;
+  }
+
+  if (s.startsWith('/assets/')) {
+    return `${(API_CONFIG.APP_URL || API_CONFIG.BASE_URL).replace(/\/$/, '')}${s}`;
+  }
+
+  return `${API_CONFIG.S3_URL}/${s.replace(/^\//, '')}`;
 };
 
 /**
@@ -40,4 +80,3 @@ export const getUserInitials = (username?: string): string => {
   if (!username) return '?';
   return username.charAt(0).toUpperCase();
 };
-

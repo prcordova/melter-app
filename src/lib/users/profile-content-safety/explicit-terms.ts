@@ -1,0 +1,298 @@
+import { collapseRepeatedLetters, normalizeTextForExplicitMatch } from './text-normalize'
+
+/**
+ * Termos explícitos (+18) em PT-BR — lista ampla para SEO / perfil público.
+ * Acentos e variações comuns são normalizados em `text-normalize.ts`.
+ * Expandir com revisão de produto; evitar termos ambíguos demais em `SHORT_*`.
+ *
+ * @see src/config/users/profile-content-safety.md
+ */
+
+/** Anatomia / partes do corpo (vulgar) */
+const TERMS_ANATOMY: string[] = [
+  'anus',
+  'buceta',
+  'bucetinha',
+  'bucetasso',
+  'bucetuda',
+  'bucetudo',
+  'bunduda',
+  'bundudo',
+  'bunda',
+  'bundinha',
+  'cuzinho',
+  'cuzao',
+  'cuzuda',
+  'cuzudo',
+  'cu',
+  'clitoris',
+  'escroto',
+  'grelo',
+  'nadega',
+  'nadegas',
+  'peitao',
+  'peitinho',
+  'peitos',
+  'peito',
+  'peitudinha',
+  'peituda',
+  'peitudo',
+  'penis',
+  'pinto',
+  'piroca',
+  'pica',
+  'ppk',
+  'ppka',
+  'rabao',
+  'rabuda',
+  'rabudo',
+  'raba',
+  'rabinho',
+  'rola',
+  'rolinha',
+  'saco',
+  'scrotum',
+  'teta',
+  'tetas',
+  'tetinha',
+  'tetuda',
+  'tetudo',
+  'vagina',
+  'vaginas',
+  'vulva',
+  'xana',
+  'xaninha',
+  'xoxota',
+  'xota',
+  'xereca',
+  'xerecuda',
+  'pau',
+  'pausudo',
+  'pauzao',
+  'pauzudo',
+]
+
+/** Atos sexuais / verbos */
+const TERMS_ACTS: string[] = [
+  'anal',
+  'analingus',
+  'boquete',
+  'boqueteira',
+  'boqueteiro',
+  'chupada',
+  'chupadinha',
+  'chupando',
+  'chupar',
+  'chupeta',
+  'cuie',
+  'ejacular',
+  'ejaculando',
+  'ejaculacao',
+  'enrabar',
+  'enrabada',
+  'enrabando',
+  'foder',
+  'fode',
+  'foda',
+  'fodendo',
+  'fodida',
+  'fodido',
+  'fudendo',
+  'fudida',
+  'fudido',
+  'fuder',
+  'gozar',
+  'gozada',
+  'gozadinha',
+  'gozando',
+  'gozo',
+  'gozou',
+  'lamber',
+  'lambida',
+  'masturbar',
+  'masturbacao',
+  'masturbando',
+  'masturbo',
+  'orgasmo',
+  'orgasmando',
+  'punheta',
+  'punhetinha',
+  'punhetando',
+  'punhetar',
+  'sexo',
+  'sexual',
+  'sexoanal',
+  'siririca',
+  'tesao',
+  'tesuda',
+  'tesudo',
+  'transar',
+  'transando',
+  'trepar',
+  'trepada',
+  'trepando',
+  'suruba',
+  'surubao',
+  'gangbang',
+  'dp',
+  'dupla penetracao',
+  'penetracao',
+  'penetrar',
+  'penetrando',
+]
+
+/** Pornografia / nudez / adulto */
+const TERMS_PORN: string[] = [
+  'adultonly',
+  'onlyfans',
+  'onlyfan',
+  'porn',
+  'porno',
+  'pornografia',
+  'pornografico',
+  'pornstar',
+  'redtube',
+  'xvideos',
+  'xvideo',
+  'pornhub',
+  'hentai',
+  'nsfw',
+  'nude',
+  'nudes',
+  'nudez',
+  'pelada',
+  'pelado',
+  'peladinha',
+  'peladona',
+  'exibicionismo',
+  'exibicionista',
+  'voyeur',
+  'fetiche',
+  'fetish',
+  'bdsm',
+  'bondage',
+  'dominatrix',
+  'stripper',
+  'striptease',
+  'camgirl',
+  'camboy',
+  'sexting',
+  'conteudo adulto',
+  'conteudoadulto',
+  'xxx',
+  '18plus',
+  'mais18',
+  '+18',
+]
+
+/** Prostituição / ofensas sexuais */
+const TERMS_PROSTITUTION_INSULTS: string[] = [
+  'prostituta',
+  'prostituto',
+  'prostituicao',
+  'puta',
+  'putinha',
+  'putona',
+  'putaria',
+  'putero',
+  'putefiro',
+  'garota de programa',
+  'garotadeprograma',
+  'programa',
+  'michê',
+  'miche',
+  'michezinho',
+  'rgp',
+  'vadia',
+  'vadinha',
+  'vadio',
+  'piranha',
+  'piranhagem',
+  'rapariga',
+  'cadela',
+  'cachorra',
+  'cachorrinha',
+  'vagabunda',
+  'vagabundo',
+  'safada',
+  'safadinha',
+  'safado',
+  'safadinho',
+  'pervertida',
+  'pervertido',
+  'perversao',
+  'tarada',
+  'tarado',
+  'devassa',
+  'devasso',
+  'sem vergonha',
+  'semvergonha',
+]
+
+/** Inglês frequente em bios BR */
+const TERMS_ENGLISH: string[] = [
+  'ass',
+  'asses',
+  'bbc',
+  'blowjob',
+  'cock',
+  'cum',
+  'cumming',
+  'cumshot',
+  'deepthroat',
+  'dick',
+  'dildo',
+  'fuck',
+  'fucking',
+  'fucked',
+  'handjob',
+  'horny',
+  'milf',
+  'nsfw',
+  'nude',
+  'nudes',
+  'onlyfans',
+  'orgasm',
+  'penis',
+  'porn',
+  'pussy',
+  'sex',
+  'sexy',
+  'slut',
+  'whore',
+  'xxx',
+]
+
+const RAW_EXPLICIT_TERMS: string[] = [
+  ...TERMS_ANATOMY,
+  ...TERMS_ACTS,
+  ...TERMS_PORN,
+  ...TERMS_PROSTITUTION_INSULTS,
+  ...TERMS_ENGLISH,
+]
+
+/** Termos normalizados, únicos, ordenados do maior para o menor (substituição/censor). */
+export const EXPLICIT_TERMS_NORMALIZED: readonly string[] = (() => {
+  const set = new Set<string>()
+  for (const raw of RAW_EXPLICIT_TERMS) {
+    const trimmed = raw.trim().toLowerCase()
+    if (!trimmed) continue
+    const collapsed = collapseRepeatedLetters(normalizeTextForExplicitMatch(trimmed))
+    const compact = collapsed.replace(/\s+/g, '')
+    if (compact.length >= 2) set.add(compact)
+    if (trimmed.includes(' ') && collapsed.length >= 2) set.add(collapsed)
+  }
+  return [...set].sort((a, b) => b.length - a.length)
+})()
+
+/** Termos curtos (≤3) só em token isolado — evita falso positivo em palavras maiores. */
+export const SHORT_EXPLICIT_TERMS: readonly string[] = EXPLICIT_TERMS_NORMALIZED.filter(
+  (t) => t.length <= 3
+)
+
+export const LONG_EXPLICIT_TERMS: readonly string[] = EXPLICIT_TERMS_NORMALIZED.filter(
+  (t) => t.length > 3
+)
+
+/** Contagem útil para logs / admin (sem expor lista completa). */
+export const EXPLICIT_TERMS_COUNT = EXPLICIT_TERMS_NORMALIZED.length
