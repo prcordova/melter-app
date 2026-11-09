@@ -126,8 +126,23 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
           });
           break;
         case 'VIEW_PURCHASE':
+        case 'VIEW_SUBSCRIPTIONS':
           navigation.navigate('ProfileStack', { screen: 'Purchases' });
           break;
+        case 'VIEW_SHOP':
+          navigation.navigate('ProfileStack', { screen: 'MyShop' });
+          break;
+        case 'VIEW_PRODUCT': {
+          // Fila de análise do admin só existe no web
+          if (notification.actionUrl?.startsWith('/admin')) break;
+          const productId = notification.actionData?.productId;
+          if (productId && notification.actionData?.status === 'APPROVED') {
+            navigation.navigate('ProfileStack', { screen: 'Product', params: { productId: String(productId) } });
+          } else {
+            navigation.navigate('ProfileStack', { screen: 'MyShop' });
+          }
+          break;
+        }
         case APP_RELEASE_NOTIFICATION_ACTION_TYPE:
           navigation.navigate('ProfileStack', {
             screen: 'AppReleaseNotes',

@@ -9,10 +9,10 @@ import {
   ActivityIndicator,
   Linking,
   Dimensions,
-  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppVideo, type AppVideoHandle } from '../components/AppVideo';
+import { CustomModal } from '../components/CustomModal';
 import type { ProductFileProgress, ProductModule } from '../services/products';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -849,12 +849,12 @@ export function ProductScreen() {
         swipeToCloseEnabled
       />
 
-      <Modal
+      <CustomModal
         visible={videoViewer !== null}
         animationType="fade"
-        presentationStyle="overFullScreen"
-        transparent
-        onRequestClose={closeVideoViewer}
+        onClose={closeVideoViewer}
+        closeOnBackdropPress={false}
+        overlayStyle={styles.videoViewerOverlay}
       >
         <View style={styles.videoViewer}>
           <View style={[styles.videoViewerHeader, { paddingTop: insets.top + 8 }]}>
@@ -891,14 +891,21 @@ export function ProductScreen() {
             />
           ) : null}
         </View>
-      </Modal>
+      </CustomModal>
     </View>
   );
 }
 
 const createStyles = (c: AppPalette) => StyleSheet.create({
+  videoViewerOverlay: {
+    padding: 0,
+    backgroundColor: '#000000',
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
+  },
   videoViewer: {
     flex: 1,
+    width: '100%',
     backgroundColor: '#000000',
   },
   videoViewerHeader: {

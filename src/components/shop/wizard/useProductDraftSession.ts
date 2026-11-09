@@ -244,12 +244,15 @@ export function useProductDraftSession({
   };
 }
 
-/** Edição de pacote existente (= ramo `product && status !== 'DRAFT'` do web). */
+/**
+ * Edição de pacote existente (= ramo `product && status !== 'DRAFT'` do web).
+ * `sentToReview`: pacote aprovado alterado saiu da loja até nova análise.
+ */
 export async function saveProductEdit(
   product: any,
   wizardData: any,
   onProgress: (percent: number) => void
-): Promise<void> {
+): Promise<{ sentToReview: boolean }> {
   const paymentMode = product.paymentMode || 'UNICO';
   const patch = {
     title: wizardData.title,
@@ -275,6 +278,7 @@ export async function saveProductEdit(
   onProgress(40);
   const res = await productsApi.updateProduct(String(product._id), patch);
   if (!res.success) throw new Error(res.message || 'Erro ao salvar produto');
+  let sentToReview = Boolean((res as { sentToReview?: boolean }).sentToReview);
 
   const pending = getWizardPendingUploads(wizardData.files);
   const existingCount = wizardData.digital?.files?.length ?? 0;
@@ -289,5 +293,7 @@ export async function saveProductEdit(
       onProgress: (p) => onProgress(50 + Math.round((45 * (i + p / 100)) / pending.length)),
     });
   }
+  if (pending.length > 0 && product.status === 'APPROVED') sentToReview = true;
   onProgress(100);
+  return { sentToReview };
 }

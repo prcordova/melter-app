@@ -63,6 +63,22 @@ interface Purchase {
     renewalCount: number;
   } | null;
   isCancelled?: boolean;
+  /** `revoked`: acesso retirado pela administração. */
+  accessState?: 'active' | 'expired' | 'revoked';
+  /** `under_review`: pacote editado aguardando aprovação; `unavailable`: removido/inativo/loja fora. */
+  availability?: 'available' | 'under_review' | 'unavailable';
+  canOpenProduct?: boolean;
+}
+
+/** Mesmo texto que GET /api/users/my-purchases usa para vendedor removido. */
+const REMOVED_SELLER_LABEL = 'Usuário removido';
+
+function canNavigateToSellerShop(username: string | null | undefined): username is string {
+  return Boolean(username && username !== REMOVED_SELLER_LABEL);
+}
+
+function isPurchaseBlocked(purchase: Purchase): boolean {
+  return purchase.accessState === 'revoked' || (purchase.availability ?? 'available') !== 'available';
 }
 
 export function PurchasesScreen() {
@@ -139,20 +155,48 @@ export function PurchasesScreen() {
     return null;
   };
 
+  const openSellerShop = (username: string | null | undefined) => {
+    if (!canNavigateToSellerShop(username)) {
+      showToast.error('Loja indisponível', 'Esta loja não está mais disponível.');
+      return;
+    }
+    navigation.navigate('ProfileStack', { screen: 'MyShop', params: { username } });
+  };
+
+  const getBlockedStatus = (purchase: Purchase) => {
+    if (purchase.accessState === 'revoked') {
+      return {
+        text: 'Acesso revogado',
+        color: colors.states.error,
+        hint: 'O acesso foi retirado pela administração. Fale com o suporte.',
+      };
+    }
+    if (purchase.availability === 'under_review') {
+      return {
+        text: 'Em análise',
+        color: colors.states.warning,
+        hint: 'O vendedor atualizou este pacote. O acesso volta após a aprovação.',
+      };
+    }
+    if (purchase.availability === 'unavailable') {
+      return {
+        text: 'Indisponível',
+        color: colors.states.error,
+        hint: 'Pacote removido ou desativado pelo vendedor, ou loja fora do ar.',
+      };
+    }
+    return null;
+  };
+
   const handleProductPress = (purchase: Purchase) => {
+    if (isPurchaseBlocked(purchase)) return;
     if (purchase.subscriptionPlan) {
       // Assinatura de plano - redirecionar para a loja do vendedor
-      navigation.navigate('ProfileStack', {
-        screen: 'MyShop',
-        params: { username: purchase.subscriptionPlan.userId.username },
-      });
+      openSellerShop(purchase.subscriptionPlan.userId?.username);
     } else if (purchase.productId) {
       if (purchase.isExpired) {
         // Se expirado, redirecionar para a loja do vendedor
-        navigation.navigate('ProfileStack', {
-          screen: 'MyShop',
-          params: { username: purchase.productId.userId.username },
-        });
+        openSellerShop(purchase.productId.userId?.username);
       } else {
         navigation.navigate('Product', { productId: purchase.productId._id });
       }
@@ -217,7 +261,9 @@ export function PurchasesScreen() {
 
   const renderPurchaseCard = ({ item: purchase }: { item: Purchase }) => {
     const expirationStatus = getExpirationStatus(purchase);
+    const blockedStatus = getBlockedStatus(purchase);
     const isExpired = purchase.isExpired;
+    const isBlocked = blockedStatus !== null;
 
     const itemTitle =
       purchase.subscriptionPlan?.name ||
@@ -242,11 +288,11 @@ export function PurchasesScreen() {
       <TouchableOpacity
         style={[
           styles.purchaseCard,
-          isExpired && styles.purchaseCardExpired,
+          (isExpired || isBlocked) && styles.purchaseCardExpired,
         ]}
         onPress={() => !isExpired && handleProductPress(purchase)}
         activeOpacity={0.7}
-        disabled={isExpired}
+        disabled={isExpired || isBlocked}
       >
         <Image source={imageSource} style={styles.purchaseImage} />
         <View style={styles.purchaseContent}>
@@ -262,7 +308,12 @@ export function PurchasesScreen() {
                 </View>
               )
             )}
-            {expirationStatus && (
+            {blockedStatus && (
+              <View style={[styles.badge, { backgroundColor: blockedStatus.color }]}>
+                <Text style={styles.badgeText}>{blockedStatus.text}</Text>
+              </View>
+            )}
+            {!blockedStatus && expirationStatus && (
               <View
                 style={[
                   styles.badge,
@@ -285,7 +336,11 @@ export function PurchasesScreen() {
                 size={16}
                 color={colors.text.secondary}
               />
-              <Text style={styles.sellerText}>@{sellerInfo.username}</Text>
+              <Text style={styles.sellerText}>
+                {canNavigateToSellerShop(sellerInfo.username)
+                  ? `@${sellerInfo.username}`
+                  : 'vendedor indisponível'}
+              </Text>
             </View>
           )}
 
@@ -314,7 +369,8 @@ export function PurchasesScreen() {
 
           {purchase.subscription?.isActive &&
             !purchase.isExpired &&
-            !purchase.isCancelled && (
+            !purchase.isCancelled &&
+            !isBlocked && (
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => handleCancelSubscription(purchase)}
@@ -331,7 +387,9 @@ export function PurchasesScreen() {
             </View>
           )}
 
-          {isExpired ? (
+          {blockedStatus ? (
+            <Text style={styles.accessText}>{blockedStatus.hint}</Text>
+          ) : isExpired ? (
             <TouchableOpacity
               style={styles.renewButton}
               onPress={() => handleProductPress(purchase)}

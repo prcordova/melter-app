@@ -677,8 +677,13 @@ export function MyShopScreen() {
     setWizardProgress(5);
     try {
       if (editingProduct?._id) {
-        await saveProductEdit(editingProduct, wizardData, setWizardProgress);
-        showToast.success('Sucesso', 'Produto atualizado com sucesso!');
+        const { sentToReview } = await saveProductEdit(editingProduct, wizardData, setWizardProgress);
+        showToast.success(
+          'Sucesso',
+          sentToReview
+            ? 'Produto enviado para análise. Ele volta à loja após aprovação.'
+            : 'Produto atualizado com sucesso!'
+        );
         void fetchProducts();
         closeProductWizard();
         return;
