@@ -13,7 +13,7 @@ export function ForceUpdateModal() {
   const styles = useThemedStyles(createStyles);
 
   return (
-    <Modal visible={status === 'required'} transparent animationType="fade" onRequestClose={() => {}}>
+    <Modal visible={status === 'required' && !__DEV__} transparent animationType="fade" onRequestClose={() => {}}>
       <View style={styles.overlay}>
         <View style={styles.card}>
           <View style={styles.iconCircle}>

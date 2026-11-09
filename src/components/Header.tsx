@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -43,7 +44,15 @@ export function Header({
   const { user, logout } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
   const [statusVisibility, setStatusVisibility] = useState<UserVisibility>('online');
-  const { status: updateStatus, latestVersion, installedVersion, openUpdate } = useAppUpdate();
+  const {
+    status: updateStatus,
+    latestVersion,
+    installedVersion,
+    canCheck,
+    checking,
+    checkNow,
+    openUpdate,
+  } = useAppUpdate();
   const hasUpdate = updateStatus === 'available' || updateStatus === 'required';
 
   const closeMenu = useCallback(() => setMenuVisible(false), []);
@@ -192,6 +201,21 @@ export function Header({
     );
   };
 
+  const handleVersionIconPress = async () => {
+    if (hasUpdate) {
+      handleUpdatePress();
+      return;
+    }
+    const next = await checkNow();
+    if (next === 'available' || next === 'required') {
+      handleUpdatePress();
+    } else if (next === 'up-to-date') {
+      Alert.alert('App atualizado', `Você está na versão mais recente (${installedVersion}).`);
+    } else {
+      showToast.error('Erro', 'Não foi possível verificar atualizações agora');
+    }
+  };
+
   const avatarSource = getAvatarUrl(user?.avatar);
 
   return (
@@ -210,14 +234,24 @@ export function Header({
 
       {/* Direita: Notificações e Avatar */}
       <View style={styles.rightContainer}>
-        {hasUpdate && (
+        {canCheck && (
           <TouchableOpacity
-            onPress={handleUpdatePress}
+            onPress={() => void handleVersionIconPress()}
+            disabled={checking}
             activeOpacity={0.7}
-            accessibilityLabel="Atualizar app"
+            accessibilityLabel={hasUpdate ? 'Atualizar app' : 'Verificar atualizações'}
             style={styles.updateButton}
           >
-            <Ionicons name="arrow-down-circle" size={26} color={colors.states.error} />
+            {checking ? (
+              <ActivityIndicator size="small" color={colors.text.secondary} />
+            ) : (
+              <Ionicons
+                name={hasUpdate ? 'arrow-down-circle' : 'cloud-download-outline'}
+                size={hasUpdate ? 26 : 22}
+                color={hasUpdate ? colors.states.error : colors.icon.primary}
+              />
+            )}
+            {hasUpdate && !checking && <View style={styles.updateDot} />}
           </TouchableOpacity>
         )}
         <NotificationButton />
@@ -436,8 +470,21 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     marginLeft: 4,
   },
   updateButton: {
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  updateDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: c.states.error,
+    borderWidth: 1.5,
+    borderColor: c.background.appbar,
   },
   avatar: {
     width: 32,

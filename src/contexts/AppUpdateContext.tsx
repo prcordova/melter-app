@@ -17,14 +17,19 @@ interface AppUpdateContextValue {
   status: AppUpdateStatus;
   latestVersion: string | null;
   installedVersion: string;
+  /** false fora do Android ou sem canal de distribuição configurado: o header não mostra o ícone. */
+  canCheck: boolean;
+  checking: boolean;
+  checkNow: () => Promise<AppUpdateStatus>;
   openUpdate: () => Promise<void>;
 }
 
 const CHECK_THROTTLE_MS = 10 * 60 * 1000;
 const CHECK_INTERVAL_MS = 30 * 60 * 1000;
 
-const isCheckEnabled =
-  Platform.OS === 'android' && !__DEV__ && APP_DISTRIBUTION !== null && INSTALLED_VERSION_CODE > 0;
+const canCheck = Platform.OS === 'android' && APP_DISTRIBUTION !== null && INSTALLED_VERSION_CODE > 0;
+/** Em desenvolvimento a checagem só roda pelo toque no ícone. */
+const isAutoCheckEnabled = canCheck && !__DEV__;
 
 const AppUpdateContext = createContext<AppUpdateContextValue | null>(null);
 
@@ -32,35 +37,48 @@ export function AppUpdateProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AppUpdateStatus>('unknown');
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [apkUrl, setApkUrl] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const statusRef = useRef<AppUpdateStatus>('unknown');
   const lastCheckAtRef = useRef(0);
   const checkingRef = useRef(false);
 
-  const check = useCallback(async (force = false) => {
-    if (!isCheckEnabled || checkingRef.current) return;
-    if (!force && Date.now() - lastCheckAtRef.current < CHECK_THROTTLE_MS) return;
+  const check = useCallback(async (force = false): Promise<AppUpdateStatus> => {
+    if (!canCheck || checkingRef.current) return statusRef.current;
+    if (!force && Date.now() - lastCheckAtRef.current < CHECK_THROTTLE_MS) return statusRef.current;
 
     checkingRef.current = true;
+    setChecking(true);
     try {
       const res = await appApi.getVersion();
-      if (!res.success || !res.data) return;
+      if (!res.success || !res.data) return statusRef.current;
       lastCheckAtRef.current = Date.now();
 
       const { latestVersion: latest, latestVersionCode, minVersionCode, apkUrl: url } = res.data;
       setLatestVersion(latest || null);
       setApkUrl(url);
 
-      if (minVersionCode > 0 && INSTALLED_VERSION_CODE < minVersionCode) setStatus('required');
-      else if (latestVersionCode > 0 && INSTALLED_VERSION_CODE < latestVersionCode) setStatus('available');
-      else setStatus('up-to-date');
+      const next: AppUpdateStatus =
+        minVersionCode > 0 && INSTALLED_VERSION_CODE < minVersionCode
+          ? 'required'
+          : latestVersionCode > 0 && INSTALLED_VERSION_CODE < latestVersionCode
+            ? 'available'
+            : 'up-to-date';
+      statusRef.current = next;
+      setStatus(next);
+      return next;
     } catch {
       /* sem rede: mantém o último status conhecido */
+      return statusRef.current;
     } finally {
       checkingRef.current = false;
+      setChecking(false);
     }
   }, []);
 
+  const checkNow = useCallback(() => check(true), [check]);
+
   useEffect(() => {
-    if (!isCheckEnabled) return;
+    if (!isAutoCheckEnabled) return;
     void check(true);
 
     const sub = AppState.addEventListener('change', (next) => {
@@ -101,8 +119,16 @@ export function AppUpdateProvider({ children }: { children: React.ReactNode }) {
   }, [apkUrl]);
 
   const value = useMemo<AppUpdateContextValue>(
-    () => ({ status, latestVersion, installedVersion: INSTALLED_VERSION_NAME, openUpdate }),
-    [status, latestVersion, openUpdate]
+    () => ({
+      status,
+      latestVersion,
+      installedVersion: INSTALLED_VERSION_NAME,
+      canCheck,
+      checking,
+      checkNow,
+      openUpdate,
+    }),
+    [status, latestVersion, checking, checkNow, openUpdate]
   );
 
   return <AppUpdateContext.Provider value={value}>{children}</AppUpdateContext.Provider>;
