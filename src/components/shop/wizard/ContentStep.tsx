@@ -19,7 +19,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { getProductCreationStorageLimits, validateFileSize, PlanType } from '../../../config/plan-features';
 import { getImageUrl } from '../../../utils/image';
 import type { PackContentDeliveryMode } from '../ProductCreationWizard';
-import { MediaUploadPickerRow } from '../../ui/MediaUploadPickerRow';
+import { Button } from '../../Button';
 import { productsApi } from '../../../services/products';
 
 export type ProductStorageOptions = Parameters<typeof getProductCreationStorageLimits>[1];
@@ -240,10 +240,6 @@ export function ContentStep({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getTotalFileSize = () => {
-    return formData.files.reduce((total: number, file: any) => total + (file.size || 0), 0);
-  };
-
   const getFileIcon = (mimeType?: string | null, fileType?: string | null) => {
     const m = mimeType || '';
     if (m.startsWith('image/') || fileType === 'image') {
@@ -345,75 +341,74 @@ export function ContentStep({
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Arquivos de mídia</Text>
-        <MediaUploadPickerRow
-          label="Adicionar arquivos"
-          onPress={() => void handlePickFiles()}
-          disabled={uploadingFiles}
-          loading={uploadingFiles}
-        />
+        <View style={styles.addFilesRow}>
+          <Button
+            variant="primary"
+            size="md"
+            responsive={false}
+            icon={<Ionicons name="cloud-upload-outline" size={18} color="#ffffff" />}
+            onPress={() => void handlePickFiles()}
+            disabled={uploadingFiles}
+            loading={uploadingFiles}
+            accessibilityLabel="Adicionar arquivos"
+          >
+            Adicionar arquivos
+          </Button>
+        </View>
 
         {formData.files.length > 0 ? (
-          <>
-            <View style={styles.filesList}>
-              {formData.files.map((file: any) => (
-                <View key={file.id} style={styles.fileCard}>
-                  {/* Preview para imagens e vídeos */}
-                  {file.uri && isImageOrVideoPreview(file) ? (
-                    <Image
-                      source={{
-                        uri:
-                          /^https?:\/\//i.test(file.uri) || String(file.uri).startsWith('file:')
-                            ? file.uri
-                            : getImageUrl(file.uri) || file.uri,
-                      }}
-                      style={styles.fileThumbnail}
-                    />
-                  ) : (
-                    <View style={styles.fileIconContainer}>
-                      {getFileIcon(file.type, file.fileType)}
-                    </View>
-                  )}
-                  <View style={styles.fileInfo}>
-                    <View style={styles.fileDetails}>
-                      <Text style={styles.fileName} numberOfLines={1}>
-                        {file.name}
-                      </Text>
-                      <Text style={styles.fileSize}>{formatFileSize(file.size)}</Text>
-                    </View>
+          <View style={styles.filesList}>
+            {formData.files.map((file: any) => (
+              <View key={file.id} style={styles.fileCard}>
+                {/* Preview para imagens e vídeos */}
+                {file.uri && isImageOrVideoPreview(file) ? (
+                  <Image
+                    source={{
+                      uri:
+                        /^https?:\/\//i.test(file.uri) || String(file.uri).startsWith('file:')
+                          ? file.uri
+                          : getImageUrl(file.uri) || file.uri,
+                    }}
+                    style={styles.fileThumbnail}
+                  />
+                ) : (
+                  <View style={styles.fileIconContainer}>
+                    {getFileIcon(file.type, file.fileType)}
                   </View>
-                  {uploadProgress[file.id] !== undefined ? (
-                    <View style={styles.progressContainer}>
-                      <View style={styles.progressBarContainer}>
-                        <View
-                          style={[styles.progressBar, { width: `${uploadProgress[file.id]}%` }]}
-                        />
-                      </View>
-                      <Text style={styles.progressText}>{uploadProgress[file.id]}%</Text>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => void handleRemoveFile(file.id)}
-                      style={styles.removeButton}
-                      disabled={removingFileId !== null}
-                    >
-                      {removingFileId === file.id ? (
-                        <ActivityIndicator size="small" color={colors.states.error} />
-                      ) : (
-                        <Ionicons name="close-circle" size={20} color={colors.states.error} />
-                      )}
-                    </TouchableOpacity>
-                  )}
+                )}
+                <View style={styles.fileInfo}>
+                  <View style={styles.fileDetails}>
+                    <Text style={styles.fileName} numberOfLines={1}>
+                      {file.name}
+                    </Text>
+                    <Text style={styles.fileSize}>{formatFileSize(file.size)}</Text>
+                  </View>
                 </View>
-              ))}
-            </View>
-            {/* Resumo do tamanho total */}
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryText}>
-                Total: {formatFileSize(getTotalFileSize())} /{' '}
-                {storageLimits.maxTotalFileSizeMb}MB
-              </Text>
-            </View>
-          </>
+                {uploadProgress[file.id] !== undefined ? (
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBarContainer}>
+                      <View
+                        style={[styles.progressBar, { width: `${uploadProgress[file.id]}%` }]}
+                      />
+                    </View>
+                    <Text style={styles.progressText}>{uploadProgress[file.id]}%</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => void handleRemoveFile(file.id)}
+                    style={styles.removeButton}
+                    disabled={removingFileId !== null}
+                  >
+                    {removingFileId === file.id ? (
+                      <ActivityIndicator size="small" color={colors.states.error} />
+                    ) : (
+                      <Ionicons name="close-circle" size={20} color={colors.states.error} />
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </View>
         ) : null}
       </View>
 
@@ -553,6 +548,11 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+  },
+  addFilesRow: {
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 12,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -732,19 +732,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  summaryBox: {
-    backgroundColor: c.background.tertiary,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: c.border.light,
-  },
-  summaryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.text.secondary,
   },
 });
 

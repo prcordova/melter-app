@@ -19,6 +19,8 @@ import type { AppPalette } from '../../theme/palettes';
 import { ContentStep, type ProductStorageOptions } from './wizard/ContentStep';
 import { DetailsStep } from './wizard/DetailsStep';
 import { ReviewStep } from './wizard/ReviewStep';
+import { ProductPackageQualityThermometer } from './wizard/ProductPackageQualityThermometer';
+import { WizardStorageUsageBar } from './wizard/WizardStorageUsageBar';
 import { showToast } from '../CustomToast';
 import { DEFAULT_PACK_CATEGORY_ID } from '../../constants/categories';
 import {
@@ -292,6 +294,12 @@ export function ProductCreationWizard({
     setActiveStep((prev) => prev - 1);
   };
 
+  const handleStepClick = (stepIndex: number) => {
+    if (saving || stepIndex >= activeStep) return;
+    setShowMediaRequiredError(false);
+    setActiveStep(stepIndex);
+  };
+
   const resetContentDeliveryChoice = () => {
     setFormData((prev) => ({
       ...prev,
@@ -347,6 +355,9 @@ export function ProductCreationWizard({
     }
   };
 
+  const showStorageUsage =
+    activeStep === 0 && Boolean(isEditing || formData.contentDeliveryMode);
+
   const handleClose = () => {
     if (!saving) {
       onClose();
@@ -393,7 +404,15 @@ export function ProductCreationWizard({
             <View style={styles.stepperContainer}>
               {steps.map((label, index) => (
                 <View key={label} style={styles.stepWrapper}>
-                  <View style={styles.stepContainer}>
+                  <TouchableOpacity
+                    style={styles.stepContainer}
+                    onPress={() => handleStepClick(index)}
+                    disabled={saving || index >= activeStep}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Voltar para ${label}`}
+                    accessibilityState={{ disabled: saving || index >= activeStep }}
+                  >
                     <View
                       style={[
                         styles.stepCircle,
@@ -425,7 +444,7 @@ export function ProductCreationWizard({
                     >
                       {label}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                   {index < steps.length - 1 && (
                     <View
                       style={[
@@ -477,12 +496,21 @@ export function ProductCreationWizard({
                     <Text style={styles.analysisNotesText}>{product.analysisNotes}</Text>
                   </View>
                 ) : null}
+                {isEditing || formData.contentDeliveryMode ? (
+                  <View style={styles.qualityThermometer}>
+                    <ProductPackageQualityThermometer formData={formData} />
+                  </View>
+                ) : null}
                 {getStepContent()}
               </ScrollView>
             </View>
 
+            {showStorageUsage ? (
+              <WizardStorageUsageBar files={formData.files} storageOptions={storageOptions} />
+            ) : null}
+
             {/* Footer */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, showStorageUsage && styles.footerAttached]}>
               <TouchableOpacity
                 style={[styles.button, styles.backButton]}
                 onPress={
@@ -681,6 +709,9 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     padding: 12,
     marginBottom: 16,
   },
+  qualityThermometer: {
+    marginBottom: 16,
+  },
   analysisNotesRejected: {
     borderColor: c.states.error,
   },
@@ -712,6 +743,10 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: c.border.light,
+  },
+  footerAttached: {
+    borderTopWidth: 0,
+    paddingTop: 12,
   },
   button: {
     flex: 1,
