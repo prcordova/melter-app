@@ -20,6 +20,7 @@ import { ptBR } from 'date-fns/locale';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
+import { APP_RELEASE_NOTIFICATION_ACTION_TYPE } from '../config/app/api-paths';
 
 interface NotificationModalProps {
   visible: boolean;
@@ -117,6 +118,12 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
               });
             }
           }
+          break;
+        case APP_RELEASE_NOTIFICATION_ACTION_TYPE:
+          navigation.navigate('ProfileStack', {
+            screen: 'AppReleaseNotes',
+            params: { noteId: notification.actionData?.noteId },
+          });
           break;
         default:
           break;

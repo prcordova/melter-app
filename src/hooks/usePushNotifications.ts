@@ -3,7 +3,9 @@ import * as Notifications from 'expo-notifications';
 import { AppState, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { isRunningInExpoGo } from 'expo';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { APP_RELEASE_PUSH_TYPE } from '../config/app/api-paths';
 import { api } from '../services/api';
 import { devLog, devWarn } from '../config/dev-logs';
 import {
@@ -70,8 +72,12 @@ if (Platform.OS === 'android' && !isAndroidExpoGo) {
   }).catch(err => console.error('[PushNotifications] Erro ao criar canal default:', err));
 }
 
+/** Evita navegar duas vezes pelo mesmo toque (listener + cold start, ou remount após login). */
+const handledResponseIds = new Set<string>();
+
 export function usePushNotifications() {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
 
@@ -100,16 +106,38 @@ export function usePushNotifications() {
     
     devLog('[PushNotifications] Listener configurado');
 
-    // Listener para quando o usuário toca na notificação
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+    const handleResponse = (response: Notifications.NotificationResponse) => {
+      const requestId = response.notification.request.identifier;
+      if (handledResponseIds.has(requestId)) return;
+      handledResponseIds.add(requestId);
       const data = response.notification.request.content.data;
-      
+
+      if (data?.type === APP_RELEASE_PUSH_TYPE) {
+        navigation.navigate('Main', {
+          screen: 'ProfileStack',
+          params: { screen: 'AppReleaseNotes', params: { noteId: data.noteId } },
+        });
+        return;
+      }
+
       // Navegar para a tela apropriada baseado no tipo
       if (data?.type === 'MESSAGE' && data?.userId) {
         // TODO: Navegar para a conversa
         // navigation.navigate('Chat', { userId: data.userId, username: data.username });
       }
-    });
+    };
+
+    // Listener para quando o usuário toca na notificação
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(handleResponse);
+
+    // App aberto pelo toque no push (cold start): o listener acima ainda não existia.
+    if (!isAndroidExpoGo) {
+      void Notifications.getLastNotificationResponseAsync()
+        .then((response) => {
+          if (response) handleResponse(response);
+        })
+        .catch(() => {});
+    }
 
     return () => {
       if (notificationListener.current) {
@@ -119,7 +147,7 @@ export function usePushNotifications() {
         responseListener.current.remove();
       }
     };
-  }, [user]);
+  }, [user, navigation]);
 
   async function registerForPushNotificationsAsync() {
     // Expo Go (Android) lança erro ao pedir token de push desde o SDK 55; push só em build próprio.

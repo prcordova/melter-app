@@ -46,6 +46,7 @@ const TYPE_TO_CATEGORY: Record<string, NotificationSoundCategory> = {
   SUBSCRIPTION_LOW_BALANCE: 'commerce',
   SUBSCRIPTION_CANCELLED: 'commerce',
   PLATFORM_PLAN_PAYMENT_FAILED: 'commerce',
+  APP_UPDATE: 'system',
 };
 
 let memoryCache: NotificationSoundPrefs | null = null;

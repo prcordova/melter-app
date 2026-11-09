@@ -20,6 +20,7 @@ import { ReferralScreen } from '../screens/ReferralScreen';
 import { AffiliatesScreen } from '../screens/AffiliatesScreen';
 import { AccountVerificationScreen } from '../screens/AccountVerificationScreen';
 import { SupportTicketsScreen } from '../screens/SupportTicketsScreen';
+import { AppReleaseNotesScreen } from '../screens/AppReleaseNotesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -39,6 +40,7 @@ export function ProfileStackNavigator() {
       <Stack.Screen name="LinksSettings" component={LinksSettingsScreen} />
       <Stack.Screen name="Plans" component={PlansScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="AppReleaseNotes" component={AppReleaseNotesScreen} />
       <Stack.Screen name="AppearanceSettings" component={AppearanceSettingsScreen} />
       <Stack.Screen name="WalletSettings" component={WalletSettingsScreen} />
       <Stack.Screen name="PreferencesSettings" component={PreferencesScreen} />

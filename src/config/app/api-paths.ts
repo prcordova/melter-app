@@ -10,3 +10,7 @@ export const APP_API = {
 
 /** Rota da página pública de download (web). */
 export const APP_DOWNLOAD_PAGE_PATH = '/download';
+
+/** `actionType` / `data.type` do aviso de nova versão — sync com melter/src/lib/app/app-release-broadcast.ts */
+export const APP_RELEASE_NOTIFICATION_ACTION_TYPE = 'VIEW_APP_RELEASE_NOTES';
+export const APP_RELEASE_PUSH_TYPE = 'APP_UPDATE';

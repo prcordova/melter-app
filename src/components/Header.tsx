@@ -414,6 +414,15 @@ export function Header({
 
                   <TouchableOpacity
                     style={styles.menuRow}
+                    onPress={() => goProfileStack('AppReleaseNotes')}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="sparkles-outline" size={20} color={colors.text.secondary} />
+                    <Text style={styles.menuRowLabel}>Novidades do app</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.menuRow}
                     onPress={() => goProfileStack('Terms')}
                     activeOpacity={0.7}
                   >
