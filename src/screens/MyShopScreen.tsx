@@ -750,6 +750,17 @@ export function MyShopScreen() {
     }
   };
 
+  const shopGrowthPromo =
+    isOwner && ownerApproved && shopIsPublicAndActive ? (
+      <SellerGrowthPromoCard
+        variant="small"
+        placement="shop"
+        sellerStatus="approved"
+        username={username}
+        onAction={handleGrowthPromoAction}
+      />
+    ) : null;
+
   const handleVerificationSuccess = async (updated: SellerVerificationFormData) => {
     setShopSettings((prev) => {
       if (!prev) return prev;
@@ -1276,15 +1287,7 @@ export function MyShopScreen() {
                     {/* Promo "Prepare o perfil" desativado temporariamente (getShopPlacementContent → null) */}
                   </>
                 )}
-                {isOwner && ownerApproved && shopIsPublicAndActive && (
-                  <SellerGrowthPromoCard
-                    variant="small"
-                    placement="shop"
-                    sellerStatus="approved"
-                    username={username}
-                    onAction={handleGrowthPromoAction}
-                  />
-                )}
+                {!loadingProducts && products.length > 0 && shopGrowthPromo}
                 {isOwner &&
                   (canPrepareShopCatalogWhilePending || canPrepareCatalogWithoutActiveShop) &&
                   !ownerApproved &&
@@ -1387,6 +1390,7 @@ export function MyShopScreen() {
                         </TouchableOpacity>
                       )
                     )}
+                    {shopGrowthPromo ? <View style={styles.emptyProductsPromo}>{shopGrowthPromo}</View> : null}
                   </View>
                 ) : (
                   <>
@@ -2111,6 +2115,10 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 48,
     paddingHorizontal: 24,
+  },
+  emptyProductsPromo: {
+    alignSelf: 'stretch',
+    marginTop: 24,
   },
   emptyProductsIcon: {
     width: 80,

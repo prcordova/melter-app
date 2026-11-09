@@ -455,7 +455,7 @@ export function TermsScreen() {
             </Text>
             <Text style={styles.sectionText}>
               <Text style={styles.bold}>7.2 Taxa sobre Doações:</Text> A plataforma retém uma taxa sobre todas as doações para 
-              manutenção do serviço. Esta taxa é configurável e pode ser alterada conforme necessário. 
+              manutenção do serviço. Esta taxa é configurável e pode ser alterada conforme necessário.
               Consulte a página /fees para verificar a taxa atual.
             </Text>
 
@@ -663,7 +663,7 @@ export function TermsScreen() {
             <Text style={styles.sectionTitle}>11. Isenção de Responsabilidade</Text>
             <Text style={styles.sectionText}>
               <Text style={styles.bold}>11.1 Natureza da Plataforma:</Text> A Melter atua exclusivamente como uma plataforma intermediária, 
-              fornecendo infraestrutura tecnológica para que usuários possam interagir, criar conteúdo e realizar transações. 
+              fornecendo infraestrutura tecnológica para que usuários possam interagir, criar conteúdo e realizar transações.
               Não somos parte nas transações entre usuários, não possuímos, controlamos ou garantimos produtos/serviços vendidos 
               por vendedores.
             </Text>
