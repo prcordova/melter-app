@@ -22,7 +22,7 @@ Branch: `chore/expo-sdk-58`. Fontes: changelogs oficiais [SDK 55](https://expo.d
 |---|---|---|---|
 | 55 | Fim da Legacy Architecture (só New Architecture) | App já não desligava a New Arch; libs nativas atualizadas pelo `expo install --fix` | ✅ |
 | 55 | `expo-av` removido do Expo Go e sem patches | 8 telas com vídeo (anúncio, stories, loja, verificação de vendedor) | ✅ migrado para `expo-video` via `src/components/AppVideo.tsx` |
-| 55 | Push no Expo Go Android passa a lançar erro | `usePushNotifications` registrava token sempre | ✅ registro ignorado no Expo Go Android |
+| 55 | Push no Expo Go Android passa a lançar erro | `usePushNotifications` registrava token e criava canais sempre (canal → `NullPointerException`) | ✅ token e canais ignorados no Expo Go Android |
 | 55 | Edge-to-edge obrigatório; props `backgroundColor`/`translucent` do StatusBar sem efeito | App só usa `style` | ✅ nada a fazer |
 | 55 | Campo `splash` saiu do `app.json` | Splash configurado na raiz | ✅ movido para o plugin `expo-splash-screen` |
 | 56 | `expo` não depende mais de `@expo/vector-icons` | Já era dependência direta | ✅ (deprecado: migrar para `@react-native-vector-icons/*` futuramente) |
@@ -42,6 +42,7 @@ Branch: `chore/expo-sdk-58`. Fontes: changelogs oficiais [SDK 55](https://expo.d
 
 - Removidos `nativewind`, `tailwindcss` e `tailwind.config.js` (não usados, conflitavam com o SDK).
 - React Navigation atualizado para a última 7.x; `react-native-toast-message` 2.5.
+  - Navegar para tela de navegador filho a partir do pai não funciona mais (`navigate('ProfileStack', …)` a partir do stack raiz → "not handled by any navigator"). Componentes fora do `Tab.Navigator` (`TermsGuard`, `CustomCheckpoints` no FAB) agora usam `navigate('Main', { screen: 'ProfileStack', params: { screen: … } })`. Telas dentro das abas não são afetadas.
 - Pasta `android/` local apagada (gerada para o SDK 54; é regenerada no build).
 
 ## Pendências / decisões

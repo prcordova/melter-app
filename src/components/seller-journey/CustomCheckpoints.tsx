@@ -69,14 +69,15 @@ export function CustomCheckpoints({ variant = 'minimized', defaultExpanded = fal
     setExpanded((v) => !v);
   }, [variant]);
 
+  // Via 'Main': o FAB fica fora do Tab.Navigator, então `navigation` pode ser o stack raiz.
   const openShop = useCallback(() => {
-    navigation.navigate('ProfileStack', { screen: 'MyShop' });
+    navigation.navigate('Main', { screen: 'ProfileStack', params: { screen: 'MyShop' } });
   }, [navigation]);
 
   const openCreateProduct = useCallback(() => {
-    navigation.navigate('ProfileStack', {
-      screen: 'MyShop',
-      params: { openCreateProduct: true },
+    navigation.navigate('Main', {
+      screen: 'ProfileStack',
+      params: { screen: 'MyShop', params: { openCreateProduct: true } },
     });
   }, [navigation]);
 

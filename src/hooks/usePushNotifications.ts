@@ -38,7 +38,10 @@ Notifications.setNotificationHandler({
 
 // Configurar canais de notificação para Android (deve ser feito antes de usar)
 // Executado uma vez quando o módulo é carregado
-if (Platform.OS === 'android') {
+// Expo Go no Android não tem push desde o SDK 55: criar canal lança NullPointerException nativo.
+const isAndroidExpoGo = Platform.OS === 'android' && isRunningInExpoGo();
+
+if (Platform.OS === 'android' && !isAndroidExpoGo) {
   // Canal de mensagens com alta importância para garantir som e visibilidade
   Notifications.setNotificationChannelAsync('messages', {
     name: 'Mensagens',
@@ -120,7 +123,7 @@ export function usePushNotifications() {
 
   async function registerForPushNotificationsAsync() {
     // Expo Go (Android) lança erro ao pedir token de push desde o SDK 55; push só em build próprio.
-    if (Platform.OS === 'android' && isRunningInExpoGo()) {
+    if (isAndroidExpoGo) {
       devLog('[PushNotifications] Expo Go no Android: registro de push ignorado');
       return;
     }

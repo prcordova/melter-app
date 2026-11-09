@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -40,10 +40,15 @@ export function TermsGuard() {
 
   const onTermsScreen = isOnTermsRoute(navState);
 
+  // Renderizado fora do Tab.Navigator: `navigation` é o stack raiz, então entra pela rota 'Main'.
+  const openTerms = useCallback(() => {
+    navigation.navigate('Main', { screen: 'ProfileStack', params: { screen: 'Terms' } });
+  }, [navigation]);
+
   useEffect(() => {
     if (!needsAcceptance || onTermsScreen) return;
-    navigation.navigate('ProfileStack', { screen: 'Terms' });
-  }, [needsAcceptance, onTermsScreen, navigation]);
+    openTerms();
+  }, [needsAcceptance, onTermsScreen, openTerms]);
 
   if (!needsAcceptance || onTermsScreen) {
     return null;
@@ -59,7 +64,7 @@ export function TermsGuard() {
           </Text>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => navigation.navigate('ProfileStack', { screen: 'Terms' })}
+            onPress={openTerms}
             activeOpacity={0.85}
           >
             <Text style={styles.buttonText}>Ler e aceitar termos</Text>
