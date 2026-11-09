@@ -60,7 +60,6 @@
     "android": {
       "package": "com.melter.app",
       "softwareKeyboardLayoutMode": "resize",
-      "versionCode": 19,
       "adaptiveIcon": {
         "foregroundImage": "./assets/bee.png",
         "backgroundColor": "#FFFFFF"
