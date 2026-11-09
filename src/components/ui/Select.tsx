@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 export interface SelectItem {
   label: string;
@@ -27,13 +28,16 @@ export function Select({
   wrapperStyle,
   disabled = false,
 }: SelectProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={[styles.wrapper, wrapperStyle]}>
       <Picker
         selectedValue={selectedValue}
         onValueChange={onValueChange}
         style={[styles.picker, style]}
-        dropdownIconColor={COLORS.text.secondary}
+        dropdownIconColor={colors.text.secondary}
         mode="dropdown"
         enabled={!disabled}
       >
@@ -52,28 +56,28 @@ export function Select({
   );
 }
 
-const styles = StyleSheet.create({
-  wrapper: {
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border.light,
-    overflow: 'visible',
-    height: 52,
-    justifyContent: 'center',
-  },
-  picker: {
-    color: COLORS.text.primary,
-    height: 52,
-    paddingVertical: 0,
-    marginVertical: 0,
-    paddingHorizontal: 12,
-    paddingLeft: 12,
-    paddingRight: 32,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-  },
-});
-
+const createStyles = (c: AppPalette) =>
+  StyleSheet.create({
+    wrapper: {
+      backgroundColor: c.background.paper,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: c.isDark ? c.border.medium : c.border.light,
+      overflow: 'visible',
+      height: 52,
+      justifyContent: 'center',
+    },
+    picker: {
+      color: c.text.primary,
+      height: 52,
+      paddingVertical: 0,
+      marginVertical: 0,
+      paddingHorizontal: 12,
+      paddingLeft: 12,
+      paddingRight: 32,
+      fontSize: 15,
+      lineHeight: 22,
+      textAlignVertical: 'center',
+      includeFontPadding: false,
+    },
+  });

@@ -14,7 +14,8 @@ import {
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { Header } from '../components/Header';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { productsApi } from '../services/api';
@@ -74,6 +75,8 @@ export function ProductScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<ProductRouteProp>();
   const { user } = useAuth();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { productId } = route.params;
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -237,7 +240,7 @@ export function ProductScreen() {
       <View style={styles.container}>
         <Header />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondary.main} />
+          <ActivityIndicator size="large" color={colors.secondary.main} />
           <Text style={styles.loadingText}>Carregando produto...</Text>
         </View>
       </View>
@@ -279,12 +282,12 @@ export function ProductScreen() {
 
   const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'PENDING': return COLORS.states.warning;
-      case 'APPROVED': return COLORS.states.success;
-      case 'REJECTED': return COLORS.states.error;
-      case 'REQUIRES_CHANGES': return COLORS.primary.main;
-      case 'INACTIVE': return COLORS.text.secondary;
-      default: return COLORS.text.secondary;
+      case 'PENDING': return colors.states.warning;
+      case 'APPROVED': return colors.states.success;
+      case 'REJECTED': return colors.states.error;
+      case 'REQUIRES_CHANGES': return colors.primary.main;
+      case 'INACTIVE': return colors.text.secondary;
+      default: return colors.text.secondary;
     }
   };
 
@@ -422,7 +425,7 @@ export function ProductScreen() {
         {/* Aviso se não tem acesso */}
         {!canViewContent && (
           <View style={styles.accessWarning}>
-            <Ionicons name="lock-closed-outline" size={24} color={COLORS.states.warning} />
+            <Ionicons name="lock-closed-outline" size={24} color={colors.states.warning} />
             <Text style={styles.accessWarningText}>
               Você precisa comprar este produto para acessar o conteúdo
             </Text>
@@ -433,7 +436,7 @@ export function ProductScreen() {
         {(mainLink || links.length > 0) && canViewContent && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="link-outline" size={20} color={COLORS.text.primary} />
+              <Ionicons name="link-outline" size={20} color={colors.text.primary} />
               <Text style={styles.sectionTitle}>
                 Links {mainLink && links.length > 0 ? `(${1 + links.length})` : mainLink ? '(1)' : `(${links.length})`}
               </Text>
@@ -445,14 +448,14 @@ export function ProductScreen() {
                 style={styles.linkCard}
                 onPress={() => handleOpenLink(mainLink.url)}
               >
-                <Ionicons name="open-outline" size={24} color={COLORS.primary.main} />
+                <Ionicons name="open-outline" size={24} color={colors.primary.main} />
                 <View style={styles.linkInfo}>
                   <Text style={styles.linkTitle}>{mainLink.customFileName}</Text>
                   <Text style={styles.linkUrl} numberOfLines={1}>
                     {mainLink.url}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
+                <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
               </TouchableOpacity>
             )}
 
@@ -463,7 +466,7 @@ export function ProductScreen() {
                 style={styles.linkCard}
                 onPress={() => handleOpenLink(link.url)}
               >
-                <Ionicons name="open-outline" size={24} color={COLORS.primary.main} />
+                <Ionicons name="open-outline" size={24} color={colors.primary.main} />
                 <View style={styles.linkInfo}>
                   <Text style={styles.linkTitle}>
                     {link.customFileName || link.fileName}
@@ -475,7 +478,7 @@ export function ProductScreen() {
                     {link.url}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
+                <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -485,7 +488,7 @@ export function ProductScreen() {
         {images.length > 0 && canViewContent && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="images-outline" size={20} color={COLORS.text.primary} />
+              <Ionicons name="images-outline" size={20} color={colors.text.primary} />
               <Text style={styles.sectionTitle}>Imagens ({images.length})</Text>
             </View>
             <View style={styles.mediaGrid}>
@@ -510,7 +513,7 @@ export function ProductScreen() {
                     />
                   ) : (
                     <View style={styles.mediaPlaceholder}>
-                      <Ionicons name="image-outline" size={32} color={COLORS.text.secondary} />
+                      <Ionicons name="image-outline" size={32} color={colors.text.secondary} />
                     </View>
                   )}
                   <Text style={styles.mediaTitle} numberOfLines={2}>
@@ -531,7 +534,7 @@ export function ProductScreen() {
         {videos.length > 0 && canViewContent && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="videocam-outline" size={20} color={COLORS.text.primary} />
+              <Ionicons name="videocam-outline" size={20} color={colors.text.primary} />
               <Text style={styles.sectionTitle}>Vídeos ({videos.length})</Text>
             </View>
             <View style={styles.mediaGrid}>
@@ -554,7 +557,7 @@ export function ProductScreen() {
                     </View>
                   ) : (
                     <View style={styles.mediaPlaceholder}>
-                      <Ionicons name="videocam-outline" size={32} color={COLORS.text.secondary} />
+                      <Ionicons name="videocam-outline" size={32} color={colors.text.secondary} />
                     </View>
                   )}
                   <Text style={styles.mediaTitle} numberOfLines={2}>
@@ -575,7 +578,7 @@ export function ProductScreen() {
         {documents.length > 0 && canViewContent && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="document-text-outline" size={20} color={COLORS.text.primary} />
+              <Ionicons name="document-text-outline" size={20} color={colors.text.primary} />
               <Text style={styles.sectionTitle}>Documentos ({documents.length})</Text>
             </View>
             {documents.map((doc, index) => (
@@ -584,7 +587,7 @@ export function ProductScreen() {
                 style={styles.documentCard}
                 onPress={() => handleOpenLink(doc.url)}
               >
-                <Ionicons name="document-outline" size={24} color={COLORS.primary.main} />
+                <Ionicons name="document-outline" size={24} color={colors.primary.main} />
                 <View style={styles.documentInfo}>
                   <Text style={styles.documentTitle}>
                     {doc.customFileName || doc.fileName}
@@ -594,7 +597,7 @@ export function ProductScreen() {
                   )}
                   <Text style={styles.documentSize}>{formatFileSize(doc.fileSize)}</Text>
                 </View>
-                <Ionicons name="download-outline" size={20} color={COLORS.text.secondary} />
+                <Ionicons name="download-outline" size={20} color={colors.text.secondary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -603,7 +606,7 @@ export function ProductScreen() {
         {/* Mensagem quando não há conteúdo */}
         {canViewContent && !hasContent && (
           <View style={styles.emptyContent}>
-            <Ionicons name="cube-outline" size={48} color={COLORS.text.secondary} />
+            <Ionicons name="cube-outline" size={48} color={colors.text.secondary} />
             <Text style={styles.emptyText}>Este produto ainda não possui conteúdo</Text>
           </View>
         )}
@@ -623,10 +626,10 @@ export function ProductScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   backButtonContainer: {
     paddingHorizontal: 16,
@@ -644,7 +647,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   errorContainer: {
     flex: 1,
@@ -653,10 +656,10 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   header: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     marginBottom: 12,
     padding: 16,
   },
@@ -671,7 +674,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   coverImagePending: {
     opacity: 0.65,
@@ -689,7 +692,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
   },
   titlePending: {
@@ -713,40 +716,40 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
     marginBottom: 12,
   },
   category: {
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   categoryText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '600',
   },
   accessWarning: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     padding: 16,
     marginBottom: 12,
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.states.warning,
+    borderLeftColor: c.states.warning,
   },
   accessWarningText: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   section: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     marginBottom: 12,
     padding: 16,
   },
@@ -759,14 +762,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   linkCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     padding: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     marginBottom: 8,
   },
@@ -776,17 +779,17 @@ const styles = StyleSheet.create({
   linkTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   linkDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
   },
   linkUrl: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   mediaGrid: {
     flexDirection: 'row',
@@ -795,7 +798,7 @@ const styles = StyleSheet.create({
   },
   mediaCard: {
     width: (width - 64) / 2,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 12,
@@ -803,7 +806,7 @@ const styles = StyleSheet.create({
   mediaThumbnail: {
     width: '100%',
     height: 120,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   videoThumbnailContainer: {
     position: 'relative',
@@ -821,19 +824,19 @@ const styles = StyleSheet.create({
   mediaPlaceholder: {
     width: '100%',
     height: 120,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     justifyContent: 'center',
     alignItems: 'center',
   },
   mediaTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     padding: 8,
   },
   mediaDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     paddingHorizontal: 8,
     paddingBottom: 8,
   },
@@ -842,7 +845,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     marginBottom: 8,
   },
@@ -852,29 +855,29 @@ const styles = StyleSheet.create({
   documentTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   documentDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
   },
   documentSize: {
     fontSize: 11,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   emptyContent: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 48,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     margin: 16,
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 16,
     textAlign: 'center',
   },

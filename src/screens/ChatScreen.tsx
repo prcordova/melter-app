@@ -27,7 +27,9 @@ import * as DocumentPicker from 'expo-document-picker';
 import { messageApi, userApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarUrl, getUserInitials, getImageUrl } from '../utils/image';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
 import { showToast } from '../components/CustomToast';
 import { StoryReplyPreview } from '../components/stories/StoryReplyPreview';
 import { EmojiPicker } from '../components/EmojiPicker';
@@ -63,6 +65,8 @@ export function ChatScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   // Verificar se os parâmetros da rota existem para evitar crash
   if (!route.params) {
@@ -129,16 +133,16 @@ export function ChatScreen() {
       return () => {
         parent.setOptions({
           tabBarStyle: {
-            backgroundColor: COLORS.background.paper,
+            backgroundColor: colors.background.paper,
             borderTopWidth: 1,
-            borderTopColor: COLORS.border.light,
+            borderTopColor: colors.border.light,
             height: TAB_BAR_HEIGHT + insets.bottom,
             paddingBottom: insets.bottom || 8,
             paddingTop: 8,
           },
         });
       };
-    }, [navigation, insets.bottom])
+    }, [navigation, insets.bottom, colors])
   );
 
   useEffect(() => {
@@ -751,7 +755,7 @@ export function ChatScreen() {
                   <Ionicons 
                     name="document-text" 
                     size={32} 
-                    color={isSentByMe ? '#ffffff' : COLORS.primary.main} 
+                    color={isSentByMe ? '#ffffff' : colors.primary.main} 
                   />
                   <View style={styles.documentInfo}>
                     <Text 
@@ -766,7 +770,7 @@ export function ChatScreen() {
                     <Ionicons 
                       name="download-outline" 
                       size={16} 
-                      color={isSentByMe ? 'rgba(255,255,255,0.8)' : COLORS.text.tertiary} 
+                      color={isSentByMe ? 'rgba(255,255,255,0.8)' : colors.text.tertiary} 
                     />
                   </View>
                 </TouchableOpacity>
@@ -779,7 +783,7 @@ export function ChatScreen() {
                     styles.messageText,
                     isSentByMe
                       ? styles.myMessageText
-                      : [styles.otherMessageText, { color: chatSettings.textColor }],
+                      : [styles.otherMessageText, { color: chatTextColor }],
                   ]}
                 >
                   {item.content}
@@ -830,8 +834,18 @@ export function ChatScreen() {
   const avatarSource = getAvatarUrl(avatar);
   const chatBgSource = getChatBackgroundSource(chatSettings.backgroundImage);
 
+  const chatTextColor =
+    chatSettings.textColor === DEFAULT_CHAT_SETTINGS.textColor
+      ? colors.text.primary
+      : chatSettings.textColor;
+  const chatBgColor =
+    chatSettings.backgroundColor === DEFAULT_CHAT_SETTINGS.backgroundColor
+      ? colors.background.tertiary
+      : chatSettings.backgroundColor;
+
   const chatShell = (
     <>
+      <ThemedStatusBar />
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -843,7 +857,7 @@ export function ChatScreen() {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.headerInfo} onPress={handleUserPress} activeOpacity={0.7}>
@@ -860,7 +874,7 @@ export function ChatScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.moreButton} onPress={() => setShowMenu(true)}>
-            <Ionicons name="ellipsis-vertical" size={24} color={COLORS.text.primary} />
+            <Ionicons name="ellipsis-vertical" size={24} color={colors.text.primary} />
           </TouchableOpacity>
         </View>
 
@@ -881,8 +895,8 @@ export function ChatScreen() {
                   style={styles.menuItem} 
                   onPress={handleRemoveFriend}
                 >
-                  <Ionicons name="person-remove-outline" size={20} color={COLORS.states.error} />
-                  <Text style={[styles.menuItemText, { color: COLORS.states.error }]}>
+                  <Ionicons name="person-remove-outline" size={20} color={colors.states.error} />
+                  <Text style={[styles.menuItemText, { color: colors.states.error }]}>
                     Remover Amigo
                   </Text>
                 </TouchableOpacity>
@@ -892,7 +906,7 @@ export function ChatScreen() {
                 style={styles.menuItem} 
                 onPress={handleBlockUser}
               >
-                <Ionicons name="ban-outline" size={20} color={COLORS.text.primary} />
+                <Ionicons name="ban-outline" size={20} color={colors.text.primary} />
                 <Text style={styles.menuItemText}>Bloquear Usuário</Text>
               </TouchableOpacity>
 
@@ -903,7 +917,7 @@ export function ChatScreen() {
                   handleUserPress();
                 }}
               >
-                <Ionicons name="person-outline" size={20} color={COLORS.text.primary} />
+                <Ionicons name="person-outline" size={20} color={colors.text.primary} />
                 <Text style={styles.menuItemText}>Ver Perfil</Text>
               </TouchableOpacity>
             </View>
@@ -915,7 +929,7 @@ export function ChatScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator
               size="large"
-              color={COLORS.secondary.main}
+              color={colors.secondary.main}
               animating={true}
             />
           </View>
@@ -934,7 +948,7 @@ export function ChatScreen() {
                   disabled={loadingMore}
                 >
                   {loadingMore ? (
-                    <ActivityIndicator size="small" color={COLORS.secondary.main} />
+                    <ActivityIndicator size="small" color={colors.secondary.main} />
                   ) : (
                     <Text style={styles.loadMoreText}>Ver mensagens anteriores</Text>
                   )}
@@ -956,7 +970,7 @@ export function ChatScreen() {
         <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 8) }]}>
           {friendshipMode === 'pending' ? (
             <View style={styles.pendingFriendshipContainer}>
-              <Ionicons name="information-circle-outline" size={22} color={COLORS.secondary.main} />
+              <Ionicons name="information-circle-outline" size={22} color={colors.secondary.main} />
               <Text style={styles.pendingFriendshipText}>
                 {isFriendshipRequester
                   ? 'Pedido de amizade enviado. Aguarde a aceitação para conversar.'
@@ -975,7 +989,7 @@ export function ChatScreen() {
                     style={styles.rejectFriendshipButton}
                     onPress={() => void handleRejectFriendship()}
                   >
-                    <Ionicons name="close" size={18} color={COLORS.text.primary} />
+                    <Ionicons name="close" size={18} color={colors.text.primary} />
                     <Text style={styles.rejectFriendshipButtonText}>Recusar</Text>
                   </TouchableOpacity>
                 </View>
@@ -991,7 +1005,7 @@ export function ChatScreen() {
             </View>
           ) : friendshipMode === 'none' ? (
             <View style={styles.notFriendsContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color={COLORS.text.tertiary} />
+              <Ionicons name="lock-closed-outline" size={20} color={colors.text.tertiary} />
               <Text style={styles.notFriendsText}>
                 Envie um pedido de amizade para conversar. Com amizade pendente, use a solicitação de mensagem.
               </Text>
@@ -1003,7 +1017,7 @@ export function ChatScreen() {
                 onPress={handleAttachPress}
                 disabled={sending || uploading}
               >
-                <Ionicons name="add-circle-outline" size={28} color={COLORS.secondary.main} />
+                <Ionicons name="add-circle-outline" size={28} color={colors.secondary.main} />
               </TouchableOpacity>
 
               <View style={styles.inputWrapper}>
@@ -1017,13 +1031,13 @@ export function ChatScreen() {
                           style={styles.removePreviewButton}
                           onPress={handleRemoveAttachment}
                         >
-                          <Ionicons name="close-circle" size={24} color={COLORS.states.error} />
+                          <Ionicons name="close-circle" size={24} color={colors.states.error} />
                         </TouchableOpacity>
                       </View>
                     )}
                     {selectedDocument && (
                       <View style={styles.documentPreview}>
-                        <Ionicons name="document-text" size={20} color={COLORS.text.secondary} />
+                        <Ionicons name="document-text" size={20} color={colors.text.secondary} />
                         <Text style={styles.documentPreviewText} numberOfLines={1}>
                           {selectedDocument.name}
                         </Text>
@@ -1031,7 +1045,7 @@ export function ChatScreen() {
                           style={styles.removePreviewButton}
                           onPress={handleRemoveAttachment}
                         >
-                          <Ionicons name="close-circle" size={20} color={COLORS.states.error} />
+                          <Ionicons name="close-circle" size={20} color={colors.states.error} />
                         </TouchableOpacity>
                       </View>
                     )}
@@ -1042,7 +1056,7 @@ export function ChatScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="Mensagem..."
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                     value={newMessage}
                     onChangeText={setNewMessage}
                     multiline
@@ -1056,7 +1070,7 @@ export function ChatScreen() {
                     <Ionicons 
                       name={showEmojiPicker ? "happy" : "happy-outline"} 
                       size={24} 
-                      color={COLORS.secondary.main} 
+                      color={colors.secondary.main} 
                     />
                   </TouchableOpacity>
                 </View>
@@ -1107,7 +1121,7 @@ export function ChatScreen() {
     return (
       <ImageBackground
         source={chatBgSource}
-        style={[styles.backgroundImage, { backgroundColor: chatSettings.backgroundColor }]}
+        style={[styles.backgroundImage, { backgroundColor: chatBgColor }]}
         imageStyle={styles.backgroundImageStyle}
         resizeMode="repeat"
       >
@@ -1117,13 +1131,13 @@ export function ChatScreen() {
   }
 
   return (
-    <View style={[styles.backgroundImage, { backgroundColor: chatSettings.backgroundColor }]}>
+    <View style={[styles.backgroundImage, { backgroundColor: chatBgColor }]}>
       {chatShell}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   backgroundImage: {
     flex: 1,
   },
@@ -1132,16 +1146,16 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.94)', // Overlay levemente mais transparente
+    backgroundColor: `${c.background.paper}F0`, // Overlay levemente mais transparente
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   backButton: {
     marginRight: 12,
@@ -1157,10 +1171,10 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     marginRight: 10,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   avatarPlaceholder: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1172,7 +1186,7 @@ const styles = StyleSheet.create({
   headerUsername: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   moreButton: {
     padding: 4,
@@ -1187,8 +1201,8 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
-    backgroundColor: COLORS.background.tertiary,
+    color: c.text.tertiary,
+    backgroundColor: c.background.tertiary,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1210,14 +1224,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   myMessageBubble: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderBottomRightRadius: 4,
   },
   otherMessageBubble: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   messageImage: {
     width: 200,
@@ -1233,7 +1247,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   otherMessageText: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   messageFooter: {
     flexDirection: 'row',
@@ -1248,7 +1262,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
   },
   otherMessageTime: {
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   empty: {
     flex: 1,
@@ -1263,12 +1277,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   loadingContainer: {
@@ -1283,7 +1297,7 @@ const styles = StyleSheet.create({
   },
   loadMoreText: {
     fontSize: 13,
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontWeight: '600',
   },
   inputContainer: {
@@ -1291,9 +1305,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingTop: 8,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   attachButton: {
     marginBottom: 8,
@@ -1303,7 +1317,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1312,7 +1326,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     maxHeight: 100,
   },
   emojiButton: {
@@ -1323,7 +1337,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -1336,16 +1350,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     paddingVertical: 12,
     borderRadius: 12,
     gap: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   notFriendsText: {
     fontSize: 14,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     fontWeight: '500',
     flex: 1,
     textAlign: 'center',
@@ -1354,14 +1368,14 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     gap: 10,
   },
   pendingFriendshipText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 18,
   },
   messageRequestButton: {
@@ -1369,7 +1383,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 12,
     borderRadius: 10,
   },
@@ -1390,7 +1404,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 12,
     borderRadius: 10,
   },
@@ -1401,14 +1415,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     paddingVertical: 12,
     borderRadius: 10,
   },
   rejectFriendshipButtonText: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1419,7 +1433,7 @@ const styles = StyleSheet.create({
   menuContainer: {
     position: 'absolute',
     right: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     width: 200,
     shadowColor: '#000',
@@ -1429,7 +1443,7 @@ const styles = StyleSheet.create({
     elevation: 5,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   menuItem: {
     flexDirection: 'row',
@@ -1437,14 +1451,14 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   menuItemLast: {
     borderBottomWidth: 0,
   },
   menuItemText: {
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     fontWeight: '500',
   },
   messageDocument: {
@@ -1452,7 +1466,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginBottom: 8,
     gap: 12,
   },
@@ -1475,7 +1489,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   otherDocumentName: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   attachmentPreview: {
     marginBottom: 8,
@@ -1492,7 +1506,7 @@ const styles = StyleSheet.create({
   documentPreview: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     padding: 8,
     borderRadius: 8,
     gap: 8,
@@ -1500,7 +1514,7 @@ const styles = StyleSheet.create({
   documentPreviewText: {
     flex: 1,
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   removePreviewButton: {
     padding: 4,

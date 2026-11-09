@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENT_COLORS } from '../theme/colors';
+import { useAppTheme } from '../contexts/ThemeContext';
 
 interface ButtonProps extends TouchableOpacityProps {
   children: React.ReactNode;
@@ -53,6 +53,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const { width } = useWindowDimensions();
+  const { colors } = useAppTheme();
   const resolvedSize = responsive ? resolveResponsiveButtonSize(size, width) : size;
 
   const getContainerStyle = (): ViewStyle => {
@@ -92,12 +93,12 @@ export function Button({
       outline: {
         backgroundColor: 'transparent',
         borderWidth: 2,
-        borderColor: COLORS.secondary.main,
+        borderColor: colors.secondary.main,
       },
       ghost: {
-        backgroundColor: COLORS.background.default, // Fundo rosa claro (igual web)
+        backgroundColor: colors.background.default,
         borderWidth: 2,
-        borderColor: COLORS.secondary.main,
+        borderColor: colors.secondary.main,
       },
     };
 
@@ -124,8 +125,8 @@ export function Button({
     // Cores de texto por variante
     const variantStyles: Record<string, TextStyle> = {
       primary: { color: '#ffffff' },
-      outline: { color: COLORS.secondary.main },
-      ghost: { color: COLORS.secondary.main },
+      outline: { color: colors.secondary.main },
+      ghost: { color: colors.secondary.main },
     };
 
     return {
@@ -139,7 +140,7 @@ export function Button({
     if (loading) {
       return (
         <ActivityIndicator
-          color={variant === 'primary' ? '#ffffff' : COLORS.secondary.main}
+          color={variant === 'primary' ? '#ffffff' : colors.secondary.main}
           size="small"
           animating={true}
         />
@@ -167,7 +168,7 @@ export function Button({
         {...props}
       >
         <LinearGradient
-          colors={GRADIENT_COLORS}
+          colors={colors.gradient.primary}
           start={GRADIENT_START}
           end={GRADIENT_END}
           style={getButtonStyle()}

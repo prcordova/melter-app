@@ -1,81 +1,56 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Toast, { BaseToast, ErrorToast, InfoToast } from 'react-native-toast-message';
-import { COLORS } from '../theme/colors';
+import { useAppTheme } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
-// Configuração customizada do Toast
-const toastConfig = {
-  success: (props: any) => (
-    <BaseToast
-      {...props}
-      style={{
-        borderLeftColor: COLORS.states.success,
-        borderLeftWidth: 4,
-        height: 60,
-        alignSelf: 'center',
-        width: '92%',
-        maxWidth: 420,
-      }}
-      contentContainerStyle={{ paddingHorizontal: 15 }}
-      text1Style={{
-        fontSize: 15,
-        fontWeight: '600',
-        color: COLORS.text.primary,
-      }}
-      text2Style={{
-        fontSize: 13,
-        color: COLORS.text.secondary,
-      }}
-    />
-  ),
-  error: (props: any) => (
-    <ErrorToast
-      {...props}
-      style={{
-        borderLeftColor: COLORS.states.error,
-        borderLeftWidth: 4,
-        height: 60,
-        alignSelf: 'center',
-        width: '92%',
-        maxWidth: 420,
-      }}
-      contentContainerStyle={{ paddingHorizontal: 15 }}
-      text1Style={{
-        fontSize: 15,
-        fontWeight: '600',
-        color: COLORS.text.primary,
-      }}
-      text2Style={{
-        fontSize: 13,
-        color: COLORS.text.secondary,
-      }}
-    />
-  ),
-  info: (props: any) => (
-    <InfoToast
-      {...props}
-      style={{
-        borderLeftColor: COLORS.secondary.main,
-        borderLeftWidth: 4,
-        height: 60,
-        alignSelf: 'center',
-        width: '92%',
-        maxWidth: 420,
-      }}
-      contentContainerStyle={{ paddingHorizontal: 15 }}
-      text1Style={{
-        fontSize: 15,
-        fontWeight: '600',
-        color: COLORS.text.primary,
-      }}
-      text2Style={{
-        fontSize: 13,
-        color: COLORS.text.secondary,
-      }}
-    />
-  ),
-};
+function createToastConfig(c: AppPalette) {
+  const toastStyle = (accent: string) => ({
+    borderLeftColor: accent,
+    borderLeftWidth: 4,
+    height: 60,
+    alignSelf: 'center' as const,
+    width: '92%' as const,
+    maxWidth: 420,
+    backgroundColor: c.background.paper,
+  });
+  const contentContainerStyle = { paddingHorizontal: 15 };
+  const text1Style = { fontSize: 15, fontWeight: '600' as const, color: c.text.primary };
+  const text2Style = { fontSize: 13, color: c.text.secondary };
+
+  return {
+    success: (props: any) => (
+      <BaseToast
+        {...props}
+        style={toastStyle(c.states.success)}
+        contentContainerStyle={contentContainerStyle}
+        text1Style={text1Style}
+        text2Style={text2Style}
+      />
+    ),
+    error: (props: any) => (
+      <ErrorToast
+        {...props}
+        style={toastStyle(c.states.error)}
+        contentContainerStyle={contentContainerStyle}
+        text1Style={text1Style}
+        text2Style={text2Style}
+      />
+    ),
+    info: (props: any) => (
+      <InfoToast
+        {...props}
+        style={toastStyle(c.secondary.main)}
+        contentContainerStyle={contentContainerStyle}
+        text1Style={text1Style}
+        text2Style={text2Style}
+      />
+    ),
+  };
+}
 
 export function CustomToast() {
+  const { colors } = useAppTheme();
+  const toastConfig = useMemo(() => createToastConfig(colors), [colors]);
   return <Toast config={toastConfig} />;
 }
 

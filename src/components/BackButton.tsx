@@ -2,7 +2,8 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 interface BackButtonProps {
   onPress?: () => void;
@@ -11,6 +12,8 @@ interface BackButtonProps {
 
 export function BackButton({ onPress, title = 'Voltar' }: BackButtonProps) {
   const navigation = useNavigation();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   const handlePress = () => {
     if (onPress) {
@@ -26,24 +29,24 @@ export function BackButton({ onPress, title = 'Voltar' }: BackButtonProps) {
       style={styles.container}
       activeOpacity={0.7}
     >
-      <Ionicons name="arrow-back" size={24} color={COLORS.secondary.main} />
+      <Ionicons name="arrow-back" size={24} color={colors.secondary.main} />
       <Text style={styles.text}>{title}</Text>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.secondary.main,
-  },
-});
-
+const createStyles = (c: AppPalette) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+    },
+    text: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: c.secondary.main,
+    },
+  });

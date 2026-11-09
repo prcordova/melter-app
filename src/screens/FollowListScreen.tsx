@@ -12,7 +12,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import axios from 'axios';
 import { BackButton } from '../components/BackButton';
-import { COLORS } from '../theme/colors';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { userApi } from '../services/api';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 
@@ -25,6 +27,8 @@ export function FollowListScreen() {
   const route = useRoute<RouteProp<{ FollowList: FollowListRouteParams }, 'FollowList'>>();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { username, list } = route.params;
 
   const [items, setItems] = useState<any[]>([]);
@@ -105,6 +109,7 @@ export function FollowListScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       <View style={styles.header}>
         <BackButton title="Voltar" />
         <Text style={styles.title}>{title}</Text>
@@ -115,7 +120,7 @@ export function FollowListScreen() {
           Este utilizador não permite ver esta lista. Os números podem continuar visíveis no perfil.
         </Text>
       ) : loading ? (
-        <ActivityIndicator style={{ marginTop: 32 }} color={COLORS.secondary.main} />
+        <ActivityIndicator style={{ marginTop: 32 }} color={colors.secondary.main} />
       ) : (
         <FlatList
           data={items}
@@ -159,7 +164,7 @@ export function FollowListScreen() {
                 disabled={loadingMore}
               >
                 {loadingMore ? (
-                  <ActivityIndicator color={COLORS.secondary.main} />
+                  <ActivityIndicator color={colors.secondary.main} />
                 ) : (
                   <Text style={styles.loadMoreText}>Carregar mais</Text>
                 )}
@@ -172,29 +177,29 @@ export function FollowListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     paddingBottom: 8,
     paddingHorizontal: 8,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     paddingHorizontal: 12,
     paddingTop: 4,
   },
   muted: {
     marginTop: 24,
     paddingHorizontal: 20,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontSize: 15,
     lineHeight: 22,
   },
@@ -204,7 +209,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   avatar: {
     width: 48,
@@ -212,22 +217,22 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   avatarPlaceholder: {
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.border.light,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarLetter: {
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   username: {
     fontWeight: '600',
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   bio: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
   loadMore: {
@@ -236,7 +241,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadMoreText: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontWeight: '600',
   },
 });

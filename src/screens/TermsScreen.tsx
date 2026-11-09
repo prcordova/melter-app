@@ -5,13 +5,14 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { BackButton } from '../components/BackButton';
-import { COLORS } from '../theme/colors';
+import { Button } from '../components/Button';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
+import { useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../services/api';
 import { showToast } from '../components/CustomToast';
@@ -20,6 +21,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function TermsScreen() {
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user, refreshUser } = useAuth();
@@ -85,6 +87,7 @@ export function TermsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       {/* Header */}
       <View style={styles.header}>
         <BackButton />
@@ -382,17 +385,15 @@ export function TermsScreen() {
                 </Text>
               </View>
 
-              <TouchableOpacity
-                style={[styles.acceptButton, (!accepted || accepting) && styles.acceptButtonDisabled]}
+              <Button
+                variant="primary"
+                responsive={false}
                 onPress={handleAccept}
+                loading={accepting}
                 disabled={!accepted || accepting}
               >
-                {accepting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.acceptButtonText}>Aceitar e Continuar</Text>
-                )}
-              </TouchableOpacity>
+                Aceitar e Continuar
+              </Button>
             </View>
           ) : user && !needsAcceptance ? (
             <View style={styles.successAlert}>
@@ -419,69 +420,69 @@ export function TermsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.medium,
+    borderBottomColor: c.border.medium,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginLeft: 12,
   },
   scrollContent: {
     padding: 16,
   },
   card: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border.medium,
+    backgroundColor: c.border.medium,
     marginVertical: 16,
   },
   warningAlert: {
-    backgroundColor: COLORS.states.warning + '20',
+    backgroundColor: c.states.warning + '20',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.states.warning,
+    borderColor: c.states.warning,
   },
   alertTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.warning,
+    color: c.states.warning,
     marginBottom: 4,
   },
   alertText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   termsContent: {
     maxHeight: 400,
@@ -490,13 +491,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   sectionText: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -505,7 +506,7 @@ const styles = StyleSheet.create({
   },
   bulletPoint: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 20,
     marginLeft: 16,
     marginBottom: 8,
@@ -519,7 +520,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 4,
     marginRight: 12,
     alignItems: 'center',
@@ -527,8 +528,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: COLORS.primary.main,
-    borderColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
+    borderColor: c.primary.main,
   },
   checkmark: {
     color: '#fff',
@@ -538,57 +539,42 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 20,
   },
   infoAlert: {
-    backgroundColor: COLORS.states.info + '20',
+    backgroundColor: c.states.info + '20',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.states.info,
+    borderColor: c.states.info,
   },
   infoAlertTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.info,
+    color: c.states.info,
     marginBottom: 4,
   },
   infoAlertText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
-  },
-  acceptButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  acceptButtonDisabled: {
-    opacity: 0.5,
-  },
-  acceptButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: c.text.secondary,
   },
   successAlert: {
-    backgroundColor: COLORS.states.success + '20',
+    backgroundColor: c.states.success + '20',
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.states.success,
+    borderColor: c.states.success,
   },
   successAlertText: {
     fontSize: 14,
-    color: COLORS.states.success,
+    color: c.states.success,
     marginBottom: 4,
   },
   successAlertSubtext: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });
 

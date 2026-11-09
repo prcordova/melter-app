@@ -21,7 +21,8 @@ import { MessagesRequestsList } from '../components/messages/MessagesRequestsLis
 import { ChatSettingsModal } from '../components/messages/ChatSettingsModal';
 import { messageApi, userApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { showToast } from '../components/CustomToast';
 import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
@@ -102,6 +103,8 @@ interface SearchResultConversation extends Conversation {
 }
 
 export function MessagesScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user } = useAuth();
   const navigation = useNavigation<MessagesScreenNavigationProp>();
   const listRef = useRef<FlatList>(null);
@@ -743,7 +746,7 @@ export function MessagesScreen() {
     if (!loadingMore) return null;
     return (
       <View style={styles.loadMoreFooter}>
-        <ActivityIndicator size="small" color={COLORS.secondary.main} />
+        <ActivityIndicator size="small" color={colors.secondary.main} />
       </View>
     );
   };
@@ -770,7 +773,7 @@ export function MessagesScreen() {
           <Text style={styles.friendUsername}>@{item.username}</Text>
           <Text style={styles.friendSubtext}>Iniciar conversa</Text>
         </View>
-        <Ionicons name="chatbubble-outline" size={20} color={COLORS.text.tertiary} />
+        <Ionicons name="chatbubble-outline" size={20} color={colors.text.tertiary} />
       </TouchableOpacity>
     );
   };
@@ -901,13 +904,13 @@ export function MessagesScreen() {
           <Ionicons
             name="search"
             size={20}
-            color={COLORS.text.tertiary}
+            color={colors.text.tertiary}
             style={styles.searchIcon}
           />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar conversas..."
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onFocus={() => setIsSearching(true)}
@@ -918,7 +921,7 @@ export function MessagesScreen() {
               <Ionicons
                 name="close-circle"
                 size={20}
-                color={COLORS.text.tertiary}
+                color={colors.text.tertiary}
               />
             </TouchableOpacity>
           )}
@@ -933,7 +936,7 @@ export function MessagesScreen() {
             onPress={() => setShowChatSettings(true)}
             accessibilityLabel="Configurações do chat"
           >
-            <Ionicons name="settings-outline" size={22} color={COLORS.text.secondary} />
+            <Ionicons name="settings-outline" size={22} color={colors.text.secondary} />
           </TouchableOpacity>
           <View style={styles.tabsRow}>
             <TouchableOpacity
@@ -1106,8 +1109,8 @@ export function MessagesScreen() {
                 style={styles.modalOption}
                 onPress={handleMarkAsRead}
               >
-                <Ionicons name="checkmark-done-outline" size={22} color={COLORS.secondary.main} />
-                <Text style={[styles.modalOptionText, { color: COLORS.secondary.main }]}>
+                <Ionicons name="checkmark-done-outline" size={22} color={colors.secondary.main} />
+                <Text style={[styles.modalOptionText, { color: colors.secondary.main }]}>
                   Marcar como lida
                 </Text>
               </TouchableOpacity>
@@ -1119,12 +1122,12 @@ export function MessagesScreen() {
               disabled={isArchiving}
             >
               {isArchiving ? (
-                <ActivityIndicator size="small" color={COLORS.text.primary} />
+                <ActivityIndicator size="small" color={colors.text.primary} />
               ) : (
                 <Ionicons 
                   name={selectedConversation?.isArchived ? "archive" : "archive-outline"} 
                   size={22} 
-                  color={COLORS.text.primary} 
+                  color={colors.text.primary} 
                 />
               )}
               <Text style={styles.modalOptionText}>
@@ -1140,8 +1143,8 @@ export function MessagesScreen() {
               style={styles.modalOption}
               onPress={handleDeleteConversation}
             >
-              <Ionicons name="trash-outline" size={22} color={COLORS.states.error} />
-              <Text style={[styles.modalOptionText, { color: COLORS.states.error }]}>Excluir conversa</Text>
+              <Ionicons name="trash-outline" size={22} color={colors.states.error} />
+              <Text style={[styles.modalOptionText, { color: colors.states.error }]}>Excluir conversa</Text>
             </TouchableOpacity>
 
             <View style={styles.modalDivider} />
@@ -1150,8 +1153,8 @@ export function MessagesScreen() {
               style={styles.modalOption}
               onPress={handleBlockUser}
             >
-              <Ionicons name="ban-outline" size={22} color={COLORS.states.error} />
-              <Text style={[styles.modalOptionText, { color: COLORS.states.error }]}>Bloquear usuário</Text>
+              <Ionicons name="ban-outline" size={22} color={colors.states.error} />
+              <Text style={[styles.modalOptionText, { color: colors.states.error }]}>Bloquear usuário</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -1178,7 +1181,7 @@ export function MessagesScreen() {
 );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   backgroundImage: {
     flex: 1,
   },
@@ -1187,20 +1190,20 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: `${c.background.paper}EB`,
   },
   subHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1211,23 +1214,23 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   tabContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     gap: 8,
   },
   settingsButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1241,19 +1244,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   loadMoreFooter: {
     paddingVertical: 16,
     alignItems: 'center',
   },
   activeTab: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   activeTabText: {
     color: '#fff',
@@ -1275,13 +1278,13 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   loadingContainer: {
@@ -1291,7 +1294,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 8,
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   skeletonList: {
@@ -1301,7 +1304,7 @@ const styles = StyleSheet.create({
   skeletonItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 14,
@@ -1311,7 +1314,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   skeletonContent: {
     flex: 1,
@@ -1321,21 +1324,21 @@ const styles = StyleSheet.create({
     width: '52%',
     height: 12,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   skeletonLineSecondary: {
     width: '78%',
     height: 10,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -1348,11 +1351,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     marginTop: 4,
   },
   modalOption: {
@@ -1360,7 +1363,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     gap: 12,
   },
   modalOptionDisabled: {
@@ -1369,11 +1372,11 @@ const styles = StyleSheet.create({
   modalOptionText: {
     fontSize: 16,
     fontWeight: '500',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   modalDivider: {
     height: 1,
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.border.light,
     marginVertical: 8,
   },
   modalCancel: {
@@ -1384,7 +1387,7 @@ const styles = StyleSheet.create({
   modalCancelText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   searchContainerWrapper: {
     flex: 1,
@@ -1392,7 +1395,7 @@ const styles = StyleSheet.create({
   },
   searchSection: {
     flex: 1,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   searchSectionHeader: {
     flexDirection: 'row',
@@ -1401,21 +1404,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   searchSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   searchingLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   searchDivider: {
     height: 1,
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.border.light,
     marginVertical: 8,
   },
   searchListContent: {
@@ -1432,7 +1435,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 6,
@@ -1441,7 +1444,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   searchSkeletonContent: {
     flex: 1,
@@ -1451,13 +1454,13 @@ const styles = StyleSheet.create({
     width: '45%',
     height: 10,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   searchSkeletonLineSecondary: {
     width: '70%',
     height: 8,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   searchEmpty: {
     flex: 1,
@@ -1467,26 +1470,26 @@ const styles = StyleSheet.create({
   },
   searchEmptyText: {
     fontSize: 14,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   friendItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   friendAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginRight: 12,
   },
   friendAvatarPlaceholder: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1501,31 +1504,31 @@ const styles = StyleSheet.create({
   friendUsername: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 2,
   },
   friendSubtext: {
     fontSize: 13,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   searchResultItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   searchResultAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginRight: 12,
   },
   searchResultAvatarPlaceholder: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1540,12 +1543,12 @@ const styles = StyleSheet.create({
   searchResultUsername: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   searchResultMessage: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 18,
   },
 });

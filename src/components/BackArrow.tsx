@@ -1,8 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, Text } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../theme/colors';
+import { useAppTheme } from '../contexts/ThemeContext';
 
 interface BackArrowProps {
   onPress: () => void;
@@ -10,14 +9,16 @@ interface BackArrowProps {
 }
 
 export function BackArrow({ onPress, label }: BackArrowProps) {
+  const { colors } = useAppTheme();
+
   return (
     <TouchableOpacity
       onPress={onPress}
       style={styles.container}
       activeOpacity={0.7}
     >
-      <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-      {label && <Text style={styles.label}>{label}</Text>}
+      <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+      {label && <Text style={[styles.label, { color: colors.text.primary }]}>{label}</Text>}
     </TouchableOpacity>
   );
 }
@@ -30,8 +31,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: COLORS.text.primary,
     fontWeight: '500',
   },
 });
-

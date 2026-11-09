@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
-import { COLORS } from '../theme/colors';
+import { useAppTheme } from '../contexts/ThemeContext';
 
 interface AvatarProps {
   user: {
@@ -34,6 +34,7 @@ export function Avatar({
   disableNavigation = false,
 }: AvatarProps) {
   const navigation = useNavigation<any>();
+  const { colors } = useAppTheme();
   const avatarUrl = getAvatarUrl(user.avatar);
   const initials = getUserInitials(user.username || '');
 
@@ -60,8 +61,7 @@ export function Avatar({
   ];
 
   const contentStyle = [
-    styles.avatar,
-    { width: size, height: size, borderRadius: size / 2 },
+    { width: size, height: size, borderRadius: size / 2, backgroundColor: colors.background.tertiary },
     imageStyle,
   ];
 
@@ -78,7 +78,7 @@ export function Avatar({
           style={contentStyle}
         />
       ) : (
-        <View style={[contentStyle, styles.placeholder]}>
+        <View style={[contentStyle, styles.placeholder, { backgroundColor: colors.secondary.main }]}>
           <Text style={[styles.initials, { fontSize: size * 0.4 }]}>
             {initials}
           </Text>
@@ -92,11 +92,7 @@ const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
   },
-  avatar: {
-    backgroundColor: COLORS.background.tertiary,
-  },
   placeholder: {
-    backgroundColor: COLORS.secondary.main,
     justifyContent: 'center',
     alignItems: 'center',
   },

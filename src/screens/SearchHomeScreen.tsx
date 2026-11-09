@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header } from '../components/Header';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 type SearchStackParamList = {
@@ -17,6 +18,8 @@ type SearchHomeScreenNavigationProp = NativeStackNavigationProp<
 >;
 
        export function SearchHomeScreen() {
+         const { colors } = useAppTheme();
+         const styles = useThemedStyles(createStyles);
          const navigation = useNavigation<any>();
          const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -41,7 +44,7 @@ type SearchHomeScreenNavigationProp = NativeStackNavigationProp<
 
         <View style={styles.optionsContainer}>
           <View style={styles.emptyContainer}>
-            <Ionicons name="search-outline" size={64} color={COLORS.text.tertiary} />
+            <Ionicons name="search-outline" size={64} color={colors.text.tertiary} />
             <Text style={styles.emptyText}>Funcionalidades de busca em desenvolvimento</Text>
           </View>
         </View>
@@ -50,10 +53,10 @@ type SearchHomeScreenNavigationProp = NativeStackNavigationProp<
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   content: {
     flex: 1,
@@ -63,13 +66,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     marginBottom: 32,
   },
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   optionCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 24,
     shadowColor: '#000',
@@ -91,7 +94,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -99,12 +102,12 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   optionDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
   optionArrow: {
@@ -120,7 +123,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 16,
     fontSize: 16,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     fontWeight: '500',
     textAlign: 'center',
   },

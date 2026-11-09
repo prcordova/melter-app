@@ -11,7 +11,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 export interface CustomModalButton {
   text: string;
@@ -65,13 +66,15 @@ export function CustomModal({
   buttons = [],
   onClose,
   icon,
-  iconColor = COLORS.primary.main,
+  iconColor,
   top = false,
   closeOnBackdropPress,
   children,
   animationType,
   overlayStyle,
 }: CustomModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const isContentMode = children != null;
 
   useModalScrollLock(visible);
@@ -132,7 +135,7 @@ export function CustomModal({
           {/* Ícone (opcional) */}
           {icon && (
             <View style={styles.iconContainer}>
-              <Ionicons name={icon as any} size={48} color={iconColor} />
+              <Ionicons name={icon as any} size={48} color={iconColor ?? colors.primary.main} />
             </View>
           )}
 
@@ -268,10 +271,10 @@ export function useCustomModal() {
   };
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -281,8 +284,10 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: c.divider,
     padding: 24,
     width: '100%',
     maxWidth: 400,
@@ -305,13 +310,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
     marginBottom: 12,
   },
   message: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
@@ -326,7 +331,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
@@ -336,12 +341,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
   },
   cancelButton: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   destructiveButton: {
-    backgroundColor: COLORS.states.error,
+    backgroundColor: c.states.error,
   },
   disabledButton: {
     opacity: 0.5,
@@ -349,10 +354,10 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: c.primary.contrastText,
   },
   cancelButtonText: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   destructiveButtonText: {
     color: '#FFFFFF',

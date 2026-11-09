@@ -15,7 +15,8 @@ import { getTabNavigator } from '../navigation/get-tab-navigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { Header } from '../components/Header';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { shopApi, sellerVerificationApi, userApi, productsApi, categoriesApi } from '../services/api';
@@ -131,6 +132,8 @@ interface RouteParams {
 }
 
 export function MyShopScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
   const { user, loading: authLoading, refreshUser } = useAuth();
@@ -802,14 +805,14 @@ export function MyShopScreen() {
   const isTopSectionBackground = shopBackgroundMode === 'top' && !!shopBgSource;
   const shopOverlayOpacity = getShopOverlayOpacity(shopVisual);
   const showShopColorOverlay = shouldShowShopColorOverlay(shopVisual);
-  const shopTitleColor = resolveShopTitleColor(shopVisual, COLORS.icon.active);
+  const shopTitleColor = resolveShopTitleColor(shopVisual, colors.icon.active);
 
   if (loading || authLoading) {
     return (
       <View style={styles.container}>
         <Header />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondary.main} />
+          <ActivityIndicator size="large" color={colors.secondary.main} />
           <Text style={styles.loadingText}>Carregando loja...</Text>
         </View>
       </View>
@@ -869,7 +872,7 @@ export function MyShopScreen() {
             StyleSheet.absoluteFill,
             styles.fullPageBgOverlay,
             {
-              backgroundColor: COLORS.background.default,
+              backgroundColor: colors.background.default,
               opacity: shopOverlayOpacity / 100,
             },
           ]}
@@ -945,7 +948,7 @@ export function MyShopScreen() {
                   style={[
                     StyleSheet.absoluteFill,
                     {
-                      backgroundColor: COLORS.background.default,
+                      backgroundColor: colors.background.default,
                       opacity: shopOverlayOpacity / 100,
                     },
                   ]}
@@ -978,7 +981,7 @@ export function MyShopScreen() {
                   onPress={() => void handleCopyShopShareLink()}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="share-outline" size={22} color={COLORS.secondary.main} />
+                  <Ionicons name="share-outline" size={22} color={colors.secondary.main} />
                 </TouchableOpacity>
               )}
               {isOwner && (
@@ -990,7 +993,7 @@ export function MyShopScreen() {
                   <Ionicons
                     name="settings-outline"
                     size={22}
-                    color={COLORS.secondary.main}
+                    color={colors.secondary.main}
                   />
                 </TouchableOpacity>
               )}
@@ -999,7 +1002,7 @@ export function MyShopScreen() {
 
         {isOwner && ownerApproved && shopIsPublicAndActive && (
           <View style={styles.shareShopBanner}>
-            <Ionicons name="megaphone-outline" size={20} color={COLORS.secondary.main} />
+            <Ionicons name="megaphone-outline" size={20} color={colors.secondary.main} />
             <View style={styles.shareShopBannerText}>
               <Text style={styles.shareShopBannerTitle}>Divulgue sua vitrine</Text>
               <Text style={styles.shareShopBannerDescription}>
@@ -1178,7 +1181,7 @@ export function MyShopScreen() {
                   products.length === 0 && (
                   <View style={styles.pendingAlert}>
                     <View style={styles.pendingAlertContent}>
-                      <Ionicons name="information-circle" size={20} color={COLORS.primary.main} />
+                      <Ionicons name="information-circle" size={20} color={colors.primary.main} />
                       <View style={styles.pendingAlertText}>
                         <Text style={styles.pendingAlertTitle}>
                           {canPrepareShopCatalogWhilePending
@@ -1196,7 +1199,7 @@ export function MyShopScreen() {
 
                 {isOwner && ownerApproved && shopSettings && !shopSettings.isEnabled && (
                   <View style={styles.shopDisabledBanner}>
-                    <Ionicons name="storefront-outline" size={22} color={COLORS.states.warning} />
+                    <Ionicons name="storefront-outline" size={22} color={colors.states.warning} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.shopDisabledTitle}>Loja desativada</Text>
                       <Text style={styles.shopDisabledText}>
@@ -1212,7 +1215,7 @@ export function MyShopScreen() {
                 {isOwner && ownerApproved && pendingProductsCount > 0 && (
                   <View style={styles.pendingAlert}>
                     <View style={styles.pendingAlertContent}>
-                      <Ionicons name="information-circle" size={20} color={COLORS.primary.main} />
+                      <Ionicons name="information-circle" size={20} color={colors.primary.main} />
                       <View style={styles.pendingAlertText}>
                         <Text style={styles.pendingAlertTitle}>
                           Você tem {pendingProductsCount} produto
@@ -1229,7 +1232,7 @@ export function MyShopScreen() {
 
                 {loadingProducts ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                    <ActivityIndicator size="large" color={colors.secondary.main} />
                     <Text style={styles.loadingText}>Carregando produtos...</Text>
                   </View>
                 ) : products.length === 0 ? (
@@ -1334,7 +1337,7 @@ export function MyShopScreen() {
                         <TextInput
                           style={styles.searchInput}
                           placeholder="Pesquisar..."
-                          placeholderTextColor={COLORS.text.tertiary}
+                          placeholderTextColor={colors.text.tertiary}
                           value={searchQuery}
                           onChangeText={setSearchQuery}
                         />
@@ -1344,7 +1347,7 @@ export function MyShopScreen() {
                             setSortOrder((s) => (s === 'newest' ? 'oldest' : 'newest'))
                           }
                         >
-                          <Ionicons name="swap-vertical" size={16} color={COLORS.secondary.main} />
+                          <Ionicons name="swap-vertical" size={16} color={colors.secondary.main} />
                           <Text style={styles.sortChipText}>
                             {sortOrder === 'newest' ? 'Recentes' : 'Antigos'}
                           </Text>
@@ -1489,7 +1492,7 @@ export function MyShopScreen() {
 
             {loadingProducts ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                <ActivityIndicator size="large" color={colors.secondary.main} />
                 <Text style={styles.loadingText}>Carregando produtos...</Text>
               </View>
             ) : products.length === 0 ? (
@@ -1539,7 +1542,7 @@ export function MyShopScreen() {
                     <TextInput
                       style={styles.searchInput}
                       placeholder="Pesquisar..."
-                      placeholderTextColor={COLORS.text.tertiary}
+                      placeholderTextColor={colors.text.tertiary}
                       value={searchQuery}
                       onChangeText={setSearchQuery}
                     />
@@ -1547,7 +1550,7 @@ export function MyShopScreen() {
                       style={styles.sortChip}
                       onPress={() => setSortOrder((s) => (s === 'newest' ? 'oldest' : 'newest'))}
                     >
-                      <Ionicons name="swap-vertical" size={16} color={COLORS.secondary.main} />
+                      <Ionicons name="swap-vertical" size={16} color={colors.secondary.main} />
                       <Text style={styles.sortChipText}>
                         {sortOrder === 'newest' ? 'Recentes' : 'Antigos'}
                       </Text>
@@ -1887,10 +1890,10 @@ export function MyShopScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   foreground: {
     flex: 1,
@@ -1907,10 +1910,10 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   previewBanner: {
-    backgroundColor: COLORS.states.info,
+    backgroundColor: c.states.info,
     margin: 16,
     marginBottom: 0,
     borderRadius: 12,
@@ -2005,13 +2008,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 32,
   },
   titleUsername: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     lineHeight: 32,
   },
   headerActions: {
@@ -2037,8 +2040,8 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.secondary.main + '44',
-    backgroundColor: COLORS.secondary.main + '12',
+    borderColor: c.secondary.main + '44',
+    backgroundColor: c.secondary.main + '12',
   },
   shareShopBannerText: {
     flex: 1,
@@ -2047,18 +2050,18 @@ const styles = StyleSheet.create({
   shareShopBannerTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   shareShopBannerDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 16,
   },
   shareShopBannerCta: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   shareShopBannerCtaText: {
     fontSize: 12,
@@ -2071,8 +2074,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
-    backgroundColor: COLORS.secondary.main + '14',
+    borderColor: c.border.light,
+    backgroundColor: c.secondary.main + '14',
     overflow: 'hidden',
   },
   tabsContainer: {
@@ -2093,14 +2096,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: COLORS.secondary.main,
+    borderBottomColor: c.secondary.main,
   },
   tabText: {
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   tabTextActive: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   tabContent: {
     padding: 16,
@@ -2118,7 +2121,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
@@ -2129,13 +2132,13 @@ const styles = StyleSheet.create({
   emptyProductsTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   emptyProductsText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 24,
     textAlign: 'center',
   },
@@ -2143,7 +2146,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -2162,13 +2165,13 @@ const styles = StyleSheet.create({
   productsCount: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   newProductButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -2191,9 +2194,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: COLORS.states.warning + '18',
+    backgroundColor: c.states.warning + '18',
     borderWidth: 1,
-    borderColor: COLORS.states.warning + '55',
+    borderColor: c.states.warning + '55',
     borderRadius: 12,
     padding: 14,
     marginBottom: 4,
@@ -2201,25 +2204,25 @@ const styles = StyleSheet.create({
   shopDisabledTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   shopDisabledText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
   shopDisabledBtn: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   shopDisabledBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   filtersRow: {
     flexDirection: 'row',
@@ -2230,13 +2233,13 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.background.paper,
+    color: c.text.primary,
+    backgroundColor: c.background.paper,
   },
   sortChip: {
     flexDirection: 'row',
@@ -2246,13 +2249,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
-    backgroundColor: COLORS.background.paper,
+    borderColor: c.border.light,
+    backgroundColor: c.background.paper,
   },
   sortChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   categoriesScroll: {
     marginBottom: 12,
@@ -2265,16 +2268,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginRight: 8,
   },
   catChipActive: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   catChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   catChipTextActive: {
     color: '#ffffff',
@@ -2287,16 +2290,16 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   placeholderSubtext: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   pendingAlert: {
-    backgroundColor: COLORS.primary.main + '15',
+    backgroundColor: c.primary.main + '15',
     borderWidth: 1,
-    borderColor: COLORS.primary.main + '40',
+    borderColor: c.primary.main + '40',
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
@@ -2313,11 +2316,11 @@ const styles = StyleSheet.create({
   pendingAlertTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   pendingAlertDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 16,
   },
 });

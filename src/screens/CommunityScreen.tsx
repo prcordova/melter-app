@@ -14,7 +14,8 @@ import {
 import { Header } from '../components/Header';
 import { UserCard } from '../components/UserCard';
 import { userApi } from '../services/api';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation, useScrollToTop } from '@react-navigation/native';
@@ -32,6 +33,8 @@ const normalizeUsername = (value?: string) =>
     .join('');
 
 export function CommunityScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user: currentUser } = useAuth();
   const navigation = useNavigation<any>();
   const listRef = useRef<FlatList>(null);
@@ -141,7 +144,7 @@ export function CommunityScreen() {
 
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name={icon as any} size={64} color={COLORS.text.tertiary} />
+        <Ionicons name={icon as any} size={64} color={colors.text.tertiary} />
         <Text style={styles.emptyText}>{message}</Text>
       </View>
     );
@@ -219,11 +222,11 @@ export function CommunityScreen() {
             {/* Barra de Busca (apenas na aba amigos) */}
             {activeTab === 'friends' && (
               <View style={styles.searchContainer}>
-                <Ionicons name="search" size={18} color={COLORS.text.tertiary} style={styles.searchIcon} />
+                <Ionicons name="search" size={18} color={colors.text.tertiary} style={styles.searchIcon} />
                 <TextInput
                   style={styles.searchInput}
                   placeholder="Buscar por nome..."
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   autoCapitalize="none"
@@ -234,7 +237,7 @@ export function CommunityScreen() {
 
             {loading && !refreshing ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                <ActivityIndicator size="large" color={colors.secondary.main} />
               </View>
             ) : (
               <FlatList
@@ -243,7 +246,7 @@ export function CommunityScreen() {
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id || item._id}
                 refreshControl={
-                  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary.main} />
+                  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.secondary.main} />
                 }
                 ListEmptyComponent={renderEmpty}
                 contentContainerStyle={styles.listContent}
@@ -257,10 +260,10 @@ export function CommunityScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   content: {
     flex: 1,
@@ -269,7 +272,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 8,
     marginBottom: 4,
   },
@@ -278,7 +281,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 10,
     padding: 3,
     marginBottom: 8,
@@ -290,12 +293,12 @@ const styles = StyleSheet.create({
     borderRadius: 7,
   },
   activeTab: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   tabText: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   activeTabText: {
     color: '#ffffff',
@@ -308,12 +311,12 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     minHeight: 36,
   },
   searchIcon: {
@@ -323,7 +326,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -341,7 +344,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 16,
     fontSize: 16,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     fontWeight: '500',
   },
 });

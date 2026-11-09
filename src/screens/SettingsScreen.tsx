@@ -9,12 +9,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { BackButton } from '../components/BackButton';
-import { COLORS } from '../theme/colors';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   const settingsOptions = [
     { 
@@ -67,6 +71,7 @@ export function SettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -89,13 +94,13 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.optionIconContainer}>
-                <Ionicons name={option.icon as any} size={24} color={COLORS.secondary.main} />
+                <Ionicons name={option.icon as any} size={24} color={colors.secondary.main} />
               </View>
               <View style={styles.optionContent}>
                 <Text style={styles.optionTitle}>{option.title}</Text>
                 <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.secondary.main} />
+              <Ionicons name="chevron-forward" size={20} color={colors.secondary.main} />
             </TouchableOpacity>
           ))}
         </View>
@@ -104,15 +109,15 @@ export function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.medium,
+    borderBottomColor: c.border.medium,
   },
   headerContent: {
     flexDirection: 'row',
@@ -121,7 +126,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginLeft: 4,
   },
   scrollContent: {
@@ -133,11 +138,11 @@ const styles = StyleSheet.create({
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -148,7 +153,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -159,12 +164,12 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   optionSubtitle: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });
 

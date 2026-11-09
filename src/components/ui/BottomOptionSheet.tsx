@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 export interface BottomOptionItem<T extends string = string> {
   label: string;
@@ -37,6 +38,8 @@ export function BottomOptionSheet<T extends string>({
   onSelect,
 }: BottomOptionSheetProps<T>) {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -70,9 +73,9 @@ export function BottomOptionSheet<T extends string>({
                   ) : null}
                 </View>
                 {isSelected ? (
-                  <Ionicons name="checkmark-circle" size={22} color={COLORS.secondary.main} />
+                  <Ionicons name="checkmark-circle" size={22} color={colors.secondary.main} />
                 ) : (
-                  <Ionicons name="ellipse-outline" size={22} color={COLORS.text.tertiary} />
+                  <Ionicons name="ellipse-outline" size={22} color={colors.text.tertiary} />
                 )}
               </TouchableOpacity>
             );
@@ -87,14 +90,14 @@ export function BottomOptionSheet<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
@@ -105,18 +108,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.border.light,
     marginBottom: 16,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
   },
   option: {
@@ -125,10 +128,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   optionSelected: {
-    backgroundColor: 'rgba(182, 51, 133, 0.06)',
+    backgroundColor: c.action.selected,
     borderRadius: 12,
     borderBottomWidth: 0,
     marginBottom: 1,
@@ -140,14 +143,14 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   optionTitleSelected: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   optionDescription: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
   cancelButton: {
@@ -158,6 +161,6 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });

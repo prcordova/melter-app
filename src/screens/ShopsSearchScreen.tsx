@@ -14,7 +14,8 @@ import { ShopCard } from '../components/ShopCard';
 import { MarketplaceBeyondSearchDivider } from '../components/shop/MarketplaceBeyondSearchDivider';
 import { MarketplacePromotedShopsSlider } from '../components/shop/marketplace-slider/MarketplacePromotedShopsSlider';
 import { shopsApi } from '../services/api';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { useNavigation, useScrollToTop } from '@react-navigation/native';
 import { showToast } from '../components/CustomToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -103,6 +104,8 @@ const MARKETPLACE_GENDER_OPTIONS = MARKETPLACE_GENDER_FILTERS.map((filter) => ({
 export function ShopsSearchScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const listRef = useRef<FlatList<Product>>(null);
   useScrollToTop(listRef);
   const [products, setProducts] = useState<Product[]>([]);
@@ -286,7 +289,7 @@ export function ShopsSearchScreen() {
     if (loadingMore && hasMore) {
       return (
         <View style={styles.footer}>
-          <ActivityIndicator size="small" color={COLORS.secondary.main} animating />
+          <ActivityIndicator size="small" color={colors.secondary.main} animating />
         </View>
       );
     }
@@ -412,7 +415,7 @@ export function ShopsSearchScreen() {
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar produtos..."
-              placeholderTextColor={COLORS.text.tertiary}
+              placeholderTextColor={colors.text.tertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
@@ -429,7 +432,7 @@ export function ShopsSearchScreen() {
                   setGenderFilter('women');
                 }
               }}
-              trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+              trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
               thumbColor="#ffffff"
               style={styles.adultSwitch}
             />
@@ -491,10 +494,10 @@ export function ShopsSearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   content: {
     flex: 1,
@@ -524,14 +527,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
   },
   myShopButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 6,
@@ -551,14 +554,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchInput: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: Platform.OS === 'ios' ? 8 : 6,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     minHeight: 36,
   },
   adultToggleContainer: {
@@ -570,7 +573,7 @@ const styles = StyleSheet.create({
   adultToggleLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   adultSwitch: {
     transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }],
@@ -594,7 +597,7 @@ const styles = StyleSheet.create({
   filterLabelInline: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     minWidth: 52,
   },
   selectWrap: {
@@ -616,7 +619,7 @@ const styles = StyleSheet.create({
   },
   noExactMatch: {
     textAlign: 'center',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontSize: 14,
     marginBottom: 4,
     paddingHorizontal: 8,
@@ -632,12 +635,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     textAlign: 'center',
   },
   loadingContainer: {
@@ -648,7 +651,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   skeletonContainer: {
     flex: 1,
@@ -664,19 +667,19 @@ const styles = StyleSheet.create({
     width: 120,
     height: 28,
     borderRadius: 8,
-    backgroundColor: '#d1d5db',
+    backgroundColor: c.border.dark,
   },
   skeletonMyShopBtn: {
     width: 110,
     height: 34,
     borderRadius: 8,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: c.border.medium,
   },
   skeletonSearch: {
     width: '100%',
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: c.border.medium,
   },
   skeletonFiltersRow: {
     flexDirection: 'row',
@@ -686,13 +689,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 34,
     borderRadius: 8,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: c.border.medium,
   },
   skeletonCard: {
     width: '100%',
     height: 230,
     borderRadius: 12,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: c.border.medium,
   },
 });
 

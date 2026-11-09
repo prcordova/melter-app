@@ -14,7 +14,8 @@ import { Header } from '../components/Header';
 import { UserCard } from '../components/UserCard';
 import { SelectRow } from '../components/SelectRow';
 import { userApi } from '../services/api';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation, useFocusEffect, useScrollToTop } from '@react-navigation/native';
@@ -94,6 +95,8 @@ export function UsersSearchScreen({
   compactFilters = false,
 }: UsersSearchScreenProps = {}) {
   const { user: currentUser } = useAuth();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation<any>();
   const listRef = useRef<FlatList<User>>(null);
   useScrollToTop(listRef);
@@ -287,7 +290,7 @@ export function UsersSearchScreen({
       <View style={styles.footer}>
         <ActivityIndicator
           size="small"
-          color={COLORS.secondary.main}
+          color={colors.secondary.main}
           animating={true}
         />
       </View>
@@ -339,11 +342,11 @@ export function UsersSearchScreen({
           ]}
         >
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={18} color={COLORS.text.tertiary} style={styles.searchIcon} />
+            <Ionicons name="search" size={18} color={colors.text.tertiary} style={styles.searchIcon} />
             <TextInput
               style={[styles.searchInput, compactFilters && styles.searchInputCompact]}
               placeholder="Buscar por nome..."
-              placeholderTextColor={COLORS.text.tertiary}
+              placeholderTextColor={colors.text.tertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
@@ -366,7 +369,7 @@ export function UsersSearchScreen({
           <View style={styles.loadingContainer}>
             <ActivityIndicator
               size="large"
-              color={COLORS.secondary.main}
+              color={colors.secondary.main}
               animating={true}
             />
             <Text style={styles.loadingText}>Carregando usuários...</Text>
@@ -390,10 +393,10 @@ export function UsersSearchScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   content: {
     flex: 1,
@@ -402,7 +405,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 8,
     marginBottom: 6,
   },
@@ -423,11 +426,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     minHeight: 36,
   },
   searchIcon: {
@@ -437,7 +440,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Platform.OS === 'ios' ? 8 : 6,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   searchInputCompact: {
     paddingVertical: Platform.OS === 'ios' ? 7 : 5,
@@ -465,12 +468,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     textAlign: 'center',
   },
   loadingContainer: {
@@ -481,7 +484,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });
 
