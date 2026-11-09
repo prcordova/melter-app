@@ -8,7 +8,7 @@ import {
   Alert,
   Modal,
 } from 'react-native'
-import { Video, ResizeMode } from 'expo-av'
+import { AppVideo } from '../AppVideo'
 import * as DocumentPicker from 'expo-document-picker'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -222,12 +222,7 @@ export function PresentationVideoSellerPanel({
       <Text style={styles.hint}>1 por pacote · máx. 5 min / 100 MB · plano PRO+</Text>
       {preview ? (
         <View style={styles.previewWrap}>
-          <Video
-            source={{ uri: preview }}
-            style={styles.video}
-            useNativeControls
-            resizeMode={ResizeMode.CONTAIN}
-          />
+          <AppVideo uri={preview} style={styles.video} nativeControls contentFit="contain" />
           <TouchableOpacity
             style={styles.trashOnPreview}
             onPress={remove}

@@ -146,7 +146,7 @@ export function MessagesScreen() {
   const [searchResultsFriends, setSearchResultsFriends] = useState<FriendUser[]>([]);
   const [searchingMessages, setSearchingMessages] = useState(false);
   const [searchingFriends, setSearchingFriends] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Socket.IO para receber mensagens em tempo real
   const { socket } = useSocketIO();

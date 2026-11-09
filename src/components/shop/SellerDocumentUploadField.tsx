@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { AppVideo } from '../AppVideo';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
 import { getSellerVerificationResponsiveLayout } from '../../config/shops/seller-verification.config';
@@ -91,12 +91,11 @@ export function SellerDocumentUploadField({
           <ActivityIndicator color={COLORS.secondary.main} />
         ) : showPreview ? (
           variant === 'video' ? (
-            <Video
-              source={{ uri: previewUri! }}
+            <AppVideo
+              uri={previewUri!}
               style={{ width: '100%', height: previewHeight }}
-              resizeMode={ResizeMode.CONTAIN}
-              useNativeControls
-              isLooping={false}
+              contentFit="contain"
+              nativeControls
             />
           ) : (
             <Image

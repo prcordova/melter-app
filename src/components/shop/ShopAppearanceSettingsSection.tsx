@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   uploadOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2,
     backgroundColor: 'rgba(255,255,255,0.65)',
     alignItems: 'center',
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   sliderTrackBg: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: COLORS.background.tertiary,
   },
   sliderTrackFill: {

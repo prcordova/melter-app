@@ -8,7 +8,7 @@ import {
   Linking,
   ActivityIndicator,
 } from 'react-native';
-import { Video, ResizeMode, type AVPlaybackStatus, type Video as VideoRef } from 'expo-av';
+import { AppVideo } from './AppVideo';
 import { Ad } from '../types/feed';
 import { COLORS } from '../theme/colors';
 import { devWarn } from '../config/dev-logs';
@@ -34,7 +34,6 @@ export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps)
   const onViewRef = useRef(onView);
   const onSkipRef = useRef(onSkip);
   const onVideoEndRef = useRef(onVideoEnd);
-  const videoRef = useRef<VideoRef>(null);
   onViewRef.current = onView;
   onSkipRef.current = onSkip;
   onVideoEndRef.current = onVideoEnd;
@@ -73,16 +72,6 @@ export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps)
     return () => clearInterval(interval);
   }, [ad?._id, onSkip]);
 
-  // Libera decoder de vídeo ao sair da lista (evita OOM / fechamento silencioso no Android).
-  useEffect(() => {
-    return () => {
-      const v = videoRef.current;
-      if (!v) return;
-      void v.pauseAsync().catch(() => undefined);
-      void v.unloadAsync().catch(() => undefined);
-    };
-  }, [ad?._id]);
-
   const handleAdClick = async () => {
     onClick(ad._id);
     if (ad.link) {
@@ -103,18 +92,8 @@ export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps)
     }
   };
 
-  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (!status.isLoaded || !status.didJustFinish) return;
+  const handleVideoEnd = () => {
     queueMicrotask(() => onVideoEndRef.current?.());
-  };
-
-  const handleVideoLoaded = async () => {
-    setVideoLoading(false);
-    try {
-      await videoRef.current?.playAsync();
-    } catch {
-      /* ignore */
-    }
   };
 
   if (!ad?._id) {
@@ -144,18 +123,16 @@ export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps)
 
         {isVideo && ad.mediaUrl ? (
           <View style={styles.videoContainer}>
-            <Video
-              ref={videoRef}
-              source={{ uri: ad.mediaUrl }}
-              resizeMode={ResizeMode.CONTAIN}
-              shouldPlay
-              isLooping={false}
-              isMuted
-              useNativeControls
+            <AppVideo
+              uri={ad.mediaUrl}
+              contentFit="contain"
+              autoPlay
+              muted
+              nativeControls
               style={styles.adMedia}
               onLoadStart={() => setVideoLoading(true)}
-              onLoad={handleVideoLoaded}
-              onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+              onLoad={() => setVideoLoading(false)}
+              onEnd={handleVideoEnd}
               onError={() => setVideoLoading(false)}
             />
             {videoLoading ? (
@@ -257,7 +234,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',

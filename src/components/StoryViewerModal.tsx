@@ -30,7 +30,7 @@ import { ReportStoryModal } from './stories/ReportStoryModal';
 import * as ScreenCapture from 'expo-screen-capture';
 import * as Clipboard from 'expo-clipboard';
 import { API_CONFIG } from '../config/api.config';
-import { Video, ResizeMode } from 'expo-av';
+import { AppVideo } from './AppVideo';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 segundos por story
@@ -393,13 +393,14 @@ export function StoryViewerModal({
               /\.(mp4|webm|mov|avi|mkv|flv|wmv|m4v)$/i.test(mediaUrl);
             
             return isVideoFile ? (
-              <Video
+              <AppVideo
                 key={currentStory._id}
-                source={{ uri: mediaUrl }}
+                uri={mediaUrl}
                 style={styles.media}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay={!isPaused}
-                isLooping
+                contentFit="cover"
+                autoPlay
+                paused={isPaused}
+                loop
                 onLoadStart={() => setLoading(true)}
                 onLoad={() => {
                   setLoading(false);
@@ -868,13 +869,13 @@ const styles = StyleSheet.create({
     height: height,
   },
   loadingContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'space-between',
   },
   topSection: {

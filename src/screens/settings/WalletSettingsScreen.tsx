@@ -40,7 +40,7 @@ export function WalletSettingsScreen() {
   const [paymentStatus, setPaymentStatus] = useState<'success' | 'pending' | 'cancelled' | null>(null);
   const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollingRef = useRef(false);
 
   const fetchWalletData = React.useCallback(async () => {

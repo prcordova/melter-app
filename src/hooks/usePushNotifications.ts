@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { AppState, Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { isRunningInExpoGo } from 'expo';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import { devLog, devWarn } from '../config/dev-logs';
@@ -118,6 +119,11 @@ export function usePushNotifications() {
   }, [user]);
 
   async function registerForPushNotificationsAsync() {
+    // Expo Go (Android) lança erro ao pedir token de push desde o SDK 55; push só em build próprio.
+    if (Platform.OS === 'android' && isRunningInExpoGo()) {
+      devLog('[PushNotifications] Expo Go no Android: registro de push ignorado');
+      return;
+    }
     try {
       // Verificar permissões
       const permissions = await Notifications.getPermissionsAsync();

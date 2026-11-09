@@ -900,7 +900,7 @@ export function UserProfileScreen() {
       {isFullPageBackground && bgImageSource ? (
         <Image
           source={bgImageSource}
-          style={[StyleSheet.absoluteFillObject, styles.fullPageBgImage]}
+          style={[StyleSheet.absoluteFill, styles.fullPageBgImage]}
           resizeMode="cover"
         />
       ) : null}
@@ -908,7 +908,7 @@ export function UserProfileScreen() {
         <View
           pointerEvents="none"
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             {
               zIndex: 1,
               backgroundColor: getSafeColor(profile.backgroundColor, COLORS.primary.main),
@@ -1716,7 +1716,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#000',
   },
   profileHeader: {

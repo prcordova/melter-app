@@ -5,7 +5,6 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  Animated,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { formatDistanceToNow } from 'date-fns';
@@ -13,7 +12,9 @@ import { ptBR } from 'date-fns/locale';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { COLORS } from '../theme/colors';
 import { Avatar } from './Avatar';
-import { Swipeable } from 'react-native-gesture-handler';
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 interface Conversation {
   _id: string;
@@ -53,7 +54,7 @@ export function ConversationCard({
   onOptionsPress,
   currentUserId,
 }: ConversationCardProps) {
-  const swipeableRef = React.useRef<Swipeable>(null);
+  const swipeableRef = React.useRef<SwipeableMethods>(null);
 
   const handleAvatarPress = () => {
     if (onUserPress) {
@@ -97,15 +98,7 @@ export function ConversationCard({
     }
   };
 
-  const renderRightActions = (
-    progress: Animated.AnimatedInterpolation<number>,
-    dragX: Animated.AnimatedInterpolation<number>
-  ) => {
-    const trans = dragX.interpolate({
-      inputRange: [-160, 0],
-      outputRange: [0, 160],
-    });
-
+  const renderRightActions = () => {
     return (
       <View style={styles.rightActionsContainer}>
         <TouchableOpacity
@@ -135,7 +128,7 @@ export function ConversationCard({
   if (!conversation || !conversation.user) return null;
 
   return (
-    <Swipeable
+    <ReanimatedSwipeable
       ref={swipeableRef}
       renderRightActions={renderRightActions}
       friction={2}
@@ -191,7 +184,7 @@ export function ConversationCard({
           </View>
         </View>
       </TouchableOpacity>
-    </Swipeable>
+    </ReanimatedSwipeable>
   );
 }
 

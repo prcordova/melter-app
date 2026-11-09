@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#d946ef',
   },
   storyOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.2)',
   },
   avatarContainer: {
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   createStoryOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',

@@ -866,7 +866,7 @@ export function MyShopScreen() {
         <View
           pointerEvents="none"
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             styles.fullPageBgOverlay,
             {
               backgroundColor: COLORS.background.default,
@@ -943,7 +943,7 @@ export function MyShopScreen() {
                 <View
                   pointerEvents="none"
                   style={[
-                    StyleSheet.absoluteFillObject,
+                    StyleSheet.absoluteFill,
                     {
                       backgroundColor: COLORS.background.default,
                       opacity: shopOverlayOpacity / 100,
@@ -1974,10 +1974,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   topSectionBgImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   fullPageBgImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 0,
   },
   fullPageBgOverlay: {

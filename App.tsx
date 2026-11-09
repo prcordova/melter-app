@@ -39,7 +39,6 @@ if (__DEV__) {
   LogBox.ignoreLogs([
     'VirtualizedList:',
     'expo-notifications',
-    'expo-av',
     'SafeAreaView has been deprecated',
   ]);
 }

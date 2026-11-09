@@ -73,7 +73,7 @@ export function useAppTheme(): ThemeContextValue {
  * Uso: `const createStyles = (c: AppPalette) => StyleSheet.create({...})` no módulo
  * e `const styles = useThemedStyles(createStyles)` no componente.
  */
-export function useThemedStyles<T extends StyleSheet.NamedStyles<T>>(
+export function useThemedStyles<T>(
   factory: (colors: AppPalette) => T
 ): T {
   const { colors } = useAppTheme();

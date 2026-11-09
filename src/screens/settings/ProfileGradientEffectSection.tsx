@@ -8,8 +8,9 @@ import { UsernameGradientText } from '../../components/UsernameGradientText';
 import { COLORS } from '../../theme/colors';
 import type { UsernameDisplayEffectConfig } from '../../types/username-display-effect';
 import { DEFAULT_USERNAME_DISPLAY_EFFECT } from '../../types/username-display-effect';
+import type { PlanType } from '../../config/plan-features';
 
-type Plan = 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS' | undefined;
+type Plan = PlanType | undefined;
 
 type Props = {
   title: string;

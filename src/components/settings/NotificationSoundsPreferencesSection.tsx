@@ -13,7 +13,7 @@ import {
 
 const CATEGORIES: Array<{
   key: NotificationSoundCategory;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
   title: string;
   description: string;
 }> = [

@@ -164,7 +164,7 @@ export function FollowListScreen() {
                   <Text style={styles.loadMoreText}>Carregar mais</Text>
                 )}
               </TouchableOpacity>
-            ) : null
+            ) : undefined
           }
         />
       )}

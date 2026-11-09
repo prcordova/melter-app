@@ -9,7 +9,7 @@ import {
   Image,
   useWindowDimensions,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { AppVideo } from '../AppVideo';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
 import { getImageUrl } from '../../utils/image';
@@ -57,12 +57,12 @@ export function SellerVerificationExampleViewerDialog({ example, onClose }: Prop
           <View style={styles.body}>
             {mediaUrl ? (
               isVideo ? (
-                <Video
-                  source={{ uri: mediaUrl }}
+                <AppVideo
+                  uri={mediaUrl}
                   style={[styles.media, { maxHeight: mediaMaxHeight }]}
-                  resizeMode={ResizeMode.CONTAIN}
-                  useNativeControls
-                  shouldPlay
+                  contentFit="contain"
+                  nativeControls
+                  autoPlay
                 />
               ) : (
                 <Image

@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { Video, ResizeMode } from 'expo-av';
+import { AppVideo, type AppVideoHandle } from './AppVideo';
 import { storiesApi } from '../services/api';
 import { COLORS } from '../theme/colors';
 import { showToast } from './CustomToast';
@@ -43,7 +43,7 @@ export function StoryCreateModal({
   const [videoStartTime, setVideoStartTime] = useState<number>(0);
   const [videoEndTime, setVideoEndTime] = useState<number>(30);
   const [videoPosition, setVideoPosition] = useState<number>(0);
-  const videoRef = useRef<Video>(null);
+  const videoRef = useRef<AppVideoHandle>(null);
   const [storyText, setStoryText] = useState('');
   const [loading, setLoading] = useState(false);
   const [visibility, setVisibility] = useState<'public' | 'followers' | 'friends'>('public');
@@ -563,9 +563,7 @@ export function StoryCreateModal({
       const maxStart = videoEndTime - 1; // Mínimo 1 segundo de duração
       const finalStart = Math.max(0, Math.min(maxStart, newStart));
       setVideoStartTime(Math.floor(finalStart));
-      if (videoRef.current) {
-        videoRef.current.setPositionAsync(finalStart * 1000);
-      }
+      videoRef.current?.seekTo(finalStart);
     };
     
     const handleEndDrag = (gestureState: any) => {
@@ -706,16 +704,16 @@ export function StoryCreateModal({
         <TouchableWithoutFeedback onPress={() => setShowVisibilityMenu(false)}>
           <View style={styles.previewContainer}>
             {isVideo ? (
-              <Video
+              <AppVideo
                 ref={videoRef}
-                source={{ uri: selectedMedia }}
+                uri={selectedMedia}
                 style={styles.previewImage}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay
-                isLooping
-                onLoad={(status) => {
-                  if (status.isLoaded && status.durationMillis && videoDuration === 0) {
-                    const duration = Math.floor(status.durationMillis / 1000);
+                contentFit="cover"
+                autoPlay
+                loop
+                onLoad={(durationSeconds) => {
+                  if (durationSeconds > 0 && videoDuration === 0) {
+                    const duration = Math.floor(durationSeconds);
                     setVideoDuration(duration);
                     const defaultEnd = Math.min(30, duration);
                     setVideoEndTime(defaultEnd);
@@ -997,7 +995,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary.main,
   },
   previewOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'space-between',
     paddingBottom: 40,
     paddingHorizontal: 20,
@@ -1088,7 +1086,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cameraOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'space-between',
   },
   cameraHeader: {

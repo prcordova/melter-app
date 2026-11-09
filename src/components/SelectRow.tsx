@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable, type ViewInstance } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../theme/colors';
 
@@ -61,7 +61,7 @@ const SIZE_CHEVRON_MAP: Record<SelectRowSize, number> = {
 export function SelectRow({ label, value, options, onChange, size = 'full' }: SelectRowProps) {
   const [open, setOpen] = useState(false);
   const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 180 });
-  const triggerRef = React.useRef<View>(null);
+  const triggerRef = React.useRef<ViewInstance>(null);
   const triggerSizeStyle = SIZE_TRIGGER_STYLE_MAP[size];
   const textSizeStyle = SIZE_TEXT_STYLE_MAP[size];
   const chevronSize = SIZE_CHEVRON_MAP[size];

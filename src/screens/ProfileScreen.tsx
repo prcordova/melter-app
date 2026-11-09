@@ -9,6 +9,8 @@ import {
   TextInput,
   Linking,
   Image,
+  type ScrollViewInstance,
+  type TextInputInstance,
 } from 'react-native';
 import { useNavigation, useFocusEffect, useScrollToTop } from '@react-navigation/native';
 import { useCallback } from 'react';
@@ -42,7 +44,7 @@ export function ProfileScreen() {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const navigation = useNavigation();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   useScrollToTop(scrollRef);
   const { modalProps, showConfirm, hideModal } = useCustomModal();
 
@@ -54,7 +56,7 @@ export function ProfileScreen() {
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [userStories, setUserStories] = useState<StoriesGroup | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
-  const statusMessageInputRef = useRef<TextInput>(null);
+  const statusMessageInputRef = useRef<TextInputInstance>(null);
   const [userLinks, setUserLinks] = useState<any[]>([]);
   const [publicProfile, setPublicProfile] = useState<Record<string, any> | null>(null);
   const [showLinkModal, setShowLinkModal] = useState(false);

@@ -7,7 +7,7 @@ import {
   Image,
   useWindowDimensions,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { AppVideo } from '../AppVideo';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../theme/colors';
 import { getImageUrl } from '../../utils/image';
@@ -50,13 +50,7 @@ export function SellerVerificationUploadWithExample({
             style={[styles.exampleThumbWrap, { height: areaHeight }]}
           >
             {isVideo ? (
-              <Video
-                source={{ uri: mediaUrl }}
-                style={styles.exampleThumb}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay={false}
-                isMuted
-              />
+              <AppVideo uri={mediaUrl} style={styles.exampleThumb} contentFit="cover" muted />
             ) : (
               <Image source={{ uri: mediaUrl }} style={styles.exampleThumb} resizeMode="cover" />
             )}
@@ -114,7 +108,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   exampleOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.2)',

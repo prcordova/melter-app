@@ -24,7 +24,6 @@ import { formatDistanceToNow, format, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
 import { messageApi, userApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarUrl, getUserInitials, getImageUrl } from '../utils/image';

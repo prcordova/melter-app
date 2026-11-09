@@ -2,15 +2,10 @@
   "expo": {
     "name": "melter-app",
     "slug": "melter-app",
-    "version": "1.0.18",
+    "version": "1.0.19",
     "orientation": "portrait",
     "icon": "./assets/bee.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/bee.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -36,7 +31,19 @@
           "color": "#B63385"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store",
+      "expo-status-bar",
+      "expo-video",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/bee.png",
+          "resizeMode": "contain",
+          "imageWidth": 200,
+          "backgroundColor": "#ffffff"
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,
@@ -53,7 +60,7 @@
     "android": {
       "package": "com.melter.app",
       "softwareKeyboardLayoutMode": "resize",
-      "versionCode": 18,
+      "versionCode": 19,
       "adaptiveIcon": {
         "foregroundImage": "./assets/bee.png",
         "backgroundColor": "#FFFFFF"

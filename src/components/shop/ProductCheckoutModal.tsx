@@ -15,7 +15,7 @@ import { resolveProductCoverImageSource } from '../../utils/product-cover-displa
 import { ordersApi } from '../../services/api';
 import { showToast } from '../CustomToast';
 import { getProductAiCheckoutDisclosureMessage } from '../../utils/product-ai-checkout-disclosure';
-import { Video, ResizeMode } from 'expo-av';
+import { AppVideo } from '../AppVideo';
 
 export interface CheckoutProduct {
   _id: string;
@@ -122,11 +122,11 @@ export function ProductCheckoutModal({
             </View>
 
             {product.presentationVideoUrl ? (
-              <Video
-                source={{ uri: product.presentationVideoUrl }}
+              <AppVideo
+                uri={product.presentationVideoUrl}
                 style={styles.presentationVideo}
-                useNativeControls
-                resizeMode={ResizeMode.CONTAIN}
+                nativeControls
+                contentFit="contain"
               />
             ) : null}
 
