@@ -33,6 +33,7 @@ import {
 } from '../../constants/user-demographics';
 import { LocationPreferencesSection } from '../../components/settings/LocationPreferencesSection';
 import { NotificationSoundsPreferencesSection } from '../../components/settings/NotificationSoundsPreferencesSection';
+import { BiometricLockPreferencesSection } from '../../components/settings/BiometricLockPreferencesSection';
 import { ChangeUsernameModal } from '../../components/settings/ChangeUsernameModal';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -497,6 +498,8 @@ export function PreferencesScreen() {
         <LocationPreferencesSection prefsLoaded={prefsLoaded} />
 
         <NotificationSoundsPreferencesSection />
+
+        <BiometricLockPreferencesSection />
 
         {/* Ranking de Categorias */}
         {preferences && preferences.categoryRanking.length > 0 && (

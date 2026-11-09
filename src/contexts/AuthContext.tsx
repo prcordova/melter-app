@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 import { authApi, userApi } from '../services/api';
 import { getBiometricLoginEnabled } from '../services/biometricLogin';
+import { ensureBiometricLockTimeoutLoaded } from '../lib/biometric-lock';
 import { User } from '../types';
 
 interface LoginResult {
@@ -19,6 +20,8 @@ interface AuthContextType {
   /** True após restaurar sessão com token e login biométrico ativo — mostrar modal até desbloquear. */
   biometricUnlockRequired: boolean;
   clearBiometricUnlockRequirement: () => void;
+  /** Bloqueia o app até confirmar biometria (inatividade). */
+  requireBiometricUnlock: () => void;
   login: (username: string, password: string, twoFactorCode?: string, tempToken?: string) => Promise<LoginResult | undefined>;
   confirmCancelDeletionLogin: (tempToken: string) => Promise<LoginResult | undefined>;
   logout: () => Promise<void>;
@@ -60,6 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearBiometricUnlockRequirement = () => {
     setBiometricUnlockRequired(false);
+  };
+
+  const requireBiometricUnlock = () => {
+    setBiometricUnlockRequired(true);
   };
 
   // Recarregar dados do usuário
@@ -124,7 +131,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(userData);
             await persistUserCache(userData);
             try {
-              if (await getBiometricLoginEnabled()) {
+              const lockTimeout = await ensureBiometricLockTimeoutLoaded();
+              if (lockTimeout !== null && (await getBiometricLoginEnabled())) {
                 setBiometricUnlockRequired(true);
               }
             } catch {
@@ -321,6 +329,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         biometricUnlockRequired,
         clearBiometricUnlockRequirement,
+        requireBiometricUnlock,
         login,
         confirmCancelDeletionLogin,
         logout,

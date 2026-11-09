@@ -250,7 +250,8 @@ export function SecurityScreen() {
               <View style={styles.sectionHeaderText}>
                 <Text style={styles.sectionTitle}>Biometria neste aparelho</Text>
                 <Text style={styles.sectionSubtitle}>
-                  Login rápido e bloqueio ao abrir o app estão ativos com as credenciais guardadas de forma segura.
+                  Login rápido e bloqueio por inatividade estão ativos com as credenciais guardadas de forma segura.
+                  O tempo de bloqueio pode ser alterado ou desativado em Preferências.
                 </Text>
               </View>
             </View>

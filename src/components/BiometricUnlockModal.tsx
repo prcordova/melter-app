@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { verifyBiometricIdentity } from '../services/biometricLogin';
+import { formatBiometricLockTimeout, getBiometricLockTimeout } from '../lib/biometric-lock';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
 
@@ -24,6 +25,11 @@ export function BiometricUnlockModal({ visible, onUnlocked, onLogout }: Props) {
   const styles = useThemedStyles(createStyles);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lockTimeout, setLockTimeout] = useState(getBiometricLockTimeout);
+
+  useEffect(() => {
+    if (visible) setLockTimeout(getBiometricLockTimeout());
+  }, [visible]);
 
   const tryUnlock = async () => {
     setError(null);
@@ -51,6 +57,16 @@ export function BiometricUnlockModal({ visible, onUnlocked, onLogout }: Props) {
           <Text style={styles.subtitle}>
             Confirme com {Platform.OS === 'ios' ? 'Face ID / Touch ID' : 'impressão digital ou rosto'} para continuar.
           </Text>
+
+          <View style={styles.infoBox}>
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.secondary.main} />
+            <Text style={styles.infoText}>
+              Proteção extra do login por biometria: pedimos sua confirmação ao abrir o app e após{' '}
+              {lockTimeout === null ? 'um período' : formatBiometricLockTimeout(lockTimeout)} sem uso. Você pode
+              alterar ou desativar esse bloqueio em{' '}
+              <Text style={styles.infoBold}>Perfil → Configurações → Preferências</Text>.
+            </Text>
+          </View>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -106,6 +122,26 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 20,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    width: '100%',
+    backgroundColor: c.background.tertiary,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 18,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    color: c.text.secondary,
+  },
+  infoBold: {
+    fontWeight: '600',
+    color: c.text.primary,
   },
   error: {
     color: c.states.error,

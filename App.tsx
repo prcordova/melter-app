@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -18,6 +18,7 @@ import { AuthStackNavigator } from './src/navigation/AuthStackNavigator';
 import { TabNavigator } from './src/navigation/TabNavigator';
 import { usePermissions } from './src/hooks/usePermissions';
 import { useAppUsageHeartbeat } from './src/hooks/useAppUsageHeartbeat';
+import { useBiometricAutoLock } from './src/hooks/useBiometricAutoLock';
 import { CustomToast } from './src/components/CustomToast';
 import { BiometricUnlockModal } from './src/components/BiometricUnlockModal';
 import { DEBUG_VERBOSE_LOGS } from './src/config/dev-logs';
@@ -44,9 +45,17 @@ if (__DEV__) {
 }
 
 function Navigation() {
-  const { user, loading, biometricUnlockRequired, clearBiometricUnlockRequirement, logout } = useAuth();
+  const {
+    user,
+    loading,
+    biometricUnlockRequired,
+    clearBiometricUnlockRequirement,
+    requireBiometricUnlock,
+    logout,
+  } = useAuth();
   usePermissions();
   useAppUsageHeartbeat(user?.id);
+  const markActivity = useBiometricAutoLock(Boolean(user) && !biometricUnlockRequired, requireBiometricUnlock);
 
   if (loading) {
     return <AppLoadingScreen />;
@@ -54,6 +63,13 @@ function Navigation() {
 
   return (
     <DiscoveryPreferenceProvider>
+      <View
+        style={{ flex: 1 }}
+        onStartShouldSetResponderCapture={() => {
+          markActivity();
+          return false;
+        }}
+      >
       <Stack.Navigator>
         {user ? (
           <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
@@ -61,6 +77,7 @@ function Navigation() {
           <Stack.Screen name="Auth" component={AuthStackNavigator} options={{ headerShown: false }} />
         )}
       </Stack.Navigator>
+      </View>
 
       <BiometricUnlockModal
         visible={Boolean(user && biometricUnlockRequired)}
