@@ -18,6 +18,18 @@
         "EXPO_PUBLIC_DEBUG_LOGS": "false"
       }
     },
+    "apk": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "node": "20.19.4",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://www.melter.com.br",
+        "EXPO_PUBLIC_DEBUG_LOGS": "false"
+      },
+      "autoIncrement": false
+    },
     "production": {
       "android": {
         "buildType": "app-bundle"

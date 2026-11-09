@@ -25,6 +25,7 @@ import { userApi } from '../services/api';
 import { API_CONFIG } from '../config/api.config';
 import { showToast } from './CustomToast';
 import { getTabNavigator } from '../navigation/get-tab-navigator';
+import { useAppUpdate } from '../contexts/AppUpdateContext';
 
 interface HeaderProps {
   onLogoPress?: () => void;
@@ -42,6 +43,8 @@ export function Header({
   const { user, logout } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
   const [statusVisibility, setStatusVisibility] = useState<UserVisibility>('online');
+  const { status: updateStatus, latestVersion, installedVersion, openUpdate } = useAppUpdate();
+  const hasUpdate = updateStatus === 'available' || updateStatus === 'required';
 
   const closeMenu = useCallback(() => setMenuVisible(false), []);
 
@@ -177,6 +180,18 @@ export function Header({
     goProfileStack('WalletSettings');
   };
 
+  const handleUpdatePress = () => {
+    closeMenu();
+    Alert.alert(
+      'Nova versão disponível',
+      `Você está na versão ${installedVersion}${latestVersion ? ` e a ${latestVersion} já está disponível` : ', que está desatualizada'}. Baixe e instale por cima — sua conta e seus dados continuam.`,
+      [
+        { text: 'Agora não', style: 'cancel' },
+        { text: 'Atualizar', onPress: () => void openUpdate() },
+      ]
+    );
+  };
+
   const avatarSource = getAvatarUrl(user?.avatar);
 
   return (
@@ -195,6 +210,16 @@ export function Header({
 
       {/* Direita: Notificações e Avatar */}
       <View style={styles.rightContainer}>
+        {hasUpdate && (
+          <TouchableOpacity
+            onPress={handleUpdatePress}
+            activeOpacity={0.7}
+            accessibilityLabel="Atualizar app"
+            style={styles.updateButton}
+          >
+            <Ionicons name="arrow-down-circle" size={26} color={colors.states.error} />
+          </TouchableOpacity>
+        )}
         <NotificationButton />
         
         <TouchableOpacity
@@ -335,14 +360,23 @@ export function Header({
                     </TouchableOpacity>
                   )}
 
-                  <TouchableOpacity
-                    style={styles.menuRow}
-                    onPress={() => openWebPath('/download')}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="download-outline" size={20} color={colors.text.secondary} />
-                    <Text style={styles.menuRowLabel}>Baixar app</Text>
-                  </TouchableOpacity>
+                  {hasUpdate ? (
+                    <TouchableOpacity style={styles.menuRow} onPress={handleUpdatePress} activeOpacity={0.7}>
+                      <Ionicons name="arrow-down-circle" size={20} color={colors.states.error} />
+                      <Text style={[styles.menuRowLabel, styles.menuRowDanger]}>
+                        Atualizar app{latestVersion ? ` (${latestVersion})` : ''}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.menuRow}
+                      onPress={() => openWebPath('/download')}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="download-outline" size={20} color={colors.text.secondary} />
+                      <Text style={styles.menuRowLabel}>Baixar app</Text>
+                    </TouchableOpacity>
+                  )}
 
                   <TouchableOpacity
                     style={styles.menuRow}
@@ -400,6 +434,10 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   avatarButton: {
     marginLeft: 4,
+  },
+  updateButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatar: {
     width: 32,

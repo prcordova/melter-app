@@ -82,7 +82,8 @@
       },
       "EXPO_PUBLIC_API_URL": "https://www.melter.com.br",
       "EXPO_PUBLIC_SUPPORT_HIDE_BUG_LIST": "false",
-      "EXPO_PUBLIC_DEBUG_LOGS": "false"
+      "EXPO_PUBLIC_DEBUG_LOGS": "false",
+      "EXPO_PUBLIC_APP_DISTRIBUTION": "apk"
     },
     "owner": "prcordova"
   }

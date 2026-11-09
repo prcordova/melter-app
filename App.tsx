@@ -11,6 +11,8 @@ import { DiscoveryPreferenceProvider } from './src/contexts/DiscoveryPreferenceC
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { UnreadMessagesProvider } from './src/contexts/UnreadMessagesContext';
 import { ThemeProvider, useThemedStyles } from './src/contexts/ThemeContext';
+import { AppUpdateProvider } from './src/contexts/AppUpdateContext';
+import { ForceUpdateModal } from './src/components/ForceUpdateModal';
 import type { AppPalette } from './src/theme/palettes';
 import { AuthStackNavigator } from './src/navigation/AuthStackNavigator';
 import { TabNavigator } from './src/navigation/TabNavigator';
@@ -83,6 +85,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
+        <AppUpdateProvider>
         <AuthProvider>
           <NotificationProvider>
             <UnreadMessagesProvider>
@@ -96,6 +99,8 @@ export default function App() {
             </UnreadMessagesProvider>
           </NotificationProvider>
         </AuthProvider>
+        <ForceUpdateModal />
+        </AppUpdateProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
