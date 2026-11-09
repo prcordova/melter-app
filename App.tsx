@@ -10,13 +10,12 @@ import { SellerJourneyProvider } from './src/contexts/SellerJourneyContext';
 import { DiscoveryPreferenceProvider } from './src/contexts/DiscoveryPreferenceContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { UnreadMessagesProvider } from './src/contexts/UnreadMessagesContext';
-import { ThemeProvider, useThemedStyles } from './src/contexts/ThemeContext';
+import { ThemeProvider } from './src/contexts/ThemeContext';
 import { AppUpdateProvider } from './src/contexts/AppUpdateContext';
 import { ForceUpdateModal } from './src/components/ForceUpdateModal';
-import type { AppPalette } from './src/theme/palettes';
+import { AppLoadingScreen } from './src/components/AppLoadingScreen';
 import { AuthStackNavigator } from './src/navigation/AuthStackNavigator';
 import { TabNavigator } from './src/navigation/TabNavigator';
-import { View, Text, StyleSheet } from 'react-native';
 import { usePermissions } from './src/hooks/usePermissions';
 import { CustomToast } from './src/components/CustomToast';
 import { BiometricUnlockModal } from './src/components/BiometricUnlockModal';
@@ -45,19 +44,10 @@ if (__DEV__) {
 
 function Navigation() {
   const { user, loading, biometricUnlockRequired, clearBiometricUnlockRequirement, logout } = useAuth();
-  const styles = useThemedStyles(createStyles);
   usePermissions();
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingLogo}>Melter</Text>
-        <View style={styles.loadingCard}>
-          <View style={styles.loadingLinePrimary} />
-          <View style={styles.loadingLineSecondary} />
-        </View>
-      </View>
-    );
+    return <AppLoadingScreen />;
   }
 
   return (
@@ -105,45 +95,3 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
-
-const createStyles = (c: AppPalette) =>
-  StyleSheet.create({
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: c.background.default,
-      paddingHorizontal: 24,
-    },
-    loadingLogo: {
-      fontSize: 40,
-      fontWeight: '700',
-      color: c.secondary.light,
-      marginBottom: 18,
-    },
-    loadingCard: {
-      width: '100%',
-      maxWidth: 260,
-      backgroundColor: c.background.paper,
-      borderRadius: 16,
-      padding: 16,
-      gap: 10,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 10,
-      elevation: 2,
-    },
-    loadingLinePrimary: {
-      width: '75%',
-      height: 12,
-      borderRadius: 8,
-      backgroundColor: c.action.selected,
-    },
-    loadingLineSecondary: {
-      width: '55%',
-      height: 10,
-      borderRadius: 8,
-      backgroundColor: c.action.selected,
-    },
-  });

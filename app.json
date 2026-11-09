@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "melter-app",
-    "slug": "melter-app",
+    "name": "Melter",
+     "slug": "melter-app",
     "version": "1.0.19",
     "orientation": "portrait",
     "icon": "./assets/bee.png",
