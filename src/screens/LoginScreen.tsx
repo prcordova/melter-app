@@ -208,6 +208,7 @@ export function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <ThemedStatusBar />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -311,8 +312,8 @@ export function LoginScreen() {
                         value={saveWithBiometric}
                         onValueChange={setSaveWithBiometric}
                         disabled={Boolean(loading)}
-                        trackColor={{ false: '#e2e8f0', true: '#f9a8d4' }}
-                        thumbColor={saveWithBiometric ? '#d946ef' : '#f4f4f5'}
+                        trackColor={{ false: colors.border.medium, true: '#f9a8d4' }}
+                        thumbColor={saveWithBiometric ? colors.secondary.light : '#f4f4f5'}
                       />
                     </View>
                   ) : null}
@@ -324,7 +325,7 @@ export function LoginScreen() {
                       disabled={bioLoginLoading || loading}
                       activeOpacity={0.85}
                     >
-                      <Ionicons name="finger-print" size={22} color="#d946ef" />
+                      <Ionicons name="finger-print" size={22} color={colors.secondary.light} />
                       <Text style={styles.bioQuickBtnText}>
                         {bioLoginLoading ? 'A autenticar…' : 'Entrar com biometria'}
                       </Text>
@@ -368,7 +369,7 @@ export function LoginScreen() {
 const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: c.background.default,
   },
   scrollContent: {
     flexGrow: 1,
@@ -387,7 +388,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     width: '100%',
   },
   formCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 32,
     shadowColor: '#000',
@@ -399,25 +400,25 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   logo: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#d946ef',
+    color: c.secondary.light,
     textAlign: 'center',
     marginBottom: 8,
   },
   formTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#1e293b',
+    color: c.text.primary,
     textAlign: 'center',
     marginBottom: 32,
   },
   errorContainer: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: c.states.error + '20',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   errorText: {
-    color: '#dc2626',
+    color: c.states.error,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -431,12 +432,12 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   twoFactorTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: c.text.primary,
     marginBottom: 4,
   },
   twoFactorDescription: {
     fontSize: 14,
-    color: '#64748b',
+    color: c.text.secondary,
     textAlign: 'center',
   },
   twoFactorInput: {
@@ -452,7 +453,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   eyeIcon: {
     fontSize: 12,
-    color: '#d946ef',
+    color: c.secondary.light,
     fontWeight: '600',
   },
   forgotPassword: {
@@ -460,7 +461,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     marginTop: 16,
   },
   forgotPasswordText: {
-    color: '#d946ef',
+    color: c.secondary.light,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -470,14 +471,14 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     marginTop: 24,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+    borderTopColor: c.border.medium,
   },
   signupText: {
-    color: '#64748b',
+    color: c.text.secondary,
     fontSize: 14,
   },
   signupLink: {
-    color: '#d946ef',
+    color: c.secondary.light,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -488,7 +489,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     marginTop: 4,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: c.divider,
   },
   bioRowTextWrap: {
     flex: 1,
@@ -496,11 +497,11 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   bioRowTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#334155',
+    color: c.text.primary,
   },
   bioRowHint: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: c.text.tertiary,
     marginTop: 4,
     lineHeight: 16,
   },
@@ -509,4 +510,19 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
- 
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.tertiary,
+  },
+  bioQuickBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: c.secondary.main,
+  },
+  btnMuted: {
+    opacity: 0.6,
+  },
+});
+
