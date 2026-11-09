@@ -4,6 +4,7 @@ export const APP_API = {
   downloadInfo: '/api/app/download-info',
   trackDownloadView: '/api/app/download/track-view',
   trackApkDownload: '/api/app/download/track-apk',
+  apkDownload: '/api/app/download/apk',
   closedBetaApply: '/api/app/closed-beta/apply',
 } as const
 
