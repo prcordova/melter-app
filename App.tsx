@@ -17,6 +17,7 @@ import { AppLoadingScreen } from './src/components/AppLoadingScreen';
 import { AuthStackNavigator } from './src/navigation/AuthStackNavigator';
 import { TabNavigator } from './src/navigation/TabNavigator';
 import { usePermissions } from './src/hooks/usePermissions';
+import { useAppUsageHeartbeat } from './src/hooks/useAppUsageHeartbeat';
 import { CustomToast } from './src/components/CustomToast';
 import { BiometricUnlockModal } from './src/components/BiometricUnlockModal';
 import { DEBUG_VERBOSE_LOGS } from './src/config/dev-logs';
@@ -45,6 +46,7 @@ if (__DEV__) {
 function Navigation() {
   const { user, loading, biometricUnlockRequired, clearBiometricUnlockRequirement, logout } = useAuth();
   usePermissions();
+  useAppUsageHeartbeat(user?.id);
 
   if (loading) {
     return <AppLoadingScreen />;

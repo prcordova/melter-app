@@ -292,6 +292,18 @@ export const userApi = {
     >(USERS_API.me.completionStatus);
     return response.data;
   },
+  /** Presença + métricas de uso do app (versão/plataforma) no admin. */
+  heartbeat: async (body: {
+    client: 'app';
+    platform: 'android' | 'ios';
+    versionCode: number;
+    versionName?: string;
+  }) => {
+    const response = await api.post<
+      ApiResponse<{ lastSeen: string; unreadMessages: number; unreadNotifications: number }>
+    >(USERS_API.me.heartbeat, body);
+    return response.data;
+  },
   trackOnboardingTour: async (action: 'completed' | 'skipped') => {
     const response = await api.post<ApiResponse<unknown>>(USERS_API.me.onboardingTour, { action });
     return response.data;
