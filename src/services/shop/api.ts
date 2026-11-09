@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken } from '../../lib/auth-token';
 import axios from 'axios';
 import { api } from '../http-client';
 import { SHOP_API } from '../../config/shops/api-paths';
@@ -88,7 +88,7 @@ export const shopApi = {
     return response.data;
   },
   uploadShopBackground: async (imageUri: string) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await getAuthToken();
     const formData = new FormData();
     const filename = imageUri.split('/').pop() || 'shop-background.jpg';
     const match = /\.(\w+)$/.exec(filename);

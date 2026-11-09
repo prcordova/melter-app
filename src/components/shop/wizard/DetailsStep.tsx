@@ -19,7 +19,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { subscriptionPlansApi } from '../../../services/api';
 import { getImageUrl } from '../../../utils/image';
 import { resolveProductCoverImageSource } from '../../../utils/product-cover-display';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken } from '../../../lib/auth-token';
 import { API_CONFIG } from '../../../config/api.config';
 import axios from 'axios';
 import { PlanLocker } from '../../PlanLocker';
@@ -165,7 +165,7 @@ export function DetailsStep({
             name: 'cover.jpg',
           } as any);
 
-          const token = await AsyncStorage.getItem('token');
+          const token = await getAuthToken();
           const response = await axios.post(`${API_CONFIG.BASE_URL}/api/products/upload/cover`, formDataUpload, {
             headers: {
               Authorization: `Bearer ${token}`,

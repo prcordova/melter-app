@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { api } from '../http-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken } from '../../lib/auth-token';
 import { API_CONFIG } from '../../config/api.config';
 import type { UsernameDisplayEffectConfig } from '../../types/username-display-effect';
 import type { ApiResponse } from '../shared/types';
@@ -65,7 +65,7 @@ export const profileApi = {
   },
 
   uploadAvatar: async (imageUri: string) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await getAuthToken();
     
     const formData = new FormData();
     const filename = imageUri.split('/').pop() || 'avatar.jpg';
@@ -89,7 +89,7 @@ export const profileApi = {
   },
 
   uploadBackground: async (imageUri: string) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await getAuthToken();
     
     const formData = new FormData();
     const filename = imageUri.split('/').pop() || 'background.jpg';

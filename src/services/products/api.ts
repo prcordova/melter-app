@@ -1,5 +1,5 @@
 import { api } from '../http-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken } from '../../lib/auth-token';
 import type { ApiResponse } from '../shared/types';
 import type { ShopProductsListMeta } from '../../constants/shop-products-list-meta';
 
@@ -51,7 +51,7 @@ export const productsApi = {
     return response.data;
   },
   getPresignedUploadUrl: async (productId: string, fileName: string, fileType: string, fileSize: number, order: number = 0) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await getAuthToken();
     const response = await api.get<ApiResponse<{
       presignedUrl: string;
       fileKey: string;

@@ -1,5 +1,5 @@
 import { api } from '../http-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken } from '../../lib/auth-token';
 import { API_CONFIG } from '../../config/api.config';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
 
@@ -32,7 +32,7 @@ export const storiesApi = {
   },
 
   uploadStoryMedia: async (fileUri: string, fileName: string, fileType: string, fileSize?: number, startTime?: number, duration?: number) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await getAuthToken();
     
     if (!token) {
       throw new Error('Token de autenticação não encontrado. Faça login novamente.');

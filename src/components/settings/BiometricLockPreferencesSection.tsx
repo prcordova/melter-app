@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import { SURFACE_RADIUS, type AppPalette } from '../../theme/palettes';
-import { hasBiometricLoginConfigured } from '../../services/biometricLogin';
+import { hasBiometricLoginConfigured, subscribeBiometricLogin } from '../../services/biometricLogin';
 import {
   BIOMETRIC_LOCK_TIMEOUT_OPTIONS,
+  ensureBiometricHideContentLoaded,
   ensureBiometricLockTimeoutLoaded,
+  getBiometricHideContent,
   getBiometricLockTimeout,
+  setBiometricHideContent,
   setBiometricLockTimeout,
   subscribeBiometricLockTimeout,
   type BiometricLockTimeout,
@@ -18,25 +21,46 @@ export function BiometricLockPreferencesSection() {
   const styles = useThemedStyles(createStyles);
   const { colors } = useAppTheme();
   const [timeout, setTimeoutValue] = useState<BiometricLockTimeout>(getBiometricLockTimeout);
+  const [hideContent, setHideContent] = useState(getBiometricHideContent);
   const [biometricActive, setBiometricActive] = useState<boolean | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const refreshBiometric = async () => {
+      const active = await hasBiometricLoginConfigured();
+      if (!cancelled) setBiometricActive(active);
+    };
     void (async () => {
-      const [value, active] = await Promise.all([
+      const [value, hide] = await Promise.all([
         ensureBiometricLockTimeoutLoaded(),
-        hasBiometricLoginConfigured(),
+        ensureBiometricHideContentLoaded(),
+        refreshBiometric(),
       ]);
       if (cancelled) return;
       setTimeoutValue(value);
-      setBiometricActive(active);
+      setHideContent(hide);
     })();
-    const unsubscribe = subscribeBiometricLockTimeout(() => setTimeoutValue(getBiometricLockTimeout()));
+    const unsubscribeLock = subscribeBiometricLockTimeout(() => {
+      setTimeoutValue(getBiometricLockTimeout());
+      setHideContent(getBiometricHideContent());
+    });
+    const unsubscribeLogin = subscribeBiometricLogin(() => void refreshBiometric());
     return () => {
       cancelled = true;
-      unsubscribe();
+      unsubscribeLock();
+      unsubscribeLogin();
     };
   }, []);
+
+  const handleToggleHideContent = async (enabled: boolean) => {
+    setHideContent(enabled);
+    try {
+      await setBiometricHideContent(enabled);
+    } catch {
+      setHideContent(!enabled);
+      showToast.error('Erro', 'Não foi possível salvar a preferência.');
+    }
+  };
 
   const handleSelect = async (value: BiometricLockTimeout) => {
     if (value === timeout) return;
@@ -73,11 +97,30 @@ export function BiometricLockPreferencesSection() {
         <View style={styles.warningBox}>
           <Ionicons name="finger-print" size={18} color={colors.states.warning} />
           <Text style={styles.warningText}>
-            O login por biometria não está ativo neste aparelho. Para usar o bloqueio, ative “Entrar com
-            biometria” na tela de login.
+            O login por biometria não está ativo neste aparelho. Para usar o bloqueio, ative em Configurações →
+            Segurança ou em “Guardar acesso com biometria” na tela de login.
           </Text>
         </View>
       ) : null}
+
+      <View style={[styles.item, disabled && styles.itemDisabled]}>
+        <View style={styles.itemText}>
+          <Text style={styles.itemTitle}>Ocultar conteúdo do app</Text>
+          <Text style={styles.itemDesc}>
+            Esconde o Melter na tela de apps recentes, bloqueia prints e gravação de tela e mostra as
+            notificações sem remetente nem texto. Só vale enquanto o bloqueio estiver ativo.
+          </Text>
+        </View>
+        <Switch
+          value={hideContent}
+          onValueChange={(v) => void handleToggleHideContent(v)}
+          disabled={disabled || timeout === null}
+          trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
+          thumbColor="#ffffff"
+        />
+      </View>
+
+      <Text style={styles.groupLabel}>Pedir biometria após</Text>
 
       {BIOMETRIC_LOCK_TIMEOUT_OPTIONS.map((option) => {
         const selected = timeout === option.value;
@@ -173,6 +216,13 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   itemDisabled: {
     opacity: 0.5,
+  },
+  groupLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.text.primary,
+    marginTop: 4,
+    marginBottom: 8,
   },
   itemText: {
     flex: 1,

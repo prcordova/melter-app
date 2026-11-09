@@ -1,5 +1,5 @@
 import Pusher from 'pusher-js/react-native'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { getAuthToken } from './auth-token'
 import { API_CONFIG } from '../config/api.config'
 
 export type PusherSharedSnapshot = {
@@ -89,7 +89,7 @@ function teardownInternal() {
 }
 
 async function connectForUser(userId: string): Promise<void> {
-  const token = await AsyncStorage.getItem('token')
+  const token = await getAuthToken()
   if (!token) {
     console.warn('[Pusher] Token não encontrado - não será possível autenticar canais privados')
     setSnapshot({ pusher: null, channel: null, isConnected: false, userId: null })

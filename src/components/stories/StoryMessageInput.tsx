@@ -16,7 +16,7 @@ import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { API_CONFIG } from '../../config/api.config';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken } from '../../lib/auth-token';
 
 interface StoryMessageInputProps {
   storyId: string;
@@ -82,7 +82,7 @@ export function StoryMessageInput({
 
     try {
       setSending(true);
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
 
       // Se tiver arquivo, fazer upload primeiro
       let uploadedFileUrl = null;

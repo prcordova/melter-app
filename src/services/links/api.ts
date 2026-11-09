@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { api } from '../http-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken } from '../../lib/auth-token';
 import { API_CONFIG } from '../../config/api.config';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
 
@@ -49,7 +49,7 @@ export const linksApi = {
   },
 
   uploadLinkImage: async (linkId: string, imageUri: string) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await getAuthToken();
     
     // Criar FormData
     const formData = new FormData();

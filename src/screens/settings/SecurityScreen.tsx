@@ -7,7 +7,6 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Switch,
   Image,
   Modal,
@@ -22,11 +21,9 @@ import { userApi } from '../../services/api';
 import { showToast } from '../../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '../../components/Button';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  hasBiometricLoginConfigured,
-  clearBiometricLogin,
-} from '../../services/biometricLogin';
+import { setAuthToken } from '../../lib/auth-token';
+import { clearBiometricLogin } from '../../services/biometricLogin';
+import { BiometricAccessSection } from './BiometricAccessSection';
 
 export function SecurityScreen() {
   const styles = useThemedStyles(createStyles);
@@ -56,23 +53,11 @@ export function SecurityScreen() {
   const [setupCode, setSetupCode] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
-  const [biometricQuickLoginEnabled, setBiometricQuickLoginEnabled] = useState(false);
 
   useEffect(() => {
     if (user?.twoFactor?.enabled) {
       setTwoFAEnabled(true);
     }
-  }, [user]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const on = await hasBiometricLoginConfigured();
-      if (!cancelled) setBiometricQuickLoginEnabled(on);
-    })();
-    return () => {
-      cancelled = true;
-    };
   }, [user]);
 
   const handleChangePassword = async () => {
@@ -106,7 +91,7 @@ export function SecurityScreen() {
       if (response.success) {
         if (response.data?.newToken && logoutAllDevices) {
           try {
-            await AsyncStorage.setItem('token', response.data.newToken);
+            await setAuthToken(response.data.newToken);
           } catch (e) {
             console.error('[SECURITY] Erro ao salvar token:', e);
           }
@@ -119,11 +104,8 @@ export function SecurityScreen() {
         setTwoFactorCode('');
         setRequires2FAForPassword(false);
         setLogoutAllDevices(true);
-        try {
-          await clearBiometricLogin();
-          setBiometricQuickLoginEnabled(false);
-        } catch {
-          /* ignore */
+        if (logoutAllDevices) {
+          await clearBiometricLogin().catch(() => undefined);
         }
       }
     } catch (err: any) {
@@ -183,29 +165,6 @@ export function SecurityScreen() {
     setBackupCodes([]);
   };
 
-  const confirmRemoveBiometric = () => {
-    Alert.alert(
-      'Remover acesso biométrico',
-      'As credenciais guardadas neste aparelho serão apagadas. Pode voltar a ativar no ecrã de login.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await clearBiometricLogin();
-              setBiometricQuickLoginEnabled(false);
-              showToast.success('Biometria', 'Acesso biométrico removido.');
-            } catch {
-              showToast.error('Biometria', 'Não foi possível remover.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ThemedStatusBar />
@@ -240,29 +199,7 @@ export function SecurityScreen() {
           </View>
         )}
 
-        {/* Acesso biométrico no aparelho */}
-        {biometricQuickLoginEnabled && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: '#a855f7' }]}>
-                <Ionicons name="finger-print" size={24} color="#ffffff" />
-              </View>
-              <View style={styles.sectionHeaderText}>
-                <Text style={styles.sectionTitle}>Biometria neste aparelho</Text>
-                <Text style={styles.sectionSubtitle}>
-                  Login rápido e bloqueio por inatividade estão ativos com as credenciais guardadas de forma segura.
-                  O tempo de bloqueio pode ser alterado ou desativado em Preferências.
-                </Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.form}>
-              <TouchableOpacity style={styles.dangerOutlineBtn} onPress={confirmRemoveBiometric}>
-                <Text style={styles.dangerOutlineBtnText}>Remover acesso biométrico</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+        <BiometricAccessSection />
 
         {/* Seção: Alterar Senha */}
         <View style={styles.section}>

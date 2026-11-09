@@ -25,7 +25,7 @@ import { showToast } from '../CustomToast';
 import { useAuth } from '../../contexts/AuthContext';
 import { productsApi, categoriesApi, subscriptionPlansApi } from '../../services/api';
 import { getImageUrl } from '../../utils/image';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken } from '../../lib/auth-token';
 import { API_CONFIG } from '../../config/api.config';
 import axios from 'axios';
 
@@ -432,7 +432,7 @@ export function CreateProductModal({
             name: 'cover.jpg',
           } as any);
 
-          const token = await AsyncStorage.getItem('token');
+          const token = await getAuthToken();
           const response = await axios.post(`${API_CONFIG.BASE_URL}/api/products/upload/cover`, formData, {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -542,7 +542,7 @@ export function CreateProductModal({
         formData.append('productId', productId);
         formData.append('order', i.toString());
 
-        const token = await AsyncStorage.getItem('token');
+        const token = await getAuthToken();
 
         const response = await axios.post(`${API_CONFIG.BASE_URL}/api/products/${productId}/files`, formData, {
           headers: {

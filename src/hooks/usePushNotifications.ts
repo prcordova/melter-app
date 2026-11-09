@@ -6,6 +6,7 @@ import { isRunningInExpoGo } from 'expo';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_RELEASE_PUSH_TYPE } from '../config/app/api-paths';
+import { USERS_API } from '../config/users/api-paths';
 import { api } from '../services/api';
 import { devLog, devWarn } from '../config/dev-logs';
 import {
@@ -74,6 +75,28 @@ if (Platform.OS === 'android' && !isAndroidExpoGo) {
 
 /** Evita navegar duas vezes pelo mesmo toque (listener + cold start, ou remount após login). */
 const handledResponseIds = new Set<string>();
+
+let registeredPushToken: string | null = null;
+let pushPreviewHidden = false;
+
+async function postPushToken(pushToken: string) {
+  await api.post(USERS_API.me.pushToken, {
+    pushToken,
+    platform: Platform.OS,
+    hidePreview: pushPreviewHidden,
+  });
+}
+
+/** Bloqueio biométrico ativo → servidor envia push sem remetente/conteúdo. */
+export function setPushPreviewHidden(hidden: boolean) {
+  if (pushPreviewHidden === hidden) return;
+  pushPreviewHidden = hidden;
+  if (registeredPushToken) {
+    postPushToken(registeredPushToken).catch((error) => {
+      console.error('[PushNotifications] Erro ao atualizar privacidade do push:', error?.message);
+    });
+  }
+}
 
 export function usePushNotifications() {
   const { user } = useAuth();
@@ -186,10 +209,8 @@ export function usePushNotifications() {
       devLog(`[PushNotifications] Token obtido: ${token.data.substring(0, 24)}...`);
 
       try {
-        await api.post('/api/users/push-token', {
-          pushToken: token.data,
-          platform: Platform.OS,
-        });
+        registeredPushToken = token.data;
+        await postPushToken(token.data);
         devLog('[PushNotifications] Token registrado no backend');
       } catch (error: any) {
         console.error('[PushNotifications] Erro ao enviar token:', error?.response?.data || error?.message);

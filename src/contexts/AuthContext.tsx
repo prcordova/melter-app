@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 import { authApi, userApi } from '../services/api';
 import { getBiometricLoginEnabled } from '../services/biometricLogin';
 import { ensureBiometricLockTimeoutLoaded } from '../lib/biometric-lock';
+import { clearAuthToken, getAuthToken, setAuthToken } from '../lib/auth-token';
 import { User } from '../types';
 
 interface LoginResult {
@@ -23,6 +24,8 @@ interface AuthContextType {
   /** Bloqueia o app até confirmar biometria (inatividade). */
   requireBiometricUnlock: () => void;
   login: (username: string, password: string, twoFactorCode?: string, tempToken?: string) => Promise<LoginResult | undefined>;
+  /** Login biométrico (credencial de dispositivo). Lança erro em 4xx, como `login`. */
+  loginWithDevice: (credentialId: string, secret: string) => Promise<LoginResult | undefined>;
   confirmCancelDeletionLogin: (tempToken: string) => Promise<LoginResult | undefined>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -46,6 +49,10 @@ function mapApiToUser(data: any): User {
     wallet: data.wallet,
     termsAndPrivacy: data.termsAndPrivacy,
   };
+}
+
+async function clearStoredSession() {
+  await Promise.all([clearAuthToken(), AsyncStorage.removeItem(USER_CACHE_KEY)]);
 }
 
 async function persistUserCache(u: User) {
@@ -72,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Recarregar dados do usuário
   const refreshUser = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       if (!token) return;
 
       const response = await userApi.getMyProfile();
@@ -83,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+      await clearStoredSession();
       setUser(null);
     } catch (error: any) {
       console.error('Erro ao recarregar usuário:', error);
@@ -92,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (error?.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+        await clearStoredSession();
         setUser(null);
       }
     }
@@ -104,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let cachedUser: User | null = null;
 
       try {
-        const token = await AsyncStorage.getItem('token');
+        const token = await getAuthToken();
 
         if (!token) {
           setLoading(false);
@@ -142,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           // Resposta 200 com success false = sessão inválida (ex.: token expirado sem throw)
-          await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+          await clearStoredSession();
           setUser(null);
         } catch (error: any) {
           console.error('Erro ao carregar usuário:', error);
@@ -156,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (status === 401) {
-            await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+            await clearStoredSession();
             setUser(null);
             return;
           }
@@ -172,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
 
-          await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+          await clearStoredSession();
           setUser(null);
         }
       } catch (error) {
@@ -190,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     const refreshIfAuthenticated = async () => {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       if (!token) return;
       await refreshUser();
     };
@@ -216,7 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<LoginResult | undefined> => {
     try {
       // Remover token antigo e cache de sessão anterior
-      await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+      await clearStoredSession();
 
       let response: any;
 
@@ -249,7 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error('Token não encontrado na resposta do servidor');
         }
         
-        await AsyncStorage.setItem('token', token);
+        await setAuthToken(token);
         
         const userData = response.data?.user || response.user;
         
@@ -281,6 +288,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithDevice = async (credentialId: string, secret: string): Promise<LoginResult | undefined> => {
+    await clearStoredSession();
+    const response: any = await authApi.loginWithDevice(credentialId, secret);
+
+    if (response.requiresCancelDeletion && response.tempToken) {
+      return {
+        requiresCancelDeletion: true,
+        tempToken: response.tempToken,
+        deletionScheduledAt: response.deletionScheduledAt ?? null,
+      };
+    }
+
+    const token = response.data?.token || response.token;
+    if (!response.success || !token) {
+      throw new Error(response.message || 'Não foi possível entrar com biometria');
+    }
+    await setAuthToken(token);
+
+    const profile = await userApi.getMyProfile().catch(() => null);
+    const userData = profile?.success && profile.data ? profile.data : response.data?.user;
+    if (!userData) {
+      throw new Error('Dados do usuário não encontrados na resposta');
+    }
+    const nextUser = mapApiToUser(userData);
+    setUser(nextUser);
+    await persistUserCache(nextUser);
+    setBiometricUnlockRequired(false);
+    return { success: true };
+  };
+
   const confirmCancelDeletionLogin = async (cancelTempToken: string): Promise<LoginResult | undefined> => {
     try {
       const response = await authApi.confirmCancelDeletion(cancelTempToken);
@@ -289,7 +326,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const token = (response as any).data?.token || (response as any).token;
       if (response.success && token) {
-        await AsyncStorage.setItem('token', token);
+        await setAuthToken(token);
         const userData = (response as any).data?.user || (response as any).user;
         if (!userData) throw new Error('Dados do usuário não encontrados');
         const nextUser: User = {
@@ -317,7 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await AsyncStorage.multiRemove(['token', USER_CACHE_KEY]);
+    await clearStoredSession();
     setBiometricUnlockRequired(false);
     setUser(null);
   };
@@ -331,6 +368,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearBiometricUnlockRequirement,
         requireBiometricUnlock,
         login,
+        loginWithDevice,
         confirmCancelDeletionLogin,
         logout,
         refreshUser,

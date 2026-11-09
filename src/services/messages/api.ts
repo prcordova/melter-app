@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { api } from '../http-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken } from '../../lib/auth-token';
 import { API_CONFIG } from '../../config/api.config';
 import { MESSAGES_API } from '../../config/messages/api-paths';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
@@ -112,7 +113,7 @@ export const messageApi = {
   },
 
   uploadImage: async (imageUri: string, recipientId: string) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await getAuthToken();
     const userId = await AsyncStorage.getItem('userId');
     const formData = new FormData();
     
@@ -144,7 +145,7 @@ export const messageApi = {
   },
 
   uploadDocument: async (documentUri: string, documentName: string, mimeType: string, recipientId: string) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await getAuthToken();
     const formData = new FormData();
     
     // Criar objeto de arquivo compatível

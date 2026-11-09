@@ -3,6 +3,7 @@ import { api } from '../http-client';
 import { API_CONFIG } from '../../config/api.config';
 import { AUTH_API } from '../../config/auth/api-paths';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
+import type { CreatedDeviceCredential, DeviceCredentialSummary, DevicePlatform } from './types';
 
 export const authApi = {
   login: async (username: string, password: string): Promise<LoginResult> => {
@@ -34,6 +35,44 @@ export const authApi = {
       code,
       accessSource: 'app',
     });
+    return response.data;
+  },
+
+  /** Login biométrico: lança erro em 4xx (ex.: `DEVICE_CREDENTIAL_INVALID`), como `login`. */
+  loginWithDevice: async (credentialId: string, secret: string): Promise<LoginResult> => {
+    const deviceLoginApi = axios.create({
+      baseURL: API_CONFIG.BASE_URL,
+      timeout: API_CONFIG.TIMEOUT,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const response = await deviceLoginApi.post<LoginResult>(AUTH_API.loginDevice, {
+      credentialId,
+      secret,
+      accessSource: 'app',
+    });
+    return response.data;
+  },
+
+  createDeviceCredential: async (
+    deviceName: string,
+    platform: DevicePlatform
+  ): Promise<ApiResponse<CreatedDeviceCredential>> => {
+    const response = await api.post<ApiResponse<CreatedDeviceCredential>>(AUTH_API.deviceCredentials, {
+      deviceName,
+      platform,
+    });
+    return response.data;
+  },
+
+  listDeviceCredentials: async (): Promise<ApiResponse<{ devices: DeviceCredentialSummary[] }>> => {
+    const response = await api.get<ApiResponse<{ devices: DeviceCredentialSummary[] }>>(
+      AUTH_API.deviceCredentials
+    );
+    return response.data;
+  },
+
+  revokeDeviceCredential: async (credentialId: string): Promise<ApiResponse<unknown>> => {
+    const response = await api.delete<ApiResponse<unknown>>(AUTH_API.deviceCredential(credentialId));
     return response.data;
   },
 

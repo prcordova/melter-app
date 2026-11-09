@@ -26,18 +26,28 @@ export function BiometricUnlockModal({ visible, onUnlocked, onLogout }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lockTimeout, setLockTimeout] = useState(getBiometricLockTimeout);
+  const [invalidated, setInvalidated] = useState(false);
 
   useEffect(() => {
-    if (visible) setLockTimeout(getBiometricLockTimeout());
+    if (visible) {
+      setLockTimeout(getBiometricLockTimeout());
+      setInvalidated(false);
+      setError(null);
+    }
   }, [visible]);
 
   const tryUnlock = async () => {
     setError(null);
     setBusy(true);
     try {
-      const ok = await verifyBiometricIdentity();
-      if (ok) {
+      const result = await verifyBiometricIdentity();
+      if (result === 'success') {
         onUnlocked();
+      } else if (result === 'invalidated') {
+        setInvalidated(true);
+        setError(
+          'A biometria deste aparelho mudou (ex.: nova digital cadastrada). Por segurança, entre de novo com sua senha.'
+        );
       } else {
         setError('Não foi possível confirmar a biometria.');
       }
@@ -70,22 +80,30 @@ export function BiometricUnlockModal({ visible, onUnlocked, onLogout }: Props) {
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.primaryBtn, busy && styles.btnDisabled]}
-            onPress={tryUnlock}
-            disabled={busy}
-            activeOpacity={0.85}
-          >
-            {busy ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.primaryBtnText}>Desbloquear</Text>
-            )}
-          </TouchableOpacity>
+          {invalidated ? (
+            <TouchableOpacity style={styles.primaryBtn} onPress={onLogout} activeOpacity={0.85}>
+              <Text style={styles.primaryBtnText}>Entrar com senha</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.primaryBtn, busy && styles.btnDisabled]}
+                onPress={tryUnlock}
+                disabled={busy}
+                activeOpacity={0.85}
+              >
+                {busy ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.primaryBtnText}>Desbloquear</Text>
+                )}
+              </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryBtn} onPress={onLogout} disabled={busy}>
-            <Text style={styles.secondaryBtnText}>Sair da conta</Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={styles.secondaryBtn} onPress={onLogout} disabled={busy}>
+                <Text style={styles.secondaryBtnText}>Sair da conta</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
     </Modal>

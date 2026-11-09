@@ -21,7 +21,10 @@ export const BIOMETRIC_LOCK_TIMEOUT_OPTIONS: {
   { value: null, label: 'Desativado', description: 'Não pede biometria para desbloquear o app' },
 ];
 
+const HIDE_CONTENT_STORAGE_KEY = '@melter_biometric_hide_content_v1';
+
 let memoryCache: BiometricLockTimeout | undefined;
+let hideContentCache: boolean | undefined;
 const listeners = new Set<() => void>();
 
 function parseStored(raw: string | null): BiometricLockTimeout {
@@ -33,10 +36,15 @@ function parseStored(raw: string | null): BiometricLockTimeout {
 /** Garante a preferência em memória (lê do AsyncStorage na primeira chamada). */
 export async function ensureBiometricLockTimeoutLoaded(): Promise<BiometricLockTimeout> {
   if (memoryCache !== undefined) return memoryCache;
+  let loaded: BiometricLockTimeout;
   try {
-    memoryCache = parseStored(await AsyncStorage.getItem(STORAGE_KEY));
+    loaded = parseStored(await AsyncStorage.getItem(STORAGE_KEY));
   } catch {
-    memoryCache = DEFAULT_BIOMETRIC_LOCK_TIMEOUT;
+    loaded = DEFAULT_BIOMETRIC_LOCK_TIMEOUT;
+  }
+  if (memoryCache === undefined) {
+    memoryCache = loaded;
+    listeners.forEach((fn) => fn());
   }
   return memoryCache;
 }
@@ -51,6 +59,36 @@ export async function setBiometricLockTimeout(value: BiometricLockTimeout): Prom
   listeners.forEach((fn) => fn());
 }
 
+/**
+ * Com bloqueio ativo: oculta o app nos recentes, bloqueia prints/gravação e esconde o texto dos pushes.
+ * Padrão ligado.
+ */
+export async function ensureBiometricHideContentLoaded(): Promise<boolean> {
+  if (hideContentCache !== undefined) return hideContentCache;
+  let loaded: boolean;
+  try {
+    loaded = (await AsyncStorage.getItem(HIDE_CONTENT_STORAGE_KEY)) !== '0';
+  } catch {
+    loaded = true;
+  }
+  if (hideContentCache === undefined) {
+    hideContentCache = loaded;
+    listeners.forEach((fn) => fn());
+  }
+  return hideContentCache;
+}
+
+export function getBiometricHideContent(): boolean {
+  return hideContentCache !== false;
+}
+
+export async function setBiometricHideContent(enabled: boolean): Promise<void> {
+  hideContentCache = enabled;
+  await AsyncStorage.setItem(HIDE_CONTENT_STORAGE_KEY, enabled ? '1' : '0');
+  listeners.forEach((fn) => fn());
+}
+
+/** Avisa mudanças de tempo de bloqueio e de ocultar conteúdo. */
 export function subscribeBiometricLockTimeout(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);

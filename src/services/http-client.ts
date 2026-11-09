@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearAuthToken, getAuthToken } from '../lib/auth-token';
 import { API_CONFIG } from '../config/api.config';
 import { DEBUG_VERBOSE_LOGS } from '../config/dev-logs';
 
@@ -21,7 +21,7 @@ export const api = axios.create({
 // Interceptor para adicionar token nas requisições
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await getAuthToken();
     if (token) {
       // CRÍTICO: No React Native com HTTPS cross-origin, precisamos definir o header
       // usando múltiplas abordagens para garantir que seja enviado
@@ -97,7 +97,7 @@ api.interceptors.response.use(
         if (__DEV__ && DEBUG_VERBOSE_LOGS) {
           console.warn('[API] Erro 401 em rota de auth - removendo token');
         }
-        await AsyncStorage.removeItem('token');
+        await clearAuthToken();
       } else {
         // Para outras rotas, não remover token imediatamente
         // Pode ser problema de CORS, rede, ou header não chegando

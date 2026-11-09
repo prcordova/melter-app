@@ -23,14 +23,16 @@ import { ThemedStatusBar } from '../components/ThemedStatusBar';
 import {
   isBiometricLoginSupported,
   hasBiometricLoginConfigured,
-  saveCredentialsWithBiometricConfirmation,
-  getCredentialsWithBiometric,
+  enableBiometricLogin,
+  getBiometricLoginCredential,
+  migrateLegacyBiometricLogin,
+  clearBiometricLogin,
 } from '../services/biometricLogin';
 
 export function LoginScreen() {
   const styles = useThemedStyles(createStyles);
   const { colors } = useAppTheme();
-  const { login, confirmCancelDeletionLogin } = useAuth();
+  const { login, loginWithDevice, confirmCancelDeletionLogin } = useAuth();
   const navigation = useNavigation();
   const [formData, setFormData] = useState({
     username: '',
@@ -131,11 +133,11 @@ export function LoginScreen() {
         return;
       }
 
-      // Login bem-sucedido — opcionalmente guardar credenciais para biometria
+      // Login bem-sucedido — opcionalmente ativar login biométrico (sem guardar a senha)
       if (result?.success && saveWithBiometric && canUseBiometric) {
         try {
-          await saveCredentialsWithBiometricConfirmation(formData.username, formData.password);
-          showToast.success('Biometria', 'Acesso guardado. Pode usar impressão digital ou rosto para entrar.');
+          await enableBiometricLogin(formData.username);
+          showToast.success('Biometria', 'Acesso ativado. Use impressão digital ou rosto para entrar.');
           await refreshBioConfigured();
         } catch (e: any) {
           if (e?.code !== 'BIOMETRIC_CANCELLED') {
@@ -182,22 +184,42 @@ export function LoginScreen() {
     setError('');
     setBioLoginLoading(true);
     try {
-      const { username, password } = await getCredentialsWithBiometric();
-      const result = await login(username, password);
-      if (result?.requires2FA && result?.tempToken) {
-        setFormData((prev) => ({ ...prev, username, password }));
-        setRequires2FA(true);
-        setTempToken(result.tempToken);
-        showToast.info('2FA', 'Conta com 2FA: digite o código do autenticador.');
-      } else if (result?.requiresCancelDeletion && result?.tempToken) {
-        setFormData((prev) => ({ ...prev, username, password }));
+      const credential = await getBiometricLoginCredential('Autentique-se para entrar no Melter');
+
+      if (credential.type === 'legacy') {
+        const { username, password } = credential;
+        const result = await login(username, password);
+        if (result?.requires2FA && result?.tempToken) {
+          setFormData((prev) => ({ ...prev, username, password }));
+          setRequires2FA(true);
+          setTempToken(result.tempToken);
+          showToast.info('2FA', 'Conta com 2FA: digite o código do autenticador.');
+        } else if (result?.requiresCancelDeletion && result?.tempToken) {
+          setFormData((prev) => ({ ...prev, username, password }));
+          promptCancelDeletion(result.tempToken, result.deletionScheduledAt);
+        } else if (result?.success) {
+          void migrateLegacyBiometricLogin(username);
+        }
+        return;
+      }
+
+      const result = await loginWithDevice(credential.credentialId, credential.secret);
+      if (result?.requiresCancelDeletion && result?.tempToken) {
         promptCancelDeletion(result.tempToken, result.deletionScheduledAt);
       }
     } catch (e: any) {
       if (e?.code === 'BIOMETRIC_CANCELLED') {
         return;
       }
-      setError(e?.message || 'Não foi possível entrar com biometria.');
+      const apiError = (e as AxiosError<{ message?: string; code?: string }>)?.response?.data;
+      if (apiError?.code === 'DEVICE_CREDENTIAL_INVALID') {
+        await clearBiometricLogin({ revokeRemote: false });
+        await refreshBioConfigured();
+      }
+      setError(apiError?.message || e?.message || 'Não foi possível entrar com biometria.');
+      if (e?.code === 'BIOMETRIC_INVALIDATED') {
+        await refreshBioConfigured();
+      }
     } finally {
       setBioLoginLoading(false);
     }
@@ -305,7 +327,7 @@ export function LoginScreen() {
                       <View style={styles.bioRowTextWrap}>
                         <Text style={styles.bioRowTitle}>Guardar acesso com biometria</Text>
                         <Text style={styles.bioRowHint}>
-                          Após entrar, confirme com digital ou rosto para guardar utilizador e senha neste aparelho.
+                          Após entrar, confirme com digital ou rosto. Sua senha não fica guardada no aparelho.
                         </Text>
                       </View>
                       <Switch

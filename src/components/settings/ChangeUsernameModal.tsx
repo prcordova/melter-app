@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setAuthToken } from '../../lib/auth-token';
 import { useAuth } from '../../contexts/AuthContext';
 import { userApi } from '../../services/api';
 import { showToast } from '../CustomToast';
@@ -200,7 +200,7 @@ export function ChangeUsernameModal({ visible, onClose }: Props) {
 
       if (res.success) {
         if (res.newToken) {
-          await AsyncStorage.setItem('token', res.newToken);
+          await setAuthToken(res.newToken);
         }
         await refreshUser();
         showToast.success('Sucesso', res.message || '@ atualizado com sucesso.');

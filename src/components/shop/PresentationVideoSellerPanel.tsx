@@ -11,7 +11,7 @@ import {
 import { AppVideo } from '../AppVideo'
 import * as DocumentPicker from 'expo-document-picker'
 import Ionicons from '@expo/vector-icons/Ionicons'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { getAuthToken } from '../../lib/auth-token'
 import { PlanLocker } from '../PlanLocker'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext'
@@ -68,7 +68,7 @@ export function PresentationVideoSellerPanel({
       return
     }
     try {
-      const token = await AsyncStorage.getItem('token')
+      const token = await getAuthToken()
       if (!token) {
         showToast.error('Sessão', 'Faça login novamente.')
         return
@@ -147,7 +147,7 @@ export function PresentationVideoSellerPanel({
           setBusyLabel('Removendo vídeo de apresentação...')
           setBusy(true)
           try {
-            const token = await AsyncStorage.getItem('token')
+            const token = await getAuthToken()
             if (!token) {
               showToast.error('Sessão', 'Faça login novamente.')
               return

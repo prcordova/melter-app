@@ -1,60 +1,64 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { getBiometricLoginEnabled } from '../services/biometricLogin';
+import { isBiometricLoginEnabledSync } from '../services/biometricLogin';
 import { getBiometricLockTimeout } from '../lib/biometric-lock';
 
 const IDLE_CHECK_INTERVAL_MS = 15_000;
 
+function isLockProtectionActive(): boolean {
+  return isBiometricLoginEnabledSync() && getBiometricLockTimeout() !== null;
+}
+
 /**
  * Pede biometria de novo após o tempo configurado sem uso (app em segundo plano ou aberto sem toques).
  * Só age quando o login biométrico está ativo neste aparelho.
- * Retorna `markActivity` para registrar toques na raiz da navegação.
+ * Decisões são síncronas: ao voltar do segundo plano o bloqueio aparece sem expor o conteúdo antes.
  */
 export function useBiometricAutoLock(active: boolean, onLock: () => void) {
   const lastActivityRef = useRef(Date.now());
   const onLockRef = useRef(onLock);
   onLockRef.current = onLock;
+  const [privacyCoverVisible, setPrivacyCoverVisible] = useState(false);
 
   const markActivity = useCallback(() => {
     lastActivityRef.current = Date.now();
   }, []);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active) {
+      setPrivacyCoverVisible(false);
+      return;
+    }
 
     lastActivityRef.current = Date.now();
-    let cancelled = false;
-    let locking = false;
 
-    const lockIfIdle = async () => {
+    const isIdleExpired = () => {
       const timeout = getBiometricLockTimeout();
-      if (timeout === null || locking) return;
-      if (Date.now() - lastActivityRef.current < timeout * 60_000) return;
-
-      locking = true;
-      try {
-        if (!cancelled && (await getBiometricLoginEnabled())) {
-          onLockRef.current();
-        }
-      } finally {
-        locking = false;
-      }
+      return timeout !== null && Date.now() - lastActivityRef.current >= timeout * 60_000;
     };
 
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void lockIfIdle();
+      if (state === 'background') {
+        if (isLockProtectionActive()) setPrivacyCoverVisible(true);
+        return;
+      }
+      if (state === 'active') {
+        if (isLockProtectionActive() && isIdleExpired()) onLockRef.current();
+        setPrivacyCoverVisible(false);
+      }
     });
 
     const intervalId = setInterval(() => {
-      if (AppState.currentState === 'active') void lockIfIdle();
+      if (AppState.currentState === 'active' && isLockProtectionActive() && isIdleExpired()) {
+        onLockRef.current();
+      }
     }, IDLE_CHECK_INTERVAL_MS);
 
     return () => {
-      cancelled = true;
       subscription.remove();
       clearInterval(intervalId);
     };
   }, [active]);
 
-  return markActivity;
+  return { markActivity, privacyCoverVisible };
 }

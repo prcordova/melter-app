@@ -19,10 +19,17 @@ import { TabNavigator } from './src/navigation/TabNavigator';
 import { usePermissions } from './src/hooks/usePermissions';
 import { useAppUsageHeartbeat } from './src/hooks/useAppUsageHeartbeat';
 import { useBiometricAutoLock } from './src/hooks/useBiometricAutoLock';
+import { useAppPrivacyProtection } from './src/hooks/useAppPrivacyProtection';
 import { CustomToast } from './src/components/CustomToast';
 import { BiometricUnlockModal } from './src/components/BiometricUnlockModal';
+import { AppPrivacyCover } from './src/components/security/AppPrivacyCover';
 import { DEBUG_VERBOSE_LOGS } from './src/config/dev-logs';
 import { initNotificationSoundPrefs } from './src/lib/notification-sounds';
+import { getBiometricLoginEnabled } from './src/services/biometricLogin';
+import {
+  ensureBiometricHideContentLoaded,
+  ensureBiometricLockTimeoutLoaded,
+} from './src/lib/biometric-lock';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,6 +42,9 @@ if (__DEV__ && DEBUG_VERBOSE_LOGS) {
 }
 
 void initNotificationSoundPrefs();
+void ensureBiometricLockTimeoutLoaded();
+void ensureBiometricHideContentLoaded();
+void getBiometricLoginEnabled().catch(() => false);
 
 if (__DEV__) {
   LogBox.ignoreLogs([
@@ -55,7 +65,11 @@ function Navigation() {
   } = useAuth();
   usePermissions();
   useAppUsageHeartbeat(user?.id);
-  const markActivity = useBiometricAutoLock(Boolean(user) && !biometricUnlockRequired, requireBiometricUnlock);
+  const { markActivity, privacyCoverVisible } = useBiometricAutoLock(
+    Boolean(user) && !biometricUnlockRequired,
+    requireBiometricUnlock
+  );
+  useAppPrivacyProtection(Boolean(user));
 
   if (loading) {
     return <AppLoadingScreen />;
@@ -77,6 +91,7 @@ function Navigation() {
           <Stack.Screen name="Auth" component={AuthStackNavigator} options={{ headerShown: false }} />
         )}
       </Stack.Navigator>
+      {privacyCoverVisible ? <AppPrivacyCover /> : null}
       </View>
 
       <BiometricUnlockModal
