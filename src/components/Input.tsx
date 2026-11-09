@@ -7,6 +7,7 @@ import {
   TextInputProps,
   ViewStyle,
   StyleSheet,
+  type TextInputInstance,
 } from 'react-native';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
@@ -18,9 +19,11 @@ interface InputProps extends TextInputProps {
   rightIcon?: React.ReactNode;
   onRightIconPress?: () => void;
   containerStyle?: ViewStyle;
+  ref?: React.Ref<TextInputInstance>;
 }
 
 export function Input({
+  ref,
   label,
   error,
   helperText,
@@ -44,6 +47,7 @@ export function Input({
 
       <View style={[styles.inputContainer, { borderColor }, props.editable === false && styles.disabled]}>
         <TextInput
+          ref={ref}
           style={[styles.input, style]}
           onFocus={(e) => {
             setIsFocused(true);

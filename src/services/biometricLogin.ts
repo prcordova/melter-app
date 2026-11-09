@@ -7,6 +7,8 @@ import { authApi, type DeviceEnrollmentStepUp } from './auth';
 const FLAG_KEY = '@melter_biometric_login_v1';
 /** Id da credencial (não é segredo) — permite revogar no servidor sem pedir biometria. */
 const CREDENTIAL_ID_KEY = '@melter_biometric_credential_id_v2';
+/** Conta dona da biometria deste aparelho (não é segredo) — permite oferecer a digital ao escolher a conta no login. */
+const BIOMETRIC_USERNAME_KEY = '@melter_biometric_username_v2';
 /** Segredo da credencial de dispositivo, só legível após biometria (chave invalidada se a biometria mudar). */
 const DEVICE_SECRET_KEY = 'melter_biometric_device_v2';
 const LEGACY_SECURE_USER = 'melter_biometric_user_v1';
@@ -168,6 +170,7 @@ export async function enableBiometricLogin(
   await AsyncStorage.multiSet([
     [FLAG_KEY, '1'],
     [CREDENTIAL_ID_KEY, stored.credentialId],
+    [BIOMETRIC_USERNAME_KEY, username],
   ]);
   await deleteLegacyCredentials();
   setEnabledCache(true);
@@ -265,10 +268,17 @@ export async function clearBiometricLogin(options?: { revokeRemote?: boolean }):
   if (credentialId && options?.revokeRemote !== false) {
     await authApi.revokeDeviceCredential(credentialId).catch(() => undefined);
   }
-  await AsyncStorage.multiRemove([FLAG_KEY, CREDENTIAL_ID_KEY]).catch(() => undefined);
+  await AsyncStorage.multiRemove([FLAG_KEY, CREDENTIAL_ID_KEY, BIOMETRIC_USERNAME_KEY]).catch(() => undefined);
   await SecureStore.deleteItemAsync(DEVICE_SECRET_KEY, { requireAuthentication: true }).catch(() => undefined);
   await deleteLegacyCredentials();
   setEnabledCache(false);
+}
+
+/** Username da conta com biometria neste aparelho, sem pedir biometria (`null` se inativa ou desconhecida). */
+export async function getBiometricLoginUsername(): Promise<string | null> {
+  if (!(await getBiometricLoginEnabled())) return null;
+  const username = await AsyncStorage.getItem(BIOMETRIC_USERNAME_KEY).catch(() => null);
+  return username ?? readLegacyUsername();
 }
 
 /** Id da credencial deste aparelho (para destacar na lista de aparelhos). */

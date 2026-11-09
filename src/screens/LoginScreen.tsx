@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
+  type TextInputInstance,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -27,7 +28,9 @@ import {
   getBiometricLoginCredential,
   migrateLegacyBiometricLogin,
   clearBiometricLogin,
+  getBiometricLoginUsername,
 } from '../services/biometricLogin';
+import { clearRecentUsernames, getRecentUsernames, removeRecentUsername } from '../lib/recent-logins';
 import * as Clipboard from 'expo-clipboard';
 
 const TWO_FACTOR_CODE_LENGTH = 6;
@@ -48,6 +51,10 @@ export function LoginScreen() {
   const [hasBioLogin, setHasBioLogin] = useState(false);
   const [saveWithBiometric, setSaveWithBiometric] = useState(false);
   const [bioLoginLoading, setBioLoginLoading] = useState(false);
+  const [bioUsername, setBioUsername] = useState<string | null>(null);
+  const [recentUsernames, setRecentUsernames] = useState<string[]>([]);
+  const [usernameFocused, setUsernameFocused] = useState(false);
+  const passwordRef = useRef<TextInputInstance>(null);
 
   // 2FA State
   const [requires2FA, setRequires2FA] = useState(false);
@@ -101,14 +108,47 @@ export function LoginScreen() {
   }, []);
 
   const refreshBioConfigured = useCallback(async () => {
-    setHasBioLogin(await hasBiometricLoginConfigured());
+    const [configured, owner] = await Promise.all([hasBiometricLoginConfigured(), getBiometricLoginUsername()]);
+    setHasBioLogin(configured);
+    setBioUsername(owner);
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       refreshBioConfigured();
+      void getRecentUsernames().then(setRecentUsernames);
     }, [refreshBioConfigured])
   );
+
+  const suggestions = usernameFocused
+    ? recentUsernames.filter((u) => {
+        const typed = formData.username.trim().toLowerCase();
+        return u.toLowerCase().startsWith(typed) && u.toLowerCase() !== typed;
+      })
+    : [];
+
+  const isBiometricAccount = (username: string) =>
+    hasBioLogin && canUseBiometric && bioUsername?.toLowerCase() === username.toLowerCase();
+
+  /** Conta com biometria neste aparelho → pede a digital; senão vai direto para a senha. */
+  const handleSelectRecentUsername = (username: string) => {
+    setFormData((prev) => ({ ...prev, username, password: '' }));
+    setUsernameFocused(false);
+    if (isBiometricAccount(username)) {
+      void handleBiometricQuickLogin().finally(() => passwordRef.current?.focus());
+      return;
+    }
+    passwordRef.current?.focus();
+  };
+
+  const handleRemoveRecentUsername = async (username: string) => {
+    setRecentUsernames(await removeRecentUsername(username));
+  };
+
+  const handleClearRecentUsernames = async () => {
+    await clearRecentUsernames();
+    setRecentUsernames([]);
+  };
 
   const handleSubmit = async (codeOverride?: string) => {
     const code = codeOverride ?? twoFactorCode;
@@ -350,10 +390,65 @@ export function LoginScreen() {
                     placeholder="Digite seu usuário"
                     autoCapitalize="none"
                     autoCorrect={false}
+                    autoComplete="username"
+                    textContentType="username"
+                    returnKeyType="next"
+                    onSubmitEditing={() => passwordRef.current?.focus()}
+                    onFocus={() => setUsernameFocused(true)}
+                    onBlur={() => setUsernameFocused(false)}
                     editable={Boolean(!loading)}
+                    containerStyle={suggestions.length > 0 ? styles.usernameWithSuggestions : undefined}
                   />
 
+                  {suggestions.length > 0 ? (
+                    <View style={styles.suggestions}>
+                      <View style={styles.suggestionsHeader}>
+                        <Text style={styles.suggestionsTitle}>Entraram neste aparelho</Text>
+                        <TouchableOpacity
+                          onPress={() => void handleClearRecentUsernames()}
+                          hitSlop={8}
+                          accessibilityLabel="Remover todas as contas deste aparelho"
+                        >
+                          <Text style={styles.suggestionsClearAll}>Remover todos</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {suggestions.map((username) => (
+                        <View key={username} style={styles.suggestionRow}>
+                          <TouchableOpacity
+                            style={styles.suggestionMain}
+                            onPress={() => handleSelectRecentUsername(username)}
+                            activeOpacity={0.7}
+                            accessibilityLabel={`Entrar como @${username}`}
+                          >
+                            <Ionicons name="person-circle-outline" size={22} color={colors.text.secondary} />
+                            <Text style={styles.suggestionText} numberOfLines={1}>
+                              @{username}
+                            </Text>
+                            {isBiometricAccount(username) ? (
+                              <Ionicons name="finger-print" size={18} color={colors.secondary.main} />
+                            ) : null}
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => void handleRemoveRecentUsername(username)}
+                            hitSlop={8}
+                            style={styles.suggestionRemove}
+                            accessibilityLabel={`Remover @${username} deste aparelho`}
+                          >
+                            <Ionicons name="close-circle-outline" size={20} color={colors.text.secondary} />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+
                   <Input
+                    ref={passwordRef}
+                    autoComplete="current-password"
+                    textContentType="password"
+                    returnKeyType="go"
+                    onSubmitEditing={() => {
+                      if (isFormValid && !loading) void handleSubmit();
+                    }}
                     label="Senha"
                     value={formData.password}
                     onChangeText={(text) =>
@@ -441,6 +536,58 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: c.background.default,
+  },
+  usernameWithSuggestions: {
+    marginBottom: 6,
+  },
+  suggestions: {
+    borderWidth: 1,
+    borderColor: c.border.medium,
+    borderRadius: 8,
+    backgroundColor: c.background.tertiary,
+    paddingVertical: 4,
+    marginBottom: 16,
+  },
+  suggestionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingTop: 6,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: c.border.light,
+  },
+  suggestionsTitle: {
+    fontSize: 12,
+    color: c.text.tertiary,
+  },
+  suggestionsClearAll: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: c.states.error,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  suggestionMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+  },
+  suggestionRemove: {
+    paddingVertical: 8,
+    paddingLeft: 12,
+  },
+  suggestionText: {
+    flexShrink: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: c.text.primary,
   },
   scrollContent: {
     flexGrow: 1,

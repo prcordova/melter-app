@@ -5,6 +5,7 @@ import { authApi, userApi } from '../services/api';
 import { getBiometricLoginEnabled } from '../services/biometricLogin';
 import { ensureBiometricLockTimeoutLoaded } from '../lib/biometric-lock';
 import { clearAuthToken, getAuthToken, setAuthToken } from '../lib/auth-token';
+import { addRecentUsername } from '../lib/recent-logins';
 import { User } from '../types';
 
 interface LoginResult {
@@ -282,6 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         setUser(user);
         await persistUserCache(user);
+        void addRecentUsername(user.username);
         setBiometricUnlockRequired(false);
 
         return { success: true };
@@ -326,6 +328,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const nextUser = mapApiToUser(userData);
     setUser(nextUser);
     await persistUserCache(nextUser);
+    void addRecentUsername(nextUser.username);
     setBiometricUnlockRequired(false);
     return { success: true };
   };
@@ -355,6 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         setUser(nextUser);
         await persistUserCache(nextUser);
+        void addRecentUsername(nextUser.username);
         setBiometricUnlockRequired(false);
         return { success: true };
       }
