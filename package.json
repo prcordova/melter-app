@@ -13,6 +13,7 @@
     "build": "eas build -p android --profile production",
     "build:preview": "eas build -p android --profile preview",
     "build:apk": "npx eas-cli build -p android --profile apk",
+    "build:cancel": "npx eas-cli build:cancel",
     "submit:prod": "eas submit -p android --profile production --latest"
   },
   "dependencies": {
