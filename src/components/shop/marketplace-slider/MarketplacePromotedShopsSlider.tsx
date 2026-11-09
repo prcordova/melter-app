@@ -7,7 +7,10 @@ import {
 } from 'react-native'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import type { MarketplaceSliderData, MarketplaceSliderItem } from '../../../config/shops/marketplace-slider/types'
-import { MARKETPLACE_SLIDER_AUTO_SCROLL_MS } from '../../../constants/marketplace-slider'
+import {
+  MARKETPLACE_SLIDER_AUTO_SCROLL_MS,
+  MARKETPLACE_SLIDER_COMPACT_HEIGHT,
+} from '../../../constants/marketplace-slider'
 import { marketplaceSliderApi } from '../../../services/shops/marketplace-slider'
 import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext'
 import type { AppPalette } from '../../../theme/palettes'
@@ -129,6 +132,7 @@ export function MarketplacePromotedShopsSlider({
           <ShopPromotionPlaceholderCard
             imageUrl={sliderData?.placeholderImageUrl}
             showText={sliderData?.placeholderShowText !== false}
+            compact={slides.length === 1}
           />
         )}
 
@@ -157,10 +161,10 @@ export function MarketplacePromotedShopsSlider({
 
 const createStyles = (c: AppPalette) => StyleSheet.create({
   wrapper: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   skeleton: {
-    minHeight: 148,
+    minHeight: MARKETPLACE_SLIDER_COMPACT_HEIGHT,
     borderRadius: 12,
     backgroundColor: c.background.tertiary,
     alignItems: 'center',

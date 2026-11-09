@@ -14,6 +14,8 @@ import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { PlanLocker } from './PlanLocker';
 import { resolveUserPlanType } from '../config/plan-features';
 import { useFeedPlanGates } from '../hooks/useFeedPlanGates';
+import { useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 interface StoriesCarouselProps {
   storiesGroups: StoriesGroup[];
@@ -27,6 +29,7 @@ export function StoriesCarousel({
   onCreateStory,
 }: StoriesCarouselProps) {
   const { user } = useAuth();
+  const styles = useThemedStyles(createStyles);
   const { requiredPlan } = useFeedPlanGates();
   const storiesRequiredPlan = requiredPlan('minPlanToCreateStories');
 
@@ -173,9 +176,9 @@ export function StoriesCarousel({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     marginBottom: 16,
     paddingVertical: 12,
@@ -193,7 +196,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: c.background.tertiary,
   },
   storyPreview: {
     width: '100%',
@@ -219,10 +222,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 2,
     borderColor: '#ffffff',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: c.background.tertiary,
   },
   storyAvatarViewed: {
-    borderColor: '#cbd5e1',
+    borderColor: c.border.medium,
   },
   storyAvatarCurrent: {
     borderColor: '#8b5cf6',
@@ -258,7 +261,7 @@ const styles = StyleSheet.create({
   },
   createStoryCard: {
     borderWidth: 2,
-    borderColor: '#e2e8f0',
+    borderColor: c.border.light,
     borderStyle: 'dashed',
   },
   createStoryOverlay: {

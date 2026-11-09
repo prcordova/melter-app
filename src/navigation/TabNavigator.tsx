@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { CommonActions } from '@react-navigation/native';
 import { View, Text, StyleSheet } from 'react-native';
 import { FeedScreen } from '../screens/FeedScreen';
 import { ProfileStackNavigator } from './ProfileStackNavigator';
@@ -149,19 +150,23 @@ export function TabNavigator() {
             const tabState = navigation.getState();
             const profileTab = tabState.routes.find((r) => r.name === 'ProfileStack');
             const stackState = profileTab?.state as
-              | { index?: number; routes?: { name: string }[] }
+              | { key?: string; routes?: { name: string }[] }
               | undefined;
-            const innerRoute =
-              stackState?.routes?.[stackState.index ?? 0]?.name ?? 'ProfileMain';
+            const routes = stackState?.routes ?? [];
+            const isAtProfileRoot = routes.length <= 1 && (routes[0]?.name ?? 'ProfileMain') === 'ProfileMain';
 
-            if (innerRoute === 'ProfileMain') {
+            if (isAtProfileRoot || !stackState?.key) {
               return;
             }
 
+            // Telas abertas de outras abas (ex.: MyShop) entram como primeira rota da stack;
+            // reset garante que o Perfil sempre volte ao ProfileMain.
             e.preventDefault();
-            navigation.navigate('ProfileStack', {
-              screen: 'ProfileMain',
+            navigation.dispatch({
+              ...CommonActions.reset({ index: 0, routes: [{ name: 'ProfileMain' }] }),
+              target: stackState.key,
             });
+            navigation.navigate('ProfileStack');
           },
         })}
       />

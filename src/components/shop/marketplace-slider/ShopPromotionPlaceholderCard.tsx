@@ -1,36 +1,34 @@
 import React from 'react'
-import { View, Text, Image, StyleSheet, useWindowDimensions } from 'react-native'
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useNavigation } from '@react-navigation/native'
 import { getImageUrl } from '../../../utils/image'
 import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext'
 import type { AppPalette } from '../../../theme/palettes'
 import {
-  MARKETPLACE_SLIDER_ACTION_INSET,
+  MARKETPLACE_SLIDER_COMPACT_HEIGHT,
   MARKETPLACE_SLIDER_HEIGHT,
 } from '../../../constants/marketplace-slider'
-import { Button } from '../../Button'
 
 type ShopPromotionPlaceholderCardProps = {
   imageUrl?: string | null
   showText?: boolean
+  /** Sem promoções ativas: faixa baixa em vez da altura do slider. */
+  compact?: boolean
 }
 
 export function ShopPromotionPlaceholderCard({
   imageUrl,
   showText = true,
+  compact = false,
 }: ShopPromotionPlaceholderCardProps) {
   const { colors } = useAppTheme()
   const styles = useThemedStyles(createStyles)
   const navigation = useNavigation<any>()
-  const { width } = useWindowDimensions()
-  const actionInset = width < 600
-    ? MARKETPLACE_SLIDER_ACTION_INSET.compact
-    : MARKETPLACE_SLIDER_ACTION_INSET.regular
   const resolvedImage = imageUrl ? getImageUrl(imageUrl) : null
   const hasImage = Boolean(resolvedImage)
 
-  const handlePromote = () => {
+  const handlePress = () => {
     navigation.navigate('ProfileStack', {
       screen: 'PromotionsSettings',
       params: { hubSection: 'shop', openCreate: true },
@@ -38,7 +36,17 @@ export function ShopPromotionPlaceholderCard({
   }
 
   return (
-    <View style={[styles.card, hasImage && styles.cardWithImage]}>
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel="Anuncie aqui"
+      style={[
+        styles.card,
+        { minHeight: compact ? MARKETPLACE_SLIDER_COMPACT_HEIGHT : MARKETPLACE_SLIDER_HEIGHT },
+        hasImage && styles.cardWithImage,
+      ]}
+    >
       {hasImage ? (
         <>
           <Image source={{ uri: resolvedImage! }} style={styles.bgImage} resizeMode="cover" />
@@ -49,33 +57,34 @@ export function ShopPromotionPlaceholderCard({
       )}
 
       {showText ? (
-        <View style={styles.content}>
-          <View style={styles.titleRow}>
-            <Ionicons
-              name="megaphone-outline"
-              size={22}
-              color={hasImage ? '#fff' : colors.text.primary}
-            />
+        <View style={[styles.content, compact && styles.contentCompact]}>
+          <Ionicons
+            name="megaphone-outline"
+            size={compact ? 20 : 22}
+            color={hasImage ? '#fff' : colors.text.primary}
+          />
+          <View style={styles.textWrap}>
             <Text style={[styles.title, hasImage && styles.titleOnImage]}>Anuncie aqui</Text>
+            <Text
+              style={[styles.description, hasImage && styles.descriptionOnImage]}
+              numberOfLines={compact ? 1 : 2}
+            >
+              Destaque seus pacotes no topo do marketplace.
+            </Text>
           </View>
-          <Text style={[styles.description, hasImage && styles.descriptionOnImage]} numberOfLines={2}>
-            Destaque seus pacotes no topo do marketplace e alcance mais compradores.
-          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={hasImage ? '#fff' : colors.text.secondary}
+          />
         </View>
       ) : null}
-
-      <View style={[styles.actionWrap, { right: actionInset, bottom: actionInset }]}>
-        <Button size="sm" onPress={handlePromote} style={styles.actionButton}>
-          Saiba mais
-        </Button>
-      </View>
-    </View>
+    </TouchableOpacity>
   )
 }
 
 const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
-    minHeight: MARKETPLACE_SLIDER_HEIGHT,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: `${c.primary.main}14`,
@@ -101,19 +110,23 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   content: {
     position: 'relative',
     zIndex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    paddingRight: 96,
-    gap: 6,
-    maxWidth: '100%',
-  },
-  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  contentCompact: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  textWrap: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   title: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '700',
     color: c.text.primary,
   },
@@ -121,18 +134,11 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     color: '#fff',
   },
   description: {
-    fontSize: 13,
+    fontSize: 12,
     color: c.text.secondary,
-    lineHeight: 18,
+    lineHeight: 16,
   },
   descriptionOnImage: {
     color: 'rgba(255,255,255,0.92)',
-  },
-  actionWrap: {
-    position: 'absolute',
-    zIndex: 2,
-  },
-  actionButton: {
-    minWidth: 0,
   },
 })

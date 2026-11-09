@@ -8,6 +8,7 @@ import {
   TextInput,
   Switch,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { ShopCard } from '../components/ShopCard';
@@ -21,13 +22,8 @@ import { showToast } from '../components/CustomToast';
 import { useAuth } from '../contexts/AuthContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { TouchableOpacity } from 'react-native';
-import { DiscoveryModeTabs } from '../components/DiscoveryModeTabs';
 import { Button } from '../components/Button';
 import { SelectRow } from '../components/SelectRow';
-import {
-  discoveryModeToTabName,
-  type DiscoveryViewMode,
-} from '../utils/explorer-discovery-personalization';
 import {
   marketplaceSortModeToQuery,
   MARKETPLACE_GENDER_LABELS,
@@ -108,6 +104,9 @@ export function ShopsSearchScreen() {
   const styles = useThemedStyles(createStyles);
   const listRef = useRef<FlatList<Product>>(null);
   useScrollToTop(listRef);
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 400;
+  const [searchOpen, setSearchOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [beyondProducts, setBeyondProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -335,6 +334,21 @@ export function ShopsSearchScreen() {
     );
   };
 
+  const renderSearchInput = (autoFocus: boolean) => (
+    <TextInput
+      style={styles.searchInput}
+      placeholder="Buscar produtos..."
+      placeholderTextColor={colors.text.tertiary}
+      value={searchQuery}
+      onChangeText={setSearchQuery}
+      autoCapitalize="none"
+      autoCorrect={false}
+      autoFocus={autoFocus}
+      returnKeyType="search"
+      onSubmitEditing={() => setSearchOpen(false)}
+    />
+  );
+
   const renderShopsSkeleton = () => (
     <View style={styles.skeletonContainer}>
       <View style={styles.skeletonTopRow}>
@@ -383,60 +397,58 @@ export function ShopsSearchScreen() {
 
         <MarketplacePromotedShopsSlider showAdultContent={showAdultContent} />
 
-        <View style={styles.discoveryModeRow}>
-          <View style={styles.discoveryTabsWrap}>
-            <DiscoveryModeTabs
-              compact
-              activeMode="shops"
-              onModeChange={(mode: DiscoveryViewMode) => {
-                if (mode === 'shops') return;
-                const parent = navigation.getParent();
-                parent?.navigate(discoveryModeToTabName(mode) as never);
-              }}
-            />
+        {/* Busca + toggle +18 + Promover (< 400px: busca vira lupa com dropdown) */}
+        <View style={styles.searchRowWrap}>
+          <View style={styles.searchRow}>
+            {isNarrow ? (
+              <TouchableOpacity
+                style={[styles.searchIconButton, (searchOpen || searchQuery) && styles.searchIconButtonActive]}
+                onPress={() => setSearchOpen((open) => !open)}
+                accessibilityLabel={searchOpen ? 'Fechar busca' : 'Buscar produtos'}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={searchOpen ? 'close' : 'search'}
+                  size={18}
+                  color={searchOpen || searchQuery ? colors.secondary.main : colors.text.secondary}
+                />
+                {!searchOpen && searchQuery ? <View style={styles.searchActiveDot} /> : null}
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.searchContainer}>{renderSearchInput(false)}</View>
+            )}
+            <View style={styles.adultToggleContainer}>
+              <Text style={styles.adultToggleLabel}>+18</Text>
+              <Switch
+                value={showAdultContent}
+                onValueChange={(value) => {
+                  setShowAdultContent(value);
+                  if (value) {
+                    setGenderFilter('women');
+                  }
+                }}
+                trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
+                thumbColor="#ffffff"
+                style={styles.adultSwitch}
+              />
+            </View>
+            {isNarrow ? <View style={styles.searchRowSpacer} /> : null}
+            <Button
+              size="sm"
+              onPress={() =>
+                navigation.navigate('ProfileStack', {
+                  screen: 'PromotionsSettings',
+                  params: { hubSection: 'shop', openCreate: true },
+                })
+              }
+              style={styles.promoteButton}
+            >
+              Promover
+            </Button>
           </View>
-          <Button
-            size="sm"
-            onPress={() =>
-              navigation.navigate('ProfileStack', {
-                screen: 'PromotionsSettings',
-                params: { hubSection: 'shop', openCreate: true },
-              })
-            }
-            style={styles.promoteButton}
-          >
-            Promover
-          </Button>
-        </View>
-
-        {/* Barra de Busca e Toggle +18 */}
-        <View style={styles.searchRow}>
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar produtos..."
-              placeholderTextColor={colors.text.tertiary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-          <View style={styles.adultToggleContainer}>
-            <Text style={styles.adultToggleLabel}>+18</Text>
-            <Switch
-              value={showAdultContent}
-              onValueChange={(value) => {
-                setShowAdultContent(value);
-                if (value) {
-                  setGenderFilter('women');
-                }
-              }}
-              trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
-              thumbColor="#ffffff"
-              style={styles.adultSwitch}
-            />
-          </View>
+          {isNarrow && searchOpen ? (
+            <View style={styles.searchDropdown}>{renderSearchInput(true)}</View>
+          ) : null}
         </View>
 
         {/* Filtros — ordenação (+ gênero quando +18) */}
@@ -510,17 +522,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
   },
-  discoveryModeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 6,
-  },
-  discoveryTabsWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
   promoteButton: {
     flexShrink: 0,
   },
@@ -544,6 +545,11 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  searchRowWrap: {
+    position: 'relative',
+    zIndex: 10,
+    elevation: 10,
+  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -552,6 +558,48 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   searchContainer: {
     flex: 1,
+    minWidth: 0,
+  },
+  searchRowSpacer: {
+    flex: 1,
+  },
+  searchIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.background.paper,
+    borderWidth: 1,
+    borderColor: c.border.light,
+  },
+  searchIconButtonActive: {
+    borderColor: c.secondary.main,
+  },
+  searchActiveDot: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: c.secondary.main,
+  },
+  searchDropdown: {
+    position: 'absolute',
+    top: 42,
+    left: 0,
+    right: 0,
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: c.background.paper,
+    borderWidth: 1,
+    borderColor: c.border.light,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
   },
   searchInput: {
     backgroundColor: c.background.paper,
