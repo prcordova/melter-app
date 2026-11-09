@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { BackButton } from '../components/BackButton';
 import { ThemedStatusBar } from '../components/ThemedStatusBar';
 import { Button } from '../components/Button';
+import { RichPostText } from '../components/RichPostText';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import { useAppUpdate } from '../contexts/AppUpdateContext';
 import { appApi } from '../services/app/api';
@@ -87,7 +88,7 @@ export function AppReleaseNotesScreen() {
                 {note.version ? <Text style={styles.versionChip}>v{note.version}</Text> : null}
               </View>
               <Text style={styles.noteDate}>{format(new Date(note.publishedAt), 'dd/MM/yyyy')}</Text>
-              <Text style={styles.noteDescription}>{note.description}</Text>
+              <RichPostText text={note.description} style={styles.noteDescription} color={colors.text.secondary} />
             </View>
           ))
         )}
@@ -191,7 +192,6 @@ const createStyles = (c: AppPalette) =>
     },
     noteDescription: {
       fontSize: 14,
-      color: c.text.secondary,
       marginTop: 8,
       lineHeight: 20,
     },
