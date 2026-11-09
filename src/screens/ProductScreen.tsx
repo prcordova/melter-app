@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Linking,
-  Alert,
   Dimensions,
+  Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppVideo, type AppVideoHandle } from '../components/AppVideo';
+import type { ProductFileProgress, ProductModule } from '../services/products';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { Header } from '../components/Header';
@@ -26,6 +29,11 @@ import * as ScreenCapture from 'expo-screen-capture';
 import ImageViewing from 'react-native-image-viewing';
 
 const { width } = Dimensions.get('window');
+
+/** URLs assinadas valem 15 min no servidor; renova antes de abrir mídia depois disso. */
+const SIGNED_URL_SAFE_MS = 12 * 60 * 1000;
+
+type ProductDigitalFile = NonNullable<NonNullable<Product['digital']>['files']>[number];
 
 interface Product {
   _id: string;
@@ -86,6 +94,79 @@ export function ProductScreen() {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
   const [imageViewerImages, setImageViewerImages] = useState<Array<{ uri: string }>>([]);
+  const [videoViewer, setVideoViewer] = useState<{ uri: string; title: string; index: number } | null>(null);
+  const videoRetriedRef = useRef(false);
+  const videoRef = useRef<AppVideoHandle>(null);
+  const signedAtRef = useRef(0);
+  const insets = useSafeAreaInsets();
+  const [progressByFile, setProgressByFile] = useState<Record<string, ProductFileProgress>>({});
+  const [modules, setModules] = useState<ProductModule[]>([]);
+
+  const ownerId = product
+    ? typeof product.userId === 'object' ? product.userId?._id : product.userId
+    : null;
+  const hasMediaAccess =
+    Boolean(product && user) &&
+    (Boolean(product?.purchaseStatus?.hasPurchased) ||
+      user?.id === ownerId ||
+      user?.accountType === 'admin');
+
+  useEffect(() => {
+    if (!hasMediaAccess) return;
+    let cancelled = false;
+    (async () => {
+      const [progressRes, modulesRes] = await Promise.all([
+        productsApi.getProgress(productId).catch(() => null),
+        productsApi.getModules(productId).catch(() => null),
+      ]);
+      if (cancelled) return;
+      if (progressRes?.success && progressRes.data) {
+        setProgressByFile(
+          Object.fromEntries(progressRes.data.progress.map((p) => [String(p.fileId), p]))
+        );
+      }
+      if (modulesRes?.success && modulesRes.data) {
+        setModules(modulesRes.data.modules || []);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasMediaAccess, productId]);
+
+  const trackView = (fileIndex: number) => {
+    if (!user) return;
+    void productsApi.trackFileView(productId, fileIndex).catch(() => undefined);
+  };
+
+  const persistProgress = (fileIndex: number, currentTime: number, duration: number, isCompleted: boolean) => {
+    if (!user || !(duration > 0)) return;
+    const entry: ProductFileProgress = {
+      fileId: String(fileIndex),
+      currentTime: Math.max(0, Math.min(currentTime, duration)),
+      duration,
+      isCompleted,
+    };
+    setProgressByFile((prev) => ({ ...prev, [entry.fileId]: entry }));
+    void productsApi.saveProgress(productId, entry).catch(() => undefined);
+  };
+
+  const closeVideoViewer = () => {
+    const viewer = videoViewer;
+    const player = videoRef.current;
+    if (viewer && player) {
+      const currentTime = player.getCurrentTime();
+      const duration = player.getDuration();
+      const alreadyCompleted = progressByFile[String(viewer.index)]?.isCompleted ?? false;
+      persistProgress(
+        viewer.index,
+        currentTime,
+        duration,
+        alreadyCompleted || (duration > 0 && currentTime / duration >= 0.95)
+      );
+    }
+    setVideoViewer(null);
+  };
 
   useEffect(() => {
     if (productId) {
@@ -139,6 +220,7 @@ export function ProductScreen() {
         }
 
         setProduct(productData);
+        signedAtRef.current = Date.now();
 
         // Verificar status de compra se o usuário estiver logado
         if (user) {
@@ -198,8 +280,35 @@ export function ProductScreen() {
     }
   };
 
-  const handleViewImage = (url: string, fileName: string, index: number, allImages: Array<{ url: string; fileName: string }>) => {
-    // Preparar imagens para o visualizador
+  /** `digital.files` com URLs assinadas válidas (renova via `media/sign` quando necessário). */
+  const getFreshFiles = async (force = false): Promise<ProductDigitalFile[]> => {
+    const current = product?.digital?.files || [];
+    if (!force && Date.now() - signedAtRef.current < SIGNED_URL_SAFE_MS) return current;
+    try {
+      const res = await productsApi.signMedia(productId);
+      if (!res.success || !res.data) return current;
+      const byIndex = new Map(res.data.files.map((f) => [f.index, f]));
+      const next = current.map((f, i) => {
+        const signed = byIndex.get(i);
+        return signed
+          ? { ...f, url: signed.url || f.url, thumbnail: signed.thumbnail ?? f.thumbnail }
+          : f;
+      });
+      signedAtRef.current = Date.now();
+      setProduct((prev) =>
+        prev ? { ...prev, digital: { ...prev.digital, files: next } } : prev
+      );
+      return next;
+    } catch (error) {
+      console.error('[ProductScreen] Erro ao renovar URLs da mídia:', error);
+      return current;
+    }
+  };
+
+  const handleViewImage = async (index: number, imageIndices: number[]) => {
+    const fresh = await getFreshFiles();
+    if (imageIndices[index] !== undefined) trackView(imageIndices[index]);
+    const allImages = imageIndices.map((i) => fresh[i]).filter(Boolean);
     const imageUris = allImages
       .map(img => {
         const imageUrl = getImageUrl(img.url);
@@ -220,12 +329,43 @@ export function ProductScreen() {
     setImageViewerVisible(true);
   };
 
-  const handleViewVideo = (url: string, fileName: string) => {
-    // TODO: Implementar visualizador de vídeo
-    Alert.alert('Visualizar Vídeo', fileName, [
-      { text: 'Abrir no navegador', onPress: () => handleOpenLink(url) },
-      { text: 'Cancelar', style: 'cancel' },
-    ]);
+  const handleViewVideo = async (fileIndex: number, title: string) => {
+    const fresh = await getFreshFiles();
+    const uri = getImageUrl(fresh[fileIndex]?.url);
+    if (!uri) {
+      showToast.error('Erro', 'Não foi possível carregar o vídeo');
+      return;
+    }
+    videoRetriedRef.current = false;
+    trackView(fileIndex);
+    setVideoViewer({ uri, title, index: fileIndex });
+  };
+
+  const handleVideoError = async () => {
+    if (!videoViewer || videoRetriedRef.current) {
+      showToast.error('Erro', 'Não foi possível reproduzir o vídeo');
+      return;
+    }
+    videoRetriedRef.current = true;
+    const fresh = await getFreshFiles(true);
+    const uri = getImageUrl(fresh[videoViewer.index]?.url);
+    if (uri) setVideoViewer((prev) => (prev ? { ...prev, uri } : prev));
+  };
+
+  /** Só com `digital.allowDownload` (igual ao web): abre a URL assinada recém-gerada. */
+  const handleDownloadFile = async (fileIndex: number) => {
+    if (!product?.digital?.allowDownload) {
+      showToast.info('Download', 'O download deste arquivo não está permitido pelo vendedor');
+      return;
+    }
+    const fresh = await getFreshFiles(true);
+    const url = getImageUrl(fresh[fileIndex]?.url);
+    if (!url) {
+      showToast.error('Erro', 'Arquivo indisponível');
+      return;
+    }
+    trackView(fileIndex);
+    await handleOpenLink(url);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -335,7 +475,8 @@ export function ProductScreen() {
       }
     : null;
 
-  const files = product.digital?.files || [];
+  const allowDownload = Boolean(product.digital?.allowDownload);
+  const files = (product.digital?.files || []).map((f, serverIndex) => ({ ...f, serverIndex }));
 
   // Buscar links também no array files (caso o link tenha sido salvo como arquivo)
   const links = files
@@ -344,14 +485,50 @@ export function ProductScreen() {
       ...f,
       url: normalizeUrl(f.url),
     }));
-  const images = files.filter((f) => f.fileType === 'image');
-  const videos = files.filter((f) => f.fileType === 'video');
-  const documents = files.filter(
+  const moduleGroups = [...modules]
+    .sort((a, b) => a.order - b.order)
+    .map((m) => ({
+      ...m,
+      items: (m.files || [])
+        .map((id) => files[Number(id)])
+        .filter((f): f is (typeof files)[number] => Boolean(f) && !isExternalProductLinkFile(f)),
+    }))
+    .filter((m) => m.items.length > 0);
+  const inModule = new Set(moduleGroups.flatMap((m) => m.items.map((f) => f.serverIndex)));
+  const looseFiles = files.filter((f) => !inModule.has(f.serverIndex));
+
+  const images = looseFiles.filter((f) => f.fileType === 'image');
+  const imageIndices = images.map((f) => f.serverIndex);
+  const videos = looseFiles.filter((f) => f.fileType === 'video');
+  const documents = looseFiles.filter(
     (f) => f.fileType === 'document' && f.url && !isExternalProductLinkFile(f)
   );
 
+  const getVideoProgressLabel = (fileIndex: number): string | null => {
+    const p = progressByFile[String(fileIndex)];
+    if (!p) return null;
+    if (p.isCompleted) return 'Concluído';
+    if (p.currentTime > 0 && p.duration > 0) {
+      return `${Math.round((p.currentTime / p.duration) * 100)}% assistido`;
+    }
+    return null;
+  };
+
+  const openFile = (file: (typeof files)[number]) => {
+    if (file.fileType === 'image') void handleViewImage(0, [file.serverIndex]);
+    else if (file.fileType === 'video') {
+      void handleViewVideo(file.serverIndex, file.customFileName || file.fileName);
+    } else void handleDownloadFile(file.serverIndex);
+  };
+
   // Verificar se há conteúdo (links também contam como conteúdo)
-  const hasContent = mainLink !== null || links.length > 0 || images.length > 0 || videos.length > 0 || documents.length > 0;
+  const hasContent =
+    mainLink !== null ||
+    links.length > 0 ||
+    moduleGroups.length > 0 ||
+    images.length > 0 ||
+    videos.length > 0 ||
+    documents.length > 0;
 
   // Obter username do dono do produto para voltar para a loja
   const ownerUsername = product ? (typeof product.userId === 'object' ? product.userId.username : null) : null;
@@ -473,6 +650,60 @@ export function ProductScreen() {
           </View>
         )}
 
+        {moduleGroups.length > 0 && canViewContent && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="albums-outline" size={20} color={colors.text.primary} />
+              <Text style={styles.sectionTitle}>Módulos ({moduleGroups.length})</Text>
+            </View>
+            {moduleGroups.map((module) => (
+              <View key={module._id} style={styles.moduleBlock}>
+                <Text style={styles.moduleTitle}>{module.title}</Text>
+                {module.description ? (
+                  <Text style={styles.documentDescription}>{module.description}</Text>
+                ) : null}
+                {module.items.map((file) => {
+                  const progressLabel =
+                    file.fileType === 'video' ? getVideoProgressLabel(file.serverIndex) : null;
+                  const completed = progressByFile[String(file.serverIndex)]?.isCompleted;
+                  return (
+                    <TouchableOpacity
+                      key={file.serverIndex}
+                      style={styles.documentCard}
+                      onPress={() => openFile(file)}
+                    >
+                      <Ionicons
+                        name={
+                          file.fileType === 'video'
+                            ? 'play-circle-outline'
+                            : file.fileType === 'image'
+                              ? 'image-outline'
+                              : 'document-outline'
+                        }
+                        size={24}
+                        color={colors.primary.main}
+                      />
+                      <View style={styles.documentInfo}>
+                        <Text style={styles.documentTitle}>
+                          {file.customFileName || file.fileName}
+                        </Text>
+                        {progressLabel ? (
+                          <Text style={styles.documentSize}>{progressLabel}</Text>
+                        ) : null}
+                      </View>
+                      <Ionicons
+                        name={completed ? 'checkmark-circle' : 'chevron-forward'}
+                        size={20}
+                        color={completed ? colors.states.success : colors.text.secondary}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Imagens */}
         {images.length > 0 && canViewContent && (
           <View style={styles.section}>
@@ -485,14 +716,8 @@ export function ProductScreen() {
                 <TouchableOpacity
                   key={index}
                   style={styles.mediaCard}
-                  onPress={() => handleViewImage(image.url, image.customFileName || image.fileName, index, images)}
-                  onLongPress={() => {
-                    // Verificar se o download é permitido
-                    const allowDownload = product.digital?.allowDownload || false;
-                    if (!allowDownload) {
-                      showToast.info('Download', 'O download desta imagem não está permitido pelo vendedor');
-                    }
-                  }}
+                  onPress={() => void handleViewImage(index, imageIndices)}
+                  onLongPress={() => void handleDownloadFile(image.serverIndex)}
                 >
                   {image.thumbnail ? (
                     <Image
@@ -531,7 +756,10 @@ export function ProductScreen() {
                 <TouchableOpacity
                   key={index}
                   style={styles.mediaCard}
-                  onPress={() => handleViewVideo(video.url, video.customFileName || video.fileName)}
+                  onPress={() =>
+                    void handleViewVideo(video.serverIndex, video.customFileName || video.fileName)
+                  }
+                  onLongPress={() => void handleDownloadFile(video.serverIndex)}
                 >
                   {video.thumbnail ? (
                     <View style={styles.videoThumbnailContainer}>
@@ -552,6 +780,11 @@ export function ProductScreen() {
                   <Text style={styles.mediaTitle} numberOfLines={2}>
                     {video.customFileName || video.fileName}
                   </Text>
+                  {getVideoProgressLabel(video.serverIndex) ? (
+                    <Text style={styles.mediaDescription}>
+                      {getVideoProgressLabel(video.serverIndex)}
+                    </Text>
+                  ) : null}
                   {video.description && (
                     <Text style={styles.mediaDescription} numberOfLines={2}>
                       {video.description}
@@ -574,7 +807,7 @@ export function ProductScreen() {
               <TouchableOpacity
                 key={index}
                 style={styles.documentCard}
-                onPress={() => handleOpenLink(getImageUrl(doc.url) || doc.url)}
+                onPress={() => void handleDownloadFile(doc.serverIndex)}
               >
                 <Ionicons name="document-outline" size={24} color={colors.primary.main} />
                 <View style={styles.documentInfo}>
@@ -586,7 +819,11 @@ export function ProductScreen() {
                   )}
                   <Text style={styles.documentSize}>{formatFileSize(doc.fileSize)}</Text>
                 </View>
-                <Ionicons name="download-outline" size={20} color={colors.text.secondary} />
+                <Ionicons
+                  name={allowDownload ? 'download-outline' : 'lock-closed-outline'}
+                  size={20}
+                  color={colors.text.secondary}
+                />
               </TouchableOpacity>
             ))}
           </View>
@@ -611,11 +848,85 @@ export function ProductScreen() {
         doubleTapToZoomEnabled
         swipeToCloseEnabled
       />
+
+      <Modal
+        visible={videoViewer !== null}
+        animationType="fade"
+        presentationStyle="overFullScreen"
+        transparent
+        onRequestClose={closeVideoViewer}
+      >
+        <View style={styles.videoViewer}>
+          <View style={[styles.videoViewerHeader, { paddingTop: insets.top + 8 }]}>
+            <Text style={styles.videoViewerTitle} numberOfLines={1}>
+              {videoViewer?.title}
+            </Text>
+            <TouchableOpacity
+              onPress={closeVideoViewer}
+              accessibilityLabel="Fechar vídeo"
+              hitSlop={12}
+            >
+              <Ionicons name="close" size={28} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+          {videoViewer ? (
+            <AppVideo
+              key={videoViewer.uri}
+              ref={videoRef}
+              uri={videoViewer.uri}
+              style={styles.videoViewerPlayer}
+              autoPlay
+              nativeControls
+              onLoad={() => {
+                const saved = progressByFile[String(videoViewer.index)];
+                if (saved && !saved.isCompleted && saved.currentTime > 5) {
+                  videoRef.current?.seekTo(saved.currentTime);
+                }
+              }}
+              onEnd={() => {
+                const duration = videoRef.current?.getDuration() ?? 0;
+                persistProgress(videoViewer.index, duration, duration, true);
+              }}
+              onError={() => void handleVideoError()}
+            />
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const createStyles = (c: AppPalette) => StyleSheet.create({
+  videoViewer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  videoViewerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  videoViewerTitle: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  videoViewerPlayer: {
+    flex: 1,
+  },
+  moduleBlock: {
+    marginBottom: 16,
+  },
+  moduleTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: c.text.primary,
+    marginBottom: 6,
+  },
   container: {
     flex: 1,
     backgroundColor: c.background.default,

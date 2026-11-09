@@ -47,6 +47,21 @@ export const SHOP_ADMIN_SETTINGS_API = {
   releasePlanGatedMarketplace: '/api/admin/settings/shop-products/release-marketplace',
 } as const
 
+/** Pedidos de assinatura do comprador — sync com melter web */
+export const SUBSCRIPTION_ORDERS_API = {
+  cancel: (orderId: string) => `/api/subscriptions/orders/${encodeURIComponent(orderId)}/cancel`,
+} as const
+
+/** Acesso do comprador à mídia privada do pacote — sync com melter web */
+export const PRODUCT_MEDIA_API = {
+  sign: (productId: string) => `/api/products/${encodeURIComponent(productId)}/media/sign`,
+  download: (productId: string) => `/api/products/${encodeURIComponent(productId)}/download`,
+  progress: (productId: string) => `/api/products/${encodeURIComponent(productId)}/progress`,
+  modules: (productId: string) => `/api/products/${encodeURIComponent(productId)}/modules`,
+  fileViews: (productId: string, fileId: string) =>
+    `/api/products/${encodeURIComponent(productId)}/files/${encodeURIComponent(fileId)}/views`,
+} as const
+
 /** Rascunhos de pacote + upload privado de arquivos — sync com melter web */
 export const PRODUCT_DRAFTS_API = {
   root: '/api/products/drafts',

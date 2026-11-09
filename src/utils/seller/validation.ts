@@ -34,6 +34,34 @@ export function isValidCpf(cpf: string): boolean {
   return remainder === parseInt(clean.substring(10, 11), 10);
 }
 
+export function formatCnpj(value: string): string {
+  return digitsOnly(value)
+    .slice(0, 14)
+    .replace(/(\d{2})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1/$2')
+    .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+}
+
+export function isValidCnpj(value: string): boolean {
+  const cnpj = digitsOnly(value);
+  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+
+  const calcDigit = (base: string, factors: number[]) => {
+    const sum = factors.reduce(
+      (acc, factor, index) => acc + parseInt(base.charAt(index), 10) * factor,
+      0
+    );
+    const remainder = sum % 11;
+    return remainder < 2 ? 0 : 11 - remainder;
+  };
+
+  const base = cnpj.slice(0, 12);
+  const d1 = calcDigit(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const d2 = calcDigit(base + String(d1), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  return cnpj.endsWith(`${d1}${d2}`);
+}
+
 /** Aceita DD/MM/AAAA ou AAAA-MM-DD; retorna Date local ou null. */
 export function parseBirthDateInput(value: string): Date | null {
   const trimmed = value.trim();

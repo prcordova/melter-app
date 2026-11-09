@@ -20,6 +20,7 @@ import { walletApi } from '../../services/api';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
+import { digitsOnly, formatCnpj, isValidCnpj, isValidCpf } from '../../utils/seller/validation';
 
 interface WithdrawModalProps {
   visible: boolean;
@@ -30,14 +31,18 @@ interface WithdrawModalProps {
 
 const PIX_KEY_TYPES = [
   { value: 'CPF', label: 'CPF' },
+  { value: 'CNPJ', label: 'CNPJ' },
   { value: 'EMAIL', label: 'E-mail' },
   { value: 'PHONE', label: 'Telefone' },
   { value: 'RANDOM', label: 'Chave Aleatória' },
 ];
 
+type PixKeyType = 'CPF' | 'CNPJ' | 'EMAIL' | 'PHONE' | 'RANDOM';
+
 function getPixPlaceholder(type: string): string {
   const placeholders: { [key: string]: string } = {
     CPF: '000.000.000-00',
+    CNPJ: '00.000.000/0000-00',
     EMAIL: 'seu@email.com',
     PHONE: '(11) 99999-9999',
     RANDOM: 'chave-aleatoria-pix',
@@ -270,7 +275,15 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
 
   const handlePixKeyTypeChange = (value: string) => {
     setPixKeyType(value);
+    setPixKey('');
     setTimeout(saveFormData, 100);
+  };
+
+  const handlePixKeyChange = (value: string) => {
+    if (pixKeyType === 'CPF') setPixKey(maskCPF(value));
+    else if (pixKeyType === 'CNPJ') setPixKey(formatCnpj(value));
+    else if (pixKeyType === 'PHONE') setPixKey(maskPhone(value));
+    else setPixKey(value);
   };
 
   const handleSubmit = async () => {
@@ -302,8 +315,18 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
     }
 
     // Validar pixKeyType
-    if (!['CPF', 'EMAIL', 'PHONE', 'RANDOM'].includes(pixKeyType)) {
+    if (!PIX_KEY_TYPES.some((type) => type.value === pixKeyType)) {
       showToast.error('Tipo de chave Pix inválido');
+      return;
+    }
+
+    if (pixKeyType === 'CPF' && !isValidCpf(pixKey)) {
+      showToast.error('Chave Pix CPF inválida');
+      return;
+    }
+
+    if (pixKeyType === 'CNPJ' && !isValidCnpj(pixKey)) {
+      showToast.error('Chave Pix CNPJ inválida');
       return;
     }
 
@@ -338,8 +361,13 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
       
       const withdrawalData = {
         amount: amountNum,
-        pixKey: pixKey.trim(),
-        pixKeyType: pixKeyType as 'CPF' | 'EMAIL' | 'PHONE' | 'RANDOM',
+        pixKey:
+          pixKeyType === 'CPF' || pixKeyType === 'CNPJ'
+            ? digitsOnly(pixKey)
+            : pixKeyType === 'PHONE'
+              ? `+55${digitsOnly(pixKey)}`
+              : pixKey.trim(),
+        pixKeyType: pixKeyType as PixKeyType,
         personalData: {
           fullName: personalData.fullName.trim(),
           cpf: cpfCleaned,
@@ -499,10 +527,16 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
               <TextInput
                 style={styles.input}
                 value={pixKey}
-                onChangeText={setPixKey}
+                onChangeText={handlePixKeyChange}
                 placeholder={getPixPlaceholder(pixKeyType)}
                 autoCapitalize="none"
-                keyboardType={pixKeyType === 'PHONE' ? 'phone-pad' : 'default'}
+                keyboardType={
+                  pixKeyType === 'PHONE'
+                    ? 'phone-pad'
+                    : pixKeyType === 'CPF' || pixKeyType === 'CNPJ'
+                      ? 'numeric'
+                      : 'default'
+                }
               />
             </View>
 

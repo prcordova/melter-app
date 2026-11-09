@@ -79,3 +79,27 @@ export interface RegisteredProductFile {
   duration: number | null;
   order: number;
 }
+
+/** `fileId` = índice em `digital.files` (string). */
+export interface ProductFileProgress {
+  fileId: string;
+  currentTime: number;
+  duration: number;
+  isCompleted: boolean;
+  lastWatched?: string;
+}
+
+export interface ProductModule {
+  _id: string;
+  title: string;
+  description?: string | null;
+  order: number;
+  /** Índices em `digital.files` (string). */
+  files: string[];
+}
+
+/** `data` de `POST /api/products/[id]/media/sign` — `index` = posição em `digital.files`. */
+export interface SignedProductMedia {
+  files: Array<{ index: number; url: string | null; thumbnail: string | null }>;
+  expiresInSeconds: number;
+}

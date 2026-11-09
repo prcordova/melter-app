@@ -11,11 +11,13 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Clipboard from 'expo-clipboard';
 import { walletApi } from '../../services/api';
-import { setPendingMpDeposit } from '../../lib/wallet-pending-deposit';
+import { clearPendingMpDeposit, setPendingMpDeposit } from '../../lib/wallet-pending-deposit';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
@@ -27,7 +29,22 @@ interface AddBalanceModalProps {
   onClose: () => void;
   /** Chamado após abrir checkout (recarga pendente — reconciliar na carteira). */
   onSuccess?: (pendingDepositId?: string) => void;
+  /** PIX nativo confirmado — saldo já creditado. */
+  onDepositCompleted?: () => void;
 }
+
+type PaymentMethod = 'PIX' | 'CHECKOUT';
+
+type PixData = {
+  pendingDepositId: string;
+  qrCodeBase64?: string;
+  qrCodeCopyPaste: string;
+  expiresAt: string;
+  grossAmount: number;
+  netAmount: number;
+};
+
+const PIX_POLL_INTERVAL_MS = 5000;
 
 interface BalancePackage {
   _id: string;
@@ -80,7 +97,7 @@ async function detectPaymentProvider(): Promise<PaymentProvider> {
   return 'STRIPE';
 }
 
-export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModalProps) {
+export function AddBalanceModal({ visible, onClose, onSuccess, onDepositCompleted }: AddBalanceModalProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
@@ -98,6 +115,9 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('MERCADOPAGO'); // Padrão: Mercado Pago para Brasil
   const [detectingCountry, setDetectingCountry] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PIX');
+  const [pixData, setPixData] = useState<PixData | null>(null);
+  const [pixCountdown, setPixCountdown] = useState('');
 
   const MIN_AMOUNT = 10;
   const MAX_AMOUNT = 50000;
@@ -124,8 +144,79 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
     } else {
       navigatingRef.current = false;
       hasInitializedRef.current = false;
+      setPixData(null);
+      setPixCountdown('');
     }
   }, [visible, detectingCountry]);
+
+  const pendingPixId = pixData?.pendingDepositId;
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const depositCompletedRef = useRef(onDepositCompleted);
+  depositCompletedRef.current = onDepositCompleted;
+
+  useEffect(() => {
+    if (!visible || !pendingPixId) return;
+    let active = true;
+
+    const poll = async () => {
+      try {
+        const response = await walletApi.getPixDeposit(pendingPixId);
+        if (!active || !response.success || !response.data) return;
+        const { status } = response.data;
+        if (status === 'approved') {
+          active = false;
+          await clearPendingMpDeposit();
+          showToast.success('Pagamento PIX confirmado! Saldo adicionado.');
+          setPixData(null);
+          depositCompletedRef.current?.();
+          closeRef.current();
+        } else if (status === 'cancelled' || status === 'rejected') {
+          active = false;
+          await clearPendingMpDeposit();
+          showToast.error('O PIX expirou ou foi cancelado. Gere um novo código.');
+          setPixData(null);
+        }
+      } catch {
+        /* silencioso no poll */
+      }
+    };
+
+    const interval = setInterval(() => void poll(), PIX_POLL_INTERVAL_MS);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [visible, pendingPixId]);
+
+  const pixExpiresAt = pixData?.expiresAt;
+
+  useEffect(() => {
+    if (!pixExpiresAt) return;
+    const tick = () => {
+      const diff = new Date(pixExpiresAt).getTime() - Date.now();
+      if (diff <= 0) {
+        setPixCountdown('00:00');
+        return;
+      }
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      setPixCountdown(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [pixExpiresAt]);
+
+  const handleCopyPix = async () => {
+    if (!pixData?.qrCodeCopyPaste) return;
+    try {
+      await Clipboard.setStringAsync(pixData.qrCodeCopyPaste);
+      showToast.success('Código PIX copiado');
+    } catch {
+      showToast.error('Não foi possível copiar o código');
+    }
+  };
 
   const fetchData = async () => {
     setLoadingFee(true);
@@ -198,6 +289,30 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
 
       if (!useCustomAmount && !selectedPackageId) {
         showToast.error('Selecione um pacote');
+        navigatingRef.current = false;
+        setLoading(false);
+        return;
+      }
+
+      if (paymentProvider === 'MERCADOPAGO' && paymentMethod === 'PIX') {
+        const pixResponse = await walletApi.createPixDeposit({
+          packageType: useCustomAmount ? undefined : selectedPackageId,
+          customAmount: useCustomAmount ? parseFloat(customAmount.replace(',', '.')) : undefined,
+        });
+        if (pixResponse.success && pixResponse.data?.qrCodeCopyPaste) {
+          await setPendingMpDeposit(null, pixResponse.data.pendingDepositId);
+          setPixData({
+            pendingDepositId: pixResponse.data.pendingDepositId,
+            qrCodeBase64: pixResponse.data.qrCodeBase64,
+            qrCodeCopyPaste: pixResponse.data.qrCodeCopyPaste,
+            expiresAt: pixResponse.data.expiresAt,
+            grossAmount: pixResponse.data.grossAmount,
+            netAmount: pixResponse.data.netAmount,
+          });
+          showToast.success('PIX gerado! Pague no app do seu banco.');
+        } else {
+          showToast.error(pixResponse.message || 'Erro ao gerar PIX');
+        }
         navigatingRef.current = false;
         setLoading(false);
         return;
@@ -325,7 +440,33 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
             keyboardDismissMode="on-drag"
           >
 
-            {loadingFee ? (
+            {pixData ? (
+              <View style={styles.pixContainer}>
+                <Text style={styles.pixTitle}>Pague com PIX</Text>
+                <Text style={styles.pixSubtitle}>
+                  Valor: R$ {pixData.grossAmount.toFixed(2)} · Você recebe: R$ {pixData.netAmount.toFixed(2)}
+                </Text>
+                {pixData.qrCodeBase64 ? (
+                  <Image
+                    source={{ uri: `data:image/png;base64,${pixData.qrCodeBase64}` }}
+                    style={styles.pixQrCode}
+                    resizeMode="contain"
+                    accessibilityLabel="QR Code PIX"
+                  />
+                ) : null}
+                {pixCountdown ? (
+                  <Text style={styles.pixCountdown}>Expira em {pixCountdown}</Text>
+                ) : null}
+                <Text style={styles.pixCodeLabel}>PIX copia e cola</Text>
+                <Text style={styles.pixCode} selectable numberOfLines={4}>
+                  {pixData.qrCodeCopyPaste}
+                </Text>
+                <View style={styles.pixWaitingRow}>
+                  <ActivityIndicator size="small" color={colors.secondary.main} />
+                  <Text style={styles.pixWaitingText}>Aguardando confirmação do pagamento...</Text>
+                </View>
+              </View>
+            ) : loadingFee ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.secondary.main} />
                 <Text style={styles.loadingText}>Carregando pacotes e taxas...</Text>
@@ -358,6 +499,17 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                       }
                     }}
                   />
+                  {paymentProvider === 'MERCADOPAGO' && (
+                    <SelectRow
+                      label="Forma de pagamento"
+                      value={paymentMethod}
+                      options={[
+                        { value: 'PIX', label: 'PIX (QR Code)' },
+                        { value: 'CHECKOUT', label: 'Cartão / checkout Mercado Pago' },
+                      ]}
+                      onChange={(value) => setPaymentMethod(value as PaymentMethod)}
+                    />
+                  )}
                 </View>
 
                 {/* Pacotes - Carrossel com setas */}
@@ -477,7 +629,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
           </ScrollView>
 
           {/* Conteúdo expansível de informações */}
-          {showInfo && !loadingFee && packages.length > 0 && (
+          {showInfo && !pixData && !loadingFee && packages.length > 0 && (
             <View style={styles.infoContent}>
               <Text style={styles.infoContentTitle}>Como funciona:</Text>
               <Text style={styles.infoContentText}>
@@ -493,26 +645,39 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
           )}
 
           {/* Actions */}
-          <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={onClose}
-              disabled={loading}
-            >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, styles.purchaseButton, loading && styles.buttonDisabled]}
-              onPress={handlePurchase}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text style={styles.purchaseButtonText}>Pagar</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          {pixData ? (
+            <View style={styles.actions}>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setPixData(null)}>
+                <Text style={styles.cancelButtonText}>Voltar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.button, styles.purchaseButton]} onPress={() => void handleCopyPix()}>
+                <Text style={styles.purchaseButtonText}>Copiar código</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.actions}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={onClose}
+                disabled={loading}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.purchaseButton, loading && styles.buttonDisabled]}
+                onPress={handlePurchase}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.purchaseButtonText}>
+                    {paymentProvider === 'MERCADOPAGO' && paymentMethod === 'PIX' ? 'Gerar PIX' : 'Pagar'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
           </Pressable>
         </KeyboardAvoidingView>
       </Pressable>
@@ -765,6 +930,59 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   gatewaySection: {
     marginTop: 16,
     marginBottom: 12,
+    gap: 8,
+  },
+  pixContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 10,
+  },
+  pixTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: c.text.primary,
+  },
+  pixSubtitle: {
+    fontSize: 13,
+    color: c.text.secondary,
+    textAlign: 'center',
+  },
+  pixQrCode: {
+    width: 220,
+    height: 220,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+  },
+  pixCountdown: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.states.warning,
+  },
+  pixCodeLabel: {
+    alignSelf: 'flex-start',
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.text.primary,
+  },
+  pixCode: {
+    alignSelf: 'stretch',
+    fontSize: 12,
+    color: c.text.secondary,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: c.border.light,
+    backgroundColor: c.background.tertiary,
+  },
+  pixWaitingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  pixWaitingText: {
+    fontSize: 13,
+    color: c.text.secondary,
   },
   infoContent: {
     paddingHorizontal: 20,

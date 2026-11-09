@@ -17,6 +17,7 @@ import { Button } from '../Button';
 import { shopApi } from '../../services/api';
 import { Picker } from '@react-native-picker/picker';
 import { useCustomModal, CustomModal } from '../CustomModal';
+import { formatPlanTypeForDisplay } from '../../config/plan-features';
 import {
   ShopAppearanceSettingsSection,
   DEFAULT_SHOP_APPEARANCE,
@@ -48,6 +49,25 @@ interface ShopSettingsModalProps {
   onNavigateToPlans?: () => void;
   /** 403 `requiresSellerVerification` ao ativar a loja. */
   onOpenVerification?: () => void;
+  /** Pré-checagem ao ativar (= web): KYC aprovado e plano mínimo. */
+  sellerVerificationStatus?: string | null;
+  shopPlanGate?: { canCreateShop?: boolean; minPlanToCreateShop?: string | null } | null;
+}
+
+function publishBlockedByKycMessage(status?: string | null): string {
+  switch (status) {
+    case 'pending':
+      return 'Cadastro da loja em análise. A publicação só libera depois da aprovação — não é possível ativar agora.';
+    case 'needs_review':
+      return 'Há correções pendentes no cadastro. Resolva a revisão antes de publicar a loja.';
+    case 'appeal':
+      return 'Sua reivindicação está em análise. A publicação libera após a decisão.';
+    case 'rejected':
+    case 'disabled':
+      return 'Cadastro rejeitado ou loja desabilitada. Corrija o cadastro antes de publicar.';
+    default:
+      return 'Envie o cadastro da loja antes de publicar no marketplace.';
+  }
 }
 
 export function ShopSettingsModal({
@@ -60,6 +80,8 @@ export function ShopSettingsModal({
   initialSettings,
   onNavigateToPlans,
   onOpenVerification,
+  sellerVerificationStatus,
+  shopPlanGate,
 }: ShopSettingsModalProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
@@ -120,11 +142,40 @@ export function ShopSettingsModal({
   };
 
   const handleSave = async () => {
+    let nextVisibility = visibility;
+    if (shopEnabled && !initialSettings?.isEnabled) {
+      nextVisibility = 'public';
+      if (sellerVerificationStatus !== 'approved') {
+        const message = publishBlockedByKycMessage(sellerVerificationStatus);
+        setShopEnabled(false);
+        const canOpenForm =
+          !sellerVerificationStatus || !['pending', 'needs_review', 'appeal'].includes(sellerVerificationStatus);
+        if (canOpenForm && onOpenVerification) {
+          showConfirm('Verificação necessária', message, onOpenVerification, {
+            confirmText: 'Enviar documentos',
+          });
+        } else {
+          showToast.error('Não é possível ativar', message);
+        }
+        return;
+      }
+      if (shopPlanGate && shopPlanGate.canCreateShop === false) {
+        const message = `Cadastro aprovado. Para ativar a loja no marketplace, assine o plano ${formatPlanTypeForDisplay(shopPlanGate.minPlanToCreateShop || 'STARTER')} (obrigatório).`;
+        setShopEnabled(false);
+        if (onNavigateToPlans) {
+          showConfirm('Plano necessário', message, onNavigateToPlans, { confirmText: 'Ver planos' });
+        } else {
+          showToast.error('Plano necessário', message);
+        }
+        return;
+      }
+    }
+
     try {
       setSaving(true);
       const response = await shopApi.updateSettings({
         isEnabled: shopEnabled,
-        visibility: visibility,
+        visibility: nextVisibility,
         saleNotifications: saleNotifications,
         backgroundMode: shopAppearance.backgroundMode,
         backgroundOverlay: shopAppearance.backgroundOverlay,

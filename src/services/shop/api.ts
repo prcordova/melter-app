@@ -124,4 +124,13 @@ export const shopApi = {
     const response = await api.delete<ApiResponse<unknown>>(SHOP_API.me.settings);
     return response.data;
   },
+  submitPlanAbandonFeedback: async (data: {
+    reason: string;
+    otherText?: string;
+    minPlan: string;
+    source: 'wizard' | 'modal';
+  }) => {
+    const response = await api.post<ApiResponse<unknown>>(SHOP_API.me.planAbandonFeedback, data);
+    return response.data;
+  },
 };

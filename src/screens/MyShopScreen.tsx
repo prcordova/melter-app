@@ -24,6 +24,7 @@ import type { ShopPlanGate } from '../services/shop/api';
 import { buildPlansSubscribeNavParams } from '../config/plans/subscribe-intent';
 import { SellerVerificationStatusCard } from '../components/shop/SellerVerificationStatusCard';
 import { SellerShopPlanPendingAlert } from '../components/shop/SellerShopPlanPendingAlert';
+import { SellerShopActivatePlanModal } from '../components/shop/SellerShopActivatePlanModal';
 import { shouldShowSellerShopPlanPendingAlert } from '../components/shop/SellerShopPlanRequiredStep';
 import { AppealModal } from '../components/shop/AppealModal';
 import {
@@ -188,6 +189,7 @@ export function MyShopScreen() {
     DEFAULT_SHOP_PRODUCTS_LIST_META
   );
   const [shopPlanGate, setShopPlanGate] = useState<ShopPlanGate | null>(null);
+  const [activatePlanOpen, setActivatePlanOpen] = useState(false);
   const productStorageOptions = useMemo(
     () =>
       shopPlanGate
@@ -570,8 +572,7 @@ export function MyShopScreen() {
     (sellerVerification?.status === 'pending' || sellerVerification?.status === 'needs_review');
   const canPrepareCatalogWithoutActiveShop =
     isOwner &&
-    shopPlanGate != null &&
-    shopPlanGate.allowProductCreateWithoutActiveShop !== false;
+    (shopPlanGate == null || shopPlanGate.allowProductCreateWithoutActiveShop !== false);
   const showSecondaryShopTabs = isAdmin || ownerApproved;
   const showTabs =
     isAdmin ||
@@ -652,6 +653,24 @@ export function MyShopScreen() {
     navigation.navigate('ProfileStack' as never, { screen: 'Plans', params } as never);
   };
 
+  const handleDeleteProduct = (product: any) => {
+    showConfirm(
+      'Remover pacote da loja?',
+      `"${product.title || 'Pacote'}" sai da vitrine e deixa de estar disponível para compra. Para desfazer, fale com o suporte.`,
+      async () => {
+        const res = await productsApi.deleteProduct(String(product._id));
+        if (res.success) {
+          showToast.success('Pacote removido da loja');
+        } else {
+          showToast.error('Erro', res.message || 'Não foi possível remover o pacote');
+        }
+        setProducts((prev) => (res.success ? prev.filter((p) => p._id !== product._id) : prev));
+        void fetchProducts();
+      },
+      { confirmText: 'Remover', destructive: true }
+    );
+  };
+
   const handleWizardSave = async (wizardData: any) => {
     setWizardSaving(true);
     setWizardProgress(5);
@@ -668,7 +687,9 @@ export function MyShopScreen() {
       void fetchProducts();
       closeProductWizard();
       const message = result.message || 'Pacote enviado para análise!';
-      if (result.pendingPlanActivation) {
+      if (result.pendingPlanActivation && shopPlanGate) {
+        setActivatePlanOpen(true);
+      } else if (result.pendingPlanActivation) {
         showConfirm('Pacote enviado para análise', message, handleGoToPlansFromShop, {
           confirmText: 'Ver planos',
           cancelText: 'Depois',
@@ -1523,6 +1544,7 @@ export function MyShopScreen() {
                                     }
                                   : undefined
                               }
+                              onDelete={isOwner ? () => handleDeleteProduct(product) : undefined}
                             />
                           );
                         })}
@@ -1719,6 +1741,7 @@ export function MyShopScreen() {
                                 }
                               : undefined
                           }
+                          onDelete={isOwner ? () => handleDeleteProduct(product) : undefined}
                         />
                       );
                     })}
@@ -1735,6 +1758,7 @@ export function MyShopScreen() {
       <AppealModal
         visible={showAppealModal}
         onClose={() => setShowAppealModal(false)}
+        disabledReason={sellerVerification?.rejectionReason}
         onSuccess={() => {
           fetchShopSettings();
         }}
@@ -1762,6 +1786,8 @@ export function MyShopScreen() {
         currentPlan={user?.plan?.type}
         username={username}
         isAdultShop={Boolean(sellerVerification?.isAdultContent)}
+        sellerVerificationStatus={sellerVerification?.status ?? null}
+        shopPlanGate={shopPlanGate}
         onNavigateToPlans={() => {
           setShowSettingsModal(false);
           handleGoToPlansFromShop();
@@ -1781,6 +1807,11 @@ export function MyShopScreen() {
         product={checkoutProduct}
         avatarFallbackEnabled={shopListMeta.productCoverAvatarFallbackEnabled}
         walletBalance={user?.wallet?.balance ?? 0}
+        onAddBalance={() => {
+          setShowCheckoutModal(false);
+          setCheckoutProduct(null);
+          navigation.navigate('WalletSettings', { openAddBalance: true });
+        }}
         onClose={() => {
           setShowCheckoutModal(false);
           setCheckoutProduct(null);
@@ -1828,9 +1859,17 @@ export function MyShopScreen() {
         saving={wizardSaving}
         overallProgress={wizardProgress}
         product={editingProduct ?? draftSession.resumedDraft}
+        draftProductId={editingProduct ? null : draftSession.sessionDraftId}
+        onEnsureDraft={editingProduct ? undefined : draftSession.ensureDraft}
       />
 
       <CustomModal {...modalProps} onClose={hideModal} />
+      <SellerShopActivatePlanModal
+        visible={activatePlanOpen}
+        gate={shopPlanGate}
+        onGoToPlans={handleGoToPlansFromShop}
+        onClose={() => setActivatePlanOpen(false)}
+      />
     </View>
   );
 }

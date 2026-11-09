@@ -36,6 +36,29 @@ export const walletApi = {
     }>>('/api/wallet/create-checkout', data);
     return response.data;
   },
+  createPixDeposit: async (data: { packageType?: string; customAmount?: number }) => {
+    const response = await api.post<ApiResponse<{
+      pendingDepositId: string;
+      paymentId: string;
+      qrCodeBase64?: string;
+      qrCodeCopyPaste: string;
+      expiresAt: string;
+      grossAmount: number;
+      netAmount: number;
+      feePercentage: number;
+    }>>('/api/wallet/create-pix-deposit', data);
+    return response.data;
+  },
+  getPixDeposit: async (pendingDepositId: string) => {
+    const response = await api.get<ApiResponse<{
+      status: 'pending' | 'approved' | 'cancelled' | 'rejected';
+      reason?: string;
+      qrCodeBase64?: string;
+      qrCodeCopyPaste?: string;
+      expiresAt?: string | null;
+    }>>(`/api/wallet/pix-deposit/${encodeURIComponent(pendingDepositId)}`);
+    return response.data;
+  },
   requestWithdrawal: async (data: {
     amount: number;
     pixKey: string;
@@ -57,6 +80,23 @@ export const walletApi = {
     };
   }) => {
     const response = await api.post<ApiResponse<any>>('/api/wallet/withdraw', data);
+    return response.data;
+  },
+  getWithdrawal: async (withdrawalId: string) => {
+    const response = await api.get<ApiResponse<{
+      _id: string;
+      amount: number;
+      withdrawalFee?: number;
+      netAmount?: number;
+      pixKey?: string;
+      pixKeyType?: string;
+      status: string;
+      requestedAt?: string;
+      approvedAt?: string;
+      completedAt?: string;
+      rejectedAt?: string;
+      receiptUrl?: string;
+    }>>(`/api/wallet/withdrawals/${encodeURIComponent(withdrawalId)}`);
     return response.data;
   },
   getPaymentStatus: async (paymentId: string, options?: { confirm?: boolean }) => {

@@ -1,12 +1,15 @@
 import { api } from '../http-client';
 import type { ApiResponse } from '../shared/types';
-import { PRODUCT_DRAFTS_API } from '../../config/shops/api-paths';
+import { PRODUCT_DRAFTS_API, PRODUCT_MEDIA_API } from '../../config/shops/api-paths';
 import type {
   ProductDraftSavePayload,
   ProductDraftSummary,
   ProductFilePresignedResponse,
   PublishProductDraftResponse,
+  ProductFileProgress,
+  ProductModule,
   RegisteredProductFile,
+  SignedProductMedia,
 } from './types';
 import type { ShopProductsListMeta } from '../../constants/shop-products-list-meta';
 
@@ -86,6 +89,46 @@ export const productsApi = {
       PRODUCT_DRAFTS_API.uploadFiles,
       payload
     );
+    return response.data;
+  },
+  /** Renova URLs assinadas (~15 min) de `digital.files`; sem `fileIndices` assina todos. */
+  signMedia: async (productId: string, fileIndices?: number[]) => {
+    const response = await api.post<ApiResponse<SignedProductMedia>>(
+      PRODUCT_MEDIA_API.sign(productId),
+      fileIndices ? { fileIndices } : {}
+    );
+    return response.data;
+  },
+  getProgress: async (productId: string) => {
+    const response = await api.get<ApiResponse<{ progress: ProductFileProgress[] }>>(
+      PRODUCT_MEDIA_API.progress(productId)
+    );
+    return response.data;
+  },
+  saveProgress: async (productId: string, progress: Omit<ProductFileProgress, 'lastWatched'>) => {
+    const response = await api.post<ApiResponse<{ progress: ProductFileProgress }>>(
+      PRODUCT_MEDIA_API.progress(productId),
+      progress
+    );
+    return response.data;
+  },
+  getModules: async (productId: string) => {
+    const response = await api.get<ApiResponse<{ modules: ProductModule[] }>>(
+      PRODUCT_MEDIA_API.modules(productId)
+    );
+    return response.data;
+  },
+  trackFileView: async (productId: string, fileIndex: number) => {
+    const response = await api.post<ApiResponse<{ viewsCount: number }>>(
+      PRODUCT_MEDIA_API.fileViews(productId, String(fileIndex))
+    );
+    return response.data;
+  },
+  /** Rascunho: descarte soft; produto publicado: apaga do S3 e tira de `digital.files`. */
+  deleteUploadedFile: async (productId: string, fileUrl: string) => {
+    const response = await api.delete<ApiResponse<null>>(PRODUCT_DRAFTS_API.uploadFiles, {
+      data: { productId, fileUrl },
+    });
     return response.data;
   },
   listDrafts: async () => {

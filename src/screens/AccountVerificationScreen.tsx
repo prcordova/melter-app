@@ -19,7 +19,7 @@ import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
 import { ThemedStatusBar } from '../components/ThemedStatusBar';
 import { useAuth } from '../contexts/AuthContext';
-import { userApi, sellerVerificationApi } from '../services/api';
+import { userApi } from '../services/api';
 import { showToast } from '../components/CustomToast';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 
@@ -98,9 +98,9 @@ export function AccountVerificationScreen() {
       let cancelled = false;
       (async () => {
         try {
-          const res = await sellerVerificationApi.getVerification();
+          const res = await userApi.getMyProfile();
           if (cancelled || !res.success) return;
-          const st = res.data?.status;
+          const st = res.data?.accountBadgeVerificationStatus?.status;
           if (st === 'pending') {
             showToast.info('Em análise', 'Você já tem uma solicitação pendente.');
             (navigation as any).goBack();

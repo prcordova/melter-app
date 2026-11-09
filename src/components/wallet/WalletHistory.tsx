@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -36,7 +37,26 @@ enum TransactionType {
   WITHDRAWAL_APPROVED = 'WITHDRAWAL_APPROVED',
   WITHDRAWAL_REJECTED = 'WITHDRAWAL_REJECTED',
   WITHDRAWAL_COMPLETED = 'WITHDRAWAL_COMPLETED',
+  PLAN_PURCHASE = 'PLAN_PURCHASE',
+  AFFILIATE_COMMISSION = 'AFFILIATE_COMMISSION',
 }
+
+type WithdrawalDetails = {
+  status: string;
+  withdrawalFee?: number;
+  netAmount?: number;
+  pixKeyType?: string;
+  receiptUrl?: string;
+};
+
+const WITHDRAWAL_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pendente',
+  APPROVED: 'Aprovado',
+  PROCESSING: 'Processando',
+  COMPLETED: 'Concluído',
+  REJECTED: 'Recusado',
+  CANCELLED: 'Cancelado',
+};
 
 interface Transaction {
   _id: string;
@@ -89,6 +109,8 @@ const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   [TransactionType.WITHDRAWAL_APPROVED]: 'Saque aprovado',
   [TransactionType.WITHDRAWAL_REJECTED]: 'Saque recusado',
   [TransactionType.WITHDRAWAL_COMPLETED]: 'Saque concluído',
+  [TransactionType.PLAN_PURCHASE]: 'Assinatura de plano',
+  [TransactionType.AFFILIATE_COMMISSION]: 'Comissão de afiliado',
 };
 
 const formatCurrency = (value: number) => `R$ ${Math.abs(value).toFixed(2)}`;
@@ -125,6 +147,31 @@ export function WalletHistory({ refreshTrigger }: WalletHistoryProps) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [selected, setSelected] = useState<Transaction | null>(null);
+  const [withdrawalDetails, setWithdrawalDetails] = useState<WithdrawalDetails | null>(null);
+  const [loadingWithdrawal, setLoadingWithdrawal] = useState(false);
+
+  const selectedWithdrawalId = selected?.metadata?.withdrawalId;
+
+  useEffect(() => {
+    setWithdrawalDetails(null);
+    if (!selectedWithdrawalId) return;
+    let cancelled = false;
+    setLoadingWithdrawal(true);
+    walletApi
+      .getWithdrawal(String(selectedWithdrawalId))
+      .then((response) => {
+        if (!cancelled && response.success && response.data) {
+          setWithdrawalDetails(response.data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingWithdrawal(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedWithdrawalId]);
 
   const dayGroups = useMemo(() => groupTransactionsByDay(transactions), [transactions]);
 
@@ -167,6 +214,12 @@ export function WalletHistory({ refreshTrigger }: WalletHistoryProps) {
       case TransactionType.WITHDRAWAL_APPROVED:
       case TransactionType.WITHDRAWAL_COMPLETED:
         return { name: 'cash-outline', color: colors.states.warning };
+      case TransactionType.WITHDRAWAL_REJECTED:
+        return { name: 'arrow-undo-circle', color: colors.states.success };
+      case TransactionType.PLAN_PURCHASE:
+        return { name: 'ribbon-outline', color: colors.states.error };
+      case TransactionType.AFFILIATE_COMMISSION:
+        return { name: 'people-circle-outline', color: colors.states.success };
       case TransactionType.ADMIN_CREDIT:
         return { name: 'gift', color: colors.states.success };
       case TransactionType.ADMIN_DEBIT:
@@ -231,8 +284,37 @@ export function WalletHistory({ refreshTrigger }: WalletHistoryProps) {
             {selected.metadata?.withdrawalId
               ? renderDetail('Saque', String(selected.metadata.withdrawalId), { selectable: true })
               : null}
+            {selectedWithdrawalId && loadingWithdrawal ? (
+              <ActivityIndicator size="small" color={colors.secondary.main} />
+            ) : null}
+            {withdrawalDetails ? (
+              <>
+                {renderDetail(
+                  'Status do saque',
+                  WITHDRAWAL_STATUS_LABELS[withdrawalDetails.status] ?? withdrawalDetails.status
+                )}
+                {withdrawalDetails.pixKeyType ? renderDetail('Chave Pix', withdrawalDetails.pixKeyType) : null}
+                {withdrawalDetails.withdrawalFee != null
+                  ? renderDetail('Taxa de saque', formatCurrency(withdrawalDetails.withdrawalFee))
+                  : null}
+                {withdrawalDetails.netAmount != null
+                  ? renderDetail('Valor a receber', formatCurrency(withdrawalDetails.netAmount))
+                  : null}
+              </>
+            ) : null}
             {renderDetail('ID da transação', selected._id, { selectable: true })}
           </ScrollView>
+
+          {withdrawalDetails?.receiptUrl ? (
+            <Button
+              variant="outline"
+              size="sm"
+              responsive={false}
+              onPress={() => void Linking.openURL(withdrawalDetails.receiptUrl!)}
+            >
+              Ver comprovante
+            </Button>
+          ) : null}
 
           <Button variant="ghost" size="sm" responsive={false} onPress={() => setSelected(null)}>
             Fechar

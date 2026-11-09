@@ -33,6 +33,8 @@ type Props = {
   productId?: string | null
   value?: PresentationVideoState | null
   onChange: (next: PresentationVideoState | null) => void
+  /** Pacote novo sem id: cria o rascunho no servidor antes do upload. */
+  onEnsureProductId?: () => Promise<string>
   /** Quando true, botões ficam na mesma row da capa (via children). */
   besideCover?: boolean
   children?: (slots: {
@@ -45,6 +47,7 @@ export function PresentationVideoSellerPanel({
   productId,
   value,
   onChange,
+  onEnsureProductId,
   besideCover = false,
   children,
 }: Props) {
@@ -59,7 +62,7 @@ export function PresentationVideoSellerPanel({
   const hasPending = value?.status === 'pending' || Boolean(value?.pendingUrl)
 
   async function upload() {
-    if (!productId) {
+    if (!productId && !onEnsureProductId) {
       showToast.info('Rascunho', 'Salve o rascunho do pacote antes de enviar o vídeo.')
       return
     }
@@ -82,13 +85,14 @@ export function PresentationVideoSellerPanel({
       const asset = picked.assets[0]
       setBusyLabel('Enviando vídeo de apresentação...')
       setBusy(true)
+      const targetId = productId || (await onEnsureProductId!())
       const form = new FormData()
       form.append('file', {
         uri: asset.uri,
         name: asset.name || 'video.mp4',
         type: asset.mimeType || 'video/mp4',
       } as unknown as Blob)
-      form.append('productId', productId)
+      form.append('productId', targetId)
       form.append('durationSeconds', String(60))
 
       const up = await fetch(`${API_CONFIG.BASE_URL}${PRESENTATION_VIDEO_API.upload}`, {
@@ -106,7 +110,7 @@ export function PresentationVideoSellerPanel({
       const mimeType = asset.mimeType || 'video/mp4'
       setBusyLabel('Enviando para moderação...')
       const sub = await fetch(
-        `${API_CONFIG.BASE_URL}${PRESENTATION_VIDEO_API.product(productId)}`,
+        `${API_CONFIG.BASE_URL}${PRESENTATION_VIDEO_API.product(targetId)}`,
         {
           method: 'PATCH',
           headers: {
@@ -184,7 +188,7 @@ export function PresentationVideoSellerPanel({
         <TouchableOpacity
           style={[styles.btn, besideCover && styles.btnBeside]}
           onPress={() => void upload()}
-          disabled={busy || !productId || hasPending}
+          disabled={busy || (!productId && !onEnsureProductId) || hasPending}
         >
           {busy ? (
             <ActivityIndicator color={besideCover ? colors.secondary.main : '#fff'} />

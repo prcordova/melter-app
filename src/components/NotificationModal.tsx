@@ -119,6 +119,15 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
             }
           }
           break;
+        case 'VIEW_SALE':
+          navigation.navigate('ProfileStack', {
+            screen: 'MyShop',
+            params: { tab: 'analytics' },
+          });
+          break;
+        case 'VIEW_PURCHASE':
+          navigation.navigate('ProfileStack', { screen: 'Purchases' });
+          break;
         case APP_RELEASE_NOTIFICATION_ACTION_TYPE:
           navigation.navigate('ProfileStack', {
             screen: 'AppReleaseNotes',

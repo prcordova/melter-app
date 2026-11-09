@@ -70,6 +70,10 @@ interface AnalyticsData {
     checkoutClicks: number;
     checkoutClicksWithoutPurchase: number;
   }>;
+  productOptions?: Array<{
+    productId: string;
+    productTitle: string;
+  }>;
   recentSales: Array<{
     id: string;
     date: string;
@@ -270,7 +274,7 @@ export function ShopAnalyticsContent() {
           </View>
         </View>
 
-        {analytics.productsList && analytics.productsList.length > 0 && (
+        {(analytics.productOptions ?? analytics.productsList)?.length > 0 && (
           <View style={styles.filterRow}>
             <Text style={styles.filterLabel}>Produto:</Text>
             <View style={styles.pickerContainer}>
@@ -280,7 +284,7 @@ export function ShopAnalyticsContent() {
                 style={styles.picker}
               >
                 <Picker.Item label="Todos" value="all" />
-                {analytics.productsList.map((product) => (
+                {(analytics.productOptions ?? analytics.productsList).map((product) => (
                   <Picker.Item key={product.productId} label={product.productTitle} value={product.productId} />
                 ))}
               </Picker>

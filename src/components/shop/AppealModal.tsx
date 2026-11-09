@@ -9,7 +9,9 @@ import {
   ScrollView,
   ActivityIndicator,
   Switch,
+  Linking,
 } from 'react-native';
+import { API_CONFIG } from '../../config/api.config';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
@@ -20,9 +22,11 @@ interface AppealModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  /** `sellerVerification.rejectionReason` — motivo da desabilitação. */
+  disabledReason?: string | null;
 }
 
-export function AppealModal({ visible, onClose, onSuccess }: AppealModalProps) {
+export function AppealModal({ visible, onClose, onSuccess, disabledReason }: AppealModalProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const [appealReason, setAppealReason] = useState('');
@@ -93,10 +97,22 @@ export function AppealModal({ visible, onClose, onSuccess }: AppealModalProps) {
           </View>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            <Text style={styles.description}>
-              Explique o motivo pelo qual você acredita que sua loja deve ser reativada. Um
-              administrador analisará sua solicitação.
-            </Text>
+            <View style={styles.warningBox}>
+              <Text style={styles.warningTitle}>Importante</Text>
+              <Text style={styles.description}>
+                Sua loja foi desabilitada por violação dos termos de uso. Para solicitar a
+                reativação, explique o que aconteceu e confirme que entendeu e aceita os termos.
+              </Text>
+            </View>
+
+            {disabledReason?.trim() ? (
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Motivo da desabilitação</Text>
+                <View style={styles.reasonBox}>
+                  <Text style={styles.reasonText}>{disabledReason.trim()}</Text>
+                </View>
+              </View>
+            ) : null}
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Justificativa *</Text>
@@ -104,7 +120,7 @@ export function AppealModal({ visible, onClose, onSuccess }: AppealModalProps) {
                 style={styles.textArea}
                 value={appealReason}
                 onChangeText={setAppealReason}
-                placeholder="Descreva o motivo da reativação..."
+                placeholder="Explique o que aconteceu, o que você fez para resolver o problema e por que acredita que sua loja deve ser reativada..."
                 placeholderTextColor={colors.text.tertiary}
                 multiline
                 numberOfLines={8}
@@ -125,8 +141,15 @@ export function AppealModal({ visible, onClose, onSuccess }: AppealModalProps) {
                 thumbColor={termsAccepted ? '#ffffff' : colors.text.tertiary}
               />
               <Text style={styles.termsText}>
-                Aceito que minha solicitação será analisada por um administrador e que a decisão
-                é final.
+                Confirmo que li e entendi os{' '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => void Linking.openURL(`${API_CONFIG.APP_URL.replace(/\/$/, '')}/terms`)}
+                >
+                  termos de uso
+                </Text>
+                . Comprometo-me a seguir todas as regras e políticas da plataforma. Entendo que novas
+                violações podem resultar em banimento permanente.
               </Text>
             </View>
           </ScrollView>
@@ -234,6 +257,35 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     color: c.text.secondary,
     flex: 1,
     lineHeight: 18,
+  },
+  termsLink: {
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+    color: c.text.primary,
+  },
+  warningBox: {
+    borderWidth: 1,
+    borderColor: c.states.warning,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+  },
+  warningTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: c.text.primary,
+    marginBottom: 4,
+  },
+  reasonBox: {
+    borderWidth: 1,
+    borderColor: c.states.error,
+    borderRadius: 8,
+    padding: 12,
+  },
+  reasonText: {
+    fontSize: 14,
+    color: c.text.primary,
+    lineHeight: 20,
   },
   footer: {
     flexDirection: 'row',

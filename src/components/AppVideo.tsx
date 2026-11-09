@@ -5,6 +5,8 @@ import { useVideoPlayer, VideoView, type VideoContentFit } from 'expo-video';
 
 export interface AppVideoHandle {
   seekTo: (seconds: number) => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
 }
 
 interface AppVideoProps {
@@ -50,6 +52,8 @@ export function AppVideo({
     seekTo: (seconds: number) => {
       player.currentTime = seconds;
     },
+    getCurrentTime: () => player.currentTime,
+    getDuration: () => player.duration,
   }), [player]);
 
   useEffect(() => {

@@ -64,6 +64,8 @@ export function useProductDraftSession({
   /** Rascunho retomado — vira `product` do wizard. */
   const [resumedDraft, setResumedDraft] = useState<any | null>(null);
   const sessionDraftRef = useRef<{ _id: string; status: string } | null>(null);
+  /** Id do rascunho da sessão (vídeo de apresentação / remoção de arquivo hospedado). */
+  const [sessionDraftId, setSessionDraftId] = useState<string | null>(null);
   const forceNewRef = useRef(false);
   /** Uploads já registrados nesta sessão (evita reenviar ao tentar publicar de novo). */
   const uploadedRef = useRef(new Map<string, ProductDraftFileItem>());
@@ -75,6 +77,7 @@ export function useProductDraftSession({
         void productsApi.cleanupEmptyDraft(leftover._id).catch(() => undefined);
       }
       sessionDraftRef.current = null;
+      setSessionDraftId(null);
       uploadedRef.current.clear();
       forceNewRef.current = false;
       setResumedDraft(null);
@@ -117,6 +120,7 @@ export function useProductDraftSession({
         throw new Error(res.message || 'Não foi possível carregar o rascunho');
       }
       sessionDraftRef.current = { _id: String(res.data._id), status: 'DRAFT' };
+      setSessionDraftId(sessionDraftRef.current._id);
       setResumedDraft(res.data);
       setResumeVisible(false);
     } finally {
@@ -143,6 +147,7 @@ export function useProductDraftSession({
     setResumeVisible(false);
     setResumedDraft(null);
     sessionDraftRef.current = null;
+    setSessionDraftId(null);
     forceNewRef.current = true;
   }, []);
 
@@ -151,7 +156,7 @@ export function useProductDraftSession({
     onAbort();
   }, [onAbort]);
 
-  const ensureDraftId = async (): Promise<string> => {
+  const ensureDraftId = useCallback(async (): Promise<string> => {
     if (sessionDraftRef.current?.status === 'DRAFT') return sessionDraftRef.current._id;
     const res = await productsApi.createDraft(forceNewRef.current);
     if (!res.success || !res.data?._id) {
@@ -159,8 +164,9 @@ export function useProductDraftSession({
     }
     forceNewRef.current = false;
     sessionDraftRef.current = { _id: String(res.data._id), status: 'DRAFT' };
+    setSessionDraftId(sessionDraftRef.current._id);
     return sessionDraftRef.current._id;
-  };
+  }, []);
 
   /** Upload dos arquivos pendentes → salva rascunho → envia para análise. */
   const publish = async (
@@ -228,6 +234,8 @@ export function useProductDraftSession({
     resolved,
     busy,
     resumedDraft,
+    sessionDraftId,
+    ensureDraft: ensureDraftId,
     continueDraft,
     discardDraft,
     createNew,

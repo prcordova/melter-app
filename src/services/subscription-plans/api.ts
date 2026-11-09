@@ -1,5 +1,5 @@
 import { api } from '../http-client';
-import { SHOP_API } from '../../config/shops/api-paths';
+import { SHOP_API, SUBSCRIPTION_ORDERS_API } from '../../config/shops/api-paths';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
 
 export const subscriptionPlansApi = {
@@ -47,6 +47,13 @@ export const subscriptionPlansApi = {
       expiresAt?: string | null;
       orderId?: string | null;
     }>>(`/api/subscriptions/plans/${planId}/status`);
+    return response.data;
+  },
+  /** Cancela a renovação; o comprador mantém acesso até `expiresAt`. */
+  cancelSubscriptionOrder: async (orderId: string) => {
+    const response = await api.post<ApiResponse<{ orderId: string; expiresAt?: string | null }>>(
+      SUBSCRIPTION_ORDERS_API.cancel(orderId)
+    );
     return response.data;
   },
 };

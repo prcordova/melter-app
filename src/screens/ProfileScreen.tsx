@@ -22,7 +22,7 @@ import { Button } from '../components/Button';
 import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import { SURFACE_RADIUS, type AppPalette } from '../theme/palettes';
-import { linksApi, storiesApi, userApi, sellerVerificationApi } from '../services/api';
+import { linksApi, storiesApi, userApi } from '../services/api';
 import { StoriesGroup } from '../types/feed';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -127,9 +127,10 @@ export function ProfileScreen() {
     }
     setAccountVerificationLoading(true);
     try {
-      const res = await sellerVerificationApi.getVerification();
+      // Selo da conta (`accountBadgeVerification`), não o KYC da loja.
+      const res = await userApi.getMyProfile();
       if (res.success) {
-        setAccountVerification(res.data ?? null);
+        setAccountVerification(res.data?.accountBadgeVerificationStatus ?? null);
       } else {
         setAccountVerification(null);
       }

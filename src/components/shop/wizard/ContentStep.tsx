@@ -20,6 +20,7 @@ import { getProductCreationStorageLimits, validateFileSize, PlanType } from '../
 import { getImageUrl } from '../../../utils/image';
 import type { PackContentDeliveryMode } from '../ProductCreationWizard';
 import { MediaUploadPickerRow } from '../../ui/MediaUploadPickerRow';
+import { productsApi } from '../../../services/products';
 
 export type ProductStorageOptions = Parameters<typeof getProductCreationStorageLimits>[1];
 
@@ -27,6 +28,8 @@ interface ContentStepProps {
   formData: any;
   setFormData: (data: any) => void;
   isEditing?: boolean;
+  /** Produto/rascunho no servidor — remover arquivo hospedado apaga do storage. */
+  productId?: string | null;
   showMediaRequiredError?: boolean;
   storageOptions?: ProductStorageOptions;
 }
@@ -35,6 +38,7 @@ export function ContentStep({
   formData,
   setFormData,
   isEditing = false,
+  productId = null,
   showMediaRequiredError = false,
   storageOptions,
 }: ContentStepProps) {
@@ -200,11 +204,32 @@ export function ContentStep({
     }
   };
 
-  const handleRemoveFile = (id: string) => {
-    setFormData({
-      ...formData,
-      files: formData.files.filter((file: any) => file.id !== id),
-    });
+  const [removingFileId, setRemovingFileId] = useState<string | null>(null);
+
+  const handleRemoveFile = async (id: string) => {
+    const target = formData.files.find((file: any) => file.id === id);
+    if (!target) return;
+
+    if (target.existing && target.url && productId) {
+      setRemovingFileId(id);
+      try {
+        const res = await productsApi.deleteUploadedFile(productId, target.url);
+        if (!res.success) {
+          showToast.error('Erro', res.message || 'Erro ao remover arquivo');
+          return;
+        }
+      } catch {
+        showToast.error('Erro', 'Erro ao remover arquivo');
+        return;
+      } finally {
+        setRemovingFileId(null);
+      }
+    }
+
+    setFormData((prev: any) => ({
+      ...prev,
+      files: (prev.files || []).filter((file: any) => file.id !== id),
+    }));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -367,10 +392,15 @@ export function ContentStep({
                     </View>
                   ) : (
                     <TouchableOpacity
-                      onPress={() => handleRemoveFile(file.id)}
+                      onPress={() => void handleRemoveFile(file.id)}
                       style={styles.removeButton}
+                      disabled={removingFileId !== null}
                     >
-                      <Ionicons name="close-circle" size={20} color={colors.states.error} />
+                      {removingFileId === file.id ? (
+                        <ActivityIndicator size="small" color={colors.states.error} />
+                      ) : (
+                        <Ionicons name="close-circle" size={20} color={colors.states.error} />
+                      )}
                     </TouchableOpacity>
                   )}
                 </View>

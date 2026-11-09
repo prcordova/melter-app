@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
-  Alert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +15,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Header } from '../components/Header';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
-import { userApi } from '../services/api';
+import { userApi, subscriptionPlansApi } from '../services/api';
+import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { showToast } from '../components/CustomToast';
 import { getImageUrl } from '../utils/image';
 
@@ -74,6 +74,7 @@ export function PurchasesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showConfirm, modalProps, hideModal } = useCustomModal();
 
   const fetchPurchases = async (showLoading = true) => {
     try {
@@ -159,24 +160,29 @@ export function PurchasesScreen() {
   };
 
   const handleCancelSubscription = (purchase: Purchase) => {
-    Alert.alert(
+    const itemName = purchase.subscriptionPlan?.name || purchase.productId?.title || 'Produto';
+    const seller =
+      purchase.subscriptionPlan?.userId?.username || purchase.productId?.userId?.username || 'vendedor';
+    const until = purchase.expiresAt
+      ? new Date(purchase.expiresAt).toLocaleDateString('pt-BR')
+      : 'o final do período pago';
+    showConfirm(
       'Cancelar Assinatura',
-      `Tem certeza que deseja cancelar a assinatura "${purchase.subscriptionPlan?.name || purchase.productId?.title || 'Produto'}" de @${purchase.subscriptionPlan?.userId?.username || purchase.productId?.userId?.username || 'vendedor'}?`,
-      [
-        { text: 'Manter Assinatura', style: 'cancel' },
-        {
-          text: 'Cancelar Assinatura',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // TODO: Implementar cancelamento de assinatura
-              showToast.info('Cancelamento', 'Funcionalidade em desenvolvimento');
-            } catch (error) {
-              showToast.error('Erro', 'Não foi possível cancelar a assinatura');
-            }
-          },
-        },
-      ]
+      `Tem certeza que deseja cancelar sua assinatura de "${itemName}" com @${seller}?\n\nVocê manterá acesso ao conteúdo até ${until}. Após essa data, sua assinatura não será renovada automaticamente.`,
+      async () => {
+        try {
+          const res = await subscriptionPlansApi.cancelSubscriptionOrder(purchase._id);
+          if (!res.success) {
+            showToast.error('Erro', res.message || 'Erro ao cancelar assinatura');
+            return;
+          }
+          showToast.success('Assinatura cancelada', res.message);
+          void fetchPurchases(false);
+        } catch {
+          showToast.error('Erro', 'Erro ao cancelar assinatura');
+        }
+      },
+      { confirmText: 'Sim, cancelar', cancelText: 'Não, manter assinatura', destructive: true }
     );
   };
 
@@ -425,6 +431,7 @@ export function PurchasesScreen() {
           />
         )}
       </View>
+      <CustomModal {...modalProps} onClose={hideModal} />
     </View>
   );
 }

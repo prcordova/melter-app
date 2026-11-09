@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BackButton } from '../../components/BackButton';
 import { Button } from '../../components/Button';
@@ -47,6 +47,16 @@ export function WalletSettingsScreen() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollingRef = useRef(false);
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
+
+  /** Atalho do checkout ("Adicionar saldo") — abre o depósito uma vez. */
+  useEffect(() => {
+    if (route.params?.openAddBalance) {
+      setAddBalanceModalOpen(true);
+      navigation.setParams({ openAddBalance: undefined });
+    }
+  }, [route.params?.openAddBalance, navigation]);
 
   const fetchWalletData = React.useCallback(async () => {
     try {
@@ -415,6 +425,7 @@ export function WalletSettingsScreen() {
         visible={addBalanceModalOpen}
         onClose={() => setAddBalanceModalOpen(false)}
         onSuccess={handleAddBalanceSuccess}
+        onDepositCompleted={() => void fetchWalletData()}
       />
       <WithdrawModal
         visible={withdrawModalOpen}

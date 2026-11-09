@@ -41,6 +41,10 @@ export interface ProductCreationWizardProps {
   productCoverAvatarFallbackEnabled?: boolean;
   /** Limites resolvidos no servidor (`shopPlanGate.productCreationLimits`) + plano mínimo da loja. */
   storageOptions?: ProductStorageOptions;
+  /** Rascunho criado nesta sessão (pacote novo). */
+  draftProductId?: string | null;
+  /** Cria o rascunho no servidor quando ainda não existe (vídeo de apresentação). */
+  onEnsureDraft?: () => Promise<string>;
 }
 
 const steps = ['Conteúdo', 'Detalhes', 'Revisão'];
@@ -56,6 +60,8 @@ export function ProductCreationWizard({
   overallProgress = 0,
   productCoverAvatarFallbackEnabled = true,
   storageOptions,
+  draftProductId = null,
+  onEnsureDraft,
 }: ProductCreationWizardProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
@@ -64,6 +70,7 @@ export function ProductCreationWizard({
   const isTinyScreen = windowWidth < 400;
   const isDraft = product?.status === 'DRAFT';
   const isEditing = Boolean(product) && !isDraft;
+  const serverProductId = product?._id ? String(product._id) : draftProductId;
   const [activeStep, setActiveStep] = useState(0);
   const [showMediaRequiredError, setShowMediaRequiredError] = useState(false);
   /** Dentro de Modal, o Android ignora muito o KAV; padding extra libera rolagem dos links. */
@@ -310,6 +317,7 @@ export function ProductCreationWizard({
             formData={formData}
             setFormData={setFormData}
             isEditing={isEditing}
+            productId={serverProductId}
             showMediaRequiredError={showMediaRequiredError}
             storageOptions={storageOptions}
           />
@@ -319,7 +327,8 @@ export function ProductCreationWizard({
           <DetailsStep
             formData={formData}
             setFormData={setFormData}
-            productId={product?._id ? String(product._id) : null}
+            productId={serverProductId}
+            onEnsureDraft={isEditing ? undefined : onEnsureDraft}
             lockPaymentAndPlan={isEditing}
             lockCategory={product?.status === 'APPROVED'}
             productCoverAvatarFallbackEnabled={productCoverAvatarFallbackEnabled}
@@ -457,6 +466,17 @@ export function ProductCreationWizard({
                 nestedScrollEnabled={true}
                 keyboardDismissMode="on-drag"
               >
+                {product?.analysisNotes ? (
+                  <View
+                    style={[
+                      styles.analysisNotes,
+                      product.status === 'REJECTED' && styles.analysisNotesRejected,
+                    ]}
+                  >
+                    <Text style={styles.analysisNotesTitle}>Observações da análise</Text>
+                    <Text style={styles.analysisNotesText}>{product.analysisNotes}</Text>
+                  </View>
+                ) : null}
                 {getStepContent()}
               </ScrollView>
             </View>
@@ -653,6 +673,26 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     fontSize: 12,
     color: c.text.secondary,
     textAlign: 'center',
+  },
+  analysisNotes: {
+    borderWidth: 1,
+    borderColor: c.states.warning,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  analysisNotesRejected: {
+    borderColor: c.states.error,
+  },
+  analysisNotesTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: c.text.primary,
+    marginBottom: 4,
+  },
+  analysisNotesText: {
+    fontSize: 13,
+    color: c.text.secondary,
   },
   contentWrapper: {
     flex: 1,

@@ -35,6 +35,8 @@ interface DetailsStepProps {
   lockCategory?: boolean;
   productCoverAvatarFallbackEnabled?: boolean;
   productId?: string | null;
+  /** Pacote novo: cria o rascunho antes de enviar o vídeo de apresentação. */
+  onEnsureDraft?: () => Promise<string>;
 }
 
 export function DetailsStep({
@@ -44,6 +46,7 @@ export function DetailsStep({
   lockCategory = false,
   productCoverAvatarFallbackEnabled = true,
   productId = null,
+  onEnsureDraft,
 }: DetailsStepProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
@@ -339,6 +342,7 @@ export function DetailsStep({
           <PresentationVideoSellerPanel
             besideCover
             productId={productId}
+            onEnsureProductId={onEnsureDraft}
             value={safeFormData.presentationVideo}
             onChange={(next) =>
               setFormData((prev: any) => ({ ...prev, presentationVideo: next }))

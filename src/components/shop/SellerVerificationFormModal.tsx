@@ -9,8 +9,10 @@ import {
   ActivityIndicator,
   TextInput,
   Switch,
+  Linking,
   useWindowDimensions,
 } from 'react-native';
+import { API_CONFIG } from '../../config/api.config';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
@@ -29,6 +31,8 @@ import {
   SELLER_VERIFICATION_MAX_VIDEO_SIZE_LABEL,
   SELLER_VERIFICATION_VIDEO_UPLOAD_HELPER_TEXT,
   SELLER_VERIFICATION_MAX_VIDEO_DURATION_SEC,
+  SELLER_VERIFICATION_ALLOWED_IMAGE_TYPES,
+  SELLER_VERIFICATION_ALLOWED_VIDEO_TYPES,
   SELLER_VERIFICATION_DOCUMENT_FRONT_EXAMPLE,
   SELLER_VERIFICATION_DOCUMENT_BACK_EXAMPLE,
   SELLER_VERIFICATION_SELFIE_WITH_DOCUMENT_EXAMPLE,
@@ -108,28 +112,67 @@ type Props = {
 const LOCKED_HINT = 'Enviado anteriormente — somente leitura.';
 const VIDEO_PROOF_LOCKED_HINT = 'Enviado anteriormente';
 
+/** Igual ao web (`User.sellerVerification.contentType`: course | digital_content | other). */
 const CONTENT_TYPE_OPTIONS = [
   { value: 'course', label: 'Curso' },
   { value: 'digital_content', label: 'Conteúdo digital' },
-  { value: 'service', label: 'Serviço' },
   { value: 'other', label: 'Outro' },
 ];
+const DEFAULT_SELLER_CONTENT_TYPE = 'digital_content';
 
-async function pickSellerImage(): Promise<PickedImage | null> {
-  const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+function resolveSellerContentType(value?: string | null): string {
+  return CONTENT_TYPE_OPTIONS.some((o) => o.value === value)
+    ? (value as string)
+    : DEFAULT_SELLER_CONTENT_TYPE;
+}
+
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  heic: 'image/heic',
+  heif: 'image/heif',
+};
+
+function resolvePickedMime(mimeType?: string | null, fileName?: string | null): string | null {
+  if (mimeType) return mimeType.toLowerCase();
+  const ext = fileName?.split('.').pop()?.toLowerCase();
+  return ext ? IMAGE_MIME_BY_EXT[ext] ?? null : null;
+}
+
+async function pickSellerImage(options?: { camera?: boolean }): Promise<PickedImage | null> {
+  const permissionResult = options?.camera
+    ? await ImagePicker.requestCameraPermissionsAsync()
+    : await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permissionResult.granted) {
-    showToast.error('Permissão negada', 'Precisamos de acesso à galeria');
+    showToast.error(
+      'Permissão negada',
+      options?.camera ? 'Precisamos de acesso à câmera' : 'Precisamos de acesso à galeria'
+    );
     return null;
   }
-  const result = await ImagePicker.launchImageLibraryAsync({
+  const pickerOptions: ImagePicker.ImagePickerOptions = {
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsEditing: false,
     quality: 0.85,
-  });
+  };
+  const result = options?.camera
+    ? await ImagePicker.launchCameraAsync({
+        ...pickerOptions,
+        cameraType: ImagePicker.CameraType.front,
+      })
+    : await ImagePicker.launchImageLibraryAsync(pickerOptions);
   if (result.canceled || !result.assets?.[0]) return null;
   const asset = result.assets[0];
   if (asset.fileSize && asset.fileSize > SELLER_VERIFICATION_MAX_IMAGE_SIZE_BYTES) {
     showToast.error('Arquivo grande', `Use uma imagem de até ${SELLER_VERIFICATION_MAX_IMAGE_SIZE_LABEL}.`);
+    return null;
+  }
+  const mime = resolvePickedMime(asset.mimeType, asset.fileName);
+  if (mime && !(SELLER_VERIFICATION_ALLOWED_IMAGE_TYPES as readonly string[]).includes(mime)) {
+    showToast.error('Formato não suportado', 'Envie a foto em JPG, PNG, GIF ou WebP.');
     return null;
   }
   return {
@@ -170,9 +213,9 @@ async function pickSellerVideo(): Promise<PickedImage | null> {
     showToast.error('Arquivo grande', 'Escolha um vídeo menor.');
     return null;
   }
-  const mime = asset.mimeType || 'video/mp4';
-  if (!mime.startsWith('video/')) {
-    showToast.error('Formato', 'Selecione um arquivo de vídeo.');
+  const mime = (asset.mimeType || 'video/mp4').toLowerCase();
+  if (!(SELLER_VERIFICATION_ALLOWED_VIDEO_TYPES as readonly string[]).includes(mime)) {
+    showToast.error('Formato não suportado', 'Vídeo prova: use MP4, MOV, WebM ou MKV.');
     return null;
   }
   return {
@@ -229,7 +272,7 @@ export function SellerVerificationFormModal({
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [contentOwnershipConfirmed, setContentOwnershipConfirmed] = useState(false);
   const [adultContentAware, setAdultContentAware] = useState(false);
-  const [contentType, setContentType] = useState('');
+  const [contentType, setContentType] = useState(DEFAULT_SELLER_CONTENT_TYPE);
   const [isAdultContent, setIsAdultContent] = useState(false);
   const [documentIsCopyOnly, setDocumentIsCopyOnly] = useState(false);
 
@@ -337,7 +380,7 @@ export function SellerVerificationFormModal({
       setAgeConfirmed(false);
       setContentOwnershipConfirmed(false);
       setAdultContentAware(false);
-      setContentType('');
+      setContentType(DEFAULT_SELLER_CONTENT_TYPE);
       setIsAdultContent(false);
       setDocumentFrontFile(null);
       setDocumentFrontPreview(null);
@@ -371,10 +414,10 @@ export function SellerVerificationFormModal({
     setAdultContentAware(data.adultContentAware ?? false);
 
     if (mustResubmit('contentType')) {
-      setContentType('');
+      setContentType(DEFAULT_SELLER_CONTENT_TYPE);
       setIsAdultContent(false);
     } else {
-      setContentType(data.contentType || '');
+      setContentType(resolveSellerContentType(data.contentType));
       setIsAdultContent(data.isAdultContent ?? false);
     }
 
@@ -540,7 +583,7 @@ export function SellerVerificationFormModal({
     setCpf(formatCpf(value));
   };
 
-  const handlePick = async (doc: DocKey) => {
+  const handlePick = async (doc: DocKey, options?: { camera?: boolean }) => {
     const fieldMap: Record<DocKey, string> = {
       documentFront: 'documentFront',
       documentBack: 'documentBack',
@@ -553,7 +596,7 @@ export function SellerVerificationFormModal({
     }
     setPickingDoc(doc);
     try {
-      const picked = await pickSellerImage();
+      const picked = await pickSellerImage(options);
       if (!picked) return;
       if (doc === 'documentFront') {
         setDocumentFrontFile(picked);
@@ -1076,6 +1119,18 @@ export function SellerVerificationFormModal({
                     picking={pickingDoc === 'selfieWithDocument'}
                   />
                 </SellerVerificationUploadWithExample>
+                {canEditField('selfieWithDocument') ? (
+                  <TouchableOpacity
+                    style={styles.cameraBtn}
+                    onPress={() => void handlePick('selfieWithDocument', { camera: true })}
+                    disabled={submitting || pickingDoc !== null}
+                  >
+                    <Ionicons name="camera-outline" size={16} color={colors.secondary.main} />
+                    <Text style={styles.cameraBtnText}>
+                      {selfiePreview ? 'Tirar nova foto' : 'Tirar foto com câmera'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
               ) : null}
               {showCopyOnlyCheckbox ? (
@@ -1214,19 +1269,31 @@ export function SellerVerificationFormModal({
                   disabled={submitting}
                 />
                 <Text style={styles.switchLabel}>
-                  Confirmo que o conteúdo que vou vender é de minha autoria
+                  Li e aceito os{' '}
+                  <Text
+                    style={styles.termsLink}
+                    onPress={() => void Linking.openURL(`${API_CONFIG.APP_URL.replace(/\/$/, '')}/terms`)}
+                  >
+                    Termos de Uso
+                  </Text>
+                  . Entendo que meus dados e documentos serão usados para análise, confirmação de
+                  maioridade e validação de identidade; declaro ser a pessoa da foto e responsável pelos
+                  conteúdos vendidos aqui, de minha autoria (ou com direitos que me autorizam a vender).
                 </Text>
               </View>
-              <View style={styles.switchRow}>
-                <Switch
-                  value={adultContentAware}
-                  onValueChange={setAdultContentAware}
-                  disabled={submitting}
-                />
-                <Text style={styles.switchLabel}>
-                  Estou ciente da responsabilidade por conteúdos que publicar
-                </Text>
-              </View>
+              {isAdultContent ? (
+                <View style={styles.switchRow}>
+                  <Switch
+                    value={adultContentAware}
+                    onValueChange={setAdultContentAware}
+                    disabled={submitting}
+                  />
+                  <Text style={styles.switchLabel}>
+                    Estou ciente de que venderei conteúdo para maiores de 18 anos e assumo total
+                    responsabilidade pelo que publicar, inclusive autorizações de quem aparecer nas mídias.
+                  </Text>
+                </View>
+              ) : null}
             </View>
             </>
             ) : null}
@@ -1420,6 +1487,19 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   selfieSpan: { width: '100%' },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   switchLabel: { flex: 1, fontSize: 13, color: c.text.primary, lineHeight: 18 },
+  termsLink: { fontWeight: '700', color: c.secondary.main, textDecorationLine: 'underline' },
+  cameraBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.secondary.main,
+  },
+  cameraBtnText: { fontSize: 13, fontWeight: '600', color: c.secondary.main },
   termsDisabled: { opacity: 1 },
   footer: {
     flexDirection: 'row',

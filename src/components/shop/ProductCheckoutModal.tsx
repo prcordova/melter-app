@@ -8,7 +8,10 @@ import {
   ActivityIndicator,
   ScrollView,
   Image,
+  Switch,
+  Linking,
 } from 'react-native';
+import { API_CONFIG } from '../../config/api.config';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
@@ -26,7 +29,7 @@ export interface CheckoutProduct {
   coverImage?: string | null;
   presentationVideoUrl?: string | null;
   paymentMode?: 'UNICO' | 'ASSINATURA';
-  subscriptionPlan?: { price?: number } | null;
+  subscriptionPlan?: { price?: number; intervalDays?: number } | null;
   isAiContent?: boolean;
   digital?: {
     filesCount?: number;
@@ -46,7 +49,12 @@ export interface ProductCheckoutModalProps {
   avatarFallbackEnabled?: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  /** Abre a carteira com o modal de depósito. */
+  onAddBalance?: () => void;
 }
+
+const formatBRL = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
 export function ProductCheckoutModal({
   visible,
@@ -55,18 +63,22 @@ export function ProductCheckoutModal({
   avatarFallbackEnabled = true,
   onClose,
   onSuccess,
+  onAddBalance,
 }: ProductCheckoutModalProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
+  const [privatePurchase, setPrivatePurchase] = useState(true);
 
   if (!product) return null;
 
-  const price =
-    product.paymentMode === 'ASSINATURA' && product.subscriptionPlan?.price != null
-      ? product.subscriptionPlan.price
-      : product.price;
+  /** Mesmo cálculo do servidor (`orders/checkout`): preço do plano vinculado, senão o do produto. */
+  const price = product.subscriptionPlan?.price || product.price;
   const canAfford = walletBalance >= price;
+  const purchaseInfo =
+    product.paymentMode === 'ASSINATURA'
+      ? `Assinatura recorrente: cobrança de ${formatBRL(price)} a cada ${product.subscriptionPlan?.intervalDays || 30} dias.`
+      : 'Pacote digital: acesso ao conteúdo (links, arquivos ou ambos) enquanto o produto estiver ativo na loja.';
   const aiDisclosureMessage = getProductAiCheckoutDisclosureMessage(product);
 
   const handleCheckout = async () => {
@@ -76,7 +88,7 @@ export function ProductCheckoutModal({
     }
     try {
       setLoading(true);
-      const res = await ordersApi.checkoutProduct(product._id, 1);
+      const res = await ordersApi.checkoutProduct(product._id, 1, privatePurchase);
       if (res.success) {
         showToast.success('Compra realizada!', 'O produto foi liberado na sua conta.');
         onSuccess();
@@ -133,25 +145,58 @@ export function ProductCheckoutModal({
               />
             ) : null}
 
+            <Text style={styles.purchaseInfo}>{purchaseInfo}</Text>
+
             <View style={styles.row}>
-              <Text style={styles.label}>Valor</Text>
-              <Text style={styles.price}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price)}
-              </Text>
+              <Text style={styles.label}>Total a pagar</Text>
+              <Text style={styles.price}>{formatBRL(price)}</Text>
             </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Saldo na carteira</Text>
-              <Text style={[styles.balance, !canAfford && styles.balanceLow]}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  walletBalance
-                )}
-              </Text>
+            <View style={styles.balanceBox}>
+              <View>
+                <Text style={styles.label}>Seu saldo atual</Text>
+                <Text style={[styles.balance, !canAfford && styles.balanceLow]}>
+                  {formatBRL(walletBalance)}
+                </Text>
+              </View>
+              {onAddBalance ? (
+                <TouchableOpacity style={styles.addBalanceBtn} onPress={onAddBalance}>
+                  <Text style={styles.addBalanceText}>Adicionar saldo</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
             {!canAfford && (
               <Text style={styles.warn}>
-                Saldo insuficiente. Abra a carteira no menu do perfil para adicionar fundos.
+                Saldo insuficiente. Faltam {formatBRL(price - walletBalance)} para concluir esta compra.
               </Text>
             )}
+
+            <View style={styles.privateRow}>
+              <View style={styles.privateText}>
+                <Text style={styles.privateTitle}>Compra privada</Text>
+                <Text style={styles.privateDescription}>
+                  O vendedor não verá seu nome completo nem @ nas notificações e e-mails de venda —
+                  apenas um identificador mascarado.
+                </Text>
+              </View>
+              <Switch
+                value={privatePurchase}
+                onValueChange={setPrivatePurchase}
+                disabled={loading}
+              />
+            </View>
+
+            <View style={styles.termsBox}>
+              <Text style={styles.termsText}>
+                O pagamento é feito com o saldo da sua carteira na plataforma. Ao confirmar, você aceita
+                os termos de uso e as regras de produtos digitais.
+              </Text>
+              <Text
+                style={styles.termsLink}
+                onPress={() => void Linking.openURL(`${API_CONFIG.APP_URL.replace(/\/$/, '')}/terms`)}
+              >
+                Ler termos completos
+              </Text>
+            </View>
             {aiDisclosureMessage ? (
               <View style={styles.aiNotice}>
                 <Ionicons name="sparkles" size={18} color={colors.secondary.main} />
@@ -262,6 +307,77 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     fontSize: 13,
     color: c.states.warning,
     marginBottom: 12,
+  },
+  purchaseInfo: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: c.text.secondary,
+    marginBottom: 14,
+  },
+  balanceBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: c.border.light,
+    marginBottom: 12,
+  },
+  addBalanceBtn: {
+    backgroundColor: c.secondary.main,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addBalanceText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  privateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: c.border.light,
+    marginBottom: 12,
+  },
+  privateText: {
+    flex: 1,
+  },
+  privateTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.text.primary,
+    marginBottom: 2,
+  },
+  privateDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: c.text.secondary,
+  },
+  termsBox: {
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: c.border.light,
+    marginBottom: 12,
+  },
+  termsText: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: c.text.secondary,
+    marginBottom: 8,
+  },
+  termsLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.secondary.main,
+    textDecorationLine: 'underline',
   },
   aiNotice: {
     flexDirection: 'row',

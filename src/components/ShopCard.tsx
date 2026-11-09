@@ -36,6 +36,8 @@ interface Product {
   isAiContent?: boolean;
   paymentMode?: 'UNICO' | 'ASSINATURA';
   status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REQUIRES_CHANGES' | 'INACTIVE';
+  /** Observações do admin (recusa / ajustes) — só exibidas ao dono. */
+  analysisNotes?: string | null;
   subscriptionPlanId?: string;
   subscriptionPlan?: {
     _id: string;
@@ -57,6 +59,8 @@ interface ShopCardProps {
   footerAction?: { label: string; onPress: () => void };
   /** Ação secundária ao lado da principal (ex.: Promover) */
   secondaryFooterAction?: { label: string; onPress: () => void };
+  /** Dono: remover pacote da loja (soft delete `REMOVED_BY_SELLER`). */
+  onDelete?: () => void;
   /** De `meta.productCoverAvatarFallbackEnabled` (admin > Parâmetros). */
   avatarFallbackEnabled?: boolean;
 }
@@ -85,6 +89,7 @@ export function ShopCard({
   statusChip,
   footerAction,
   secondaryFooterAction,
+  onDelete,
   avatarFallbackEnabled = true,
 }: ShopCardProps) {
   const { colors } = useAppTheme();
@@ -109,6 +114,11 @@ export function ShopCard({
 
   const isPending = showPendingBadge && product.status === 'PENDING';
   const isRequiresChanges = showRequiresChangesBadge && product.status === 'REQUIRES_CHANGES';
+  const isRejected = showRequiresChangesBadge && product.status === 'REJECTED';
+  const ownerAnalysisNotes =
+    (isRequiresChanges || isRejected) && product.analysisNotes?.trim()
+      ? product.analysisNotes.trim()
+      : null;
 
   const displayPrice =
     product.paymentMode === 'ASSINATURA' && product.subscriptionPlan?.price != null
@@ -170,6 +180,16 @@ export function ShopCard({
             <Text style={styles.pendingBadgeText}>Alterações</Text>
           </View>
         )}
+        {isRejected && (
+          <View style={[
+            styles.changesBadge,
+            styles.rejectedBadge,
+            product.userId?.avatar && styles.pendingBadgeWithAvatar
+          ]}>
+            <Ionicons name="close-circle-outline" size={12} color="#FFFFFF" />
+            <Text style={styles.pendingBadgeText}>Recusado</Text>
+          </View>
+        )}
 
         {/* Badge Tipo */}
         <View style={styles.typeBadge}>
@@ -220,6 +240,15 @@ export function ShopCard({
           </View>
         )}
 
+        {ownerAnalysisNotes ? (
+          <View style={[styles.analysisNotes, isRejected && styles.analysisNotesRejected]}>
+            <Text style={styles.analysisNotesLabel}>Observações da análise</Text>
+            <Text style={styles.analysisNotesText} numberOfLines={4}>
+              {ownerAnalysisNotes}
+            </Text>
+          </View>
+        ) : null}
+
         {product.paymentMode === 'ASSINATURA' && product.subscriptionPlan?.name && (
           <Text style={styles.subPlanName} numberOfLines={1}>
             Plano: {product.subscriptionPlan.name}
@@ -268,6 +297,16 @@ export function ShopCard({
           >
             <Ionicons name="megaphone-outline" size={14} color={colors.secondary.main} />
             <Text style={styles.footerActionSecondaryText}>{secondaryFooterAction.label}</Text>
+          </TouchableOpacity>
+        ) : null}
+        {onDelete ? (
+          <TouchableOpacity
+            style={styles.footerActionDelete}
+            onPress={onDelete}
+            activeOpacity={0.85}
+            accessibilityLabel="Remover pacote da loja"
+          >
+            <Ionicons name="trash-outline" size={16} color={colors.states.error} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -510,6 +549,36 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   footerActionsRow: {
     flexDirection: 'row',
+  },
+  footerActionDelete: {
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: c.border.light,
+  },
+  rejectedBadge: {
+    backgroundColor: c.states.error,
+  },
+  analysisNotes: {
+    borderLeftWidth: 3,
+    borderLeftColor: c.states.warning,
+    paddingLeft: 8,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  analysisNotesRejected: {
+    borderLeftColor: c.states.error,
+  },
+  analysisNotesLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: c.text.primary,
+    marginBottom: 2,
+  },
+  analysisNotesText: {
+    fontSize: 12,
+    color: c.text.secondary,
   },
   footerAction: {
     flex: 1,

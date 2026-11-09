@@ -16,6 +16,21 @@ export const SELLER_VERIFICATION_MAX_VIDEO_SIZE_LABEL = `${SELLER_VERIFICATION_M
 
 export const SELLER_VERIFICATION_MAX_VIDEO_DURATION_SEC = 45;
 
+/** Mesmos tipos aceitos por `POST /api/shops/verification/upload` (sem HEIC / 3gpp). */
+export const SELLER_VERIFICATION_ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+] as const;
+export const SELLER_VERIFICATION_ALLOWED_VIDEO_TYPES = [
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
+  'video/x-matroska',
+] as const;
+
 export const SELLER_VERIFICATION_VIDEO_UPLOAD_HELPER_TEXT = `Vídeo MP4/MOV/WebM — máx. ${SELLER_VERIFICATION_MAX_VIDEO_SIZE_LABEL}, até ${SELLER_VERIFICATION_MAX_VIDEO_DURATION_SEC}s`;
 
 export const SELLER_VERIFICATION_UPLOAD_PREVIEW_HEIGHT = 200;
