@@ -44,6 +44,7 @@ export const USERS_API = {
     onboardingDiscoveryTrack: '/api/users/onboarding-discovery/track',
     onboardingFollowSuggestions: '/api/users/onboarding-follow-suggestions',
     onboardingFollowSuggestionsList: '/api/users/me/onboarding-follow-suggestions',
+    onboardingTour: '/api/users/me/onboarding-tour',
     twoFa: {
       setup: '/api/users/2fa/setup',
       verify: '/api/users/2fa/verify',

@@ -285,6 +285,17 @@ export const userApi = {
     >('/api/users/preferences/transactional-emails', partial);
     return response.data;
   },
+  /** Mesmo endpoint dos gates de onboarding do web; o app usa `onboardingTour`. */
+  getCompletionStatus: async () => {
+    const response = await api.get<
+      ApiResponse<{ onboardingTour?: { shouldShow: boolean } }>
+    >(USERS_API.me.completionStatus);
+    return response.data;
+  },
+  trackOnboardingTour: async (action: 'completed' | 'skipped') => {
+    const response = await api.post<ApiResponse<unknown>>(USERS_API.me.onboardingTour, { action });
+    return response.data;
+  },
   acceptTerms: async (version: string) => {
     const response = await api.post<ApiResponse<any>>('/api/users/accept-terms', { version });
     return response.data;

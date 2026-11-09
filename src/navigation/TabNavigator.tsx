@@ -17,9 +17,12 @@ import { useUnreadMessages } from '../contexts/UnreadMessagesContext';
 import { useDiscoveryPreference } from '../contexts/DiscoveryPreferenceContext';
 import { TermsGuard } from '../components/TermsGuard';
 import { SellerJourneyFabOverlay } from '../components/seller-journey/SellerJourneyFabOverlay';
+import { OnboardingTourGate } from '../components/OnboardingTourGate';
 import type { DiscoveryViewMode } from '../utils/explorer-discovery-personalization';
 
 const Tab = createBottomTabNavigator();
+
+const TAB_BAR_PADDING_TOP = 8;
 
 type DiscoveryTabIcon = 'storefront' | 'people';
 
@@ -61,6 +64,13 @@ export function TabNavigator() {
     }));
   }, [preference.modeButtonOrder]);
 
+  const visibleTabs = useMemo(
+    () => ['FeedTab', ...orderedDiscoveryTabs.map((tab) => tab.name), 'MessagesStack', 'ProfileStack'],
+    [orderedDiscoveryTabs]
+  );
+  const tabBarHeight = 60 + insets.bottom;
+  const tabBarPaddingBottom = insets.bottom || 8;
+
   return (
     <View style={{ flex: 1 }}>
       <Tab.Navigator
@@ -72,9 +82,9 @@ export function TabNavigator() {
           backgroundColor: colors.background.appbar,
           borderTopWidth: 1,
           borderTopColor: colors.divider,
-          height: 60 + insets.bottom,
-          paddingBottom: insets.bottom || 8,
-          paddingTop: 8,
+          height: tabBarHeight,
+          paddingBottom: tabBarPaddingBottom,
+          paddingTop: TAB_BAR_PADDING_TOP,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -172,6 +182,12 @@ export function TabNavigator() {
     </Tab.Navigator>
     <SellerJourneyFabOverlay />
     <TermsGuard />
+    <OnboardingTourGate
+      visibleTabs={visibleTabs}
+      tabBarHeight={tabBarHeight}
+      tabBarPaddingTop={TAB_BAR_PADDING_TOP}
+      tabBarPaddingBottom={tabBarPaddingBottom}
+    />
     </View>
   );
 }
