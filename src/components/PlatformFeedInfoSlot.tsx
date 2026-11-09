@@ -193,7 +193,7 @@ export function PlatformFeedInfoSlot({
               }
               style={styles.mediaBox}
             >
-              <Image source={{ uri: getImageUrl(campaignImageUrl) || '' }} style={styles.mediaImage} resizeMode="contain" />
+              <Image source={{ uri: getImageUrl(campaignImageUrl) || '' }} style={styles.mediaImage} resizeMode="cover" />
             </Pressable>
           ) : null}
           <View style={styles.referrerRow}>
@@ -254,7 +254,7 @@ export function PlatformFeedInfoSlot({
               }
               style={styles.mediaBox}
             >
-              <Image source={{ uri: getImageUrl(active.imageUrl) || '' }} style={styles.mediaImage} resizeMode="contain" />
+              <Image source={{ uri: getImageUrl(active.imageUrl) || '' }} style={styles.mediaImage} resizeMode="cover" />
             </Pressable>
           ) : null}
           <View style={styles.staticPad}>

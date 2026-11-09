@@ -10,7 +10,8 @@ import { ShopsSearchScreen } from '../screens/ShopsSearchScreen';
 import { CommunityStackNavigator } from './CommunityStackNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useUnreadMessages } from '../contexts/UnreadMessagesContext';
 import { useDiscoveryPreference } from '../contexts/DiscoveryPreferenceContext';
@@ -50,6 +51,8 @@ export function TabNavigator() {
   usePushNotifications();
   const { unreadCount: unreadMessagesCount, refreshUnreadCount } = useUnreadMessages();
   const { preference } = useDiscoveryPreference();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   const orderedDiscoveryTabs = useMemo((): DiscoveryTabConfig[] => {
     return preference.modeButtonOrder.map((mode) => ({
@@ -63,12 +66,12 @@ export function TabNavigator() {
       <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.secondary.main,
-        tabBarInactiveTintColor: COLORS.text.tertiary,
+        tabBarActiveTintColor: colors.icon.active,
+        tabBarInactiveTintColor: colors.text.tertiary,
         tabBarStyle: {
-          backgroundColor: COLORS.background.paper,
+          backgroundColor: colors.background.appbar,
           borderTopWidth: 1,
-          borderTopColor: COLORS.border.light,
+          borderTopColor: colors.divider,
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom || 8,
           paddingTop: 8,
@@ -173,29 +176,30 @@ export function TabNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
-  iconContainer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badge: {
-    position: 'absolute',
-    top: -6,
-    right: -10,
-    backgroundColor: COLORS.states.error,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.background.paper,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-});
+const createStyles = (c: AppPalette) =>
+  StyleSheet.create({
+    iconContainer: {
+      position: 'relative',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    badge: {
+      position: 'absolute',
+      top: -6,
+      right: -10,
+      backgroundColor: c.states.error,
+      borderRadius: 10,
+      minWidth: 20,
+      height: 20,
+      paddingHorizontal: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: c.background.appbar,
+    },
+    badgeText: {
+      color: '#fff',
+      fontSize: 11,
+      fontWeight: '700',
+    },
+  });

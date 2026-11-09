@@ -10,6 +10,8 @@ import { SellerJourneyProvider } from './src/contexts/SellerJourneyContext';
 import { DiscoveryPreferenceProvider } from './src/contexts/DiscoveryPreferenceContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { UnreadMessagesProvider } from './src/contexts/UnreadMessagesContext';
+import { ThemeProvider, useThemedStyles } from './src/contexts/ThemeContext';
+import type { AppPalette } from './src/theme/palettes';
 import { AuthStackNavigator } from './src/navigation/AuthStackNavigator';
 import { TabNavigator } from './src/navigation/TabNavigator';
 import { View, Text, StyleSheet } from 'react-native';
@@ -42,6 +44,7 @@ if (__DEV__) {
 
 function Navigation() {
   const { user, loading, biometricUnlockRequired, clearBiometricUnlockRequirement, logout } = useAuth();
+  const styles = useThemedStyles(createStyles);
   usePermissions();
 
   if (loading) {
@@ -79,6 +82,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        <ThemeProvider>
         <AuthProvider>
           <NotificationProvider>
             <UnreadMessagesProvider>
@@ -92,48 +96,50 @@ export default function App() {
             </UnreadMessagesProvider>
           </NotificationProvider>
         </AuthProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
 
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 24,
-  },
-  loadingLogo: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#d946ef',
-    marginBottom: 18,
-  },
-  loadingCard: {
-    width: '100%',
-    maxWidth: 260,
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  loadingLinePrimary: {
-    width: '75%',
-    height: 12,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
-  },
-  loadingLineSecondary: {
-    width: '55%',
-    height: 10,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
-  },
-});
+const createStyles = (c: AppPalette) =>
+  StyleSheet.create({
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: c.background.default,
+      paddingHorizontal: 24,
+    },
+    loadingLogo: {
+      fontSize: 40,
+      fontWeight: '700',
+      color: c.secondary.light,
+      marginBottom: 18,
+    },
+    loadingCard: {
+      width: '100%',
+      maxWidth: 260,
+      backgroundColor: c.background.paper,
+      borderRadius: 16,
+      padding: 16,
+      gap: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 10,
+      elevation: 2,
+    },
+    loadingLinePrimary: {
+      width: '75%',
+      height: 12,
+      borderRadius: 8,
+      backgroundColor: c.action.selected,
+    },
+    loadingLineSecondary: {
+      width: '55%',
+      height: 10,
+      borderRadius: 8,
+      backgroundColor: c.action.selected,
+    },
+  });

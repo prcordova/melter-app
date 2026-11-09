@@ -22,7 +22,8 @@ import { CommentsModal } from './CommentsModal';
 import { ShareModal } from './ShareModal';
 import { ReportPostModal } from './ReportPostModal';
 import { PostModal } from './PostModal';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import { SURFACE_RADIUS, type AppPalette } from '../theme/palettes';
 import { shouldShowVerifiedBadgeOnProfile } from '../utils/verified-badge';
 import {
   getPostAuthorDisplayLabel,
@@ -56,6 +57,8 @@ export function PostCard({
 }: PostCardProps) {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [showReactions, setShowReactions] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -64,6 +67,7 @@ export function PostCard({
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [showOriginalPostModal, setShowOriginalPostModal] = useState(false);
   const [originalPostId, setOriginalPostId] = useState<string | null>(null);
+  const { requiredPlan } = useFeedPlanGates();
 
   const authorId = getPostAuthorObjectId(post?.userId);
   const isValidPost =
@@ -76,7 +80,6 @@ export function PostCard({
   const authorLabel = getPostAuthorDisplayLabel(post.userId);
   const authorNavUsername = getPostAuthorUsernameForNav(post.userId);
   const currentPlan = resolveUserPlanType(user?.plan?.type);
-  const { requiredPlan } = useFeedPlanGates();
   const shareRequiredPlan = requiredPlan('minPlanToSharePosts');
   /** Web (`PostCard`): mostra `post.userId.username` no gradiente; fallback só se vier vazio. */
   const authorUsernameForHeader =
@@ -256,7 +259,7 @@ export function PostCard({
                 effect={originalPost.userId.profile?.usernameDisplayEffect ?? null}
                 fontSize={14}
                 fontWeight="600"
-                style={{ color: '#1e293b' }}
+                style={{ color: colors.text.primary }}
                 numberOfLines={1}
               />
             </View>
@@ -291,7 +294,7 @@ export function PostCard({
 
         {originalPost.content && (
           <PostDoubleTapLike onLike={handleDoubleTapLike}>
-            <RichPostText text={originalPost.content} style={styles.originalContent} color="#64748b" />
+            <RichPostText text={originalPost.content} style={styles.originalContent} color={colors.text.secondary} />
           </PostDoubleTapLike>
         )}
 
@@ -362,7 +365,7 @@ export function PostCard({
                 effect={post.userId.profile?.usernameDisplayEffect ?? null}
                 fontSize={15}
                 fontWeight="600"
-                style={{ color: '#1e293b' }}
+                style={{ color: colors.text.primary }}
                 numberOfLines={1}
               />
             </View>
@@ -399,7 +402,7 @@ export function PostCard({
           }} 
           style={styles.menuButton}
         >
-          <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.text.secondary} />
+          <Ionicons name="ellipsis-horizontal" size={20} color={colors.text.secondary} />
         </TouchableOpacity>
       </View>
 
@@ -409,7 +412,7 @@ export function PostCard({
           <RichPostText
             text={(post.originalPostId ? post.shareComment : post.content) || ''}
             style={styles.content}
-            color="#1e293b"
+            color={colors.text.primary}
           />
         </PostDoubleTapLike>
       )}
@@ -621,7 +624,7 @@ export function PostCard({
             {isOwnPost ? (
               <>
                 <TouchableOpacity style={styles.menuItem} onPress={handleEditPress}>
-                  <Ionicons name="create-outline" size={22} color={COLORS.text.primary} />
+                  <Ionicons name="create-outline" size={22} color={colors.text.primary} />
                   <Text style={styles.menuItemText}>Editar</Text>
                 </TouchableOpacity>
                 <View style={styles.menuDivider} />
@@ -629,13 +632,13 @@ export function PostCard({
                   style={[styles.menuItem, styles.menuItemDanger]}
                   onPress={handleDeletePress}
                 >
-                  <Ionicons name="trash-outline" size={22} color={COLORS.states.error} />
+                  <Ionicons name="trash-outline" size={22} color={colors.states.error} />
                   <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>Deletar</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <TouchableOpacity style={styles.menuItem} onPress={handleReportPress}>
-                <Ionicons name="flag-outline" size={22} color={COLORS.text.primary} />
+                <Ionicons name="flag-outline" size={22} color={colors.text.primary} />
                 <Text style={styles.menuItemText}>Denunciar</Text>
               </TouchableOpacity>
             )}
@@ -646,10 +649,12 @@ export function PostCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: c.background.paper,
+    borderRadius: SURFACE_RADIUS,
+    borderWidth: 1,
+    borderColor: c.divider,
     marginBottom: 16,
     padding: 16,
     shadowColor: '#000',
@@ -667,10 +672,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: c.background.tertiary,
   },
   avatarPlaceholder: {
-    backgroundColor: '#B63385',
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -717,7 +722,7 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1e293b',
+    color: c.text.primary,
   },
   planBadge: {
     paddingHorizontal: 6,
@@ -740,18 +745,18 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
-    color: '#64748b',
+    color: c.text.secondary,
     marginTop: 2,
   },
   content: {
     fontSize: 15,
-    color: '#1e293b',
+    color: c.text.primary,
     lineHeight: 22,
     marginBottom: 12,
   },
   linkPreview: {
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: c.border.medium,
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 12,
@@ -759,7 +764,7 @@ const styles = StyleSheet.create({
   linkImage: {
     width: '100%',
     height: 180,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: c.background.tertiary,
   },
   linkInfo: {
     padding: 12,
@@ -768,25 +773,25 @@ const styles = StyleSheet.create({
   linkTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1e293b',
+    color: c.text.primary,
     marginBottom: 4,
     textAlign: 'center',
     alignSelf: 'stretch',
   },
   linkDescription: {
     fontSize: 13,
-    color: '#64748b',
+    color: c.text.secondary,
     marginBottom: 6,
   },
   linkUrl: {
     fontSize: 12,
-    color: '#d946ef',
+    color: c.secondary.light,
   },
   postImage: {
     width: '100%',
     height: 300,
     borderRadius: 8,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: c.background.tertiary,
     marginBottom: 12,
   },
   actions: {
@@ -794,7 +799,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: c.divider,
   },
   reactionContainer: {
     position: 'relative',
@@ -811,18 +816,20 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    color: '#64748b',
+    color: c.text.secondary,
     fontWeight: '500',
   },
   actionTextActive: {
-    color: '#d946ef',
+    color: c.secondary.light,
   },
   reactionsMenu: {
     position: 'absolute',
     bottom: 40,
     left: 0,
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
+    borderWidth: 1,
+    borderColor: c.divider,
     borderRadius: 30,
     paddingHorizontal: 8,
     paddingVertical: 6,
@@ -850,17 +857,17 @@ const styles = StyleSheet.create({
   },
   reactionsSummaryText: {
     fontSize: 13,
-    color: '#64748b',
+    color: c.text.secondary,
   },
   // Menu Styles
   menuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuContainer: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     minWidth: 200,
     paddingVertical: 8,
@@ -879,43 +886,43 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     fontWeight: '500',
   },
   menuItemDanger: {
     // Sem estilo especial de fundo
   },
   menuItemTextDanger: {
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   menuDivider: {
     height: 1,
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.border.light,
     marginVertical: 4,
   },
   // Original Post Styles
   originalPostContainer: {
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 12,
     padding: 12,
     marginTop: 8,
     marginBottom: 12,
-    backgroundColor: COLORS.background.tertiary + '40', // 40% opacity
+    backgroundColor: c.background.tertiary + '40', // 40% opacity
   },
   originalPostRestricted: {
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 12,
     padding: 16,
     marginTop: 8,
     marginBottom: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     alignItems: 'center',
   },
   originalPostRestrictedText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -933,11 +940,11 @@ const styles = StyleSheet.create({
   originalUsername: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   originalContent: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
 });

@@ -1,8 +1,9 @@
 /**
- * CORES DO TEMA MELTER
- * 
- * Baseado em: melter/contexts/theme-context.tsx
- * Mantém fidelidade 100% com o design web
+ * CORES DO TEMA MELTER (legado — tema claro estático)
+ *
+ * Telas novas/migradas devem usar `useAppTheme()` / `useThemedStyles()` de
+ * `contexts/ThemeContext` com as paletas de `theme/palettes.ts` (claro, roxo escuro, preto).
+ * Este objeto segue igual à paleta `light` até todas as telas migrarem.
  */
 
 export const COLORS = {

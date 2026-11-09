@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { useNavigation, useRoute, useScrollToTop } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { Header } from '../components/Header';
@@ -35,6 +37,8 @@ import { resolveUserPlanType } from '../config/plan-features';
 import { useFeedPlanGates } from '../hooks/useFeedPlanGates';
 
 export function FeedScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const { user, refreshUser } = useAuth();
   const { requiredPlan } = useFeedPlanGates();
   const createPostRequiredPlan = requiredPlan('minPlanToCreateFeedPosts');
@@ -476,7 +480,7 @@ export function FeedScreen() {
         </View>
       </View>
     ),
-    [storiesGroups, handleStoryClick, handleCreateStory]
+    [storiesGroups, handleStoryClick, handleCreateStory, styles]
   );
 
   // Footer Component
@@ -486,7 +490,7 @@ export function FeedScreen() {
       <View style={styles.footer}>
         <ActivityIndicator 
           size="small" 
-          color="#d946ef"
+          color={colors.secondary.light}
           animating={true}
         />
       </View>
@@ -549,8 +553,8 @@ export function FeedScreen() {
           <RefreshControl
             refreshing={Boolean(refreshing)}
             onRefresh={onRefresh}
-            colors={['#d946ef']}
-            tintColor="#d946ef"
+            colors={[colors.secondary.light]}
+            tintColor={colors.secondary.light}
           />
         }
         contentContainerStyle={styles.listContent}
@@ -602,10 +606,10 @@ export function FeedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: c.background.default,
   },
   header: {
     marginBottom: 8,
@@ -633,28 +637,28 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748b',
+    color: c.text.secondary,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: c.text.tertiary,
     textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: c.background.default,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#64748b',
+    color: c.text.secondary,
   },
   feedSkeletonContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: c.background.default,
     paddingHorizontal: 16,
     paddingTop: 10,
     gap: 12,
@@ -662,21 +666,21 @@ const styles = StyleSheet.create({
   feedSkeletonHeader: {
     height: 72,
     borderRadius: 12,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: c.action.selected,
   },
   feedSkeletonStories: {
     height: 90,
     borderRadius: 12,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: c.action.selected,
   },
   feedSkeletonCreate: {
     height: 50,
     borderRadius: 12,
-    backgroundColor: '#d1d5db',
+    backgroundColor: c.border.dark,
   },
   feedSkeletonPost: {
     height: 260,
     borderRadius: 14,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: c.action.selected,
   },
 });

@@ -271,12 +271,16 @@ export const userApi = {
     emailNotifyNewFollowers?: boolean;
     emailNotifyFriendRequests?: boolean;
     emailNotifyMessagesWhenOffline?: boolean;
+    emailNotifyNewPostsFromFollowing?: boolean;
+    emailNotifyPostReactions?: boolean;
   }) => {
     const response = await api.patch<
       ApiResponse<{
         emailNotifyNewFollowers: boolean;
         emailNotifyFriendRequests: boolean;
         emailNotifyMessagesWhenOffline: boolean;
+        emailNotifyNewPostsFromFollowing: boolean;
+        emailNotifyPostReactions: boolean;
       }>
     >('/api/users/preferences/transactional-emails', partial);
     return response.data;

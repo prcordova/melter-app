@@ -16,7 +16,9 @@ import { useNavigation } from '@react-navigation/native';
 import { WalletButton } from './WalletButton';
 import { NotificationButton } from './NotificationButton';
 import { useAuth } from '../contexts/AuthContext';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import { SURFACE_RADIUS, type AppPalette } from '../theme/palettes';
+import { ThemedStatusBar } from './ThemedStatusBar';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { userApi } from '../services/api';
@@ -33,6 +35,8 @@ type UserVisibility = 'online' | 'busy' | 'offline';
 export function Header({ 
   onLogoPress,
 }: HeaderProps) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
@@ -177,6 +181,8 @@ export function Header({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+      <ThemedStatusBar />
+
       {/* Logo Esquerda */}
       <TouchableOpacity onPress={onLogoPress} activeOpacity={0.7} style={styles.logoContainer}>
         <Text style={styles.logo}>Melter</Text>
@@ -244,7 +250,7 @@ export function Header({
                       </Text>
                       <Text style={styles.menuPlan}>{user.plan?.type || 'FREE'}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color={COLORS.text.tertiary} />
+                    <Ionicons name="chevron-forward" size={18} color={colors.text.tertiary} />
                   </TouchableOpacity>
 
                   <View style={styles.menuDivider} />
@@ -254,7 +260,7 @@ export function Header({
                     onPress={() => goProfileStack('AppearanceSettings')}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="color-palette-outline" size={20} color={COLORS.text.secondary} />
+                    <Ionicons name="color-palette-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.menuRowLabel}>Editar perfil</Text>
                   </TouchableOpacity>
 
@@ -263,16 +269,16 @@ export function Header({
                     onPress={() => goProfileStack('LinksSettings')}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="link-outline" size={20} color={COLORS.text.secondary} />
+                    <Ionicons name="link-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.menuRowLabel}>Editar links</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.menuRow} onPress={handleStatusPress} activeOpacity={0.7}>
-                    <Ionicons name="radio-button-on-outline" size={20} color={COLORS.text.secondary} />
+                    <Ionicons name="radio-button-on-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.menuRowLabel}>
                       Status: {statusLabel(statusVisibility)}
                     </Text>
-                    <Ionicons name="chevron-down" size={16} color={COLORS.text.tertiary} style={styles.menuRowChevron} />
+                    <Ionicons name="chevron-down" size={16} color={colors.text.tertiary} style={styles.menuRowChevron} />
                   </TouchableOpacity>
 
                   <View style={styles.menuDivider} />
@@ -285,7 +291,7 @@ export function Header({
                     }
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="storefront-outline" size={20} color={COLORS.text.secondary} />
+                    <Ionicons name="storefront-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.menuRowLabel}>Minha loja</Text>
                   </TouchableOpacity>
 
@@ -294,7 +300,7 @@ export function Header({
                     onPress={() => goProfileStack('Purchases')}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="bag-handle-outline" size={20} color={COLORS.text.secondary} />
+                    <Ionicons name="bag-handle-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.menuRowLabel}>Minhas compras</Text>
                   </TouchableOpacity>
 
@@ -303,7 +309,7 @@ export function Header({
                     onPress={() => goProfileStack('Settings')}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="settings-outline" size={20} color={COLORS.text.secondary} />
+                    <Ionicons name="settings-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.menuRowLabel}>Configurações</Text>
                   </TouchableOpacity>
 
@@ -312,7 +318,7 @@ export function Header({
                     onPress={() => goProfileStack('Plans')}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="ribbon-outline" size={20} color={COLORS.text.secondary} />
+                    <Ionicons name="ribbon-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.menuRowLabel}>
                       {user.plan?.type === 'FREE' ? 'Upgrade' : 'Gerenciar plano'}
                     </Text>
@@ -324,7 +330,7 @@ export function Header({
                       onPress={() => openWebPath('/admin')}
                       activeOpacity={0.7}
                     >
-                      <Ionicons name="shield-outline" size={20} color={COLORS.states.error} />
+                      <Ionicons name="shield-outline" size={20} color={colors.states.error} />
                       <Text style={[styles.menuRowLabel, styles.menuRowAdmin]}>Painel admin</Text>
                     </TouchableOpacity>
                   )}
@@ -334,7 +340,7 @@ export function Header({
                     onPress={() => openWebPath('/download')}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="download-outline" size={20} color={COLORS.text.secondary} />
+                    <Ionicons name="download-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.menuRowLabel}>Baixar app</Text>
                   </TouchableOpacity>
 
@@ -343,12 +349,12 @@ export function Header({
                     onPress={() => goProfileStack('Terms')}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="document-text-outline" size={20} color={COLORS.text.secondary} />
+                    <Ionicons name="document-text-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.menuRowLabel}>Termos</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.menuRow} onPress={handleLogoutPress} activeOpacity={0.7}>
-                    <Ionicons name="log-out-outline" size={20} color={COLORS.states.error} />
+                    <Ionicons name="log-out-outline" size={20} color={colors.states.error} />
                     <Text style={[styles.menuRowLabel, styles.menuRowDanger]}>Sair</Text>
                   </TouchableOpacity>
                 </ScrollView>
@@ -361,16 +367,16 @@ export function Header({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.appbar,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.divider,
   },
   logoContainer: {
     flex: 1,
@@ -389,7 +395,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     letterSpacing: -0.5,
   },
   avatarButton: {
@@ -399,10 +405,10 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   avatarPlaceholder: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -420,10 +426,10 @@ const styles = StyleSheet.create({
     right: 12,
     width: 280,
     maxHeight: '72%',
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
+    backgroundColor: c.background.paper,
+    borderRadius: SURFACE_RADIUS,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.divider,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -445,7 +451,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   menuHeaderText: {
     flex: 1,
@@ -454,16 +460,16 @@ const styles = StyleSheet.create({
   menuUsername: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   menuPlan: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
   menuDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.divider,
     marginHorizontal: 8,
   },
   menuRow: {
@@ -476,17 +482,17 @@ const styles = StyleSheet.create({
   menuRowLabel: {
     flex: 1,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   menuRowChevron: {
     marginLeft: 'auto',
   },
   menuRowDanger: {
-    color: COLORS.states.error,
+    color: c.states.error,
     fontWeight: '600',
   },
   menuRowAdmin: {
-    color: COLORS.states.error,
+    color: c.states.error,
     fontWeight: '700',
   },
 });

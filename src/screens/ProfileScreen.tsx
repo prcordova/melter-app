@@ -18,7 +18,8 @@ import { MenuCard } from '../components/MenuCard';
 import { StoryViewerModal } from '../components/StoryViewerModal';
 import { Button } from '../components/Button';
 import { CustomModal, useCustomModal } from '../components/CustomModal';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import { SURFACE_RADIUS, type AppPalette } from '../theme/palettes';
 import { linksApi, storiesApi, userApi, sellerVerificationApi } from '../services/api';
 import { StoriesGroup } from '../types/feed';
 import { showToast } from '../components/CustomToast';
@@ -38,6 +39,8 @@ import { CustomCheckpoints } from '../components/seller-journey/CustomCheckpoint
 
 export function ProfileScreen() {
   const { user, logout } = useAuth();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation();
   const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
@@ -471,12 +474,12 @@ export function ProfileScreen() {
   };
 
   const pp = publicProfile || {};
-  const statusBalloonOuterBg = getSafeColor(pp.statusMessageContainerBg, COLORS.background.paper);
+  const statusBalloonOuterBg = getSafeColor(pp.statusMessageContainerBg, colors.background.paper);
   const statusBalloonInnerBg =
     typeof pp.statusMessageBubbleBg === 'string' && pp.statusMessageBubbleBg.trim()
-      ? getSafeColor(pp.statusMessageBubbleBg, COLORS.background.paper)
+      ? getSafeColor(pp.statusMessageBubbleBg, colors.background.paper)
       : null;
-  const statusMessageSolidColor = getSafeColor(pp.statusMessageTextColor, COLORS.text.primary);
+  const statusMessageSolidColor = getSafeColor(pp.statusMessageTextColor, colors.text.primary);
   const statusMessageGradientOn = Boolean(
     normalizeUsernameDisplayEffect(pp.statusMessageDisplayEffect ?? null)?.enabled
   );
@@ -534,7 +537,7 @@ export function ProfileScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="chatbubble-ellipses" size={18} color={COLORS.primary.main} />
+                <Ionicons name="chatbubble-ellipses" size={18} color={colors.primary.main} />
               </TouchableOpacity>
             </View>
 
@@ -582,7 +585,7 @@ export function ProfileScreen() {
               style={styles.editProfileButton}
               onPress={() => handleMenuPress('appearance')}
             >
-              <Ionicons name="create-outline" size={16} color={COLORS.primary.main} />
+              <Ionicons name="create-outline" size={16} color={colors.primary.main} />
               <Text style={styles.editProfileText}>Editar Perfil</Text>
             </TouchableOpacity>
           </View>
@@ -680,7 +683,7 @@ export function ProfileScreen() {
                   ref={statusMessageInputRef}
                   style={styles.statusMessageInput}
                   placeholder="Digite uma mensagem de status..."
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   value={statusMessage}
                   onChangeText={handleStatusMessageChange}
                   maxLength={100}
@@ -701,7 +704,7 @@ export function ProfileScreen() {
                         <Text style={styles.saveMessageButtonText}>Salvando...</Text>
                       ) : (
                         <>
-                          <Ionicons name="checkmark" size={16} color="#ffffff" />
+                          <Ionicons name="checkmark" size={16} color={colors.primary.contrastText} />
                           <Text style={styles.saveMessageButtonText}>Salvar</Text>
                         </>
                       )}
@@ -758,7 +761,7 @@ export function ProfileScreen() {
               onPress={() => handleMenuPress('plans')}
               activeOpacity={0.8}
             >
-              <Ionicons name="lock-closed-outline" size={14} color={COLORS.secondary.main} />
+              <Ionicons name="lock-closed-outline" size={14} color={colors.secondary.main} />
               <Text style={styles.linksLimitCtaText}>
                 Limite do plano atingido ({userLinks.length}/{maxLinksAllowed}) • Adicionar plano
               </Text>
@@ -785,7 +788,7 @@ export function ProfileScreen() {
                         }}
                         disabled={index === 0}
                       >
-                        <Ionicons name="chevron-up" size={16} color={COLORS.secondary.main} />
+                        <Ionicons name="chevron-up" size={16} color={colors.secondary.main} />
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[
@@ -798,7 +801,7 @@ export function ProfileScreen() {
                         }}
                         disabled={index === userLinks.length - 1}
                       >
-                        <Ionicons name="chevron-down" size={16} color={COLORS.secondary.main} />
+                        <Ionicons name="chevron-down" size={16} color={colors.secondary.main} />
                       </TouchableOpacity>
                     </>
                   )}
@@ -809,7 +812,7 @@ export function ProfileScreen() {
                       openEditLinkModal(link);
                     }}
                   >
-                    <Ionicons name="create-outline" size={16} color={COLORS.secondary.main} />
+                    <Ionicons name="create-outline" size={16} color={colors.secondary.main} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.linkActionButton}
@@ -818,7 +821,7 @@ export function ProfileScreen() {
                       handleDeleteLink(link);
                     }}
                   >
-                    <Ionicons name="trash-outline" size={16} color={COLORS.secondary.main} />
+                    <Ionicons name="trash-outline" size={16} color={colors.secondary.main} />
                   </TouchableOpacity>
                 </View>
               );
@@ -893,12 +896,12 @@ export function ProfileScreen() {
           ) : (
             hasReachedLinksLimit ? (
               <View style={styles.addLinkButtonDisabled}>
-                <Ionicons name="lock-closed-outline" size={20} color={COLORS.text.tertiary} />
+                <Ionicons name="lock-closed-outline" size={20} color={colors.text.tertiary} />
                 <Text style={styles.addLinkTextDisabled}>Limite de links atingido</Text>
               </View>
             ) : (
               <TouchableOpacity style={styles.addLinkButton} onPress={openAddLinkModal}>
-                <Ionicons name="add-circle-outline" size={24} color={COLORS.primary.main} />
+                <Ionicons name="add-circle-outline" size={24} color={colors.primary.main} />
                 <Text style={styles.addLinkText}>Cadastrar Link</Text>
               </TouchableOpacity>
             )
@@ -915,7 +918,7 @@ export function ProfileScreen() {
           ) : shouldShowVerifiedBadgeOnProfile(user) ? (
             <View style={styles.verificationCard}>
               <View style={styles.verificationCardHeader}>
-                <Ionicons name="checkmark-circle" size={22} color={COLORS.states.success} />
+                <Ionicons name="checkmark-circle" size={22} color={colors.states.success} />
                 <Text style={styles.verificationCardTitle}>Selo ativo</Text>
               </View>
               <Text style={styles.verificationBody}>
@@ -925,7 +928,7 @@ export function ProfileScreen() {
           ) : accountVerification?.status === 'pending' ? (
             <View style={styles.verificationCard}>
               <View style={styles.verificationCardHeader}>
-                <Ionicons name="time-outline" size={22} color={COLORS.states.warning} />
+                <Ionicons name="time-outline" size={22} color={colors.states.warning} />
                 <Text style={styles.verificationCardTitle}>Em análise</Text>
               </View>
               <Text style={styles.verificationBody}>
@@ -935,7 +938,7 @@ export function ProfileScreen() {
           ) : accountVerification?.status === 'rejected' ? (
             <View style={styles.verificationCard}>
               <View style={styles.verificationCardHeader}>
-                <Ionicons name="close-circle-outline" size={22} color={COLORS.states.error} />
+                <Ionicons name="close-circle-outline" size={22} color={colors.states.error} />
                 <Text style={styles.verificationCardTitle}>Solicitação não aprovada</Text>
               </View>
               {!!accountVerification?.rejectionReason && (
@@ -961,7 +964,7 @@ export function ProfileScreen() {
                   onPress={() => (navigation as any).navigate('Plans')}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="lock-closed-outline" size={18} color={COLORS.secondary.main} />
+                  <Ionicons name="lock-closed-outline" size={18} color={colors.secondary.main} />
                   <Text style={styles.verificationCtaText}>Plano PRO ou PRO+ necessário</Text>
                 </TouchableOpacity>
               ) : (
@@ -970,7 +973,7 @@ export function ProfileScreen() {
                   onPress={() => (navigation as any).navigate('SecuritySettings')}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.secondary.main} />
+                  <Ionicons name="shield-checkmark-outline" size={18} color={colors.secondary.main} />
                   <Text style={styles.verificationCtaText}>Ativar 2FA em Segurança</Text>
                 </TouchableOpacity>
               )}
@@ -1004,7 +1007,7 @@ export function ProfileScreen() {
                   onPress={() => (navigation as any).navigate('Plans')}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="lock-closed-outline" size={18} color={COLORS.secondary.main} />
+                  <Ionicons name="lock-closed-outline" size={18} color={colors.secondary.main} />
                   <Text style={styles.verificationCtaText}>Ver planos PRO / PRO+</Text>
                 </TouchableOpacity>
               ) : !user?.twoFactor?.enabled ? (
@@ -1013,7 +1016,7 @@ export function ProfileScreen() {
                   onPress={() => (navigation as any).navigate('SecuritySettings')}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.secondary.main} />
+                  <Ionicons name="shield-checkmark-outline" size={18} color={colors.secondary.main} />
                   <Text style={styles.verificationCtaText}>Ativar 2FA</Text>
                 </TouchableOpacity>
               ) : (
@@ -1075,11 +1078,16 @@ export function ProfileScreen() {
         />
       )}
 
-      <ModalBottom visible={showLinkModal} onClose={closeLinkModal} maxHeight="65%">
+      <ModalBottom
+        visible={showLinkModal}
+        onClose={closeLinkModal}
+        maxHeight="65%"
+        contentStyle={{ backgroundColor: colors.background.paper }}
+      >
         <View style={styles.linkModalHeader}>
           <Text style={styles.linkModalTitle}>{editingLink ? 'Editar Link' : 'Adicionar Link'}</Text>
           <TouchableOpacity onPress={closeLinkModal} disabled={savingLink}>
-            <Ionicons name="close" size={24} color={COLORS.text.primary} />
+            <Ionicons name="close" size={24} color={colors.text.primary} />
           </TouchableOpacity>
         </View>
         <View style={styles.linkModalContent}>
@@ -1089,7 +1097,7 @@ export function ProfileScreen() {
             value={linkForm.title}
             onChangeText={(text) => setLinkForm((prev) => ({ ...prev, title: text }))}
             placeholder="Ex: Meu Instagram"
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
           />
           <Text style={styles.linkModalLabel}>URL</Text>
           <TextInput
@@ -1099,7 +1107,7 @@ export function ProfileScreen() {
             placeholder="https://..."
             autoCapitalize="none"
             keyboardType="url"
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
           />
           <TouchableOpacity
             style={styles.linkVisibilityRow}
@@ -1109,7 +1117,7 @@ export function ProfileScreen() {
             <Ionicons
               name={linkForm.visible ? 'eye-outline' : 'eye-off-outline'}
               size={18}
-              color={COLORS.secondary.main}
+              color={colors.secondary.main}
             />
             <Text style={styles.linkVisibilityText}>{linkForm.visible ? 'Link visível no perfil' : 'Link oculto'}</Text>
           </TouchableOpacity>
@@ -1134,18 +1142,20 @@ export function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   scrollContent: {
     padding: 16,
   },
   userSection: {
     alignItems: 'stretch',
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 16,
+    backgroundColor: c.background.paper,
+    borderRadius: SURFACE_RADIUS,
+    borderWidth: 1,
+    borderColor: c.divider,
     padding: 24,
     marginBottom: 16,
     shadowColor: '#000',
@@ -1175,7 +1185,7 @@ const styles = StyleSheet.create({
   },
   avatarContainerWithStory: {
     borderWidth: 3,
-    borderColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
     borderRadius: 44,
     padding: 2,
   },
@@ -1211,7 +1221,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   statusBalloonInner: {
     borderRadius: 10,
@@ -1223,7 +1233,7 @@ const styles = StyleSheet.create({
   statusBalloonText: {
     fontSize: 13,
     lineHeight: 18,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   statusBalloonArrow: {
     width: 0,
@@ -1233,7 +1243,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 8,
     borderBottomColor: 'transparent',
     borderRightWidth: 8,
-    borderRightColor: COLORS.background.paper,
+    borderRightColor: c.background.paper,
     marginLeft: -1,
   },
   editStatusButton: {
@@ -1243,9 +1253,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderWidth: 2,
-    borderColor: COLORS.primary.main,
+    borderColor: c.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -1266,7 +1276,7 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   planAndEditRow: {
     flexDirection: 'row',
@@ -1276,7 +1286,7 @@ const styles = StyleSheet.create({
   planType: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textTransform: 'uppercase',
   },
   editProfileButton: {
@@ -1286,18 +1296,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.primary.main,
+    borderColor: c.primary.main,
   },
   editProfileText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   statusSection: {
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 16,
+    backgroundColor: c.background.paper,
+    borderRadius: SURFACE_RADIUS,
+    borderWidth: 1,
+    borderColor: c.divider,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
@@ -1309,7 +1321,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 12,
   },
   statusSkeletonContainer: {
@@ -1324,12 +1336,12 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   statusSkeletonInput: {
     height: 92,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   statusButtons: {
     flexDirection: 'row',
@@ -1343,12 +1355,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     backgroundColor: 'transparent',
   },
   statusButtonActive: {
-    borderColor: COLORS.secondary.main,
-    backgroundColor: `${COLORS.secondary.main}10`, // 10% opacity
+    borderColor: c.secondary.main,
+    backgroundColor: `${c.secondary.main}10`, // 10% opacity
   },
   statusButtonDisabled: {
     opacity: 0.5,
@@ -1360,16 +1372,16 @@ const styles = StyleSheet.create({
   statusButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   statusButtonTextActive: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   statusHeader: {
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.divider,
   },
   statusInfo: {
     flexDirection: 'row',
@@ -1378,7 +1390,7 @@ const styles = StyleSheet.create({
   statusLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
   },
   statusMessageContainer: {
@@ -1386,11 +1398,11 @@ const styles = StyleSheet.create({
   },
   statusMessageInput: {
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     minHeight: 80,
     textAlignVertical: 'top',
   },
@@ -1402,7 +1414,7 @@ const styles = StyleSheet.create({
   },
   statusMessageCount: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   saveMessageButton: {
     flexDirection: 'row',
@@ -1411,7 +1423,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
   },
   saveMessageButtonDisabled: {
     opacity: 0.6,
@@ -1419,7 +1431,7 @@ const styles = StyleSheet.create({
   saveMessageButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
+    color: c.primary.contrastText,
   },
   menuGrid: {
     alignItems: 'stretch',
@@ -1447,15 +1459,15 @@ const styles = StyleSheet.create({
   },
   verificationMuted: {
     fontSize: 14,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     paddingHorizontal: 4,
   },
   verificationCard: {
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
+    backgroundColor: c.background.paper,
+    borderRadius: SURFACE_RADIUS,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.divider,
     gap: 10,
   },
   verificationCardHeader: {
@@ -1466,16 +1478,16 @@ const styles = StyleSheet.create({
   verificationCardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   verificationBody: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
   verificationRejection: {
     fontSize: 14,
-    color: COLORS.states.error,
+    color: c.states.error,
     lineHeight: 20,
   },
   verificationCta: {
@@ -1488,13 +1500,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.secondary.main,
-    backgroundColor: `${COLORS.secondary.main}12`,
+    borderColor: c.secondary.main,
+    backgroundColor: `${c.secondary.main}12`,
   },
   verificationCtaText: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   verificationCtaPrimary: {
     flexDirection: 'row',
@@ -1505,7 +1517,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   verificationCtaPrimaryText: {
     fontSize: 15,
@@ -1537,7 +1549,7 @@ const styles = StyleSheet.create({
   linksSortLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     minWidth: 72,
   },
   linksSortSelect: {
@@ -1551,20 +1563,20 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLORS.secondary.main,
-    backgroundColor: `${COLORS.secondary.main}10`,
+    borderColor: c.secondary.main,
+    backgroundColor: `${c.secondary.main}10`,
   },
   linksLimitCtaText: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   inlineAddLinkButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 10,
@@ -1580,12 +1592,12 @@ const styles = StyleSheet.create({
   linkCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
+    backgroundColor: c.background.paper,
+    borderRadius: SURFACE_RADIUS,
     padding: 16,
     gap: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.divider,
     overflow: 'hidden',
   },
   linkCardStacked: {
@@ -1597,7 +1609,7 @@ const styles = StyleSheet.create({
   linkThumb: {
     width: '100%',
     height: 140,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   linkStackedFooter: {
     paddingHorizontal: 14,
@@ -1634,7 +1646,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1645,19 +1657,19 @@ const styles = StyleSheet.create({
   linkDescriptionOwn: {
     fontSize: 13,
     lineHeight: 18,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   linkDescriptionInlineOwn: {
     marginTop: 4,
     fontSize: 13,
     lineHeight: 18,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   linkIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1668,7 +1680,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   linkActions: {
     flexDirection: 'row',
@@ -1679,7 +1691,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1690,34 +1702,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
+    backgroundColor: c.background.paper,
+    borderRadius: SURFACE_RADIUS,
     padding: 20,
     gap: 12,
     borderWidth: 2,
-    borderColor: COLORS.primary.main,
+    borderColor: c.primary.main,
     borderStyle: 'dashed',
   },
   addLinkText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   addLinkButtonDisabled: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
+    backgroundColor: c.background.paper,
+    borderRadius: SURFACE_RADIUS,
     padding: 18,
     gap: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.divider,
   },
   addLinkTextDisabled: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   linkModalHeader: {
     flexDirection: 'row',
@@ -1726,12 +1738,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.divider,
   },
   linkModalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   linkModalContent: {
     paddingHorizontal: 16,
@@ -1741,16 +1753,16 @@ const styles = StyleSheet.create({
   linkModalLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   linkModalInput: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 11,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   linkVisibilityRow: {
     marginTop: 6,
@@ -1760,7 +1772,7 @@ const styles = StyleSheet.create({
   },
   linkVisibilityText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   linkModalActions: {
     flexDirection: 'row',

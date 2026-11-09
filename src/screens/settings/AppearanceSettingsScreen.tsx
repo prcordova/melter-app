@@ -427,8 +427,8 @@ export function AppearanceSettingsScreen() {
         postsLimit: Math.min(3, Math.max(1, Math.round(Number(settings.postsLimit)) || 3)),
       };
 
-      // Background image (apenas para STARTER, PRO, PRO_PLUS)
-      if (user?.plan?.type === 'STARTER' || user?.plan?.type === 'PRO' || user?.plan?.type === 'PRO_PLUS') {
+      // Background image (LITE+)
+      if (PLAN_LIMITS[planType].canUploadBackgroundImage) {
         if (uploadedBackgroundUrl) {
           profilePayload.backgroundImage = uploadedBackgroundUrl;
         } else if (settings.backgroundImage && typeof settings.backgroundImage === 'string') {
@@ -775,7 +775,7 @@ export function AppearanceSettingsScreen() {
             />
           </PlanLocker>
 
-          <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
+          <PlanLocker requiredPlan="LITE" currentPlan={user?.plan?.type}>
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>Imagem de Fundo</Text>
               {(backgroundPreview || settings.backgroundImage) ? (

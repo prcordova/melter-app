@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackButton } from '../../components/BackButton';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import { SURFACE_RADIUS, type AppPalette } from '../../theme/palettes';
+import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { userApi } from '../../services/api';
 import { showToast } from '../../components/CustomToast';
 import { FIXED_CATEGORIES } from '../../constants/categories';
@@ -48,6 +50,9 @@ interface CategoryPreferences {
 }
 
 export function PreferencesScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, isDark, toggleDark } = useAppTheme();
+
   const renderPreferencesSkeleton = () => (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.prefSkeletonDescription} />
@@ -76,6 +81,8 @@ export function PreferencesScreen() {
   const [emailNotifyFollowers, setEmailNotifyFollowers] = useState(true);
   const [emailNotifyFriendRequests, setEmailNotifyFriendRequests] = useState(true);
   const [emailNotifyOfflineMessages, setEmailNotifyOfflineMessages] = useState(true);
+  const [emailNotifyNewPosts, setEmailNotifyNewPosts] = useState(true);
+  const [emailNotifyPostReactions, setEmailNotifyPostReactions] = useState(true);
   const [savingTransactional, setSavingTransactional] = useState(false);
   const hasUnsavedChanges = useRef(false);
   const [gender, setGender] = useState<UserGenderIdentity | ''>('');
@@ -121,6 +128,8 @@ export function PreferencesScreen() {
             emailNotifyNewFollowers?: boolean;
             emailNotifyFriendRequests?: boolean;
             emailNotifyMessagesWhenOffline?: boolean;
+            emailNotifyNewPostsFromFollowing?: boolean;
+            emailNotifyPostReactions?: boolean;
           };
           termsAndPrivacy?: { emailMarketingConsent?: boolean };
         };
@@ -128,6 +137,8 @@ export function PreferencesScreen() {
           setEmailNotifyFollowers(d.preferences.emailNotifyNewFollowers !== false);
           setEmailNotifyFriendRequests(d.preferences.emailNotifyFriendRequests !== false);
           setEmailNotifyOfflineMessages(d.preferences.emailNotifyMessagesWhenOffline !== false);
+          setEmailNotifyNewPosts(d.preferences.emailNotifyNewPostsFromFollowing !== false);
+          setEmailNotifyPostReactions(d.preferences.emailNotifyPostReactions !== false);
         }
         setEmailMarketingEnabled(d.termsAndPrivacy?.emailMarketingConsent !== false);
       }
@@ -168,6 +179,8 @@ export function PreferencesScreen() {
     emailNotifyNewFollowers?: boolean;
     emailNotifyFriendRequests?: boolean;
     emailNotifyMessagesWhenOffline?: boolean;
+    emailNotifyNewPostsFromFollowing?: boolean;
+    emailNotifyPostReactions?: boolean;
   }): Promise<boolean> => {
     try {
       setSavingTransactional(true);
@@ -176,6 +189,8 @@ export function PreferencesScreen() {
         setEmailNotifyFollowers(res.data.emailNotifyNewFollowers !== false);
         setEmailNotifyFriendRequests(res.data.emailNotifyFriendRequests !== false);
         setEmailNotifyOfflineMessages(res.data.emailNotifyMessagesWhenOffline !== false);
+        setEmailNotifyNewPosts(res.data.emailNotifyNewPostsFromFollowing !== false);
+        setEmailNotifyPostReactions(res.data.emailNotifyPostReactions !== false);
         showToast.success('Sucesso', 'Preferências de e-mail atualizadas.');
         return true;
       }
@@ -280,6 +295,7 @@ export function PreferencesScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <View style={styles.header}>
           <BackButton title="Configurações" />
           <View style={styles.headerContent}>
@@ -293,6 +309,7 @@ export function PreferencesScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       <View style={styles.header}>
         <BackButton title="Configurações" />
         <View style={styles.headerContent}>
@@ -307,6 +324,25 @@ export function PreferencesScreen() {
         <Text style={styles.description}>
           Personalize suas preferências de conteúdo e notificações.
         </Text>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🎨 Aparência</Text>
+
+          <View style={styles.emailItem}>
+            <View style={styles.emailInfo}>
+              <Text style={styles.emailTitle}>Tema escuro</Text>
+              <Text style={styles.emailDescription}>
+                Roxo escuro, igual ao Melter web. Desative para usar o tema claro rosa.
+              </Text>
+            </View>
+            <Switch
+              value={isDark}
+              onValueChange={(v) => toggleDark(v)}
+              trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
+              thumbColor="#ffffff"
+            />
+          </View>
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>👤 Conta</Text>
@@ -486,7 +522,7 @@ export function PreferencesScreen() {
                     value={isEnabled}
                     onValueChange={(checked) => handleToggleCategory(category._id, checked)}
                     disabled={saving}
-                    trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+                    trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
                     thumbColor="#ffffff"
                   />
                 </View>
@@ -496,7 +532,7 @@ export function PreferencesScreen() {
 
           {hasChanges && (
             <View style={styles.warningContainer}>
-              <Ionicons name="warning-outline" size={20} color={COLORS.states.warning} />
+              <Ionicons name="warning-outline" size={20} color={colors.states.warning} />
               <Text style={styles.warningText}>
                 Você tem alterações não salvas
               </Text>
@@ -513,7 +549,7 @@ export function PreferencesScreen() {
           </Button>
 
           <View style={styles.infoContainer}>
-            <Ionicons name="information-circle-outline" size={20} color={COLORS.primary.main} />
+            <Ionicons name="information-circle-outline" size={20} color={colors.primary.main} />
             <Text style={styles.infoText}>
               <Text style={styles.infoBold}>Como funciona:</Text> Categorias desativadas não aparecerão no seu feed. Você pode reativá-las a qualquer momento.
             </Text>
@@ -552,7 +588,7 @@ export function PreferencesScreen() {
                 if (!ok) setEmailNotifyFollowers(prev);
               }}
               disabled={savingTransactional}
-              trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+              trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
               thumbColor="#ffffff"
             />
           </View>
@@ -573,7 +609,7 @@ export function PreferencesScreen() {
                 if (!ok) setEmailNotifyFriendRequests(prev);
               }}
               disabled={savingTransactional}
-              trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+              trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
               thumbColor="#ffffff"
             />
           </View>
@@ -594,7 +630,49 @@ export function PreferencesScreen() {
                 if (!ok) setEmailNotifyOfflineMessages(prev);
               }}
               disabled={savingTransactional}
-              trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+              trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
+              thumbColor="#ffffff"
+            />
+          </View>
+
+          <View style={styles.emailItem}>
+            <View style={styles.emailInfo}>
+              <Text style={styles.emailTitle}>Novos posts de quem você segue</Text>
+              <Text style={styles.emailDescription}>
+                E-mail quando alguém que você segue publicar um post.
+              </Text>
+            </View>
+            <Switch
+              value={emailNotifyNewPosts}
+              onValueChange={async (checked) => {
+                const prev = emailNotifyNewPosts;
+                setEmailNotifyNewPosts(checked);
+                const ok = await patchTransactionalEmails({ emailNotifyNewPostsFromFollowing: checked });
+                if (!ok) setEmailNotifyNewPosts(prev);
+              }}
+              disabled={savingTransactional}
+              trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
+              thumbColor="#ffffff"
+            />
+          </View>
+
+          <View style={styles.emailItem}>
+            <View style={styles.emailInfo}>
+              <Text style={styles.emailTitle}>Curtidas nos seus posts</Text>
+              <Text style={styles.emailDescription}>
+                E-mail quando alguém curtir ou reagir a um post seu.
+              </Text>
+            </View>
+            <Switch
+              value={emailNotifyPostReactions}
+              onValueChange={async (checked) => {
+                const prev = emailNotifyPostReactions;
+                setEmailNotifyPostReactions(checked);
+                const ok = await patchTransactionalEmails({ emailNotifyPostReactions: checked });
+                if (!ok) setEmailNotifyPostReactions(prev);
+              }}
+              disabled={savingTransactional}
+              trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
               thumbColor="#ffffff"
             />
           </View>
@@ -615,13 +693,13 @@ export function PreferencesScreen() {
               value={emailMarketingEnabled ?? true}
               onValueChange={handleToggleEmailMarketing}
               disabled={savingEmailPref}
-              trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+              trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
               thumbColor="#ffffff"
             />
           </View>
 
           <View style={styles.emailNote}>
-            <Ionicons name="mail-outline" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="mail-outline" size={16} color={colors.text.secondary} />
             <Text style={styles.emailNoteText}>
               Você continuará recebendo emails essenciais mesmo com esta opção desativada.
             </Text>
@@ -634,15 +712,15 @@ export function PreferencesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.divider,
     paddingBottom: 12,
   },
   headerContent: {
@@ -652,7 +730,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -662,13 +740,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   prefSkeletonDescription: {
     width: '100%',
     height: 42,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginBottom: 20,
   },
   prefSkeletonSection: {
@@ -678,21 +756,21 @@ const styles = StyleSheet.create({
     width: '50%',
     height: 12,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginBottom: 4,
   },
   prefSkeletonItem: {
     width: '100%',
     height: 52,
     borderRadius: 10,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   scrollContent: {
     padding: 16,
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 24,
     lineHeight: 20,
   },
@@ -702,30 +780,30 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   sectionDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
     lineHeight: 20,
   },
   fieldLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   currentUsername: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
     marginBottom: 12,
   },
   helperMuted: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 8,
     marginBottom: 4,
   },
@@ -739,16 +817,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.default,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.default,
   },
   chipActive: {
-    borderColor: COLORS.secondary.main,
-    backgroundColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   chipText: {
     fontSize: 13,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   chipTextActive: {
     color: '#fff',
@@ -762,11 +840,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
+    backgroundColor: c.background.paper,
+    borderRadius: SURFACE_RADIUS,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.divider,
   },
   categoryInfo: {
     flex: 1,
@@ -774,20 +852,20 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 16,
     fontWeight: '500',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   warningContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.states.warning + '20',
+    backgroundColor: c.states.warning + '20',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   warningText: {
     fontSize: 14,
-    color: COLORS.states.warning,
+    color: c.states.warning,
     flex: 1,
   },
   saveButton: {
@@ -797,20 +875,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: COLORS.primary.light + '20',
+    backgroundColor: c.primary.light + '20',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   infoText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     flex: 1,
     lineHeight: 20,
   },
   infoBold: {
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   resetButton: {
     marginBottom: 0,
@@ -819,11 +897,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.background.paper,
-    borderRadius: 12,
+    backgroundColor: c.background.paper,
+    borderRadius: SURFACE_RADIUS,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.divider,
     marginBottom: 12,
   },
   emailInfo: {
@@ -833,12 +911,12 @@ const styles = StyleSheet.create({
   emailTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   emailDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
   emailNote: {
@@ -848,7 +926,7 @@ const styles = StyleSheet.create({
   },
   emailNoteText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     flex: 1,
     lineHeight: 18,
   },

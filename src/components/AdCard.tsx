@@ -137,7 +137,7 @@ export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps)
         {isImage && ad.mediaUrl ? (
           <TouchableOpacity onPress={handleAdClick} activeOpacity={0.9}>
             <View style={styles.mediaContainer}>
-              <Image source={{ uri: ad.mediaUrl }} style={styles.adMedia} resizeMode="contain" />
+              <Image source={{ uri: ad.mediaUrl }} style={styles.adMedia} resizeMode="cover" />
             </View>
           </TouchableOpacity>
         ) : null}
