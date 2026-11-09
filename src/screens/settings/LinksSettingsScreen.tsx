@@ -21,6 +21,7 @@ import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { showToast } from '../../components/CustomToast';
+import { getFeatureLimit, resolveUserPlanType } from '../../config/plan-features';
 
 interface LinkItem {
   id: string;
@@ -76,7 +77,9 @@ export function LinksSettingsScreen() {
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [openNewLinkModal, setOpenNewLinkModal] = useState(false);
-  const [maxLinks, setMaxLinks] = useState(3);
+  const [maxLinks, setMaxLinks] = useState(() =>
+    getFeatureLimit(resolveUserPlanType(user?.plan?.type), 'maxLinks')
+  );
   const [sortMode, setSortMode] = useState<'custom' | 'date' | 'name' | 'likes'>('custom');
   const [deleteLinkId, setDeleteLinkId] = useState<string | null>(null);
 
@@ -123,13 +126,7 @@ export function LinksSettingsScreen() {
         setPendingLinks(formattedLinks);
         setOriginalLinks(JSON.parse(JSON.stringify(formattedLinks)));
 
-        const maxLinksMap: Record<string, number> = {
-          FREE: 3,
-          STARTER: 10,
-          PRO: 50,
-          PRO_PLUS: 50,
-        };
-        setMaxLinks(maxLinksMap[response.data.plan?.type] || 3);
+        setMaxLinks(getFeatureLimit(resolveUserPlanType(response.data.plan?.type), 'maxLinks'));
 
         if (response.data.profile?.sortMode) {
           setSortMode(response.data.profile.sortMode);

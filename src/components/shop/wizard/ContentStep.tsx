@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,11 +21,14 @@ import { getImageUrl } from '../../../utils/image';
 import type { PackContentDeliveryMode } from '../ProductCreationWizard';
 import { MediaUploadPickerRow } from '../../ui/MediaUploadPickerRow';
 
+export type ProductStorageOptions = Parameters<typeof getProductCreationStorageLimits>[1];
+
 interface ContentStepProps {
   formData: any;
   setFormData: (data: any) => void;
   isEditing?: boolean;
   showMediaRequiredError?: boolean;
+  storageOptions?: ProductStorageOptions;
 }
 
 export function ContentStep({
@@ -33,10 +36,16 @@ export function ContentStep({
   setFormData,
   isEditing = false,
   showMediaRequiredError = false,
+  storageOptions,
 }: ContentStepProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const { user } = useAuth();
+  const userPlan = (user?.plan?.type || 'FREE') as PlanType;
+  const storageLimits = useMemo(
+    () => getProductCreationStorageLimits(userPlan, storageOptions),
+    [userPlan, storageOptions]
+  );
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [fileSizeErrors, setFileSizeErrors] = useState<string[]>([]);
@@ -44,8 +53,6 @@ export function ContentStep({
   // Validar arquivos existentes sempre que o componente for renderizado
   useEffect(() => {
     if (formData.files && formData.files.length > 0) {
-      const userPlan = (user?.plan?.type || 'FREE') as PlanType;
-      const storageLimits = getProductCreationStorageLimits(userPlan);
       const maxFileSize = storageLimits.maxFileSizePerFileBytes;
       const maxTotalSize = storageLimits.maxTotalFileSizeBytes;
 
@@ -66,7 +73,7 @@ export function ContentStep({
     } else {
       setFileSizeErrors([]);
     }
-  }, [formData.files, user?.plan?.type]);
+  }, [formData.files, storageLimits]);
 
   const handleAddLink = () => {
     const newLink = {
@@ -123,9 +130,6 @@ export function ContentStep({
         // Calcular tamanho total atual
         const currentTotalSize = formData.files.reduce((total: number, file: any) => total + (file.size || 0), 0);
 
-        // Obter limites do plano do usuário
-        const userPlan = (user?.plan?.type || 'FREE') as PlanType;
-        const storageLimits = getProductCreationStorageLimits(userPlan);
         const maxFileSize = storageLimits.maxFileSizePerFileBytes;
         const maxTotalSize = storageLimits.maxTotalFileSizeBytes;
 
@@ -134,7 +138,12 @@ export function ContentStep({
           const fileSize = asset.fileSize || 0;
 
           // Validar tamanho do arquivo
-          const validation = validateFileSize(userPlan, fileSize, currentTotalSize + validFiles.reduce((sum, f) => sum + f.size, 0));
+          const validation = validateFileSize(
+            userPlan,
+            fileSize,
+            currentTotalSize + validFiles.reduce((sum, f) => sum + f.size, 0),
+            storageOptions
+          );
           
           if (!validation.valid) {
             errors.push(`${asset.fileName || `arquivo_${i}`}: ${validation.error}`);
@@ -380,7 +389,7 @@ export function ContentStep({
             <View style={styles.summaryBox}>
               <Text style={styles.summaryText}>
                 Total: {formatFileSize(getTotalFileSize())} /{' '}
-                {getProductCreationStorageLimits((user?.plan?.type || 'FREE') as PlanType).maxTotalFileSizeMb}MB
+                {storageLimits.maxTotalFileSizeMb}MB
               </Text>
             </View>
           </>

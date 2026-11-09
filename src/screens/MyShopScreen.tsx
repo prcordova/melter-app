@@ -171,6 +171,16 @@ export function MyShopScreen() {
     DEFAULT_SHOP_PRODUCTS_LIST_META
   );
   const [shopPlanGate, setShopPlanGate] = useState<ShopPlanGate | null>(null);
+  const productStorageOptions = useMemo(
+    () =>
+      shopPlanGate
+        ? {
+            minPlanToCreateShop: shopPlanGate.minPlanToCreateShop,
+            resolvedMb: shopPlanGate.productCreationLimits ?? shopPlanGate.productStorageLimits,
+          }
+        : undefined,
+    [shopPlanGate]
+  );
 
   // Extrair parâmetros da rota
   const username = route.params?.username || user?.username || '';
@@ -1711,6 +1721,7 @@ export function MyShopScreen() {
         productCoverAvatarFallbackEnabled={
           shopListMeta.productCoverAvatarFallbackEnabled
         }
+        storageOptions={productStorageOptions}
         onClose={() => {
           setShowCreateProductModal(false);
           setEditingProduct(null);

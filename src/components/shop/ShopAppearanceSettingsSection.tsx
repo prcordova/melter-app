@@ -18,7 +18,7 @@ import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { getImageUrl } from '../../utils/image';
-import { resolveUserPlanType, type PlanType } from '../../config/plan-features';
+import { hasFeatureAccess, resolveUserPlanType, type PlanType } from '../../config/plan-features';
 import type { UsernameDisplayEffectConfig } from '../../types/username-display-effect';
 import {
   DEFAULT_USERNAME_DISPLAY_EFFECT,
@@ -78,6 +78,9 @@ export function ShopAppearanceSettingsSection({
   );
 
   const planType = resolveUserPlanType(currentPlan) as PlanType;
+  const canEditBackground = hasFeatureAccess(planType, 'canUploadShopBackgroundImage');
+  const canEditTitleColor = hasFeatureAccess(planType, 'canCustomizeShopTitleColor');
+  const canEditTitleEffect = hasFeatureAccess(planType, 'canCustomizeShopTitleDisplayEffect');
 
   useEffect(() => {
     setTitleEffect(mergeTitleDisplayEffect(value.titleDisplayEffect));
@@ -163,11 +166,15 @@ export function ShopAppearanceSettingsSection({
     try {
       setSavingAppearance(true);
       const response = await shopApi.updateAppearance({
-        backgroundMode: value.backgroundMode,
-        backgroundOverlay: value.backgroundOverlay,
-        backgroundOverlayOpacity: value.backgroundOverlayOpacity,
+        ...(canEditBackground
+          ? {
+              backgroundMode: value.backgroundMode,
+              backgroundOverlay: value.backgroundOverlay,
+              backgroundOverlayOpacity: value.backgroundOverlayOpacity,
+            }
+          : {}),
         titleColor: value.titleColor,
-        titleDisplayEffect: titleEffect,
+        ...(canEditTitleEffect ? { titleDisplayEffect: titleEffect } : {}),
       });
 
       if (response.success && response.data) {
@@ -209,8 +216,9 @@ export function ShopAppearanceSettingsSection({
         </Text>
       ) : null}
 
-      <PlanLocker requiredPlan="PRO" currentPlan={planType}>
-        <View style={[styles.inner, busy && styles.innerBusy]}>
+      <View style={[styles.inner, busy && styles.innerBusy]}>
+        <PlanLocker requiredPlan="PRO" currentPlan={planType}>
+          <View>
           {uploadingBackground ? (
             <View style={styles.uploadOverlay}>
               <ActivityIndicator size="large" color={colors.primary.main} />
@@ -314,15 +322,19 @@ export function ShopAppearanceSettingsSection({
               <Ionicons name="add" size={20} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
+          </View>
+        </PlanLocker>
 
           <View style={styles.divider} />
 
           <Text style={styles.subsectionTitle}>Título da loja</Text>
-          <ColorPickerField
-            label="Cor do título"
-            value={value.titleColor || '#9333ea'}
-            onChange={(color) => patch({ titleColor: color })}
-          />
+          <PlanLocker requiredPlan="STARTER" currentPlan={planType}>
+            <ColorPickerField
+              label="Cor do título"
+              value={value.titleColor || '#9333ea'}
+              onChange={(color) => patch({ titleColor: color })}
+            />
+          </PlanLocker>
 
           <ProfileGradientEffectSection
             title="Efeito no título"
@@ -341,7 +353,7 @@ export function ShopAppearanceSettingsSection({
             previewPrefix="Loja de "
           />
 
-          {!hideInlineSaveButton ? (
+          {!hideInlineSaveButton && canEditTitleColor ? (
             <TouchableOpacity
               style={[styles.saveBtn, busy && styles.saveBtnDisabled]}
               onPress={() => void handleSaveAppearance()}
@@ -354,8 +366,7 @@ export function ShopAppearanceSettingsSection({
               )}
             </TouchableOpacity>
           ) : null}
-        </View>
-      </PlanLocker>
+      </View>
     </View>
   );
 }

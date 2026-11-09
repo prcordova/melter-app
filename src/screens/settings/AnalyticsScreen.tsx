@@ -22,6 +22,11 @@ import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { showToast } from '../../components/CustomToast';
 import { getImageUrl } from '../../utils/image';
 import { PostAnalyticsCard } from '../../components/analytics/PostAnalyticsCard';
+import { PlanLocker } from '../../components/PlanLocker';
+import { useAuth } from '../../contexts/AuthContext';
+import { PLAN_LIMITS, resolveUserPlanType, type PlanType } from '../../config/plan-features';
+
+const PLAN_ORDER: PlanType[] = ['FREE', 'LITE', 'STARTER', 'PRO', 'PRO_PLUS'];
 
 interface PostAnalytics {
   _id: string;
@@ -68,9 +73,14 @@ interface AnalyticsData {
     totalNewFollowers: number;
     avgEngagementRate: number;
   };
+  /** Plano sem `hasAnalytics`: servidor zera seguidores/engajamento/alcance. */
+  analyticsLocked?: boolean;
 }
 
 type SortFilter = 'recent' | 'most-viewed' | 'most-engagement' | 'most-comments' | 'most-reactions';
+
+const ANALYTICS_MIN_PLAN =
+  PLAN_ORDER.find((plan) => PLAN_LIMITS[plan].hasAnalytics) ?? 'STARTER';
 
 export function AnalyticsScreen() {
   const styles = useThemedStyles(createStyles);
@@ -89,7 +99,10 @@ export function AnalyticsScreen() {
   );
 
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const currentPlan = resolveUserPlanType(user?.plan?.type);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const analyticsLocked = analytics?.analyticsLocked === true;
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortFilter>('recent');
@@ -126,7 +139,7 @@ export function AnalyticsScreen() {
   const sortOptions: SelectItem[] = [
     { label: 'Mais Recentes', value: 'recent' },
     { label: 'Mais Visualizados', value: 'most-viewed' },
-    { label: 'Mais Engajamento', value: 'most-engagement' },
+    ...(analyticsLocked ? [] : [{ label: 'Mais Engajamento', value: 'most-engagement' }]),
     { label: 'Mais Comentários', value: 'most-comments' },
     { label: 'Mais Reações', value: 'most-reactions' },
   ];
@@ -168,14 +181,20 @@ export function AnalyticsScreen() {
           </View>
           
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{analytics.summary.totalNewFollowers}</Text>
+            <PlanLocker requiredPlan={ANALYTICS_MIN_PLAN} currentPlan={currentPlan} variant="compact">
+              <Text style={styles.summaryValue}>
+                {analyticsLocked ? '—' : analytics.summary.totalNewFollowers}
+              </Text>
+            </PlanLocker>
             <Text style={styles.summaryLabel}>Novos Seguidores</Text>
           </View>
           
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>
-              {analytics.summary.avgEngagementRate.toFixed(1)}%
-            </Text>
+            <PlanLocker requiredPlan={ANALYTICS_MIN_PLAN} currentPlan={currentPlan} variant="compact">
+              <Text style={styles.summaryValue}>
+                {analyticsLocked ? '—' : `${analytics.summary.avgEngagementRate.toFixed(1)}%`}
+              </Text>
+            </PlanLocker>
             <Text style={styles.summaryLabel}>Taxa Média</Text>
           </View>
         </View>
@@ -188,6 +207,7 @@ export function AnalyticsScreen() {
       <PostAnalyticsCard 
         post={post} 
         onPromote={handlePromotePost}
+        advancedLocked={analyticsLocked}
       />
     );
   };

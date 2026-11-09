@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
-import { ContentStep } from './wizard/ContentStep';
+import { ContentStep, type ProductStorageOptions } from './wizard/ContentStep';
 import { DetailsStep } from './wizard/DetailsStep';
 import { ReviewStep } from './wizard/ReviewStep';
 import { showToast } from '../CustomToast';
@@ -30,6 +30,8 @@ export interface ProductCreationWizardProps {
   overallProgress?: number;
   /** De `meta.productCoverAvatarFallbackEnabled` (admin). */
   productCoverAvatarFallbackEnabled?: boolean;
+  /** Limites resolvidos no servidor (`shopPlanGate.productCreationLimits`) + plano mínimo da loja. */
+  storageOptions?: ProductStorageOptions;
 }
 
 const steps = ['Conteúdo', 'Detalhes', 'Revisão'];
@@ -72,6 +74,7 @@ export function ProductCreationWizard({
   saving = false,
   overallProgress = 0,
   productCoverAvatarFallbackEnabled = true,
+  storageOptions,
 }: ProductCreationWizardProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
@@ -382,6 +385,7 @@ export function ProductCreationWizard({
             setFormData={setFormData}
             isEditing={Boolean(product)}
             showMediaRequiredError={showMediaRequiredError}
+            storageOptions={storageOptions}
           />
         );
       case 1:

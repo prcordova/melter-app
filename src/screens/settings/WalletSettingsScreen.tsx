@@ -481,7 +481,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     marginBottom: 16,
     padding: 24,
     borderRadius: 16,
-    backgroundColor: c.primary.main,
+    backgroundColor: c.isDark ? c.primary.dark : c.primary.main,
     position: 'relative',
     overflow: 'hidden',
   },

@@ -143,7 +143,7 @@ export function PlansScreen() {
     if (!plan) return;
 
     subscribeIntentConsumedRef.current = true;
-    const wantTrial = route.params?.trial !== false;
+    const wantTrial = route.params?.trial === true;
     void handleSubscribe(plan, { withTrial: wantTrial });
     navigation.setParams({ subscribe: undefined, trial: undefined } as never);
   }, [fetchingPlan, route.params?.subscribe, route.params?.trial]);
@@ -200,8 +200,7 @@ export function PlansScreen() {
     planName: string,
     options?: { withTrial?: boolean }
   ) => {
-    // Se o plano selecionado é o mesmo do atual, não fazer nada
-    if (planName === currentPlan) {
+    if (planName === currentPlan || planName === 'FREE') {
       return;
     }
 
@@ -393,9 +392,10 @@ export function PlansScreen() {
   const getPlanHierarchy = (plan: string): number => {
     const hierarchy: Record<string, number> = {
       'FREE': 0,
-      'STARTER': 1,
-      'PRO': 2,
-      'PRO_PLUS': 3,
+      'LITE': 1,
+      'STARTER': 2,
+      'PRO': 3,
+      'PRO_PLUS': 4,
     };
     return hierarchy[plan] || 0;
   };
@@ -575,6 +575,7 @@ export function PlansScreen() {
         <View style={styles.plansContainer}>
           {planCards.map((plan) => {
             const isCurrentPlan = plan.name === currentPlan;
+            const isFreePlan = plan.name === 'FREE';
             const planColor = plan.color;
             const showTrial =
               platformTrialEligible &&
@@ -659,13 +660,13 @@ export function PlansScreen() {
                     { backgroundColor: isCurrentPlan ? colors.states.success : planColor },
                   ]}
                   onPress={() => handleSubscribe(plan.name)}
-                  disabled={isCurrentPlan || loading}
+                  disabled={isCurrentPlan || isFreePlan || loading}
                 >
-                  {loading ? (
+                  {loading && !isFreePlan ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <Text style={styles.subscribeButtonText}>
-                      {isCurrentPlan ? '✓ Plano Atual' : 'Assinar'}
+                      {isCurrentPlan ? '✓ Plano Atual' : isFreePlan ? 'Plano Gratuito' : 'Assinar'}
                     </Text>
                   )}
                 </TouchableOpacity>

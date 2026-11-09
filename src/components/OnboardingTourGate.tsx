@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../services/api';
-import { CURRENT_TERMS_VERSION } from '../constants/terms';
+import { isTermsVersionCurrent } from '../constants/terms';
 import {
   CustomTooltipTutorial,
   type CustomTooltipTutorialAnchor,
@@ -59,13 +59,13 @@ export function OnboardingTourGate({
   tabBarPaddingTop,
   tabBarPaddingBottom,
 }: OnboardingTourGateProps) {
-  const { user } = useAuth();
+  const { user, biometricUnlockRequired } = useAuth();
   const [pending, setPending] = useState(false);
   const [ready, setReady] = useState(false);
 
   const termsAccepted =
     Boolean(user?.termsAndPrivacy?.terms?.accepted) &&
-    (user?.termsAndPrivacy?.terms?.version || '1.0') === CURRENT_TERMS_VERSION;
+    isTermsVersionCurrent(user?.termsAndPrivacy?.terms?.version);
 
   useEffect(() => {
     setPending(false);
@@ -82,7 +82,7 @@ export function OnboardingTourGate({
     };
   }, [user?.id]);
 
-  const canOpen = pending && termsAccepted;
+  const canOpen = pending && termsAccepted && !biometricUnlockRequired;
 
   useEffect(() => {
     if (!canOpen) {

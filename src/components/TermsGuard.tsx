@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
-import { CURRENT_TERMS_VERSION } from '../constants/terms';
+import { isTermsVersionCurrent } from '../constants/terms';
 import { SURFACE_RADIUS, type AppPalette } from '../theme/palettes';
 import { CustomModal } from './CustomModal';
 import { Button } from './Button';
@@ -32,9 +32,8 @@ export function TermsGuard() {
 
   const needsAcceptance = useMemo(() => {
     if (!user) return false;
-    const userTermsVersion = user.termsAndPrivacy?.terms?.version || '1.0';
     const hasAccepted = user.termsAndPrivacy?.terms?.accepted || false;
-    return !hasAccepted || userTermsVersion !== CURRENT_TERMS_VERSION;
+    return !hasAccepted || !isTermsVersionCurrent(user.termsAndPrivacy?.terms?.version);
   }, [user]);
 
   const onTermsScreen = isOnTermsRoute(navState);

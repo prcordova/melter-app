@@ -721,7 +721,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     minHeight: '100%',
   },
   balanceCard: {
-    backgroundColor: c.primary.main,
+    backgroundColor: c.isDark ? c.primary.dark : c.primary.main,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',

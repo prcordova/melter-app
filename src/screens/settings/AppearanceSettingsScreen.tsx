@@ -409,11 +409,18 @@ export function AppearanceSettingsScreen() {
         PLAN_LIMITS[planType].canHideStoryViewersList && settings.hideStoryViewersList === true;
 
       // 4. Preparar payload do perfil
+      const planLimits = PLAN_LIMITS[planType];
       const profilePayload: any = {
-        backgroundColor: settings.backgroundColor || '#ffffff',
-        cardColor: settings.cardColor || '#f5f5f5',
-        textColor: settings.textColor || '#000000',
-        cardTextColor: settings.cardTextColor || '#000000',
+        ...(planLimits.canCustomizeColors
+          ? {
+              backgroundColor: settings.backgroundColor || '#ffffff',
+              cardColor: settings.cardColor || '#f5f5f5',
+              cardTextColor: settings.cardTextColor || '#000000',
+            }
+          : {}),
+        ...(planLimits.canCustomizeTextColor || planLimits.canCustomizeColors
+          ? { textColor: settings.textColor || '#000000' }
+          : {}),
         displayMode: settings.displayMode,
         gridAlignment: settings.gridAlignment,
         cardStyle: settings.cardStyle,
@@ -421,7 +428,7 @@ export function AppearanceSettingsScreen() {
         font: settings.font,
         spacing: settings.spacing,
         sortMode: settings.sortMode,
-        likesColor: settings.likesColor || '#ff0000',
+        ...(planLimits.canCustomizeLikesColor ? { likesColor: settings.likesColor || '#ff0000' } : {}),
         showLikes: settings.showLikes,
         showViews: settings.showViews,
         showPosts: settings.showPosts,
@@ -774,7 +781,7 @@ export function AppearanceSettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🎨 Background</Text>
           
-          <PlanLocker requiredPlan="FREE" currentPlan={user?.plan?.type}>
+          <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
             <ColorPickerField
               label="Cor de Fundo"
               value={settings.backgroundColor}
@@ -889,7 +896,7 @@ export function AppearanceSettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🎨 Cores dos Textos</Text>
           
-          <PlanLocker requiredPlan="FREE" currentPlan={user?.plan?.type}>
+          <PlanLocker requiredPlan="LITE" currentPlan={user?.plan?.type}>
             <ColorPickerField
               label="Cor do Texto"
               value={settings.textColor}
@@ -950,7 +957,7 @@ export function AppearanceSettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🎴 Cards</Text>
           
-          <PlanLocker requiredPlan="FREE" currentPlan={user?.plan?.type}>
+          <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
             <ColorPickerField
               label="Cor de Fundo do Card"
               value={settings.cardColor}
@@ -1207,7 +1214,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   statusOptionActive: {
     borderColor: c.primary.main,
-    backgroundColor: c.primary.light,
+    backgroundColor: c.action.selected,
   },
   statusDot: {
     width: 8,

@@ -230,10 +230,10 @@ export function PlatformFeedInfoSlot({
               onPress={() => void handleFollowReferrer(referrer.username)}
             >
               {followLoading ? (
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color={colors.primary.contrastText} size="small" />
               ) : (
                 <>
-                  <Ionicons name="person-add-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+                  <Ionicons name="person-add-outline" size={18} color={colors.primary.contrastText} style={{ marginRight: 6 }} />
                   <Text style={styles.btnPrimaryText}>{followLabel?.trim() || 'Seguir'}</Text>
                 </>
               )}
@@ -416,7 +416,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     justifyContent: 'center',
   },
   avatarLetter: {
-    color: '#fff',
+    color: c.primary.contrastText,
     fontSize: 22,
     fontWeight: '700',
   },
@@ -491,7 +491,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   btnPrimaryText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: c.primary.contrastText,
   },
   btnDisabled: {
     opacity: 0.7,

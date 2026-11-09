@@ -31,6 +31,6 @@ export function buildPlansSubscribeNavParams(params: {
   const plan = parsePlansSubscribePlan(params.planType) ?? 'STARTER';
   return {
     subscribe: plan,
-    trial: params.withTrial !== false,
+    trial: params.withTrial === true,
   };
 }

@@ -138,8 +138,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     canUploadProductImages: false,
     canUploadPresentationVideo: false,
     canEnableShop: true,
-    maxFileSizePerFile: 300,
-    maxTotalFileSize: 500,
+    maxFileSizePerFile: 50,
+    maxTotalFileSize: 100,
     canUploadBackgroundImage: true,
     canChangeBackgroundMode: false,
     canToggleBackgroundOverlay: false,
@@ -445,8 +445,8 @@ export function productStatusOccupiesShopSlot(
 }
 
 export function formatPlanStorageLimit(megabytes: number): string {
-  if (megabytes >= 1024) {
-    const gigabytes = megabytes / 1024
+  if (megabytes >= 1000) {
+    const gigabytes = megabytes / 1000
     return Number.isInteger(gigabytes) ? `${gigabytes} GB` : `${gigabytes.toFixed(1)} GB`
   }
 
@@ -565,14 +565,14 @@ export function validateProfileSettings(
     }
   }
 
-  if (settings.usernameDisplayEffect !== undefined && !limits.canCustomizeUsernameDisplayEffect) {
+  if (settings.usernameDisplayEffect != null && !limits.canCustomizeUsernameDisplayEffect) {
     return {
       valid: false,
       error: 'Efeito no nome de usuário disponível apenas nos planos PRO e PRO+',
     }
   }
 
-  if (settings.statusMessageDisplayEffect !== undefined && !limits.canCustomizeUsernameDisplayEffect) {
+  if (settings.statusMessageDisplayEffect != null && !limits.canCustomizeUsernameDisplayEffect) {
     return {
       valid: false,
       error: 'Efeito na mensagem de status disponível apenas nos planos PRO e PRO+',
@@ -583,7 +583,7 @@ export function validateProfileSettings(
   if (settings.backgroundImage && !limits.canUploadBackgroundImage) {
     return {
       valid: false,
-      error: 'Imagem de fundo não disponível no seu plano atual'
+      error: 'Imagem de fundo personalizada disponível a partir do plano LITE'
     }
   }
 
@@ -784,7 +784,7 @@ export function validateShopAppearanceSettings(
   }
 
   if (
-    settings.titleDisplayEffect !== undefined &&
+    settings.titleDisplayEffect != null &&
     !limits.canCustomizeShopTitleDisplayEffect
   ) {
     return {

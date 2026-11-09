@@ -45,9 +45,11 @@ interface PostAnalytics {
 interface PostAnalyticsCardProps {
   post: PostAnalytics;
   onPromote?: (postId: string) => void;
+  /** Plano sem `hasAnalytics`: oculta seguidores/engajamento (servidor zera esses campos). */
+  advancedLocked?: boolean;
 }
 
-export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
+export function PostAnalyticsCard({ post, onPromote, advancedLocked = false }: PostAnalyticsCardProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const formatDate = (dateString: string) => {
@@ -163,6 +165,7 @@ export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
             </View>
           </View>
 
+          {!advancedLocked && (
           <View style={styles.metricRow}>
             <View style={styles.metricItem}>
               <View style={[styles.metricIconContainer, { backgroundColor: colors.states.success + '20' }]}>
@@ -186,6 +189,7 @@ export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
               </View>
             </View>
           </View>
+          )}
         </View>
 
         {/* Progresso de Promoção ou Botão Promover */}

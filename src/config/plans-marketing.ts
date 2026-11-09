@@ -96,22 +96,25 @@ export function buildPlanCardHighlights(plan: PlanMarketingId): string[] {
   const l = limits(plan);
   const store = storageCells(plan);
 
+  const storageLine = `${store.perFile} por arquivo · ${store.perProduct} por produto`;
+  const subscriptionPlansLine = `${l.maxSubscriptionPlans} ${
+    l.maxSubscriptionPlans === 1 ? 'plano de assinatura' : 'planos de assinatura'
+  } para vender`;
+
   switch (plan) {
     case 'FREE':
       return [
         `Até ${l.maxLinks} link no perfil`,
-        `${l.maxProducts} produto digital`,
-        `${store.perFile} por arquivo · ${store.perProduct} por pacote`,
+        'Sem produtos digitais',
         'Criar stories',
-        'Posts no feed exigem link compartilhado',
       ];
     case 'LITE':
       return [
         `Até ${l.maxLinks} links no perfil`,
-        `${l.maxProducts} produto digital (mais espaço no pacote)`,
-        `${store.perFile} por arquivo · ${store.perProduct} por pacote`,
+        `${l.maxProducts} produto digital`,
+        storageLine,
         'Criar posts no feed',
-        'Posts no feed sem precisar de link',
+        'Texto formatado nos posts',
         'Imagem de fundo personalizada',
         'Cor do texto e da bio',
       ];
@@ -119,33 +122,40 @@ export function buildPlanCardHighlights(plan: PlanMarketingId): string[] {
       return [
         `Até ${l.maxLinks} links no perfil`,
         `${l.maxProducts} produtos digitais`,
-        `${store.perFile} por arquivo · ${store.perProduct} por pacote`,
+        storageLine,
+        subscriptionPlansLine,
         'Imagens nos produtos da loja',
+        'Anexar link do perfil nos posts',
         'Cores do perfil, cards, likes e botões',
+        'Cor do título da loja',
         'Receber doações',
         'Analytics avançado do perfil',
-        'Lives: 1 por dia (até 30 min)',
+        'Suporte prioritário',
       ];
     case 'PRO':
       return [
         `Até ${l.maxLinks} links no perfil`,
         `${l.maxProducts} produtos digitais`,
+        storageLine,
+        subscriptionPlansLine,
         '1 imagem por post no feed',
         'Efeito visual no @usuário',
+        'Modo e overlay do fundo do perfil',
+        'Ocultar listas de seguidores',
         'Selo verificado (após validação)',
-        'Imagem e modo de fundo da vitrine da loja',
-        'Suporte VIP',
+        'Fundo e efeito no título da vitrine da loja',
       ];
     case 'PRO_PLUS':
       return [
         `Até ${l.maxLinks} links no perfil`,
         `${l.maxProducts} produtos digitais`,
-        '1 imagem por post no feed',
+        storageLine,
+        subscriptionPlansLine,
+        'Vídeo de apresentação nos produtos',
         'Analytics da loja',
         'Categorias personalizadas na loja',
-        'Ocultar @ nas reações (PRO+)',
-        'Ocultar visualizações dos stories (PRO+)',
-        'Suporte premium',
+        'Ocultar @ nas reações',
+        'Ocultar visualizações dos stories',
       ];
     default:
       return [];

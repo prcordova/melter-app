@@ -180,7 +180,7 @@ export function PresentationVideoSellerPanel({
 
   const actions = (
     <View style={styles.actionsRow}>
-      <PlanLocker requiredPlan="PRO" currentPlan={planType}>
+      <PlanLocker requiredPlan="PRO_PLUS" currentPlan={planType}>
         <TouchableOpacity
           style={[styles.btn, besideCover && styles.btnBeside]}
           onPress={() => void upload()}
