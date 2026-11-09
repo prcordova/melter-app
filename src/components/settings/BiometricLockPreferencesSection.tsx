@@ -3,7 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import { SURFACE_RADIUS, type AppPalette } from '../../theme/palettes';
-import { hasBiometricLoginConfigured, subscribeBiometricLogin } from '../../services/biometricLogin';
+import {
+  hasBiometricLoginConfigured,
+  isBiometricLoginEnabledSync,
+  subscribeBiometricLogin,
+  verifyBiometricIdentity,
+} from '../../services/biometricLogin';
 import {
   BIOMETRIC_LOCK_TIMEOUT_OPTIONS,
   ensureBiometricHideContentLoaded,
@@ -52,7 +57,19 @@ export function BiometricLockPreferencesSection() {
     };
   }, []);
 
+  /** Afrouxar a proteção exige a biometria do dono (quem pegou o celular desbloqueado não consegue). */
+  const confirmWeakening = async (): Promise<boolean> => {
+    if (!isBiometricLoginEnabledSync()) return true;
+    const result = await verifyBiometricIdentity();
+    if (result === 'success') return true;
+    if (result === 'cancelled') {
+      showToast.error('Biometria', 'Confirme com sua biometria para reduzir a proteção.');
+    }
+    return false;
+  };
+
   const handleToggleHideContent = async (enabled: boolean) => {
+    if (!enabled && !(await confirmWeakening())) return;
     setHideContent(enabled);
     try {
       await setBiometricHideContent(enabled);
@@ -65,6 +82,8 @@ export function BiometricLockPreferencesSection() {
   const handleSelect = async (value: BiometricLockTimeout) => {
     if (value === timeout) return;
     const previous = timeout;
+    const weakens = value === null || (previous !== null && value > previous);
+    if (weakens && !(await confirmWeakening())) return;
     setTimeoutValue(value);
     try {
       await setBiometricLockTimeout(value);
@@ -89,7 +108,8 @@ export function BiometricLockPreferencesSection() {
         <Ionicons name="information-circle-outline" size={18} color={colors.primary.main} />
         <Text style={styles.infoText}>
           Quem entra só com senha não é bloqueado: o login continua válido normalmente. Escolha{' '}
-          <Text style={styles.infoBold}>Desativado</Text> para nunca pedir a biometria para desbloquear.
+          <Text style={styles.infoBold}>Desativado</Text> para nunca pedir a biometria para desbloquear. Para
+          aumentar o tempo ou desativar, confirmamos com a sua biometria.
         </Text>
       </View>
 
@@ -107,8 +127,8 @@ export function BiometricLockPreferencesSection() {
         <View style={styles.itemText}>
           <Text style={styles.itemTitle}>Ocultar conteúdo do app</Text>
           <Text style={styles.itemDesc}>
-            Esconde o Melter na tela de apps recentes, bloqueia prints e gravação de tela e mostra as
-            notificações sem remetente nem texto. Só vale enquanto o bloqueio estiver ativo.
+            Esconde o Melter na tela de apps recentes e bloqueia prints e gravação de tela. Só vale enquanto o
+            bloqueio estiver ativo. As notificações não mudam — isso fica em Notificações, acima.
           </Text>
         </View>
         <Switch

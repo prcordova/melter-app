@@ -7,7 +7,6 @@ import {
   getBiometricLockTimeout,
   subscribeBiometricLockTimeout,
 } from '../lib/biometric-lock';
-import { setPushPreviewHidden } from './usePushNotifications';
 
 const SCREEN_CAPTURE_KEY = 'biometric-lock';
 
@@ -23,8 +22,8 @@ function computeProtection(loggedIn: boolean): boolean {
 /**
  * Com bloqueio biométrico ativo e "ocultar conteúdo" ligado:
  * - Android: FLAG_SECURE (tela em branco nos recentes + bloqueia prints/gravação);
- * - iOS: desfoque no seletor de apps;
- * - push sem remetente/conteúdo na tela de bloqueio.
+ * - iOS: desfoque no seletor de apps.
+ * Prévia das notificações push é preferência separada (Notificações).
  */
 export function useAppPrivacyProtection(loggedIn: boolean) {
   const [protectionActive, setProtectionActive] = useState(() => computeProtection(loggedIn));
@@ -52,6 +51,5 @@ export function useAppPrivacyProtection(loggedIn: boolean) {
         ScreenCapture.disableAppSwitcherProtectionAsync().catch(() => undefined);
       }
     }
-    if (loggedIn) setPushPreviewHidden(protectionActive);
-  }, [protectionActive, loggedIn]);
+  }, [protectionActive]);
 }

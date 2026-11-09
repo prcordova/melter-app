@@ -6,8 +6,10 @@ import {
   TouchableOpacity,
   TextInputProps,
   ViewStyle,
-  TextStyle,
+  StyleSheet,
 } from 'react-native';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -26,79 +28,94 @@ export function Input({
   onRightIconPress,
   containerStyle,
   style,
+  onFocus,
+  onBlur,
   ...props
 }: InputProps) {
+  const { colors, mode } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [isFocused, setIsFocused] = useState(false);
 
-  const containerStyles: ViewStyle = {
-    marginBottom: 16,
-    ...containerStyle,
-  };
-
-  const labelStyle: TextStyle = {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1e293b',
-    marginBottom: 8,
-  };
-
-  const inputContainerStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: error ? '#ef4444' : isFocused ? '#d946ef' : '#e2e8f0',
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-  };
-
-  const inputStyle: TextStyle = {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#1e293b',
-  };
-
-  const errorTextStyle: TextStyle = {
-    fontSize: 12,
-    color: '#ef4444',
-    marginTop: 4,
-  };
-
-  const helperTextStyle: TextStyle = {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 4,
-  };
+  const borderColor = error ? colors.states.error : isFocused ? colors.secondary.main : colors.border.medium;
 
   return (
-    <View style={containerStyles}>
-      {label && <Text style={labelStyle}>{label}</Text>}
-      
-      <View style={inputContainerStyle}>
+    <View style={[styles.container, containerStyle]}>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
+
+      <View style={[styles.inputContainer, { borderColor }, props.editable === false && styles.disabled]}>
         <TextInput
-          style={[inputStyle, style]}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholderTextColor="#94a3b8"
+          style={[styles.input, style]}
+          onFocus={(e) => {
+            setIsFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            onBlur?.(e);
+          }}
+          placeholderTextColor={colors.text.tertiary}
+          selectionColor={colors.secondary.main}
+          keyboardAppearance={mode === 'light' ? 'light' : 'dark'}
           {...props}
         />
-        
+
         {rightIcon && (
           <TouchableOpacity
             onPress={onRightIconPress}
             disabled={Boolean(!onRightIconPress)}
             activeOpacity={0.7}
-            style={{ padding: 4 }}
+            style={styles.rightIcon}
           >
             {rightIcon}
           </TouchableOpacity>
         )}
       </View>
 
-      {error && <Text style={errorTextStyle}>{error}</Text>}
-      {!error && helperText && <Text style={helperTextStyle}>{helperText}</Text>}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {!error && helperText ? <Text style={styles.helper}>{helperText}</Text> : null}
     </View>
   );
 }
 
+const createStyles = (c: AppPalette) =>
+  StyleSheet.create({
+    container: {
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: c.text.primary,
+      marginBottom: 8,
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1.5,
+      borderRadius: 8,
+      backgroundColor: c.background.paper,
+      paddingHorizontal: 16,
+    },
+    disabled: {
+      opacity: 0.6,
+    },
+    input: {
+      flex: 1,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: c.text.primary,
+    },
+    rightIcon: {
+      padding: 4,
+    },
+    error: {
+      fontSize: 12,
+      color: c.states.error,
+      marginTop: 4,
+    },
+    helper: {
+      fontSize: 12,
+      color: c.text.secondary,
+      marginTop: 4,
+    },
+  });

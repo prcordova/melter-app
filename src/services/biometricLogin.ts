@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { authApi } from './auth';
+import { authApi, type DeviceEnrollmentStepUp } from './auth';
 
 const FLAG_KEY = '@melter_biometric_login_v1';
 /** Id da credencial (não é segredo) — permite revogar no servidor sem pedir biometria. */
@@ -16,7 +16,11 @@ export type BiometricErrorCode =
   | 'BIOMETRIC_CANCELLED'
   | 'BIOMETRIC_INVALIDATED'
   | 'BIOMETRIC_UNAVAILABLE'
-  | 'NOT_CONFIGURED';
+  | 'NOT_CONFIGURED'
+  /** Servidor exige senha (e 2FA, se `requires2FA`) para ativar. */
+  | 'STEP_UP_REQUIRED';
+
+export type BiometricError = Error & { code: BiometricErrorCode; requires2FA?: boolean };
 
 export type BiometricLoginCredential =
   | { type: 'device'; credentialId: string; secret: string; username: string }
@@ -24,8 +28,8 @@ export type BiometricLoginCredential =
 
 type StoredDeviceSecret = { credentialId: string; secret: string; username: string };
 
-function biometricError(code: BiometricErrorCode, message: string): Error & { code: BiometricErrorCode } {
-  const err = new Error(message) as Error & { code: BiometricErrorCode };
+function biometricError(code: BiometricErrorCode, message: string): BiometricError {
+  const err = new Error(message) as BiometricError;
   err.code = code;
   return err;
 }
@@ -106,14 +110,29 @@ async function deleteLegacyCredentials() {
 /**
  * Ativa o login biométrico neste aparelho (exige sessão válida).
  * O servidor emite uma credencial de dispositivo; o segredo fica no Keychain/Keystore preso à biometria atual.
- * A senha **não** é guardada.
+ * A senha **não** é guardada. Fora do login recente, o servidor exige `stepUp` (senha + 2FA se ativo):
+ * sem ela, lança `STEP_UP_REQUIRED`.
  */
 export async function enableBiometricLogin(
   username: string,
-  options?: { alreadyConfirmed?: boolean }
+  options?: { alreadyConfirmed?: boolean; stepUp?: DeviceEnrollmentStepUp }
 ): Promise<void> {
   if (!(await isBiometricLoginSupported())) {
     throw biometricError('BIOMETRIC_UNAVAILABLE', 'Biometria não disponível ou não cadastrada neste aparelho.');
+  }
+
+  const created = await authApi.createDeviceCredential(
+    currentDeviceName(),
+    Platform.OS === 'ios' ? 'ios' : 'android',
+    options?.stepUp
+  );
+  if (!created.success || !created.data) {
+    if (created.code === 'STEP_UP_REQUIRED') {
+      const err = biometricError('STEP_UP_REQUIRED', created.message || 'Confirme sua identidade.');
+      err.requires2FA = created.requires2FA === true;
+      throw err;
+    }
+    throw new Error(created.message || 'Não foi possível ativar a biometria.');
   }
 
   // No Android o próprio SecureStore pede a biometria ao gravar; no iOS confirmamos antes.
@@ -124,16 +143,9 @@ export async function enableBiometricLogin(
       disableDeviceFallback: true,
     });
     if (!auth.success) {
+      await authApi.revokeDeviceCredential(created.data.credentialId).catch(() => undefined);
       throw biometricError('BIOMETRIC_CANCELLED', 'Biometria cancelada.');
     }
-  }
-
-  const created = await authApi.createDeviceCredential(
-    currentDeviceName(),
-    Platform.OS === 'ios' ? 'ios' : 'android'
-  );
-  if (!created.success || !created.data) {
-    throw new Error(created.message || 'Não foi possível ativar a biometria.');
   }
 
   const stored: StoredDeviceSecret = {
@@ -217,9 +229,12 @@ export async function getBiometricLoginCredential(prompt: string): Promise<Biome
  * Formato antigo (usuário/senha no aparelho) → credencial de dispositivo. Exige sessão válida.
  * Se falhar, apaga o acesso antigo para a senha não continuar guardada.
  */
-export async function migrateLegacyBiometricLogin(username: string): Promise<boolean> {
+export async function migrateLegacyBiometricLogin(username: string, password?: string): Promise<boolean> {
   try {
-    await enableBiometricLogin(username, { alreadyConfirmed: true });
+    await enableBiometricLogin(username, {
+      alreadyConfirmed: true,
+      stepUp: password ? { password } : undefined,
+    });
     return true;
   } catch {
     await clearBiometricLogin({ revokeRemote: false });
@@ -234,7 +249,7 @@ export async function verifyBiometricIdentity(): Promise<BiometricUnlockResult> 
   try {
     const credential = await getBiometricLoginCredential('Desbloqueie o Melter');
     if (credential.type === 'legacy') {
-      void migrateLegacyBiometricLogin(credential.username);
+      void migrateLegacyBiometricLogin(credential.username, credential.password);
     }
     return 'success';
   } catch (e) {

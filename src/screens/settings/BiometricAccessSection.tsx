@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import { SURFACE_RADIUS, type AppPalette } from '../../theme/palettes';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/Button';
+import { Input } from '../../components/Input';
 import { CustomModal, useCustomModal } from '../../components/CustomModal';
 import { showToast } from '../../components/CustomToast';
 import { authApi, type DeviceCredentialSummary } from '../../services/auth';
@@ -15,7 +16,11 @@ import {
   hasBiometricLoginConfigured,
   isBiometricLoginSupported,
   subscribeBiometricLogin,
+  verifyBiometricIdentity,
+  type BiometricError,
 } from '../../services/biometricLogin';
+
+type StepUpState = { requires2FA: boolean; password: string; code: string; error: string };
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'nunca';
@@ -74,16 +79,52 @@ export function BiometricAccessSection() {
     });
   }, [refreshLocal, refreshDevices]);
 
-  const handleEnable = async () => {
+  const [stepUp, setStepUp] = useState<StepUpState | null>(null);
+
+  const handleEnable = async (confirmation?: { password: string; twoFactorCode?: string }) => {
     if (!user?.username) return;
     setBusy(true);
     try {
-      await enableBiometricLogin(user.username);
+      await enableBiometricLogin(user.username, { stepUp: confirmation });
+      setStepUp(null);
       showToast.success('Biometria', 'Acesso por biometria ativado neste aparelho.');
-    } catch (e: any) {
-      if (e?.code !== 'BIOMETRIC_CANCELLED') {
-        showToast.error('Biometria', e?.message || 'Não foi possível ativar a biometria.');
+    } catch (e) {
+      const err = e as BiometricError;
+      if (err?.code === 'STEP_UP_REQUIRED') {
+        setStepUp((prev) => ({
+          requires2FA: err.requires2FA === true,
+          password: prev?.password ?? '',
+          code: '',
+          error: confirmation ? err.message : '',
+        }));
+      } else if (err?.code !== 'BIOMETRIC_CANCELLED') {
+        setStepUp(null);
+        showToast.error('Biometria', err?.message || 'Não foi possível ativar a biometria.');
       }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitStepUp = () => {
+    if (!stepUp?.password) return;
+    void handleEnable({
+      password: stepUp.password,
+      twoFactorCode: stepUp.requires2FA ? stepUp.code : undefined,
+    });
+  };
+
+  /** Desligar a proteção exige a biometria do dono — quem só pegou o celular desbloqueado não consegue. */
+  const removeHereWithBiometric = async () => {
+    setBusy(true);
+    try {
+      const result = await verifyBiometricIdentity();
+      if (result === 'cancelled') {
+        showToast.error('Biometria', 'Confirme com sua biometria para remover o acesso.');
+        return;
+      }
+      await clearBiometricLogin();
+      showToast.success('Biometria', 'Acesso biométrico removido.');
     } finally {
       setBusy(false);
     }
@@ -92,16 +133,8 @@ export function BiometricAccessSection() {
   const confirmDisableHere = () => {
     showConfirm(
       'Remover biometria deste aparelho',
-      'O acesso por biometria e o bloqueio por inatividade serão desativados aqui. Você continuará logado.',
-      async () => {
-        setBusy(true);
-        try {
-          await clearBiometricLogin();
-          showToast.success('Biometria', 'Acesso biométrico removido.');
-        } finally {
-          setBusy(false);
-        }
-      },
+      'O acesso por biometria e o bloqueio por inatividade serão desativados aqui. Você continuará logado. Para confirmar, use sua biometria.',
+      () => void removeHereWithBiometric(),
       { confirmText: 'Remover', destructive: true }
     );
   };
@@ -115,7 +148,7 @@ export function BiometricAccessSection() {
       }`,
       async () => {
         if (isCurrent) {
-          await clearBiometricLogin();
+          await removeHereWithBiometric();
           return;
         }
         const res = await authApi.revokeDeviceCredential(device.id).catch(() => null);
@@ -205,6 +238,52 @@ export function BiometricAccessSection() {
       )}
 
       <CustomModal {...modalProps} onClose={hideModal} />
+
+      <CustomModal visible={stepUp !== null} onClose={() => (busy ? undefined : setStepUp(null))}>
+        <Pressable style={styles.stepUpCard} onPress={(e) => e.stopPropagation()}>
+          <Text style={styles.sectionTitle}>Confirme que é você</Text>
+          <Text style={[styles.mutedText, styles.stepUpIntro]}>
+            {stepUp?.requires2FA
+              ? 'Para ativar a biometria, digite sua senha e o código do seu autenticador (2FA).'
+              : 'Para ativar a biometria, digite sua senha. Recomendamos ativar o 2FA para proteger ainda mais a conta.'}
+          </Text>
+          <Input
+            label="Senha"
+            value={stepUp?.password ?? ''}
+            onChangeText={(password) => setStepUp((prev) => (prev ? { ...prev, password, error: '' } : prev))}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!busy}
+          />
+          {stepUp?.requires2FA ? (
+            <Input
+              label="Código do autenticador"
+              value={stepUp.code}
+              onChangeText={(code) => setStepUp((prev) => (prev ? { ...prev, code: code.trim(), error: '' } : prev))}
+              placeholder="000000 ou código de backup"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={20}
+              editable={!busy}
+            />
+          ) : null}
+          {stepUp?.error ? <Text style={styles.stepUpError}>{stepUp.error}</Text> : null}
+          <View style={styles.stepUpActions}>
+            <Button variant="ghost" onPress={() => setStepUp(null)} disabled={busy} responsive={false}>
+              Cancelar
+            </Button>
+            <Button
+              onPress={submitStepUp}
+              loading={busy}
+              disabled={busy || !stepUp?.password || (stepUp.requires2FA && stepUp.code.length < 6)}
+              responsive={false}
+            >
+              Confirmar
+            </Button>
+          </View>
+        </Pressable>
+      </CustomModal>
     </View>
   );
 }
@@ -308,5 +387,26 @@ const createStyles = (c: AppPalette) =>
       fontSize: 12,
       color: c.text.secondary,
       marginTop: 2,
+    },
+    stepUpCard: {
+      width: '90%',
+      maxWidth: 400,
+      backgroundColor: c.background.paper,
+      borderRadius: SURFACE_RADIUS,
+      padding: 20,
+    },
+    stepUpIntro: {
+      marginTop: 4,
+      marginBottom: 16,
+    },
+    stepUpError: {
+      fontSize: 13,
+      color: c.states.error,
+      marginBottom: 12,
+    },
+    stepUpActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 10,
     },
   });

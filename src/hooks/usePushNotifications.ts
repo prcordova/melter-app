@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_RELEASE_PUSH_TYPE } from '../config/app/api-paths';
 import { USERS_API } from '../config/users/api-paths';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../services/api';
 import { devLog, devWarn } from '../config/dev-logs';
 import {
@@ -76,25 +77,33 @@ if (Platform.OS === 'android' && !isAndroidExpoGo) {
 /** Evita navegar duas vezes pelo mesmo toque (listener + cold start, ou remount após login). */
 const handledResponseIds = new Set<string>();
 
+const PUSH_HIDE_PREVIEW_KEY = '@melter_push_hide_preview_v1';
+
 let registeredPushToken: string | null = null;
-let pushPreviewHidden = false;
+/** Padrão: mostrar remetente e texto (independe da biometria). */
+let pushPreviewHidden: boolean | undefined;
+
+export async function ensurePushPreviewHiddenLoaded(): Promise<boolean> {
+  if (pushPreviewHidden === undefined) {
+    pushPreviewHidden = (await AsyncStorage.getItem(PUSH_HIDE_PREVIEW_KEY).catch(() => null)) === '1';
+  }
+  return pushPreviewHidden;
+}
 
 async function postPushToken(pushToken: string) {
   await api.post(USERS_API.me.pushToken, {
     pushToken,
     platform: Platform.OS,
-    hidePreview: pushPreviewHidden,
+    hidePreview: await ensurePushPreviewHiddenLoaded(),
   });
 }
 
-/** Bloqueio biométrico ativo → servidor envia push sem remetente/conteúdo. */
-export function setPushPreviewHidden(hidden: boolean) {
-  if (pushPreviewHidden === hidden) return;
+/** Preferência do usuário: a notificação continua chegando; só remetente e texto viram genéricos. */
+export async function setPushPreviewHidden(hidden: boolean): Promise<void> {
   pushPreviewHidden = hidden;
+  await AsyncStorage.setItem(PUSH_HIDE_PREVIEW_KEY, hidden ? '1' : '0');
   if (registeredPushToken) {
-    postPushToken(registeredPushToken).catch((error) => {
-      console.error('[PushNotifications] Erro ao atualizar privacidade do push:', error?.message);
-    });
+    await postPushToken(registeredPushToken);
   }
 }
 

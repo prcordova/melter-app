@@ -11,6 +11,8 @@ import {
   type NotificationSoundCategory,
   type NotificationSoundPrefs,
 } from '../../lib/notification-sounds';
+import { ensurePushPreviewHiddenLoaded, setPushPreviewHidden } from '../../hooks/usePushNotifications';
+import { showToast } from '../CustomToast';
 
 const CATEGORIES: Array<{
   key: NotificationSoundCategory;
@@ -54,12 +56,31 @@ export function NotificationSoundsPreferencesSection() {
   const styles = useThemedStyles(createStyles);
   const { colors } = useAppTheme();
   const [prefs, setPrefs] = useState<NotificationSoundPrefs>(() => getNotificationSoundPrefs());
+  const [showPushPreview, setShowPushPreview] = useState(true);
 
   useEffect(() => {
-    return subscribeNotificationSoundPrefs(() => {
+    let cancelled = false;
+    void ensurePushPreviewHiddenLoaded().then((hidden) => {
+      if (!cancelled) setShowPushPreview(!hidden);
+    });
+    const unsubscribe = subscribeNotificationSoundPrefs(() => {
       setPrefs(getNotificationSoundPrefs());
     });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
+
+  const handleTogglePushPreview = async (show: boolean) => {
+    setShowPushPreview(show);
+    try {
+      await setPushPreviewHidden(!show);
+    } catch {
+      setShowPushPreview(!show);
+      showToast.error('Erro', 'Não foi possível salvar a preferência.');
+    }
+  };
 
   const persist = async (next: NotificationSoundPrefs) => {
     setPrefs(next);
@@ -86,11 +107,28 @@ export function NotificationSoundsPreferencesSection() {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>🔔 Sons de notificação</Text>
+      <Text style={styles.sectionTitle}>🔔 Notificações</Text>
       <Text style={styles.sectionDescription}>
-        Controla os sons quando o app está aberto. Notificações push no sistema seguem as permissões do
+        Os sons valem quando o app está aberto. Notificações push no sistema seguem as permissões do
         dispositivo.
       </Text>
+
+      <View style={styles.item}>
+        <Ionicons name="eye-outline" size={22} color={colors.primary.main} style={styles.itemIcon} />
+        <View style={styles.itemText}>
+          <Text style={styles.itemTitle}>Mostrar conteúdo nas notificações</Text>
+          <Text style={styles.itemDesc}>
+            Exibe quem enviou e o texto na notificação. Desligado, você continua sendo avisado, mas a notificação
+            mostra só “Você tem uma nova mensagem/notificação”.
+          </Text>
+        </View>
+        <Switch
+          value={showPushPreview}
+          onValueChange={(v) => void handleTogglePushPreview(v)}
+          trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
+          thumbColor="#ffffff"
+        />
+      </View>
 
       <View style={styles.item}>
         <View style={styles.itemText}>

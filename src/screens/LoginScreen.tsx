@@ -198,7 +198,7 @@ export function LoginScreen() {
           setFormData((prev) => ({ ...prev, username, password }));
           promptCancelDeletion(result.tempToken, result.deletionScheduledAt);
         } else if (result?.success) {
-          void migrateLegacyBiometricLogin(username);
+          void migrateLegacyBiometricLogin(username, password);
         }
         return;
       }

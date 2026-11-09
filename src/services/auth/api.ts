@@ -3,7 +3,12 @@ import { api } from '../http-client';
 import { API_CONFIG } from '../../config/api.config';
 import { AUTH_API } from '../../config/auth/api-paths';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
-import type { CreatedDeviceCredential, DeviceCredentialSummary, DevicePlatform } from './types';
+import type {
+  CreateDeviceCredentialResponse,
+  DeviceCredentialSummary,
+  DeviceEnrollmentStepUp,
+  DevicePlatform,
+} from './types';
 
 export const authApi = {
   login: async (username: string, password: string): Promise<LoginResult> => {
@@ -55,11 +60,13 @@ export const authApi = {
 
   createDeviceCredential: async (
     deviceName: string,
-    platform: DevicePlatform
-  ): Promise<ApiResponse<CreatedDeviceCredential>> => {
-    const response = await api.post<ApiResponse<CreatedDeviceCredential>>(AUTH_API.deviceCredentials, {
+    platform: DevicePlatform,
+    stepUp?: DeviceEnrollmentStepUp
+  ): Promise<CreateDeviceCredentialResponse> => {
+    const response = await api.post<CreateDeviceCredentialResponse>(AUTH_API.deviceCredentials, {
       deviceName,
       platform,
+      ...stepUp,
     });
     return response.data;
   },
