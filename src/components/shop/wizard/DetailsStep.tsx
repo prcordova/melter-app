@@ -22,6 +22,7 @@ import { resolveProductCoverImageSource } from '../../../utils/product-cover-dis
 import { getAuthToken } from '../../../lib/auth-token';
 import { API_CONFIG } from '../../../config/api.config';
 import axios from 'axios';
+import { PRODUCT_DRAFTS_API } from '../../../config/shops/api-paths';
 import { PlanLocker } from '../../PlanLocker';
 import { FIXED_CATEGORIES } from '../../../constants/categories';
 import { PresentationVideoSellerPanel } from '../PresentationVideoSellerPanel';
@@ -171,7 +172,7 @@ export function DetailsStep({
           } as any);
 
           const token = await getAuthToken();
-          const response = await axios.post(`${API_CONFIG.BASE_URL}/api/products/upload/cover`, formDataUpload, {
+          const response = await axios.post(`${API_CONFIG.BASE_URL}${PRODUCT_DRAFTS_API.uploadCover}`, formDataUpload, {
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'multipart/form-data',

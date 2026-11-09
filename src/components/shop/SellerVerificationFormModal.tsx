@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
@@ -18,6 +17,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
+import { CustomModal } from '../CustomModal';
 import { sellerVerificationApi } from '../../services/api';
 import { SellerDocumentUploadField } from './SellerDocumentUploadField';
 import { SellerVerificationUploadWithExample } from './SellerVerificationUploadWithExample';
@@ -899,8 +899,13 @@ export function SellerVerificationFormModal({
 
   return (
     <>
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <View style={[styles.overlay, isTinyScreen && styles.overlayFull]}>
+      <CustomModal
+        visible={visible}
+        onClose={handleClose}
+        closeOnBackdropPress={false}
+        animationType="slide"
+        overlayStyle={[styles.overlay, isTinyScreen && styles.overlayFull]}
+      >
         <View style={[styles.container, isTinyScreen && styles.containerFull]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{modalTitle}</Text>
@@ -1341,8 +1346,7 @@ export function SellerVerificationFormModal({
             </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </Modal>
+      </CustomModal>
 
       <SellerVerificationExampleViewerDialog
         example={exampleViewer}
@@ -1354,9 +1358,9 @@ export function SellerVerificationFormModal({
 
 const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
+    alignItems: 'stretch',
+    padding: 0,
   },
   overlayFull: {
     justifyContent: 'flex-start',

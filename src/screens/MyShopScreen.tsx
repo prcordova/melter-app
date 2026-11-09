@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TextInput,
   Image,
+  Platform,
   useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
@@ -687,13 +688,18 @@ export function MyShopScreen() {
       void fetchProducts();
       closeProductWizard();
       const message = result.message || 'Pacote enviado para análise!';
+      // iOS não apresenta um Modal enquanto o do wizard ainda está animando o fechamento
+      const afterWizardDismiss = (open: () => void) =>
+        setTimeout(open, Platform.OS === 'ios' ? 450 : 0);
       if (result.pendingPlanActivation && shopPlanGate) {
-        setActivatePlanOpen(true);
+        afterWizardDismiss(() => setActivatePlanOpen(true));
       } else if (result.pendingPlanActivation) {
-        showConfirm('Pacote enviado para análise', message, handleGoToPlansFromShop, {
-          confirmText: 'Ver planos',
-          cancelText: 'Depois',
-        });
+        afterWizardDismiss(() =>
+          showConfirm('Pacote enviado para análise', message, handleGoToPlansFromShop, {
+            confirmText: 'Ver planos',
+            cancelText: 'Depois',
+          })
+        );
       } else {
         showToast.success('Sucesso', message);
       }

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
   TextInput,
   ScrollView,
@@ -15,6 +14,7 @@ import { API_CONFIG } from '../../config/api.config';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
+import { CustomModal } from '../CustomModal';
 import { sellerVerificationApi } from '../../services/api';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -77,120 +77,115 @@ export function AppealModal({ visible, onClose, onSuccess, disabledReason }: App
   };
 
   return (
-    <Modal
+    <CustomModal
       visible={visible}
-      transparent
+      onClose={handleClose}
+      closeOnBackdropPress={false}
       animationType="fade"
-      onRequestClose={handleClose}
+      overlayStyle={styles.overlay}
     >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Solicitar Reativação da Loja</Text>
-            <TouchableOpacity
-              onPress={handleClose}
-              disabled={submitting}
-              style={styles.closeButton}
-            >
-              <Ionicons name="close" size={24} color={colors.text.primary} />
-            </TouchableOpacity>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Solicitar Reativação da Loja</Text>
+          <TouchableOpacity
+            onPress={handleClose}
+            disabled={submitting}
+            style={styles.closeButton}
+          >
+            <Ionicons name="close" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.warningBox}>
+            <Text style={styles.warningTitle}>Importante</Text>
+            <Text style={styles.description}>
+              Sua loja foi desabilitada por violação dos termos de uso. Para solicitar a
+              reativação, explique o que aconteceu e confirme que entendeu e aceita os termos.
+            </Text>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            <View style={styles.warningBox}>
-              <Text style={styles.warningTitle}>Importante</Text>
-              <Text style={styles.description}>
-                Sua loja foi desabilitada por violação dos termos de uso. Para solicitar a
-                reativação, explique o que aconteceu e confirme que entendeu e aceita os termos.
-              </Text>
-            </View>
-
-            {disabledReason?.trim() ? (
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Motivo da desabilitação</Text>
-                <View style={styles.reasonBox}>
-                  <Text style={styles.reasonText}>{disabledReason.trim()}</Text>
-                </View>
-              </View>
-            ) : null}
-
+          {disabledReason?.trim() ? (
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Justificativa *</Text>
-              <TextInput
-                style={styles.textArea}
-                value={appealReason}
-                onChangeText={setAppealReason}
-                placeholder="Explique o que aconteceu, o que você fez para resolver o problema e por que acredita que sua loja deve ser reativada..."
-                placeholderTextColor={colors.text.tertiary}
-                multiline
-                numberOfLines={8}
-                textAlignVertical="top"
-                editable={!submitting}
-              />
+              <Text style={styles.label}>Motivo da desabilitação</Text>
+              <View style={styles.reasonBox}>
+                <Text style={styles.reasonText}>{disabledReason.trim()}</Text>
+              </View>
             </View>
+          ) : null}
 
-            <View style={styles.termsContainer}>
-              <Switch
-                value={termsAccepted}
-                onValueChange={setTermsAccepted}
-                disabled={submitting}
-                trackColor={{
-                  false: colors.border.medium,
-                  true: colors.secondary.main,
-                }}
-                thumbColor={termsAccepted ? '#ffffff' : colors.text.tertiary}
-              />
-              <Text style={styles.termsText}>
-                Confirmo que li e entendi os{' '}
-                <Text
-                  style={styles.termsLink}
-                  onPress={() => void Linking.openURL(`${API_CONFIG.APP_URL.replace(/\/$/, '')}/terms`)}
-                >
-                  termos de uso
-                </Text>
-                . Comprometo-me a seguir todas as regras e políticas da plataforma. Entendo que novas
-                violações podem resultar em banimento permanente.
-              </Text>
-            </View>
-          </ScrollView>
-
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={handleClose}
-              disabled={submitting}
-            >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.submitButton,
-                (!appealReason.trim() || !termsAccepted || submitting) && styles.submitButtonDisabled,
-              ]}
-              onPress={handleSubmit}
-              disabled={!appealReason.trim() || !termsAccepted || submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text style={styles.submitButtonText}>Enviar Solicitação</Text>
-              )}
-            </TouchableOpacity>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Justificativa *</Text>
+            <TextInput
+              style={styles.textArea}
+              value={appealReason}
+              onChangeText={setAppealReason}
+              placeholder="Explique o que aconteceu, o que você fez para resolver o problema e por que acredita que sua loja deve ser reativada..."
+              placeholderTextColor={colors.text.tertiary}
+              multiline
+              numberOfLines={8}
+              textAlignVertical="top"
+              editable={!submitting}
+            />
           </View>
+
+          <View style={styles.termsContainer}>
+            <Switch
+              value={termsAccepted}
+              onValueChange={setTermsAccepted}
+              disabled={submitting}
+              trackColor={{
+                false: colors.border.medium,
+                true: colors.secondary.main,
+              }}
+              thumbColor={termsAccepted ? '#ffffff' : colors.text.tertiary}
+            />
+            <Text style={styles.termsText}>
+              Confirmo que li e entendi os{' '}
+              <Text
+                style={styles.termsLink}
+                onPress={() => void Linking.openURL(`${API_CONFIG.APP_URL.replace(/\/$/, '')}/terms`)}
+              >
+                termos de uso
+              </Text>
+              . Comprometo-me a seguir todas as regras e políticas da plataforma. Entendo que novas
+              violações podem resultar em banimento permanente.
+            </Text>
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.button, styles.cancelButton]}
+            onPress={handleClose}
+            disabled={submitting}
+          >
+            <Text style={styles.cancelButtonText}>Cancelar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              styles.submitButton,
+              (!appealReason.trim() || !termsAccepted || submitting) && styles.submitButtonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={!appealReason.trim() || !termsAccepted || submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text style={styles.submitButtonText}>Enviar Solicitação</Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </CustomModal>
   );
 }
 
 const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: c.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 16,
   },
   container: {
