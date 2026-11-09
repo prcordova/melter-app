@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS } from '../../theme/colors';
+import { useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 const DIVIDER_COLOR = 'rgba(182, 51, 133, 0.45)';
 
@@ -11,6 +12,7 @@ type Props = {
 export function MarketplaceBeyondSearchDivider({
   title = 'Veja resultados além da sua busca',
 }: Props) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.wrap}>
       <View style={styles.line} />
@@ -20,7 +22,7 @@ export function MarketplaceBeyondSearchDivider({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -39,7 +41,7 @@ const styles = StyleSheet.create({
     maxWidth: '70%',
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     textAlign: 'center',
     lineHeight: 19,
   },

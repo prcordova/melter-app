@@ -21,7 +21,8 @@ import { type ShopShareChannel } from '../../utils/shop-share';
 import { showToast } from '../CustomToast';
 import { Button } from '../Button';
 import { ShopShareButton } from '../shop/ShopShareButton';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -52,6 +53,8 @@ function stepHint(hintKey?: string): string | null {
 
 export function CustomCheckpoints({ variant = 'minimized', defaultExpanded = false }: Props) {
   const navigation = useNavigation<any>();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
   const isCompact = width < 600;
   const { data, loading, refresh, markShareCompleted } = useSellerJourney();
@@ -144,7 +147,7 @@ export function CustomCheckpoints({ variant = 'minimized', defaultExpanded = fal
           <Ionicons
             name={step.completed ? 'checkmark-circle' : 'ellipse-outline'}
             size={isCompact ? 18 : 20}
-            color={step.completed ? COLORS.states.success : COLORS.text.tertiary}
+            color={step.completed ? colors.states.success : colors.text.tertiary}
           />
         </View>
 
@@ -189,7 +192,7 @@ export function CustomCheckpoints({ variant = 'minimized', defaultExpanded = fal
           <Ionicons
             name={expanded ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color={COLORS.text.secondary}
+            color={colors.text.secondary}
           />
         ) : null}
       </Pressable>
@@ -216,12 +219,12 @@ export function CustomCheckpoints({ variant = 'minimized', defaultExpanded = fal
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     overflow: 'hidden',
     marginVertical: 6,
   },
@@ -243,14 +246,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '800',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   titleCompact: {
     fontSize: 14,
   },
   progress: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 1,
   },
   progressTrack: {
@@ -268,14 +271,14 @@ const styles = StyleSheet.create({
   },
   rewardHint: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 17,
     marginBottom: 2,
   },
   rewardDone: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.states.success,
+    color: c.states.success,
     marginBottom: 2,
   },
   stepRow: {
@@ -296,26 +299,26 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 18,
   },
   stepTitleCompact: {
     fontSize: 13,
   },
   stepTitleDone: {
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '600',
   },
   referralCode: {
     marginTop: 2,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontSize: 11,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   stepHint: {
     marginTop: 2,
     fontSize: 11,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     lineHeight: 14,
   },
   stepActionCol: {

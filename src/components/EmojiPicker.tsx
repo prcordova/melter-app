@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 interface EmojiPickerProps {
   visible: boolean;
@@ -36,6 +37,8 @@ const ALL_EMOJIS = [
 ];
 
 export function EmojiPicker({ visible, onEmojiSelect, onClose }: EmojiPickerProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [activeCategory, setActiveCategory] = useState<'all' | 'smileys' | 'gestures' | 'hearts'>('all');
 
@@ -57,7 +60,7 @@ export function EmojiPicker({ visible, onEmojiSelect, onClose }: EmojiPickerProp
           <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
             <Text style={styles.title}>Emojis</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -116,14 +119,14 @@ export function EmojiPicker({ visible, onEmojiSelect, onClose }: EmojiPickerProp
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '70%',
@@ -135,19 +138,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   closeButton: {
     padding: 4,
   },
   categoryTabs: {
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   categoryTabsContent: {
     paddingHorizontal: 16,
@@ -158,16 +161,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginRight: 8,
   },
   activeCategoryTab: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   categoryTabText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   emojiGrid: {
     flex: 1,

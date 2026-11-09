@@ -26,7 +26,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { CommentsModal } from './CommentsModal';
 import { ShareModal } from './ShareModal';
 import { CreatePostModal } from './CreatePostModal';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { showToast } from './CustomToast';
 import { Avatar } from './Avatar';
 import { AdminPasswordModal } from './AdminPasswordModal';
@@ -61,6 +62,8 @@ export function PostModal({
   onPostDeleted,
   onPostShared,
 }: PostModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -267,11 +270,11 @@ export function PostModal({
     if (!post) return null;
     switch (post.visibility) {
       case 'PUBLIC':
-        return <Ionicons name="globe-outline" size={14} color={COLORS.text.secondary} />;
+        return <Ionicons name="globe-outline" size={14} color={colors.text.secondary} />;
       case 'FOLLOWERS':
-        return <Ionicons name="people-outline" size={14} color={COLORS.text.secondary} />;
+        return <Ionicons name="people-outline" size={14} color={colors.text.secondary} />;
       case 'FRIENDS':
-        return <Ionicons name="person-outline" size={14} color={COLORS.text.secondary} />;
+        return <Ionicons name="person-outline" size={14} color={colors.text.secondary} />;
       default:
         return null;
     }
@@ -312,23 +315,23 @@ export function PostModal({
                 (user?.id === getPostAuthorObjectId(post.userId as any) ||
                   user?.accountType === 'admin') && (
                 <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
-                  <Ionicons name="ellipsis-horizontal" size={24} color={COLORS.text.primary} />
+                  <Ionicons name="ellipsis-horizontal" size={24} color={colors.text.primary} />
                 </TouchableOpacity>
               )}
               <View style={styles.headerSpacer} />
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
 
             {/* Content */}
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                <ActivityIndicator size="large" color={colors.secondary.main} />
               </View>
             ) : error ? (
               <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle-outline" size={48} color={COLORS.states.error} />
+                <Ionicons name="alert-circle-outline" size={48} color={colors.states.error} />
                 <Text style={styles.errorText}>{error}</Text>
                 <TouchableOpacity style={styles.retryButton} onPress={fetchPost}>
                   <Text style={styles.retryButtonText}>Tentar novamente</Text>
@@ -369,7 +372,7 @@ export function PostModal({
                               }
                               fontSize={16}
                               fontWeight="700"
-                              style={{ color: COLORS.text.primary }}
+                              style={{ color: colors.text.primary }}
                               numberOfLines={1}
                             />
                           </View>
@@ -409,7 +412,7 @@ export function PostModal({
                     <RichPostText
                       text={post.content || ''}
                       style={styles.content}
-                      color={COLORS.text.primary}
+                      color={colors.text.primary}
                     />
                   </PostDoubleTapLike>
 
@@ -570,7 +573,7 @@ export function PostModal({
                 {user?.id === getPostAuthorObjectId(post.userId as any) && (
                   <>
                     <TouchableOpacity style={styles.menuItem} onPress={handleEditPress}>
-                      <Ionicons name="create-outline" size={22} color={COLORS.text.primary} />
+                      <Ionicons name="create-outline" size={22} color={colors.text.primary} />
                       <Text style={styles.menuItemText}>Editar</Text>
                     </TouchableOpacity>
                     <View style={styles.menuDivider} />
@@ -580,7 +583,7 @@ export function PostModal({
                   user?.accountType === 'admin') && (
                   <>
                     <TouchableOpacity style={styles.menuItem} onPress={() => void openVisibilityPicker()}>
-                      <Ionicons name="eye-outline" size={22} color={COLORS.text.primary} />
+                      <Ionicons name="eye-outline" size={22} color={colors.text.primary} />
                       <Text style={styles.menuItemText}>Alterar visibilidade</Text>
                     </TouchableOpacity>
                     <View style={styles.menuDivider} />
@@ -592,7 +595,7 @@ export function PostModal({
                     style={[styles.menuItem, styles.menuItemDanger]}
                     onPress={handleDeletePress}
                   >
-                    <Ionicons name="trash-outline" size={22} color={COLORS.states.error} />
+                    <Ionicons name="trash-outline" size={22} color={colors.states.error} />
                     <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>Deletar</Text>
                   </TouchableOpacity>
                 )}
@@ -635,10 +638,10 @@ export function PostModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -647,7 +650,7 @@ const styles = StyleSheet.create({
     maxWidth: 600,
     maxHeight: '90%',
     minHeight: 400,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 20,
     overflow: 'hidden',
     flexDirection: 'column',
@@ -659,7 +662,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   menuButton: {
     padding: 4,
@@ -683,7 +686,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 12,
     textAlign: 'center',
   },
@@ -691,7 +694,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderRadius: 12,
   },
   retryButtonText: {
@@ -747,7 +750,7 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   metaRow: {
     flexDirection: 'row',
@@ -757,7 +760,7 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   visibilityChip: {
     flexDirection: 'row',
@@ -766,24 +769,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   visibilityText: {
     fontSize: 11,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   deleteButton: {
     padding: 4,
   },
   content: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 24,
     marginBottom: 16,
   },
   linkCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 16,
@@ -791,7 +794,7 @@ const styles = StyleSheet.create({
   linkImage: {
     width: 100,
     height: 100,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   linkInfo: {
     flex: 1,
@@ -801,26 +804,26 @@ const styles = StyleSheet.create({
   linkTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
     textAlign: 'center',
     alignSelf: 'stretch',
   },
   linkDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
   },
   linkUrl: {
     fontSize: 11,
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   postImage: {
     width: '100%',
     minHeight: 200,
     maxHeight: 500,
     borderRadius: 12,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     marginBottom: 16,
   },
   statsRow: {
@@ -830,7 +833,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     marginBottom: 12,
   },
   statItem: {
@@ -848,14 +851,14 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   reactionContainer: {
     position: 'relative',
@@ -872,18 +875,18 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '500',
   },
   actionTextActive: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   reactionsMenu: {
     position: 'absolute',
     bottom: 50,
     left: 0,
     flexDirection: 'row',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 30,
     paddingHorizontal: 8,
     paddingVertical: 6,
@@ -902,12 +905,12 @@ const styles = StyleSheet.create({
   },
   menuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuContainer: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     minWidth: 200,
     paddingVertical: 8,
@@ -929,15 +932,15 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     fontWeight: '500',
   },
   menuItemTextDanger: {
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   menuDivider: {
     height: 1,
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.border.light,
     marginVertical: 4,
   },
 });

@@ -3,7 +3,8 @@ import { View, Text, Pressable, StyleSheet } from 'react-native'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import type { ShopPromotionPackageTier } from '../../constants/marketplace-slider'
 import type { ShopPromotionPackageOffer } from '../../lib/shops/marketplace-slider/pricing'
-import { COLORS } from '../../theme/colors'
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext'
+import type { AppPalette } from '../../theme/palettes'
 
 const TRACK_WIDTH = 220
 
@@ -30,6 +31,8 @@ export function ShopPromotionPackagePicker({
   onChange,
   label,
 }: ShopPromotionPackagePickerProps) {
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   const selectedIndex = useMemo(() => {
     const index = offers.findIndex((offer) => offer.tier === value)
     return index >= 0 ? index : Math.min(1, Math.max(0, offers.length - 1))
@@ -84,7 +87,7 @@ export function ShopPromotionPackagePicker({
           <Ionicons
             name="remove-circle-outline"
             size={28}
-            color={atMin ? COLORS.text.tertiary : COLORS.secondary.main}
+            color={atMin ? colors.text.tertiary : colors.secondary.main}
           />
         </Pressable>
 
@@ -119,7 +122,7 @@ export function ShopPromotionPackagePicker({
           <Ionicons
             name="add-circle-outline"
             size={28}
-            color={atMax ? COLORS.text.tertiary : COLORS.secondary.main}
+            color={atMax ? colors.text.tertiary : colors.secondary.main}
           />
         </Pressable>
       </View>
@@ -136,7 +139,7 @@ export function ShopPromotionPackagePicker({
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   wrap: {
     width: '100%',
     alignItems: 'center',
@@ -147,13 +150,13 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
   },
   selectedLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
   },
   discountRow: {
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
   markDiscount: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.states.success,
+    color: c.states.success,
     textAlign: 'center',
   },
   controlsRow: {
@@ -198,7 +201,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 4,
     borderRadius: 2,
-    backgroundColor: COLORS.border.medium,
+    backgroundColor: c.border.medium,
     opacity: 0.45,
   },
   trackFill: {
@@ -206,7 +209,7 @@ const styles = StyleSheet.create({
     left: 0,
     height: 4,
     borderRadius: 2,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   dotHit: {
     position: 'absolute',
@@ -221,10 +224,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.border.dark,
+    backgroundColor: c.border.dark,
   },
   dotActive: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   thumb: {
     position: 'absolute',
@@ -233,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     marginLeft: -9,
     top: 5,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderWidth: 2,
     borderColor: '#fff',
     shadowColor: '#000',
@@ -248,7 +251,7 @@ const styles = StyleSheet.create({
     maxWidth: TRACK_WIDTH + 40,
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.states.success,
+    color: c.states.success,
     textAlign: 'center',
     lineHeight: 16,
   },

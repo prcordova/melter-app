@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { ContentStep } from './wizard/ContentStep';
 import { DetailsStep } from './wizard/DetailsStep';
 import { ReviewStep } from './wizard/ReviewStep';
@@ -72,6 +73,8 @@ export function ProductCreationWizard({
   overallProgress = 0,
   productCoverAvatarFallbackEnabled = true,
 }: ProductCreationWizardProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const isTinyScreen = windowWidth < 400;
@@ -443,7 +446,7 @@ export function ProductCreationWizard({
                 {product ? 'Editar Produto' : 'Criar Produto Digital'}
               </Text>
               <TouchableOpacity onPress={handleClose} disabled={saving}>
-                <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
 
@@ -573,25 +576,25 @@ export function ProductCreationWizard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   overlayFullScreen: {
     justifyContent: 'flex-start',
     alignItems: 'stretch',
     width: '100%',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   modalContainer: {
     width: '100%',
     alignSelf: 'stretch',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     flex: 1,
@@ -610,12 +613,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
   },
   stepperContainer: {
@@ -625,7 +628,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   stepWrapper: {
     flex: 1,
@@ -642,25 +645,25 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 2,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
   stepCircleActive: {
-    backgroundColor: COLORS.secondary.main,
-    borderColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
+    borderColor: c.secondary.main,
   },
   stepCircleCompleted: {
-    backgroundColor: COLORS.secondary.main,
-    borderColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
+    borderColor: c.secondary.main,
   },
   stepNumber: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   stepNumberActive: {
     color: '#ffffff',
@@ -670,15 +673,15 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     fontSize: 11,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   stepLabelActive: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontWeight: '600',
   },
   stepLabelCompleted: {
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '600',
   },
   stepLine: {
@@ -687,32 +690,32 @@ const styles = StyleSheet.create({
     left: '50%',
     width: '100%',
     height: 2,
-    backgroundColor: COLORS.border.medium,
+    backgroundColor: c.border.medium,
     zIndex: 0,
   },
   stepLineCompleted: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   progressContainer: {
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 8,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   progressText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   contentWrapper: {
@@ -732,7 +735,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   button: {
     flex: 1,
@@ -742,20 +745,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backButton: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   backButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   nextButton: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   nextButtonDisabled: {
-    backgroundColor: COLORS.border.medium,
+    backgroundColor: c.border.medium,
     opacity: 0.6,
   },
   nextButtonText: {

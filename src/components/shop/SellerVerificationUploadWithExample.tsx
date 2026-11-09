@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { AppVideo } from '../AppVideo';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { getImageUrl } from '../../utils/image';
 import {
   getSellerVerificationResponsiveLayout,
@@ -29,6 +30,7 @@ export function SellerVerificationUploadWithExample({
   onOpenExample,
   footer,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
   const { width: screenWidth } = useWindowDimensions();
   const { areaHeight, thumbWidth } = getSellerVerificationResponsiveLayout(screenWidth);
   const mediaUrl = getImageUrl(example.url) ?? example.url;
@@ -69,7 +71,7 @@ export function SellerVerificationUploadWithExample({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   wrap: {
     width: '100%',
   },
@@ -91,7 +93,7 @@ const styles = StyleSheet.create({
   },
   exampleCaption: {
     fontSize: 10,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
     lineHeight: 13,
   },
@@ -100,8 +102,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border.light,
-    backgroundColor: COLORS.background.tertiary,
+    borderColor: c.border.light,
+    backgroundColor: c.background.tertiary,
   },
   exampleThumb: {
     width: '100%',

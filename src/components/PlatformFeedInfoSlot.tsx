@@ -16,7 +16,8 @@ import type { PlatformFeedInfoItem } from '../types/platform-feed-info';
 import { getImageUrl, getAvatarUrl } from '../utils/image';
 import { userApi } from '../services/api';
 import { API_CONFIG } from '../config/api.config';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { showToast } from './CustomToast';
 
 const DEFAULT_ROTATE_MS = 14_000;
@@ -62,6 +63,8 @@ export function PlatformFeedInfoSlot({
   onAfterFollow,
   rotateIntervalMs = DEFAULT_ROTATE_MS,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation<any>();
   const [index, setIndex] = useState(0);
   const [imagePreview, setImagePreview] = useState<{ url: string; title: string } | null>(null);
@@ -126,7 +129,7 @@ export function PlatformFeedInfoSlot({
   const header = (
     <View style={styles.cardHeader}>
       <View style={styles.chipRow}>
-        <Ionicons name="information-circle-outline" size={16} color={COLORS.primary.main} />
+        <Ionicons name="information-circle-outline" size={16} color={colors.primary.main} />
         <Text style={styles.chipLabel}>Dica da plataforma</Text>
       </View>
       {onDismiss ? (
@@ -135,7 +138,7 @@ export function PlatformFeedInfoSlot({
           onPress={() => onDismiss(active.id)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={22} color={COLORS.text.secondary} />
+          <Ionicons name="close" size={22} color={colors.text.secondary} />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -283,7 +286,7 @@ export function PlatformFeedInfoSlot({
                     {active.secondaryAction.label === 'Ver o meu perfil' ? 'Ver perfil' : active.secondaryAction.label}
                   </Text>
                   {(active.secondaryAction.external || /^https?:\/\//i.test(active.secondaryAction.href)) && (
-                    <Ionicons name="open-outline" size={16} color={COLORS.primary.main} style={{ marginLeft: 6 }} />
+                    <Ionicons name="open-outline" size={16} color={colors.primary.main} style={{ marginLeft: 6 }} />
                   )}
                 </TouchableOpacity>
               ) : null}
@@ -308,7 +311,7 @@ export function PlatformFeedInfoSlot({
               accessibilityLabel="Dica anterior"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="chevron-back" size={22} color={COLORS.primary.main} />
+              <Ionicons name="chevron-back" size={22} color={colors.primary.main} />
             </TouchableOpacity>
             <View style={styles.dots}>
               {items.map((it, i) => (
@@ -328,7 +331,7 @@ export function PlatformFeedInfoSlot({
               accessibilityLabel="Próxima dica"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="chevron-forward" size={22} color={COLORS.primary.main} />
+              <Ionicons name="chevron-forward" size={22} color={colors.primary.main} />
             </TouchableOpacity>
           </View>
         ) : null}
@@ -355,13 +358,13 @@ export function PlatformFeedInfoSlot({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
     width: '100%',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     overflow: 'hidden',
     marginBottom: 8,
   },
@@ -373,7 +376,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: 'rgba(33, 150, 243, 0.08)',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   chipRow: {
     flexDirection: 'row',
@@ -383,7 +386,7 @@ const styles = StyleSheet.create({
   chipLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   mediaBox: {
     backgroundColor: '#000',
@@ -408,7 +411,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   avatarPlaceholder: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -424,23 +427,23 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   cardSubtitle: {
     marginTop: 4,
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   cardBody: {
     marginTop: 6,
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
   cardBodyTight: {
     marginTop: 8,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 20,
   },
   staticPad: {
@@ -468,13 +471,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.default,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.default,
   },
   btnOutlineText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   btnPrimary: {
     flexDirection: 'row',
@@ -483,7 +486,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
   },
   btnPrimaryText: {
     fontSize: 14,
@@ -501,7 +504,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingTop: 4,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   carouselArrow: {
     width: 36,
@@ -509,7 +512,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 18,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   dots: {
     flexDirection: 'row',
@@ -524,10 +527,10 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   dotActive: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
   },
   dotInactive: {
-    backgroundColor: COLORS.border.medium,
+    backgroundColor: c.border.medium,
   },
   modalRoot: {
     flex: 1,

@@ -16,7 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { walletApi } from '../../services/api';
 import { setPendingMpDeposit } from '../../lib/wallet-pending-deposit';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { Linking } from 'react-native';
 import { SelectRow } from '../SelectRow';
@@ -80,6 +81,8 @@ async function detectPaymentProvider(): Promise<PaymentProvider> {
 }
 
 export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const navigatingRef = useRef(false);
   const hasInitializedRef = useRef(false);
@@ -292,7 +295,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Ionicons name="wallet-outline" size={20} color={COLORS.secondary.main} />
+              <Ionicons name="wallet-outline" size={20} color={colors.secondary.main} />
               <Text style={styles.headerTitle}>Adicionar Saldo</Text>
               {!loadingFee && packages.length > 0 && (
                 <TouchableOpacity
@@ -303,13 +306,13 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                   <Ionicons 
                     name="information-circle-outline" 
                     size={22} 
-                    color={COLORS.text.secondary} 
+                    color={colors.text.secondary} 
                   />
                 </TouchableOpacity>
               )}
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -324,12 +327,12 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
 
             {loadingFee ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                <ActivityIndicator size="large" color={colors.secondary.main} />
                 <Text style={styles.loadingText}>Carregando pacotes e taxas...</Text>
               </View>
             ) : packages.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Ionicons name="wallet-outline" size={48} color={COLORS.text.tertiary} />
+                <Ionicons name="wallet-outline" size={48} color={colors.text.tertiary} />
                 <Text style={styles.emptyText}>Nenhum pacote disponível</Text>
                 <Text style={styles.emptySubtext}>
                   Entre em contato com o suporte ou tente novamente mais tarde.
@@ -361,7 +364,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                 <View style={styles.packagesCarouselContainer}>
                   {packages.length > 1 && (
                     <TouchableOpacity style={styles.carouselArrowButton} onPress={handlePrevPackage} activeOpacity={0.7}>
-                      <Ionicons name="chevron-back" size={20} color={COLORS.secondary.main} />
+                      <Ionicons name="chevron-back" size={20} color={colors.secondary.main} />
                     </TouchableOpacity>
                   )}
 
@@ -399,7 +402,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                             </Text>
                             </>
                           ) : (
-                            <Text style={[styles.packageFee, { color: COLORS.states.success }]}>
+                            <Text style={[styles.packageFee, { color: colors.states.success }]}>
                               Sem taxas
                             </Text>
                           )}
@@ -411,7 +414,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
 
                   {packages.length > 1 && (
                     <TouchableOpacity style={styles.carouselArrowButton} onPress={handleNextPackage} activeOpacity={0.7}>
-                      <Ionicons name="chevron-forward" size={20} color={COLORS.secondary.main} />
+                      <Ionicons name="chevron-forward" size={20} color={colors.secondary.main} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -419,7 +422,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                 {paymentProvider === 'MERCADOPAGO' && (
                   <View style={styles.customAmountSection}>
                     <View style={styles.customTitleRow}>
-                      <Ionicons name="create-outline" size={16} color={COLORS.secondary.main} />
+                      <Ionicons name="create-outline" size={16} color={colors.secondary.main} />
                       <Text style={styles.customAmountTitle}>Adicionar valor personalizado</Text>
                     </View>
                     <View style={[styles.customAmountInputContainer, useCustomAmount && styles.customAmountInputContainerActive]}>
@@ -440,7 +443,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
                           }
                         }}
                         placeholder="0,00"
-                        placeholderTextColor={COLORS.text.tertiary}
+                        placeholderTextColor={colors.text.tertiary}
                         keyboardType="numeric"
                       />
                     </View>
@@ -517,10 +520,10 @@ export function AddBalanceModal({ visible, onClose, onSuccess }: AddBalanceModal
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   keyboardAvoiding: {
@@ -530,7 +533,7 @@ const styles = StyleSheet.create({
   },
   container: {
     width: '100%',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     flexDirection: 'column',
@@ -550,7 +553,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -560,7 +563,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   infoIconButton: {
     padding: 4,
@@ -584,7 +587,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   emptyContainer: {
     paddingVertical: 40,
@@ -593,12 +596,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 8,
     textAlign: 'center',
     paddingHorizontal: 20,
@@ -623,17 +626,17 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.tertiary,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   packageCard: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
     padding: 12,
     borderWidth: 2,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     position: 'relative',
     width: 68,
     height: 104,
@@ -644,8 +647,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   packageCardSelected: {
-    borderColor: COLORS.secondary.main,
-    backgroundColor: COLORS.secondary.light + '20',
+    borderColor: c.secondary.main,
+    backgroundColor: c.secondary.light + '20',
   },
   customCard: {
     width: 150, // Mesma largura dos outros cards
@@ -661,20 +664,20 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
-    backgroundColor: COLORS.background.tertiary,
+    borderColor: c.border.light,
+    backgroundColor: c.background.tertiary,
     gap: 8,
   },
   customAmountTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   popularBadge: {
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: COLORS.states.success,
+    backgroundColor: c.states.success,
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 8,
@@ -687,32 +690,32 @@ const styles = StyleSheet.create({
   packageName: {
     fontSize: 10,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 2,
     minHeight: 14,
   },
   packageAmount: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.primary.main,
+    color: c.primary.main,
     marginBottom: 2,
   },
   packageFooter: {
     marginTop: 2,
     paddingTop: 4,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
     minHeight: 24,
   },
   packageReceive: {
     fontSize: 8,
     fontWeight: '600',
-    color: COLORS.states.success,
+    color: c.states.success,
     marginBottom: 1,
   },
   packageFee: {
     fontSize: 7,
-    color: COLORS.states.warning,
+    color: c.states.warning,
   },
   customInputContainer: {
     flexDirection: 'row',
@@ -723,40 +726,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   customAmountInputContainerActive: {
-    borderColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
   },
   customInputLabel: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginRight: 8,
   },
   customInput: {
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     paddingVertical: 6,
   },
   customAmountHint: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   customAmountHintError: {
     fontSize: 12,
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   customPlaceholder: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
     marginTop: 8,
   },
   gatewaySection: {
@@ -766,19 +769,19 @@ const styles = StyleSheet.create({
   infoContent: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   infoContentTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   infoContentText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
     marginBottom: 8,
   },
@@ -788,7 +791,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   button: {
     flex: 1,
@@ -798,17 +801,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   purchaseButton: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   purchaseButtonText: {
     fontSize: 16,

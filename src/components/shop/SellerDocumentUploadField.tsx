@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { AppVideo } from '../AppVideo';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { getSellerVerificationResponsiveLayout } from '../../config/shops/seller-verification.config';
 import { SellerVerificationFieldHelp } from './SellerVerificationFieldHelp';
 
@@ -49,6 +50,8 @@ export function SellerDocumentUploadField({
   previewHeight: previewHeightProp,
   areaHeight: areaHeightProp,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { width: screenWidth } = useWindowDimensions();
   const responsive = getSellerVerificationResponsiveLayout(screenWidth);
   const previewHeight = previewHeightProp ?? responsive.previewHeight;
@@ -88,7 +91,7 @@ export function SellerDocumentUploadField({
         activeOpacity={interactive ? 0.75 : 1}
       >
         {picking ? (
-          <ActivityIndicator color={COLORS.secondary.main} />
+          <ActivityIndicator color={colors.secondary.main} />
         ) : showPreview ? (
           variant === 'video' ? (
             <AppVideo
@@ -109,7 +112,7 @@ export function SellerDocumentUploadField({
             <Ionicons
               name={variant === 'video' ? 'videocam-outline' : 'cloud-upload-outline'}
               size={uploadIconSize}
-              color={viewOnly ? COLORS.text.tertiary : COLORS.text.secondary}
+              color={viewOnly ? colors.text.tertiary : colors.text.secondary}
             />
             <Text style={styles.placeholderText}>
               {viewOnly ? 'Nenhum arquivo enviado' : placeholderText}
@@ -120,7 +123,7 @@ export function SellerDocumentUploadField({
 
       {showPreview && onClear && !viewOnly ? (
         <TouchableOpacity style={styles.clearBtn} onPress={onClear} hitSlop={8}>
-          <Ionicons name="trash-outline" size={18} color={COLORS.states.error} />
+          <Ionicons name="trash-outline" size={18} color={colors.states.error} />
           <Text style={styles.clearText}>Remover</Text>
         </TouchableOpacity>
       ) : null}
@@ -128,14 +131,14 @@ export function SellerDocumentUploadField({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   wrap: {
     minWidth: 0,
     width: '100%',
   },
   wrapHighlight: {
     borderWidth: 2,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
     borderRadius: 10,
     padding: 6,
   },
@@ -157,17 +160,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   helper: {
     fontSize: 11,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 14,
   },
   area: {
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -177,11 +180,11 @@ const styles = StyleSheet.create({
   areaViewOnly: {
     borderStyle: 'solid',
     borderWidth: 1,
-    borderColor: COLORS.border.light,
-    backgroundColor: COLORS.background.tertiary,
+    borderColor: c.border.light,
+    backgroundColor: c.background.tertiary,
   },
   areaWithPreview: {
-    borderColor: COLORS.states.success,
+    borderColor: c.states.success,
   },
   placeholder: {
     alignItems: 'center',
@@ -190,7 +193,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: 11,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     lineHeight: 14,
   },
@@ -203,7 +206,7 @@ const styles = StyleSheet.create({
   },
   clearText: {
     fontSize: 12,
-    color: COLORS.states.error,
+    color: c.states.error,
     fontWeight: '600',
   },
 });

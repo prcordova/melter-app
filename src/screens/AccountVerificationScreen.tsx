@@ -15,7 +15,9 @@ import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BackButton } from '../components/BackButton';
 import { Button } from '../components/Button';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi, sellerVerificationApi } from '../services/api';
 import { showToast } from '../components/CustomToast';
@@ -72,6 +74,8 @@ async function pickImage(): Promise<PickedImage | null> {
 }
 
 export function AccountVerificationScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user, refreshUser } = useAuth();
@@ -172,6 +176,7 @@ export function AccountVerificationScreen() {
   if (!user) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <BackButton />
         <Text style={styles.muted}>Faça login para continuar.</Text>
       </View>
@@ -181,13 +186,14 @@ export function AccountVerificationScreen() {
   if (alreadyVerified) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <View style={styles.headerRow}>
           <BackButton />
           <Text style={styles.headerTitle}>Conta verificada</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.block}>
-          <Ionicons name="checkmark-circle" size={48} color={COLORS.states.success} />
+          <Ionicons name="checkmark-circle" size={48} color={colors.states.success} />
           <Text style={styles.lead}>Sua conta já possui o selo verificado.</Text>
         </View>
       </View>
@@ -197,6 +203,7 @@ export function AccountVerificationScreen() {
   if (!isProOrProPlus || !has2FA) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <View style={styles.headerRow}>
           <BackButton />
           <Text style={styles.headerTitle}>Verificação</Text>
@@ -229,6 +236,7 @@ export function AccountVerificationScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       <View style={styles.headerRow}>
         <BackButton />
         <Text style={styles.headerTitle}>Verificação de conta</Text>
@@ -249,7 +257,7 @@ export function AccountVerificationScreen() {
         <TextInput
           style={styles.input}
           placeholder="Como consta no documento"
-          placeholderTextColor={COLORS.text.tertiary}
+          placeholderTextColor={colors.text.tertiary}
           value={fullName}
           onChangeText={setFullName}
           autoCapitalize="words"
@@ -259,7 +267,7 @@ export function AccountVerificationScreen() {
         <TextInput
           style={styles.input}
           placeholder="Somente números"
-          placeholderTextColor={COLORS.text.tertiary}
+          placeholderTextColor={colors.text.tertiary}
           value={cpf}
           onChangeText={(t) => setCpf(digitsOnly(t))}
           keyboardType="number-pad"
@@ -270,7 +278,7 @@ export function AccountVerificationScreen() {
         <TextInput
           style={styles.input}
           placeholder="AAAA-MM-DD"
-          placeholderTextColor={COLORS.text.tertiary}
+          placeholderTextColor={colors.text.tertiary}
           value={birthDate}
           onChangeText={setBirthDate}
           autoCapitalize="none"
@@ -280,7 +288,7 @@ export function AccountVerificationScreen() {
         <TextInput
           style={styles.input}
           placeholder="DDD + número"
-          placeholderTextColor={COLORS.text.tertiary}
+          placeholderTextColor={colors.text.tertiary}
           value={phone}
           onChangeText={(t) => setPhone(digitsOnly(t))}
           keyboardType="phone-pad"
@@ -293,7 +301,7 @@ export function AccountVerificationScreen() {
             <Image source={{ uri: documentFront.uri }} style={styles.thumb} />
           ) : (
             <View style={styles.pickPlaceholder}>
-              <Ionicons name="image-outline" size={28} color={COLORS.text.tertiary} />
+              <Ionicons name="image-outline" size={28} color={colors.text.tertiary} />
               <Text style={styles.pickText}>Toque para escolher</Text>
             </View>
           )}
@@ -305,7 +313,7 @@ export function AccountVerificationScreen() {
             <Image source={{ uri: selfieWithDocument.uri }} style={styles.thumb} />
           ) : (
             <View style={styles.pickPlaceholder}>
-              <Ionicons name="camera-outline" size={28} color={COLORS.text.tertiary} />
+              <Ionicons name="camera-outline" size={28} color={colors.text.tertiary} />
               <Text style={styles.pickText}>Toque para escolher</Text>
             </View>
           )}
@@ -324,17 +332,17 @@ export function AccountVerificationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   headerRow: {
     flexDirection: 'row',
@@ -343,12 +351,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   scroll: {
     paddingHorizontal: 16,
@@ -356,33 +364,33 @@ const styles = StyleSheet.create({
   },
   intro: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
     lineHeight: 20,
   },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 6,
     marginTop: 10,
   },
   input: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   pickRow: {
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.paper,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.paper,
     minHeight: 120,
   },
   thumb: {
@@ -398,11 +406,11 @@ const styles = StyleSheet.create({
   },
   pickText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   disclaimer: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     marginTop: 16,
     lineHeight: 18,
   },
@@ -412,13 +420,13 @@ const styles = StyleSheet.create({
   },
   lead: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
     marginTop: 16,
     lineHeight: 22,
   },
   muted: {
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 12,
   },
 });

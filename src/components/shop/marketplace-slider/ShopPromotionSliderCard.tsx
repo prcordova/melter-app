@@ -13,7 +13,8 @@ import { useNavigation } from '@react-navigation/native'
 import type { MarketplaceSliderItem } from '../../../config/shops/marketplace-slider/types'
 import { marketplaceSliderApi } from '../../../services/shops/marketplace-slider'
 import { getImageUrl } from '../../../utils/image'
-import { COLORS } from '../../../theme/colors'
+import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext'
+import type { AppPalette } from '../../../theme/palettes'
 import {
   MARKETPLACE_SLIDER_ACTION_INSET,
   MARKETPLACE_SLIDER_HEIGHT,
@@ -25,6 +26,8 @@ type ShopPromotionSliderCardProps = {
 }
 
 export function ShopPromotionSliderCard({ item }: ShopPromotionSliderCardProps) {
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   const navigation = useNavigation<any>()
   const { width } = useWindowDimensions()
   const actionInset = width < 600
@@ -57,7 +60,7 @@ export function ShopPromotionSliderCard({ item }: ShopPromotionSliderCardProps) 
             <Image source={{ uri: avatarUri } as ImageSourcePropType} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.avatarFallback]}>
-              <Ionicons name="person" size={14} color={COLORS.text.tertiary} />
+              <Ionicons name="person" size={14} color={colors.text.tertiary} />
             </View>
           )}
           <Text style={styles.username} numberOfLines={1}>
@@ -96,15 +99,15 @@ export function ShopPromotionSliderCard({ item }: ShopPromotionSliderCardProps) 
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     minHeight: MARKETPLACE_SLIDER_HEIGHT,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     position: 'relative',
   },
   coverWrap: {
@@ -118,7 +121,7 @@ const styles = StyleSheet.create({
     minHeight: MARKETPLACE_SLIDER_HEIGHT,
   },
   coverFallback: {
-    backgroundColor: `${COLORS.primary.main}22`,
+    backgroundColor: `${c.primary.main}22`,
   },
   body: {
     flex: 1,
@@ -141,7 +144,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   avatarFallback: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -149,17 +152,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 18,
   },
   subtitle: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 16,
   },
   chips: {
@@ -175,15 +178,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipAdult: {
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
   },
   chipAi: {
-    borderColor: COLORS.states.info,
+    borderColor: c.states.info,
   },
   chipText: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   actionWrap: {
     position: 'absolute',

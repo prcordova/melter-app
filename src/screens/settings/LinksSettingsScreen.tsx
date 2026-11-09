@@ -17,7 +17,9 @@ import { CustomModal, useCustomModal } from '../../components/CustomModal';
 import { SelectRow } from '../../components/SelectRow';
 import { linksApi, userApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
+import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { showToast } from '../../components/CustomToast';
 
 interface LinkItem {
@@ -45,6 +47,9 @@ interface ApiLink {
 }
 
 export function LinksSettingsScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
   const renderLinksSkeleton = () => (
     <View style={styles.skeletonWrapper}>
       <View style={styles.skeletonHeaderRow}>
@@ -395,6 +400,7 @@ export function LinksSettingsScreen() {
   if (loading && links.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <View style={styles.header}>
           <BackButton title="Configurações" />
           <Text style={styles.headerTitle}>Links</Text>
@@ -408,6 +414,7 @@ export function LinksSettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       <View style={styles.header}>
         <BackButton title="Configurações" />
         <Text style={styles.headerTitle}>Links</Text>
@@ -446,7 +453,7 @@ export function LinksSettingsScreen() {
           </TouchableOpacity>
         ) : (
           <View style={styles.limitReachedContainer}>
-            <Ionicons name="lock-closed" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="lock-closed" size={16} color={colors.text.secondary} />
             <Text style={styles.limitReachedText}>
               Limite: {maxLinks} links ({user?.plan?.type || 'FREE'})
             </Text>
@@ -458,7 +465,7 @@ export function LinksSettingsScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => {
+          <RefreshControl tintColor={colors.secondary.main} refreshing={refreshing} onRefresh={() => {
             setRefreshing(true);
             loadLinks();
           }} />
@@ -466,7 +473,7 @@ export function LinksSettingsScreen() {
       >
         {pendingLinks.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="link-outline" size={64} color={COLORS.text.tertiary} />
+            <Ionicons name="link-outline" size={64} color={colors.text.tertiary} />
             <Text style={styles.emptyTitle}>Nenhum link ainda</Text>
             <Text style={styles.emptyDescription}>
               Adicione links para compartilhar com seus seguidores
@@ -534,21 +541,21 @@ export function LinksSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     paddingBottom: 12,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     paddingHorizontal: 16,
     paddingTop: 8,
   },
@@ -557,9 +564,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     gap: 12,
   },
   sortContainer: {
@@ -571,7 +578,7 @@ const styles = StyleSheet.create({
   sortLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   selectRowWrapper: {
     flex: 1,
@@ -580,7 +587,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -599,7 +606,7 @@ const styles = StyleSheet.create({
   },
   limitReachedText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   scrollView: {
     flex: 1,
@@ -615,7 +622,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   skeletonWrapper: {
     gap: 12,
@@ -629,33 +636,33 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   skeletonButton: {
     width: 110,
     height: 40,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   skeletonCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     gap: 8,
   },
   skeletonLinePrimary: {
     width: '55%',
     height: 11,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   skeletonLineSecondary: {
     width: '80%',
     height: 9,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   emptyContainer: {
     flex: 1,
@@ -667,11 +674,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   emptyDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     paddingHorizontal: 32,
   },
@@ -679,7 +686,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -696,9 +703,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
@@ -710,7 +717,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     paddingVertical: 14,
     borderRadius: 8,
   },

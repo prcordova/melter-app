@@ -3,7 +3,8 @@ import { View, Text, Image, StyleSheet, useWindowDimensions } from 'react-native
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useNavigation } from '@react-navigation/native'
 import { getImageUrl } from '../../../utils/image'
-import { COLORS } from '../../../theme/colors'
+import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext'
+import type { AppPalette } from '../../../theme/palettes'
 import {
   MARKETPLACE_SLIDER_ACTION_INSET,
   MARKETPLACE_SLIDER_HEIGHT,
@@ -19,6 +20,8 @@ export function ShopPromotionPlaceholderCard({
   imageUrl,
   showText = true,
 }: ShopPromotionPlaceholderCardProps) {
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   const navigation = useNavigation<any>()
   const { width } = useWindowDimensions()
   const actionInset = width < 600
@@ -51,7 +54,7 @@ export function ShopPromotionPlaceholderCard({
             <Ionicons
               name="megaphone-outline"
               size={22}
-              color={hasImage ? '#fff' : COLORS.text.primary}
+              color={hasImage ? '#fff' : colors.text.primary}
             />
             <Text style={[styles.title, hasImage && styles.titleOnImage]}>Anuncie aqui</Text>
           </View>
@@ -70,14 +73,14 @@ export function ShopPromotionPlaceholderCard({
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
     minHeight: MARKETPLACE_SLIDER_HEIGHT,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: `${COLORS.primary.main}14`,
+    backgroundColor: `${c.primary.main}14`,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     justifyContent: 'center',
     position: 'relative',
   },
@@ -93,7 +96,7 @@ const styles = StyleSheet.create({
   },
   gradientFallback: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: `${COLORS.secondary.main}12`,
+    backgroundColor: `${c.secondary.main}12`,
   },
   content: {
     position: 'relative',
@@ -112,14 +115,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   titleOnImage: {
     color: '#fff',
   },
   description: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 18,
   },
   descriptionOnImage: {

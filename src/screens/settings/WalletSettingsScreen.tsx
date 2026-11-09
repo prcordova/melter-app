@@ -16,7 +16,9 @@ import { WithdrawModal } from '../../components/wallet/WithdrawModal';
 import { PaymentStatusModal } from '../../components/wallet/PaymentStatusModal';
 import { WalletHistory } from '../../components/wallet/WalletHistory';
 import { walletApi } from '../../services/api';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
+import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { showToast } from '../../components/CustomToast';
 import {
   clearPendingMpDeposit,
@@ -32,6 +34,8 @@ interface WalletData {
 }
 
 export function WalletSettingsScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -290,6 +294,7 @@ export function WalletSettingsScreen() {
   if (loading && !walletData) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <BackButton />
@@ -297,7 +302,7 @@ export function WalletSettingsScreen() {
           </View>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondary.main} />
+          <ActivityIndicator size="large" color={colors.secondary.main} />
         </View>
       </View>
     );
@@ -306,6 +311,7 @@ export function WalletSettingsScreen() {
   if (!walletData) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <BackButton />
@@ -321,6 +327,7 @@ export function WalletSettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -346,7 +353,7 @@ export function WalletSettingsScreen() {
               style={[styles.balanceButton, styles.addButton]}
               onPress={() => setAddBalanceModalOpen(true)}
             >
-              <Ionicons name="add" size={20} color={COLORS.states.success} />
+              <Ionicons name="add" size={20} color={colors.states.success} />
               <Text style={[styles.balanceButtonText, styles.addButtonText]}>
                 💰 Adicionar
               </Text>
@@ -355,7 +362,7 @@ export function WalletSettingsScreen() {
               style={[styles.balanceButton, styles.withdrawButton]}
               onPress={() => setWithdrawModalOpen(true)}
             >
-              <Ionicons name="send" size={20} color={COLORS.primary.main} />
+              <Ionicons name="send" size={20} color={colors.primary.main} />
               <Text style={[styles.balanceButtonText, styles.withdrawButtonText]}>
                 💸 Solicitar Saque
               </Text>
@@ -367,7 +374,7 @@ export function WalletSettingsScreen() {
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <View style={[styles.statIconContainer, styles.statIconSuccess]}>
-              <Ionicons name="trending-up" size={24} color={COLORS.states.success} />
+              <Ionicons name="trending-up" size={24} color={colors.states.success} />
             </View>
             <View style={styles.statContent}>
               <Text style={styles.statLabel}>Total Recebido</Text>
@@ -378,7 +385,7 @@ export function WalletSettingsScreen() {
           </View>
           <View style={styles.statCard}>
             <View style={[styles.statIconContainer, styles.statIconError]}>
-              <Ionicons name="trending-down" size={24} color={COLORS.states.error} />
+              <Ionicons name="trending-down" size={24} color={colors.states.error} />
             </View>
             <View style={styles.statContent}>
               <Text style={styles.statLabel}>Total Gasto</Text>
@@ -426,16 +433,16 @@ export function WalletSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   headerContent: {
     flexDirection: 'row',
@@ -445,7 +452,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -460,7 +467,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   scrollView: {
@@ -474,7 +481,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 24,
     borderRadius: 16,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -520,10 +527,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   addButtonText: {
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   withdrawButtonText: {
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -538,9 +545,9 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   statIconContainer: {
     width: 48,
@@ -550,10 +557,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statIconSuccess: {
-    backgroundColor: COLORS.states.success + '20',
+    backgroundColor: c.states.success + '20',
   },
   statIconError: {
-    backgroundColor: COLORS.states.error + '20',
+    backgroundColor: c.states.error + '20',
   },
   statContent: {
     flex: 1,
@@ -561,7 +568,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
   },
   statValue: {
@@ -569,10 +576,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   statValueSuccess: {
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   statValueError: {
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   historySection: {
     paddingHorizontal: 20,
@@ -580,12 +587,12 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   historySubtitle: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
   },
 });

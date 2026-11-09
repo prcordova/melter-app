@@ -14,7 +14,8 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { PlanLocker } from '../PlanLocker'
 import { useAuth } from '../../contexts/AuthContext'
-import { COLORS } from '../../theme/colors'
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext'
+import type { AppPalette } from '../../theme/palettes'
 import { PRESENTATION_VIDEO_API } from '../../config/shops/api-paths'
 import { API_CONFIG } from '../../config/api.config'
 import { showToast } from '../CustomToast'
@@ -48,6 +49,8 @@ export function PresentationVideoSellerPanel({
   children,
 }: Props) {
   const { user } = useAuth()
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState('Enviando vídeo...')
   const planType = user?.plan?.type
@@ -184,13 +187,13 @@ export function PresentationVideoSellerPanel({
           disabled={busy || !productId || hasPending}
         >
           {busy ? (
-            <ActivityIndicator color={besideCover ? COLORS.secondary.main : '#fff'} />
+            <ActivityIndicator color={besideCover ? colors.secondary.main : '#fff'} />
           ) : (
             <>
               <Ionicons
                 name="videocam-outline"
                 size={16}
-                color={besideCover ? COLORS.text.secondary : '#fff'}
+                color={besideCover ? colors.text.secondary : '#fff'}
               />
               <Text style={[styles.btnText, besideCover && styles.btnTextBeside]}>
                 {preview ? 'Trocar vídeo' : 'Adicionar vídeo'}
@@ -207,7 +210,7 @@ export function PresentationVideoSellerPanel({
           hitSlop={8}
           accessibilityLabel="Remover vídeo"
         >
-          <Ionicons name="trash-outline" size={18} color={COLORS.states.error} />
+          <Ionicons name="trash-outline" size={18} color={colors.states.error} />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -229,7 +232,7 @@ export function PresentationVideoSellerPanel({
             disabled={busy}
             accessibilityLabel="Remover vídeo"
           >
-            <Ionicons name="trash-outline" size={18} color={COLORS.states.error} />
+            <Ionicons name="trash-outline" size={18} color={colors.states.error} />
           </TouchableOpacity>
         </View>
       ) : null}
@@ -239,7 +242,7 @@ export function PresentationVideoSellerPanel({
   const busyOverlay = (
     <Modal visible={busy} transparent animationType="fade">
       <View style={styles.busyOverlay}>
-        <ActivityIndicator size="large" color={COLORS.secondary.main} />
+        <ActivityIndicator size="large" color={colors.secondary.main} />
         <Text style={styles.busyText}>{busyLabel}</Text>
       </View>
     </Modal>
@@ -264,18 +267,18 @@ export function PresentationVideoSellerPanel({
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   wrap: { marginTop: 16 },
-  title: { fontSize: 15, fontWeight: '700', color: COLORS.text.primary, marginBottom: 8 },
+  title: { fontSize: 15, fontWeight: '700', color: c.text.primary, marginBottom: 8 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
-  hint: { fontSize: 12, color: COLORS.text.secondary, marginTop: 6 },
-  reject: { color: COLORS.states.error, fontSize: 12, marginBottom: 4 },
-  pending: { color: COLORS.states.warning, fontSize: 12, marginBottom: 4 },
+  hint: { fontSize: 12, color: c.text.secondary, marginTop: 6 },
+  reject: { color: c.states.error, fontSize: 12, marginBottom: 4 },
+  pending: { color: c.states.warning, fontSize: 12, marginBottom: 4 },
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -283,15 +286,15 @@ const styles = StyleSheet.create({
   btnBeside: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   btnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  btnTextBeside: { color: COLORS.text.secondary },
+  btnTextBeside: { color: c.text.secondary },
   trashBtn: {
     padding: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   meta: { marginTop: 8 },
   previewWrap: { position: 'relative', marginTop: 10 },
@@ -301,7 +304,7 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     zIndex: 2,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     padding: 8,
     shadowColor: '#000',
@@ -311,7 +314,7 @@ const styles = StyleSheet.create({
   },
   busyOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: c.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,

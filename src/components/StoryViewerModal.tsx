@@ -21,7 +21,8 @@ import { storiesApi, userApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { getAdminSessionToken } from '../lib/admin-session';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { showToast } from './CustomToast';
 import { StoryReactionButton } from './stories/StoryReactionButton';
 import { StoryReactionButtonDrag } from './stories/StoryReactionButtonDrag';
@@ -50,6 +51,8 @@ export function StoryViewerModal({
   initialGroupIndex,
   onStoryViewed,
 }: StoryViewerModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { user: currentUser } = useAuth();
@@ -734,8 +737,8 @@ export function StoryViewerModal({
                     handleShareStory(); // handleShareStory já pausa o story
                   }}
                 >
-                  <Ionicons name="share-outline" size={20} color={COLORS.primary.main} />
-                  <Text style={[styles.menuItemText, { color: COLORS.primary.main }]}>
+                  <Ionicons name="share-outline" size={20} color={colors.primary.main} />
+                  <Text style={[styles.menuItemText, { color: colors.primary.main }]}>
                     Compartilhar
                   </Text>
                 </TouchableOpacity>
@@ -747,8 +750,8 @@ export function StoryViewerModal({
                       void openStoryVisibilityPicker();
                     }}
                   >
-                    <Ionicons name="eye-outline" size={20} color={COLORS.primary.main} />
-                    <Text style={[styles.menuItemText, { color: COLORS.primary.main }]}>
+                    <Ionicons name="eye-outline" size={20} color={colors.primary.main} />
+                    <Text style={[styles.menuItemText, { color: colors.primary.main }]}>
                       Alterar visibilidade
                     </Text>
                   </TouchableOpacity>
@@ -763,8 +766,8 @@ export function StoryViewerModal({
                       setShowDeleteConfirm(true);
                     }}
                   >
-                    <Ionicons name="trash-outline" size={20} color={COLORS.states.error} />
-                    <Text style={[styles.menuItemText, { color: COLORS.states.error }]}>
+                    <Ionicons name="trash-outline" size={20} color={colors.states.error} />
+                    <Text style={[styles.menuItemText, { color: colors.states.error }]}>
                       Excluir story
                     </Text>
                   </TouchableOpacity>
@@ -777,8 +780,8 @@ export function StoryViewerModal({
                       setShowReportModal(true);
                     }}
                   >
-                    <Ionicons name="flag-outline" size={20} color={COLORS.states.warning} />
-                    <Text style={[styles.menuItemText, { color: COLORS.states.warning }]}>
+                    <Ionicons name="flag-outline" size={20} color={colors.states.warning} />
+                    <Text style={[styles.menuItemText, { color: colors.states.warning }]}>
                       Denunciar story
                     </Text>
                   </TouchableOpacity>
@@ -828,7 +831,7 @@ export function StoryViewerModal({
                     setShowViewers(false);
                     setIsPaused(false); // Retomar story ao fechar visualizações
                   }}>
-                    <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                    <Ionicons name="close" size={24} color={colors.text.primary} />
                   </TouchableOpacity>
                 </View>
                 <ScrollView contentContainerStyle={styles.viewersList}>
@@ -854,7 +857,7 @@ export function StoryViewerModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
@@ -941,12 +944,12 @@ const styles = StyleSheet.create({
   },
   menuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuContainer: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     minWidth: 200,
     overflow: 'hidden',
@@ -957,14 +960,14 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   menuItemLast: {
     borderBottomWidth: 0,
   },
   menuItemText: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     fontWeight: '500',
   },
   storyTextContainer: {
@@ -1140,11 +1143,11 @@ const styles = StyleSheet.create({
   },
   viewersOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   viewersContainer: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     height: '60%',
@@ -1156,13 +1159,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     paddingBottom: 12,
   },
   viewersTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   viewersList: {
     gap: 16,
@@ -1180,11 +1183,11 @@ const styles = StyleSheet.create({
   viewerUsername: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   noViewersText: {
     textAlign: 'center',
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     marginTop: 40,
     fontSize: 16,
   },

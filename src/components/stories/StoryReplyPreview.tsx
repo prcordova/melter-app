@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { storiesApi } from '../../services/api';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { getImageUrl } from '../../utils/image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -29,6 +30,8 @@ export function StoryReplyPreview({
   isSentByMe = false,
   onPress,
 }: StoryReplyPreviewProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [storyExists, setStoryExists] = useState<boolean | null>(null);
   const [storyOwnerUsername, setStoryOwnerUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,7 +68,7 @@ export function StoryReplyPreview({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={COLORS.text.secondary} />
+        <ActivityIndicator size="small" color={colors.text.secondary} />
       </View>
     );
   }
@@ -101,7 +104,7 @@ export function StoryReplyPreview({
             <Ionicons
               name={mediaType === 'video' ? 'videocam-outline' : 'image-outline'}
               size={24}
-              color={COLORS.text.tertiary}
+              color={colors.text.tertiary}
             />
           </View>
         )}
@@ -125,11 +128,11 @@ export function StoryReplyPreview({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginBottom: 8,
     maxWidth: 220,
   },
@@ -142,20 +145,20 @@ const styles = StyleSheet.create({
   },
   unavailableContainer: {
     padding: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     marginBottom: 8,
   },
   unavailableText: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     fontStyle: 'italic',
     textAlign: 'center',
   },
   previewImageContainer: {
     width: '100%',
     height: 240,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     position: 'relative',
   },
   compactPreview: {
@@ -170,7 +173,7 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   videoIcon: {
     position: 'absolute',
@@ -182,17 +185,17 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     padding: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   infoText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
     marginBottom: 4,
   },
   infoSubtext: {
     fontSize: 11,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });
 

@@ -12,7 +12,9 @@ import { useNavigation } from '@react-navigation/native';
 import { BackButton } from '../components/BackButton';
 import { referralsApi } from '../services/api';
 import { showToast } from '../components/CustomToast';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useAuth } from '../contexts/AuthContext';
@@ -51,6 +53,8 @@ interface ReferralStats {
 }
 
 export function ReferralScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const renderReferralSkeleton = () => (
     <View style={styles.referralSkeletonWrapper}>
       <View style={styles.referralSkeletonHeader} />
@@ -156,19 +160,20 @@ export function ReferralScreen() {
       case 'Prata': return '#c0c0c0';
       case 'Ouro': return '#ffd700';
       case 'Diamante': return '#b9f2ff';
-      default: return COLORS.secondary.main;
+      default: return colors.secondary.main;
     }
   };
 
   if (!systemActive) {
     return (
       <View style={styles.container}>
+        <ThemedStatusBar />
         <View style={styles.header}>
           <BackButton title="Perfil" />
         </View>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.emptyContainer}>
-            <Ionicons name="information-circle-outline" size={64} color={COLORS.text.secondary} />
+            <Ionicons name="information-circle-outline" size={64} color={colors.text.secondary} />
             <Text style={styles.emptyTitle}>Sistema Indisponível</Text>
             <Text style={styles.emptyText}>
               O sistema de indicações está temporariamente desativado.
@@ -182,6 +187,7 @@ export function ReferralScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <ThemedStatusBar />
         <View style={styles.header}>
           <BackButton title="Perfil" />
         </View>
@@ -194,6 +200,7 @@ export function ReferralScreen() {
 
   return (
     <View style={styles.container}>
+      <ThemedStatusBar />
       <View style={styles.header}>
         <BackButton title="Perfil" />
       </View>
@@ -215,7 +222,7 @@ export function ReferralScreen() {
         {stats && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Ionicons name="link" size={24} color={COLORS.secondary.main} />
+              <Ionicons name="link" size={24} color={colors.secondary.main} />
               <Text style={styles.cardTitle}>Seu Link de Indicação</Text>
             </View>
             
@@ -234,7 +241,7 @@ export function ReferralScreen() {
             </TouchableOpacity>
 
             <View style={styles.infoBox}>
-              <Ionicons name="information-circle" size={20} color={COLORS.secondary.main} />
+              <Ionicons name="information-circle" size={20} color={colors.secondary.main} />
               <Text style={styles.infoText}>
                 Compartilhe este link com seus amigos. Quando eles se cadastrarem e fizerem compras, você ganha pontos e recompensas!
               </Text>
@@ -246,7 +253,7 @@ export function ReferralScreen() {
         {stats && stats.totalReferrals === 0 && (
           <View style={styles.card}>
             <View style={styles.emptyCard}>
-              <Ionicons name="people-outline" size={48} color={COLORS.text.secondary} />
+              <Ionicons name="people-outline" size={48} color={colors.text.secondary} />
               <Text style={styles.emptyCardTitle}>Nenhuma indicação ainda</Text>
               <Text style={styles.emptyCardText}>
                 Compartilhe seu link para começar a ganhar recompensas!
@@ -260,25 +267,25 @@ export function ReferralScreen() {
           <>
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
-                <Ionicons name="people" size={32} color={COLORS.secondary.main} />
+                <Ionicons name="people" size={32} color={colors.secondary.main} />
                 <Text style={styles.statValue}>{stats.totalReferrals}</Text>
                 <Text style={styles.statLabel}>Total de Indicações</Text>
               </View>
               
               <View style={styles.statCard}>
-                <Ionicons name="trending-up" size={32} color={COLORS.secondary.main} />
+                <Ionicons name="trending-up" size={32} color={colors.secondary.main} />
                 <Text style={styles.statValue}>{stats.activeReferrals}</Text>
                 <Text style={styles.statLabel}>Indicações Ativas</Text>
               </View>
               
               <View style={styles.statCard}>
-                <Ionicons name="trophy" size={32} color={COLORS.secondary.main} />
+                <Ionicons name="trophy" size={32} color={colors.secondary.main} />
                 <Text style={styles.statValue}>{stats.totalPoints}</Text>
                 <Text style={styles.statLabel}>Pontos Totais</Text>
               </View>
               
               <View style={styles.statCard}>
-                <Ionicons name="cash" size={32} color={COLORS.secondary.main} />
+                <Ionicons name="cash" size={32} color={colors.secondary.main} />
                 <Text style={styles.statValue}>R$ {stats.totalSpent.toFixed(2)}</Text>
                 <Text style={styles.statLabel}>Total Gasto</Text>
               </View>
@@ -287,7 +294,7 @@ export function ReferralScreen() {
             {/* Nível Atual */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="medal" size={24} color={COLORS.secondary.main} />
+                <Ionicons name="medal" size={24} color={colors.secondary.main} />
                 <Text style={styles.cardTitle}>Seu Nível Atual</Text>
               </View>
               
@@ -345,7 +352,7 @@ export function ReferralScreen() {
             {stats.nextLevel && (
               <View style={styles.card}>
                 <View style={styles.cardHeader}>
-                  <Ionicons name="flag" size={24} color={COLORS.secondary.main} />
+                  <Ionicons name="flag" size={24} color={colors.secondary.main} />
                   <Text style={styles.cardTitle}>
                     Progresso para {stats.nextLevel.name}
                   </Text>
@@ -415,7 +422,7 @@ export function ReferralScreen() {
         {/* Como Funciona */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="document-text" size={24} color={COLORS.secondary.main} />
+            <Ionicons name="document-text" size={24} color={colors.secondary.main} />
             <Text style={styles.cardTitle}>Como Funciona</Text>
           </View>
 
@@ -462,10 +469,10 @@ export function ReferralScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
     paddingHorizontal: 16,
@@ -484,7 +491,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   referralSkeletonWrapper: {
     gap: 14,
@@ -492,10 +499,10 @@ const styles = StyleSheet.create({
   referralSkeletonHeader: {
     height: 58,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   referralSkeletonCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 16,
     gap: 10,
@@ -504,18 +511,18 @@ const styles = StyleSheet.create({
     width: '60%',
     height: 12,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   referralSkeletonLineSecondary: {
     width: '90%',
     height: 10,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   referralSkeletonButton: {
     height: 42,
     borderRadius: 10,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginTop: 4,
   },
   referralSkeletonGrid: {
@@ -527,7 +534,7 @@ const styles = StyleSheet.create({
     width: '48%',
     height: 100,
     borderRadius: 14,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   headerSection: {
     marginBottom: 24,
@@ -536,16 +543,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -564,24 +571,24 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   linkContainer: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
   },
   linkText: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     fontFamily: 'monospace',
   },
   copyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     padding: 14,
     borderRadius: 12,
     gap: 8,
@@ -595,7 +602,7 @@ const styles = StyleSheet.create({
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     padding: 12,
     borderRadius: 12,
     gap: 8,
@@ -603,7 +610,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
   emptyContainer: {
@@ -615,13 +622,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   emptyCard: {
@@ -631,13 +638,13 @@ const styles = StyleSheet.create({
   emptyCardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyCardText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   statsGrid: {
@@ -649,7 +656,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: '47%',
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -662,13 +669,13 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 8,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   levelContainer: {
@@ -688,23 +695,23 @@ const styles = StyleSheet.create({
   },
   levelInfo: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   nextLevelContainer: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   nextLevelLabel: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
   },
   nextLevelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   claimButton: {
     flexDirection: 'row',
@@ -722,14 +729,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   rewardInfo: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     padding: 12,
     borderRadius: 12,
     marginTop: 16,
   },
   rewardInfoText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   progressContainer: {
@@ -743,22 +750,22 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   progressValue: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '600',
   },
   progressBar: {
     height: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderRadius: 4,
   },
   howItWorksContainer: {
@@ -772,7 +779,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
@@ -788,12 +795,12 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   stepDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
 });

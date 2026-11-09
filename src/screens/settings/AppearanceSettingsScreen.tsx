@@ -20,7 +20,9 @@ import { PlanLocker } from '../../components/PlanLocker';
 import { EditableAvatar } from '../../components/EditableAvatar';
 import { profileApi, userApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
+import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { showToast } from '../../components/CustomToast';
 import { getImageUrl } from '../../utils/image';
 import { PLAN_LIMITS, type PlanType } from '../../config/plan-features';
@@ -82,6 +84,9 @@ function mergeUsernameDisplayEffect(raw: unknown): UsernameDisplayEffectConfig {
 }
 
 export function AppearanceSettingsScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
   const renderAppearanceSkeleton = () => (
     <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
       {Array.from({ length: 4 }).map((_, index) => (
@@ -516,6 +521,7 @@ export function AppearanceSettingsScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <View style={styles.header}>
           <BackButton title="Configurações" />
           <Text style={styles.headerTitle}>Aparência</Text>
@@ -527,6 +533,7 @@ export function AppearanceSettingsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       <View style={styles.header}>
         <BackButton title="Configurações" />
         <Text style={styles.headerTitle}>Aparência</Text>
@@ -555,7 +562,7 @@ export function AppearanceSettingsScreen() {
               value={bio}
               onChangeText={handleBioChange}
               placeholder="Escreva uma biografia..."
-              placeholderTextColor={COLORS.text.tertiary}
+              placeholderTextColor={colors.text.tertiary}
               multiline
               numberOfLines={3}
               maxLength={500}
@@ -610,14 +617,14 @@ export function AppearanceSettingsScreen() {
               value={userStatus.customMessage}
               onChangeText={(text) => handleStatusChange({ customMessage: text.slice(0, 100) })}
               placeholder="Ex: Trabalhando..."
-              placeholderTextColor={COLORS.text.tertiary}
+              placeholderTextColor={colors.text.tertiary}
               maxLength={100}
             />
             <Text style={styles.charCount}>{userStatus.customMessage.length}/100</Text>
           </View>
 
           <Text style={[styles.fieldLabel, { marginTop: 8 }]}>Aparência do balão de status</Text>
-          <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: colors.text.secondary, marginBottom: 12 }}>
             Cores do balão no perfil público (STARTER ou superior).
           </Text>
           <PlanLocker requiredPlan="STARTER" currentPlan={user?.plan?.type}>
@@ -645,7 +652,7 @@ export function AppearanceSettingsScreen() {
                 })
               }
             >
-              <Text style={{ fontSize: 14, color: COLORS.primary.main, marginTop: 8 }}>
+              <Text style={{ fontSize: 14, color: colors.primary.main, marginTop: 8 }}>
                 Restaurar cores padrão
               </Text>
             </TouchableOpacity>
@@ -664,7 +671,7 @@ export function AppearanceSettingsScreen() {
               <Switch
                 value={settings.showViews}
                 onValueChange={(value) => handleSettingsChange({ showViews: value })}
-                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                trackColor={{ false: colors.border.medium, true: colors.primary.main }}
                 thumbColor="#ffffff"
               />
             </View>
@@ -673,14 +680,14 @@ export function AppearanceSettingsScreen() {
               <Switch
                 value={settings.showLikes}
                 onValueChange={(value) => handleSettingsChange({ showLikes: value })}
-                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                trackColor={{ false: colors.border.medium, true: colors.primary.main }}
                 thumbColor="#ffffff"
               />
             </View>
             <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={styles.switchLabel}>Mostrar Posts Recentes</Text>
-                <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
+                <Text style={{ fontSize: 12, color: colors.text.secondary, marginTop: 4, lineHeight: 16 }}>
                   Mostrar seus últimos posts no perfil público
                 </Text>
               </View>
@@ -689,7 +696,7 @@ export function AppearanceSettingsScreen() {
                 onValueChange={(value) =>
                   handleSettingsChange({ showPosts: value, postsLimit: value ? 3 : 1 })
                 }
-                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                trackColor={{ false: colors.border.medium, true: colors.primary.main }}
                 thumbColor="#ffffff"
               />
             </View>
@@ -699,7 +706,7 @@ export function AppearanceSettingsScreen() {
               <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
                 <View style={{ flex: 1, paddingRight: 12 }}>
                   <Text style={styles.switchLabel}>Permitir que outros abram as listas no meu perfil</Text>
-                  <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
+                  <Text style={{ fontSize: 12, color: colors.text.secondary, marginTop: 4, lineHeight: 16 }}>
                     PRO e PRO+. Se desativar, os números continuam, mas as listas de seguidores/seguindo não abrem para
                     visitantes (só você e admins).
                   </Text>
@@ -707,14 +714,14 @@ export function AppearanceSettingsScreen() {
                 <Switch
                   value={settings.showFollowersFollowing}
                   onValueChange={(value) => handleSettingsChange({ showFollowersFollowing: value })}
-                  trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                  trackColor={{ false: colors.border.medium, true: colors.primary.main }}
                   thumbColor="#ffffff"
                 />
               </View>
               <View style={[styles.switchRow, { alignItems: 'flex-start', marginTop: 16 }]}>
                 <View style={{ flex: 1, paddingRight: 12 }}>
                   <Text style={styles.switchLabel}>Ocultar-me nas listas dos perfis de outras pessoas</Text>
-                  <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
+                  <Text style={{ fontSize: 12, color: colors.text.secondary, marginTop: 4, lineHeight: 16 }}>
                     PRO e PRO+. Quando ativo, você não aparece nas listas quando alguém visita o perfil de outra conta.
                     O dono desse perfil continua a ver você na lista dele.
                   </Text>
@@ -722,7 +729,7 @@ export function AppearanceSettingsScreen() {
                 <Switch
                   value={settings.hideFromOthersFollowLists}
                   onValueChange={(value) => handleSettingsChange({ hideFromOthersFollowLists: value })}
-                  trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                  trackColor={{ false: colors.border.medium, true: colors.primary.main }}
                   thumbColor="#ffffff"
                 />
               </View>
@@ -733,21 +740,21 @@ export function AppearanceSettingsScreen() {
               <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
                 <View style={{ flex: 1, paddingRight: 12 }}>
                   <Text style={styles.switchLabel}>Ocultar meu nome nas reações em posts de outros</Text>
-                  <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
+                  <Text style={{ fontSize: 12, color: colors.text.secondary, marginTop: 4, lineHeight: 16 }}>
                     PRO+. Ao expandir quem reagiu, outros não veem seu @ (o dono do post e você continuam vendo).
                   </Text>
                 </View>
                 <Switch
                   value={settings.hideIdentityInPostReactions}
                   onValueChange={(value) => handleSettingsChange({ hideIdentityInPostReactions: value })}
-                  trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                  trackColor={{ false: colors.border.medium, true: colors.primary.main }}
                   thumbColor="#ffffff"
                 />
               </View>
               <View style={[styles.switchRow, { alignItems: 'flex-start', marginTop: 16 }]}>
                 <View style={{ flex: 1, paddingRight: 12 }}>
                   <Text style={styles.switchLabel}>Ocultar lista de quem viu meus stories</Text>
-                  <Text style={{ fontSize: 12, color: COLORS.text.secondary, marginTop: 4, lineHeight: 16 }}>
+                  <Text style={{ fontSize: 12, color: colors.text.secondary, marginTop: 4, lineHeight: 16 }}>
                     PRO+. Ninguém vê a lista de visualizações dos seus stories, nem você. Ao ver stories de outras
                     pessoas, sua visualização não aparece na lista deles.
                   </Text>
@@ -755,7 +762,7 @@ export function AppearanceSettingsScreen() {
                 <Switch
                   value={settings.hideStoryViewersList}
                   onValueChange={(value) => handleSettingsChange({ hideStoryViewersList: value })}
-                  trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                  trackColor={{ false: colors.border.medium, true: colors.primary.main }}
                   thumbColor="#ffffff"
                 />
               </View>
@@ -791,7 +798,7 @@ export function AppearanceSettingsScreen() {
                     style={styles.removeButton}
                     onPress={handleRemoveBackground}
                   >
-                    <Ionicons name="close-circle" size={24} color={COLORS.states.error} />
+                    <Ionicons name="close-circle" size={24} color={colors.states.error} />
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -799,7 +806,7 @@ export function AppearanceSettingsScreen() {
                   style={styles.uploadButton}
                   onPress={handleBackgroundPicker}
                 >
-                  <Ionicons name="image-outline" size={20} color={COLORS.primary.main} />
+                  <Ionicons name="image-outline" size={20} color={colors.primary.main} />
                   <Text style={styles.uploadButtonText}>Adicionar Imagem</Text>
                 </TouchableOpacity>
               )}
@@ -823,7 +830,7 @@ export function AppearanceSettingsScreen() {
                     });
                   }}
                 >
-                  <Ionicons name="remove" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="remove" size={20} color={colors.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.sliderTrack}>
                   <View style={styles.sliderTrackBackground} />
@@ -832,7 +839,7 @@ export function AppearanceSettingsScreen() {
                       styles.sliderTrackFill,
                       {
                         width: `${Math.max(0, Math.min(100, settings.backgroundOverlayOpacity ?? 0))}%`,
-                        backgroundColor: COLORS.primary.main,
+                        backgroundColor: colors.primary.main,
                       },
                     ]}
                   />
@@ -848,7 +855,7 @@ export function AppearanceSettingsScreen() {
                     });
                   }}
                 >
-                  <Ionicons name="add" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="add" size={20} color={colors.text.primary} />
                 </TouchableOpacity>
               </View>
               <View style={styles.sliderLabels}>
@@ -867,7 +874,7 @@ export function AppearanceSettingsScreen() {
                     selectedValue={settings.backgroundMode}
                     onValueChange={(value) => handleSettingsChange({ backgroundMode: value })}
                     style={styles.picker}
-                    dropdownIconColor={COLORS.text.secondary}
+                    dropdownIconColor={colors.text.secondary}
                   >
                     <Picker.Item label="Tela Inteira" value="full" />
                     <Picker.Item label="Apenas Topo" value="top" />
@@ -975,7 +982,7 @@ export function AppearanceSettingsScreen() {
                   selectedValue={settings.displayMode}
                   onValueChange={(value) => handleSettingsChange({ displayMode: value })}
                   style={styles.picker}
-                  dropdownIconColor={COLORS.text.secondary}
+                  dropdownIconColor={colors.text.secondary}
                 >
                   <Picker.Item label="Lista" value="list" />
                   <Picker.Item label="Grade" value="grid" />
@@ -992,7 +999,7 @@ export function AppearanceSettingsScreen() {
                   selectedValue={settings.cardStyle}
                   onValueChange={(value) => handleSettingsChange({ cardStyle: value })}
                   style={styles.picker}
-                  dropdownIconColor={COLORS.text.secondary}
+                  dropdownIconColor={colors.text.secondary}
                 >
                   <Picker.Item label="Arredondado" value="rounded" />
                   <Picker.Item label="Quadrado" value="square" />
@@ -1010,7 +1017,7 @@ export function AppearanceSettingsScreen() {
                   selectedValue={settings.spacing}
                   onValueChange={(value) => handleSettingsChange({ spacing: value })}
                   style={styles.picker}
-                  dropdownIconColor={COLORS.text.secondary}
+                  dropdownIconColor={colors.text.secondary}
                 >
                   <Picker.Item label="Pequeno (8px)" value={8} />
                   <Picker.Item label="Médio (16px)" value={16} />
@@ -1029,7 +1036,7 @@ export function AppearanceSettingsScreen() {
                     selectedValue={settings.gridAlignment}
                     onValueChange={(value) => handleSettingsChange({ gridAlignment: value })}
                     style={styles.picker}
-                    dropdownIconColor={COLORS.text.secondary}
+                    dropdownIconColor={colors.text.secondary}
                   >
                     <Picker.Item label="Esquerda" value="flex-start" />
                     <Picker.Item label="Centro" value="center" />
@@ -1068,21 +1075,21 @@ export function AppearanceSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     paddingBottom: 12,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -1094,52 +1101,52 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   skeletonSection: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     marginTop: 16,
     marginHorizontal: 16,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     gap: 10,
   },
   skeletonTitle: {
     width: '45%',
     height: 12,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginBottom: 4,
   },
   skeletonField: {
     width: '100%',
     height: 42,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   scrollView: {
     flex: 1,
   },
   section: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     marginTop: 16,
     marginHorizontal: 16,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 16,
   },
   helperCaption: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
     lineHeight: 18,
   },
@@ -1149,37 +1156,37 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   pickerWrapper: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     overflow: 'hidden',
   },
   picker: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   avatarContainer: {
     alignItems: 'center',
     marginBottom: 20,
   },
   bioInput: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     minHeight: 80,
     textAlignVertical: 'top',
   },
   charCount: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     textAlign: 'right',
     marginTop: 4,
   },
@@ -1193,14 +1200,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     padding: 12,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
   },
   statusOptionActive: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: COLORS.primary.light,
+    borderColor: c.primary.main,
+    backgroundColor: c.primary.light,
   },
   statusDot: {
     width: 8,
@@ -1209,7 +1216,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   switchRow: {
     flexDirection: 'row',
@@ -1219,7 +1226,7 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   imagePreviewContainer: {
     position: 'relative',
@@ -1243,16 +1250,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
   },
   uploadButtonText: {
     fontSize: 14,
-    color: COLORS.primary.main,
+    color: c.primary.main,
     fontWeight: '500',
   },
   saveButtonContainer: {
@@ -1261,9 +1268,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
@@ -1275,7 +1282,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     paddingVertical: 14,
     borderRadius: 8,
   },
@@ -1297,9 +1304,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1314,7 +1321,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: COLORS.border.medium,
+    backgroundColor: c.border.medium,
     borderRadius: 2,
     top: '50%',
     marginTop: -2,
@@ -1334,7 +1341,7 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
 });
 

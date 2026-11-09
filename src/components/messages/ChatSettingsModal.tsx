@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ModalBottom } from '../ModalBottom';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import {
   type ChatSettings,
   type UserChatStatus,
@@ -41,6 +42,8 @@ export function ChatSettingsModal({
   onSave,
   onPreview,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [tempSettings, setTempSettings] = useState<ChatSettings>(settings);
   const [tempStatus, setTempStatus] = useState<UserChatStatus>(userStatus);
   const [showGallery, setShowGallery] = useState(false);
@@ -77,7 +80,7 @@ export function ChatSettingsModal({
       <View style={styles.header}>
         <Text style={styles.title}>Configurações do chat</Text>
         <TouchableOpacity onPress={handleCancel} hitSlop={12}>
-          <Ionicons name="close" size={24} color={COLORS.text.primary} />
+          <Ionicons name="close" size={24} color={colors.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -129,7 +132,7 @@ export function ChatSettingsModal({
         <TextInput
           style={styles.statusInput}
           placeholder="Mensagem de status (opcional)"
-          placeholderTextColor={COLORS.text.tertiary}
+          placeholderTextColor={colors.text.tertiary}
           value={tempStatus.customMessage}
           onChangeText={(t) =>
             setTempStatus({ ...tempStatus, customMessage: t.slice(0, 100) })
@@ -141,7 +144,7 @@ export function ChatSettingsModal({
         <Text style={styles.sectionTitle}>Imagem de fundo</Text>
         {!showGallery ? (
           <TouchableOpacity style={styles.outlineBtn} onPress={() => setShowGallery(true)}>
-            <Ionicons name="image-outline" size={20} color={COLORS.secondary.main} />
+            <Ionicons name="image-outline" size={20} color={colors.secondary.main} />
             <Text style={styles.outlineBtnText}>
               {tempSettings.backgroundImage ? 'Trocar imagem' : 'Escolher imagem'}
             </Text>
@@ -151,7 +154,7 @@ export function ChatSettingsModal({
             <View style={styles.galleryHeader}>
               <Text style={styles.sectionLabel}>Escolher fundo</Text>
               <TouchableOpacity onPress={() => setShowGallery(false)}>
-                <Ionicons name="close" size={22} color={COLORS.text.secondary} />
+                <Ionicons name="close" size={22} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
             <View style={styles.galleryGrid}>
@@ -213,7 +216,7 @@ export function ChatSettingsModal({
               key={c}
               style={[
                 styles.colorSwatch,
-                { backgroundColor: c, borderWidth: 1, borderColor: COLORS.border.medium },
+                { backgroundColor: c, borderWidth: 1, borderColor: colors.border.medium },
                 tempSettings.textColor === c && styles.colorSwatchActive,
               ]}
               onPress={() => updateSettings({ textColor: c })}
@@ -251,19 +254,21 @@ export function ChatSettingsModal({
 }
 
 function PreviewBubbles({ textColor }: { textColor: string }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <>
       <View style={[styles.bubbleSent]}>
         <Text style={styles.bubbleSentText}>Mensagem enviada</Text>
       </View>
-      <View style={[styles.bubbleReceived, { borderColor: COLORS.border.light }]}>
+      <View style={[styles.bubbleReceived, { borderColor: colors.border.light }]}>
         <Text style={{ color: textColor, fontSize: 13 }}>Mensagem recebida</Text>
       </View>
     </>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -271,13 +276,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 8,
   },
-  title: { fontSize: 18, fontWeight: '700', color: COLORS.text.primary },
+  title: { fontSize: 18, fontWeight: '700', color: c.text.primary },
   scroll: { paddingHorizontal: 20, maxHeight: 480 },
-  sectionLabel: { fontSize: 12, color: COLORS.text.secondary, marginBottom: 8 },
+  sectionLabel: { fontSize: 12, color: c.text.secondary, marginBottom: 8 },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 20,
     marginBottom: 10,
   },
@@ -291,7 +296,7 @@ const styles = StyleSheet.create({
   previewImage: { opacity: 0.85 },
   bubbleSent: {
     alignSelf: 'flex-end',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
@@ -313,30 +318,30 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioOuterActive: { borderColor: COLORS.secondary.main },
+  radioOuterActive: { borderColor: c.secondary.main },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
-  radioLabel: { fontSize: 15, color: COLORS.text.primary },
+  radioLabel: { fontSize: 15, color: c.text.primary },
   statusInput: {
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 8,
   },
-  helper: { fontSize: 11, color: COLORS.text.tertiary, textAlign: 'right', marginTop: 4 },
+  helper: { fontSize: 11, color: c.text.tertiary, textAlign: 'right', marginTop: 4 },
   outlineBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -345,9 +350,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
   },
-  outlineBtnText: { color: COLORS.secondary.main, fontWeight: '600' },
+  outlineBtnText: { color: c.secondary.main, fontWeight: '600' },
   galleryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -362,31 +367,31 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  galleryItemSelected: { borderColor: COLORS.secondary.main },
+  galleryItemSelected: { borderColor: c.secondary.main },
   galleryThumb: { width: '100%', height: 72 },
   galleryEmpty: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  galleryEmptyText: { fontSize: 12, color: COLORS.text.secondary },
+  galleryEmptyText: { fontSize: 12, color: c.text.secondary },
   galleryLabel: {
     fontSize: 11,
     textAlign: 'center',
     paddingVertical: 4,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   presetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
   colorSwatch: { width: 36, height: 36, borderRadius: 18 },
-  colorSwatchActive: { borderWidth: 3, borderColor: COLORS.secondary.main },
+  colorSwatchActive: { borderWidth: 3, borderColor: c.secondary.main },
   hexInput: {
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   footer: {
@@ -396,21 +401,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   ghostBtn: {
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
-  ghostBtnText: { fontWeight: '600', color: COLORS.text.primary },
+  ghostBtnText: { fontWeight: '600', color: c.text.primary },
   saveBtn: {
     flex: 1,
     minWidth: 100,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
   },
   saveBtnText: { fontWeight: '700', color: '#fff' },

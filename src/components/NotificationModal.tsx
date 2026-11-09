@@ -18,7 +18,8 @@ import { userApi } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 interface NotificationModalProps {
   visible: boolean;
@@ -26,6 +27,8 @@ interface NotificationModalProps {
 }
 
 export function NotificationModal({ visible, onClose }: NotificationModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const {
@@ -143,7 +146,7 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Notificações</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -160,7 +163,7 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
                     onPress={markAllAsRead}
                     style={styles.actionButton}
                   >
-                    <Ionicons name="checkmark-done" size={18} color={COLORS.secondary.main} />
+                    <Ionicons name="checkmark-done" size={18} color={colors.secondary.main} />
                     <Text style={styles.actionButtonText}>Marcar todas como lidas</Text>
                   </TouchableOpacity>
                 ) : null;
@@ -169,7 +172,7 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
                 onPress={deleteAllNotifications}
                 style={[styles.actionButton, styles.actionButtonDanger]}
               >
-                <Ionicons name="trash-outline" size={18} color={COLORS.states.error} />
+                <Ionicons name="trash-outline" size={18} color={colors.states.error} />
                 <Text style={[styles.actionButtonText, styles.actionButtonTextDanger]}>
                   Limpar
                 </Text>
@@ -185,14 +188,14 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
           >
             {loading && notifications.length === 0 ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.secondary.main} animating={true} />
+                <ActivityIndicator size="large" color={colors.secondary.main} animating={true} />
               </View>
             ) : notifications.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Ionicons
                   name="notifications-outline"
                   size={64}
-                  color={COLORS.text.secondary}
+                  color={colors.text.secondary}
                 />
                 <Text style={styles.emptyText}>Nenhuma notificação</Text>
               </View>
@@ -287,12 +290,12 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
                           disabled={deletingIds.has(notification._id)}
                         >
                           {deletingIds.has(notification._id) ? (
-                            <ActivityIndicator size="small" color={COLORS.text.secondary} animating={true} />
+                            <ActivityIndicator size="small" color={colors.text.secondary} animating={true} />
                           ) : (
                             <Ionicons
                               name="close-circle-outline"
                               size={20}
-                              color={COLORS.text.secondary}
+                              color={colors.text.secondary}
                             />
                           )}
                         </TouchableOpacity>
@@ -321,14 +324,14 @@ export function NotificationModal({ visible, onClose }: NotificationModalProps) 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-start',
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
     maxHeight: '80%',
@@ -347,12 +350,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   closeButton: {
     padding: 4,
@@ -364,7 +367,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   actionButton: {
     flexDirection: 'row',
@@ -373,7 +376,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   actionButtonDanger: {
     backgroundColor: 'transparent',
@@ -381,10 +384,10 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   actionButtonTextDanger: {
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   content: {
     flex: 1,
@@ -402,7 +405,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 12,
   },
   notificationItem: {
@@ -411,12 +414,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   notificationItemUnread: {
-    backgroundColor: '#f0e7f5',
+    backgroundColor: c.action.selected,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.secondary.main,
+    borderLeftColor: c.secondary.main,
   },
   avatarContainer: {
     marginRight: 12,
@@ -425,7 +428,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   groupedAvatars: {
     position: 'relative',
@@ -440,11 +443,11 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: COLORS.background.paper,
-    backgroundColor: COLORS.background.tertiary,
+    borderColor: c.background.paper,
+    backgroundColor: c.background.tertiary,
   },
   avatarPlaceholder: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -459,7 +462,7 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   notificationTitleUnread: {
@@ -467,12 +470,12 @@ const styles = StyleSheet.create({
   },
   notificationMessage: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
   },
   notificationTime: {
     fontSize: 12,
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   deleteButton: {
     padding: 4,
@@ -483,7 +486,7 @@ const styles = StyleSheet.create({
   },
   moreText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });
 

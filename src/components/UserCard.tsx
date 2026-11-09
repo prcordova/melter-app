@@ -11,7 +11,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../services/api';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { useNavigation } from '@react-navigation/native';
 import { showToast } from './CustomToast';
 import { emitSocialGraphChanged } from '../lib/social-events';
@@ -63,6 +64,8 @@ const normalizeUsername = (value?: string) =>
 
 export function UserCard({ user, onPress, showFriendsSince = false }: UserCardProps) {
   const { user: currentUser } = useAuth();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation<any>();
   const [friendshipStatus, setFriendshipStatus] = useState(user.friendshipStatus || 'NONE');
   const [isFollowing, setIsFollowing] = useState(user.isFollowing || false);
@@ -264,28 +267,28 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
         return {
           text: 'Adicionar',
           icon: 'person-add-outline' as const,
-          color: COLORS.secondary.main,
+          color: colors.secondary.main,
           variant: 'primary' as const,
         };
       case 'PENDING_SENT':
         return {
           text: 'Pendente',
           icon: 'time-outline' as const,
-          color: COLORS.text.tertiary,
+          color: colors.text.tertiary,
           variant: 'secondary' as const,
         };
       case 'PENDING_RECEIVED':
         return {
           text: 'Aceitar',
           icon: 'checkmark-circle-outline' as const,
-          color: COLORS.states.success,
+          color: colors.states.success,
           variant: 'success' as const,
         };
       case 'FRIENDS':
         return {
           text: 'Amigos',
           icon: 'people' as const,
-          color: COLORS.primary.main,
+          color: colors.primary.main,
           variant: 'friends' as const,
         };
       default:
@@ -387,7 +390,7 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
               style={styles.messageIconButton}
               onPress={handleMessagePress}
             >
-              <Ionicons name="chatbubble-ellipses-outline" size={24} color={COLORS.secondary.main} />
+              <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.secondary.main} />
             </TouchableOpacity>
           )}
         </View>
@@ -464,9 +467,9 @@ export function UserCard({ user, onPress, showFriendsSince = false }: UserCardPr
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     marginBottom: 16,
     padding: 16,
@@ -488,10 +491,10 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   avatarPlaceholder: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -517,7 +520,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   usernameGradientText: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   planBadge: {
     paddingHorizontal: 6,
@@ -536,11 +539,11 @@ const styles = StyleSheet.create({
   planBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#1f2937',
   },
   bio: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
     lineHeight: 18,
   },
@@ -550,23 +553,23 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 13,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     fontWeight: '500',
   },
   lastLoginText: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     marginTop: 6,
   },
   friendsSince: {
     fontSize: 12,
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontWeight: '600',
     marginTop: 6,
   },
   messageIconButton: {
     padding: 8,
-    backgroundColor: `${COLORS.secondary.main}10`,
+    backgroundColor: `${c.secondary.main}10`,
     borderRadius: 20,
   },
   actions: {
@@ -574,7 +577,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
     paddingTop: 16,
   },
   receivedRequestContainer: {
@@ -593,30 +596,30 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionButtonPrimary: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   actionButtonSecondary: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   actionButtonFriends: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.primary.main,
+    borderColor: c.primary.main,
   },
   actionButtonSuccess: {
-    backgroundColor: COLORS.states.success,
+    backgroundColor: c.states.success,
   },
   actionButtonDanger: {
-    backgroundColor: COLORS.states.error,
+    backgroundColor: c.states.error,
     width: 44,
     flex: 0,
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   actionButtonTextPrimary: {
     color: '#ffffff',

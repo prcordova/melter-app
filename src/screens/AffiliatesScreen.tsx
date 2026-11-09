@@ -21,7 +21,9 @@ import { BackButton } from '../components/BackButton'
 import { PlanLocker } from '../components/PlanLocker'
 import { CustomModal } from '../components/CustomModal'
 import { showToast } from '../components/CustomToast'
-import { COLORS } from '../theme/colors'
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext'
+import type { AppPalette } from '../theme/palettes'
+import { ThemedStatusBar } from '../components/ThemedStatusBar'
 import { useAuth } from '../contexts/AuthContext'
 import { affiliatesApi } from '../services/affiliates'
 import type {
@@ -86,6 +88,7 @@ function currentMonthKey(): string {
 }
 
 function Metric({ label, value }: { label: string; value: string | number }) {
+  const styles = useThemedStyles(createStyles)
   return (
     <View style={styles.metricCard}>
       <Text style={styles.metricLabel}>{label}</Text>
@@ -99,6 +102,8 @@ function SimpleBars({
 }: {
   series: AffiliateAnalyticsData['monthlySeries']
 }) {
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   const max = Math.max(1, ...series.map((p) => Math.max(p.uses, p.earned)))
   return (
     <View style={styles.barsWrap}>
@@ -119,13 +124,15 @@ function SimpleBars({
       })}
       <View style={styles.barLegend}>
         <Text style={styles.barLegendItem}>■ Usos</Text>
-        <Text style={[styles.barLegendItem, { color: COLORS.states.success }]}>■ Comissão</Text>
+        <Text style={[styles.barLegendItem, { color: colors.states.success }]}>■ Comissão</Text>
       </View>
     </View>
   )
 }
 
 export function AffiliatesScreen() {
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
   const { user } = useAuth()
@@ -363,6 +370,7 @@ export function AffiliatesScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       <View style={styles.header}>
         <BackButton title="Perfil" />
         <Text style={styles.headerTitle}>Afiliados</Text>
@@ -388,7 +396,7 @@ export function AffiliatesScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={COLORS.secondary.main} style={{ marginTop: 24 }} />
+          <ActivityIndicator color={colors.secondary.main} style={{ marginTop: 24 }} />
         ) : (
           <>
             <View style={styles.chipsRow}>
@@ -476,7 +484,7 @@ export function AffiliatesScreen() {
                 ) : null}
 
                 {analyticsLoading ? (
-                  <ActivityIndicator color={COLORS.secondary.main} />
+                  <ActivityIndicator color={colors.secondary.main} />
                 ) : analytics ? (
                   <>
                     <View style={styles.metricsGrid}>
@@ -547,7 +555,7 @@ export function AffiliatesScreen() {
                               })
                             }}
                           >
-                            <Ionicons name="trash-outline" size={20} color={COLORS.states.error} />
+                            <Ionicons name="trash-outline" size={20} color={colors.states.error} />
                           </TouchableOpacity>
                         ) : null}
                       </View>
@@ -574,7 +582,7 @@ export function AffiliatesScreen() {
                         value={p.handleOrUrl}
                         onChangeText={(t) => updatePlatform(index, { handleOrUrl: t })}
                         placeholder="@seuuser ou link"
-                        placeholderTextColor={COLORS.text.tertiary}
+                        placeholderTextColor={colors.text.tertiary}
                         autoCapitalize="none"
                       />
 
@@ -614,7 +622,7 @@ export function AffiliatesScreen() {
                         }
                         keyboardType="number-pad"
                         placeholder="15.000"
-                        placeholderTextColor={COLORS.text.tertiary}
+                        placeholderTextColor={colors.text.tertiary}
                       />
 
                       <Text style={styles.fieldLabel}>Visualizações / mês</Text>
@@ -626,7 +634,7 @@ export function AffiliatesScreen() {
                         }
                         keyboardType="number-pad"
                         placeholder="120.000"
-                        placeholderTextColor={COLORS.text.tertiary}
+                        placeholderTextColor={colors.text.tertiary}
                       />
 
                       <TouchableOpacity
@@ -686,7 +694,7 @@ export function AffiliatesScreen() {
                     value={notes}
                     onChangeText={setNotes}
                     multiline
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                   />
 
                   <TouchableOpacity
@@ -735,105 +743,105 @@ export function AffiliatesScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background.default },
+const createStyles = (c: AppPalette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background.default },
   header: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     paddingBottom: 12,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     paddingHorizontal: 16,
     paddingTop: 8,
   },
   content: { padding: 16, paddingBottom: 64, flexGrow: 1 },
-  lead: { color: COLORS.text.secondary, marginBottom: 12, lineHeight: 20 },
+  lead: { color: c.text.secondary, marginBottom: 12, lineHeight: 20 },
   infoBox: {
-    backgroundColor: '#e0f2fe',
+    backgroundColor: c.states.info + '20',
     borderRadius: 10,
     padding: 12,
     marginBottom: 12,
   },
-  infoText: { color: COLORS.text.primary, fontSize: 13 },
+  infoText: { color: c.text.primary, fontSize: 13 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   chip: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
-  chipOk: { borderColor: COLORS.states.success },
-  chipWarn: { borderColor: COLORS.states.warning },
-  chipText: { fontSize: 12, color: COLORS.text.primary, fontWeight: '600' },
+  chipOk: { borderColor: c.states.success },
+  chipWarn: { borderColor: c.states.warning },
+  chipText: { fontSize: 12, color: c.text.primary, fontWeight: '600' },
   warnBox: {
-    backgroundColor: '#fef3c7',
+    backgroundColor: c.states.warning + '20',
     borderRadius: 10,
     padding: 12,
     marginBottom: 12,
   },
-  warnText: { color: '#92400e', fontSize: 13 },
+  warnText: { color: c.states.warning, fontSize: 13 },
   okBox: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: c.states.success + '20',
     borderRadius: 10,
     padding: 12,
     marginBottom: 12,
   },
-  okText: { color: '#065f46', fontSize: 13, fontWeight: '600' },
+  okText: { color: c.states.success, fontSize: 13, fontWeight: '600' },
   couponBtn: { marginTop: 8 },
-  couponBtnText: { color: COLORS.secondary.main, fontWeight: '700' },
+  couponBtnText: { color: c.secondary.main, fontWeight: '700' },
   analyticsCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   formCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   subSection: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 12,
     marginBottom: 8,
   },
-  muted: { color: COLORS.text.secondary, fontSize: 13, marginBottom: 10 },
+  muted: { color: c.text.secondary, fontSize: 13, marginBottom: 10 },
   periodRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   periodBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
-  periodBtnActive: { backgroundColor: COLORS.secondary.main },
-  periodBtnText: { color: COLORS.text.primary, fontWeight: '600', fontSize: 13 },
+  periodBtnActive: { backgroundColor: c.secondary.main },
+  periodBtnText: { color: c.text.primary, fontWeight: '600', fontSize: 13 },
   monthChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginRight: 8,
   },
-  monthChipActive: { backgroundColor: COLORS.secondary.light },
-  monthChipText: { fontSize: 12, color: COLORS.text.primary },
+  monthChipActive: { backgroundColor: c.secondary.light },
+  monthChipText: { fontSize: 12, color: c.text.primary },
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -841,12 +849,12 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: '48%',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 10,
     padding: 10,
   },
-  metricLabel: { fontSize: 11, color: COLORS.text.secondary },
-  metricValue: { fontSize: 16, fontWeight: '700', color: COLORS.text.primary, marginTop: 4 },
+  metricLabel: { fontSize: 11, color: c.text.secondary },
+  metricValue: { fontSize: 16, fontWeight: '700', color: c.text.primary, marginTop: 4 },
   barsWrap: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -857,24 +865,24 @@ const styles = StyleSheet.create({
   },
   barCol: { alignItems: 'center', width: 44 },
   barPair: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 84 },
-  barUses: { width: 12, backgroundColor: COLORS.secondary.main, borderRadius: 3 },
-  barEarned: { width: 12, backgroundColor: COLORS.states.success, borderRadius: 3 },
-  barLabel: { fontSize: 9, color: COLORS.text.tertiary, marginTop: 4, maxWidth: 44 },
+  barUses: { width: 12, backgroundColor: c.secondary.main, borderRadius: 3 },
+  barEarned: { width: 12, backgroundColor: c.states.success, borderRadius: 3 },
+  barLabel: { fontSize: 9, color: c.text.tertiary, marginTop: 4, maxWidth: 44 },
   barLegend: { width: '100%', flexDirection: 'row', gap: 12, marginTop: 8 },
-  barLegendItem: { fontSize: 11, color: COLORS.secondary.main },
+  barLegendItem: { fontSize: 11, color: c.secondary.main },
   useRow: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
-  useTitle: { fontWeight: '600', color: COLORS.text.primary },
+  useTitle: { fontWeight: '600', color: c.text.primary },
   formHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   addBtn: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -885,7 +893,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   platformHeader: {
     flexDirection: 'row',
@@ -893,35 +901,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  platformTitle: { fontWeight: '700', color: COLORS.text.primary },
+  platformTitle: { fontWeight: '700', color: c.text.primary },
   fieldLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 8,
     marginBottom: 4,
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.background.paper,
+    color: c.text.primary,
+    backgroundColor: c.background.paper,
   },
   notes: { minHeight: 72, textAlignVertical: 'top' },
   platformChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginRight: 6,
   },
-  platformChipActive: { backgroundColor: COLORS.secondary.main },
-  platformChipText: { fontSize: 12, color: COLORS.text.primary, fontWeight: '600' },
+  platformChipActive: { backgroundColor: c.secondary.main },
+  platformChipText: { fontSize: 12, color: c.text.primary, fontWeight: '600' },
   uploadBtn: {
     marginTop: 12,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
@@ -931,7 +939,7 @@ const styles = StyleSheet.create({
   previewHint: {
     textAlign: 'center',
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
   },
   previewRow: {
@@ -947,7 +955,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   previewThumb: { width: '100%', height: '100%' },
   previewRemove: {
@@ -985,7 +993,7 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: 16,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',

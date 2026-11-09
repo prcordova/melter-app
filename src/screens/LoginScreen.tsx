@@ -17,6 +17,9 @@ import { Input } from '../components/Input';
 import { AxiosError } from 'axios';
 import { showToast } from '../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
 import {
   isBiometricLoginSupported,
   hasBiometricLoginConfigured,
@@ -25,6 +28,8 @@ import {
 } from '../services/biometricLogin';
 
 export function LoginScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const { login, confirmCancelDeletionLogin } = useAuth();
   const navigation = useNavigation();
   const [formData, setFormData] = useState({
@@ -360,7 +365,7 @@ export function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
@@ -504,19 +509,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#e9d5ff',
-    backgroundColor: '#faf5ff',
-  },
-  bioQuickBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#a21caf',
-  },
-  btnMuted: {
-    opacity: 0.6,
-  },
-});
-
+ 

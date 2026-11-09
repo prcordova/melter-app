@@ -8,13 +8,16 @@ import {
   Pressable,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 type Props = {
   text: string;
 };
 
 export function SellerVerificationFieldHelp({ text }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [open, setOpen] = useState(false);
 
   return (
@@ -26,7 +29,7 @@ export function SellerVerificationFieldHelp({ text }: Props) {
         accessibilityLabel="Ver dicas para este envio"
         style={styles.btn}
       >
-        <Ionicons name="help-circle-outline" size={16} color={COLORS.text.secondary} />
+        <Ionicons name="help-circle-outline" size={16} color={colors.text.secondary} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -40,7 +43,7 @@ export function SellerVerificationFieldHelp({ text }: Props) {
                 accessibilityRole="button"
                 accessibilityLabel="Fechar"
               >
-                <Ionicons name="close" size={20} color={COLORS.text.primary} />
+                <Ionicons name="close" size={20} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
             <Text style={styles.body}>{text}</Text>
@@ -51,13 +54,13 @@ export function SellerVerificationFieldHelp({ text }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   btn: {
     padding: 2,
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -65,7 +68,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 340,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 14,
   },
@@ -78,11 +81,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   body: {
     fontSize: 13,
     lineHeight: 19,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });

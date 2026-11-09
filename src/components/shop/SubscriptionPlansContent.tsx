@@ -11,7 +11,8 @@ import {
   Switch,
   useWindowDimensions,
 } from 'react-native';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { subscriptionPlansApi } from '../../services/api';
@@ -48,6 +49,8 @@ interface SubscriptionPlansContentProps {
 }
 
 export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlansContentProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { width: windowWidth } = useWindowDimensions();
   const isNarrowPlansHeader = windowWidth < 600;
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -154,7 +157,7 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
   if (!hasAccess) {
     return (
       <View style={styles.noAccessContainer}>
-        <Ionicons name="card-outline" size={64} color={COLORS.text.secondary} />
+        <Ionicons name="card-outline" size={64} color={colors.text.secondary} />
         <Text style={styles.noAccessTitle}>Assinaturas indisponíveis</Text>
         <Text style={styles.noAccessText}>
           Seu plano atual da plataforma não permite criar assinaturas na loja.
@@ -220,7 +223,7 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
 
       {(!canCreatePlan || !canCreateActivePlan) && (
         <View style={styles.warningBox}>
-          <Ionicons name="warning-outline" size={20} color={COLORS.states.warning} />
+          <Ionicons name="warning-outline" size={20} color={colors.states.warning} />
           <Text style={styles.warningText}>
             Você atingiu o limite de {maxSubscriptionPlans} plano(s) do seu plano atual. Faça upgrade ou remova um plano ativo.
           </Text>
@@ -229,12 +232,12 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondary.main} />
+          <ActivityIndicator size="large" color={colors.secondary.main} />
           <Text style={styles.loadingText}>Carregando planos...</Text>
         </View>
       ) : plans.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="card-outline" size={48} color={COLORS.text.secondary} />
+          <Ionicons name="card-outline" size={48} color={colors.text.secondary} />
           <Text style={styles.emptyText}>Você ainda não criou nenhum plano.</Text>
           <Text style={styles.emptySubtext}>Clique em "Criar" para começar.</Text>
         </View>
@@ -266,7 +269,7 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
                     onPress={() => handleEdit(plan)}
                     disabled={deleteConfirmPlan === plan._id}
                   >
-                    <Ionicons name="pencil" size={20} color={COLORS.primary.main} />
+                    <Ionicons name="pencil" size={20} color={colors.primary.main} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.actionButton}
@@ -274,9 +277,9 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
                     disabled={deleteConfirmPlan === plan._id}
                   >
                     {deleteConfirmPlan === plan._id ? (
-                      <ActivityIndicator size="small" color={COLORS.states.error} />
+                      <ActivityIndicator size="small" color={colors.states.error} />
                     ) : (
-                      <Ionicons name="trash-outline" size={20} color={COLORS.states.error} />
+                      <Ionicons name="trash-outline" size={20} color={colors.states.error} />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -289,29 +292,29 @@ export function SubscriptionPlansContent({ userPlan = 'FREE' }: SubscriptionPlan
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   infoBox: {
     margin: 16,
     marginBottom: 0,
     padding: 14,
-    backgroundColor: COLORS.secondary.main + '18',
+    backgroundColor: c.secondary.main + '18',
     borderRadius: 10,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.secondary.main,
+    borderLeftColor: c.secondary.main,
     gap: 6,
   },
   infoTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   infoText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 19,
   },
   header: {
@@ -319,9 +322,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.tertiary,
+    borderBottomColor: c.background.tertiary,
     gap: 8,
   },
   headerNarrow: {
@@ -332,7 +335,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flexShrink: 1,
   },
   titleNarrow: {
@@ -342,7 +345,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -354,7 +357,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   createButtonDisabled: {
-    backgroundColor: COLORS.text.tertiary,
+    backgroundColor: c.text.tertiary,
     opacity: 0.5,
   },
   createButtonText: {
@@ -371,15 +374,15 @@ const styles = StyleSheet.create({
     gap: 8,
     margin: 16,
     padding: 12,
-    backgroundColor: COLORS.states.warning + '20',
+    backgroundColor: c.states.warning + '20',
     borderRadius: 8,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.states.warning,
+    borderLeftColor: c.states.warning,
   },
   warningText: {
     flex: 1,
     fontSize: 12,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -390,7 +393,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -401,12 +404,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   noAccessContainer: {
@@ -418,12 +421,12 @@ const styles = StyleSheet.create({
   noAccessTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
   },
   noAccessText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -432,11 +435,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   planCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.background.tertiary,
+    borderColor: c.background.tertiary,
   },
   planHeader: {
     flexDirection: 'row',
@@ -456,7 +459,7 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -464,19 +467,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusBadgeActive: {
-    backgroundColor: COLORS.states.success + '20',
+    backgroundColor: c.states.success + '20',
   },
   statusBadgeInactive: {
-    backgroundColor: COLORS.text.tertiary + '20',
+    backgroundColor: c.text.tertiary + '20',
   },
   statusBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   planDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
     lineHeight: 20,
   },
@@ -488,11 +491,11 @@ const styles = StyleSheet.create({
   planPrice: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   planInterval: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   planActions: {
     flexDirection: 'row',

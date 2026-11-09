@@ -14,7 +14,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackButton } from '../../components/BackButton';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
+import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { useAuth } from '../../contexts/AuthContext';
 import { userApi } from '../../services/api';
 import { showToast } from '../../components/CustomToast';
@@ -27,6 +29,8 @@ import {
 } from '../../services/biometricLogin';
 
 export function SecurityScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { user, refreshUser } = useAuth();
 
@@ -204,6 +208,7 @@ export function SecurityScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       <View style={styles.header}>
         <BackButton title="Configurações" />
         <View style={styles.headerContent}>
@@ -218,19 +223,19 @@ export function SecurityScreen() {
         {/* Alertas globais */}
         {error && (
           <View style={styles.alertError}>
-            <Ionicons name="alert-circle" size={20} color={COLORS.states.error} />
+            <Ionicons name="alert-circle" size={20} color={colors.states.error} />
             <Text style={styles.alertText}>{error}</Text>
             <TouchableOpacity onPress={() => setError(null)}>
-              <Ionicons name="close" size={20} color={COLORS.states.error} />
+              <Ionicons name="close" size={20} color={colors.states.error} />
             </TouchableOpacity>
           </View>
         )}
         {success && (
           <View style={styles.alertSuccess}>
-            <Ionicons name="checkmark-circle" size={20} color={COLORS.states.success} />
+            <Ionicons name="checkmark-circle" size={20} color={colors.states.success} />
             <Text style={styles.alertText}>{success}</Text>
             <TouchableOpacity onPress={() => setSuccess(null)}>
-              <Ionicons name="close" size={20} color={COLORS.states.success} />
+              <Ionicons name="close" size={20} color={colors.states.success} />
             </TouchableOpacity>
           </View>
         )}
@@ -280,7 +285,7 @@ export function SecurityScreen() {
                 <TextInput
                   style={styles.passwordInput}
                   placeholder="Digite sua senha atual"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
                   secureTextEntry={!showCurrentPassword}
@@ -292,7 +297,7 @@ export function SecurityScreen() {
                   <Ionicons
                     name={showCurrentPassword ? 'eye-off' : 'eye'}
                     size={20}
-                    color={COLORS.text.secondary}
+                    color={colors.text.secondary}
                   />
                 </TouchableOpacity>
               </View>
@@ -305,7 +310,7 @@ export function SecurityScreen() {
                 <TextInput
                   style={styles.passwordInput}
                   placeholder="Digite sua nova senha"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   value={newPassword}
                   onChangeText={setNewPassword}
                   secureTextEntry={!showNewPassword}
@@ -317,7 +322,7 @@ export function SecurityScreen() {
                   <Ionicons
                     name={showNewPassword ? 'eye-off' : 'eye'}
                     size={20}
-                    color={COLORS.text.secondary}
+                    color={colors.text.secondary}
                   />
                 </TouchableOpacity>
               </View>
@@ -334,7 +339,7 @@ export function SecurityScreen() {
                     confirmPassword !== '' && confirmPassword !== newPassword && styles.inputError,
                   ]}
                   placeholder="Confirme sua nova senha"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
@@ -346,7 +351,7 @@ export function SecurityScreen() {
                   <Ionicons
                     name={showConfirmPassword ? 'eye-off' : 'eye'}
                     size={20}
-                    color={COLORS.text.secondary}
+                    color={colors.text.secondary}
                   />
                 </TouchableOpacity>
               </View>
@@ -362,7 +367,7 @@ export function SecurityScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="000000"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   value={twoFactorCode}
                   onChangeText={(text) => setTwoFactorCode(text.replace(/\D/g, ''))}
                   keyboardType="number-pad"
@@ -376,7 +381,7 @@ export function SecurityScreen() {
 
             {/* Toggle Logout All Devices */}
             <View style={styles.toggleContainer}>
-              <Ionicons name="phone-portrait-outline" size={20} color={COLORS.text.secondary} />
+              <Ionicons name="phone-portrait-outline" size={20} color={colors.text.secondary} />
               <View style={styles.toggleContent}>
                 <Text style={styles.toggleLabel}>Desconectar todos os dispositivos</Text>
                 <Text style={styles.toggleDescription}>
@@ -386,7 +391,7 @@ export function SecurityScreen() {
               <Switch
                 value={logoutAllDevices}
                 onValueChange={setLogoutAllDevices}
-                trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+                trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
                 thumbColor="#ffffff"
               />
             </View>
@@ -416,7 +421,7 @@ export function SecurityScreen() {
                   <Ionicons
                     name={twoFAEnabled ? 'checkmark-circle' : 'warning'}
                     size={14}
-                    color={twoFAEnabled ? COLORS.states.success : COLORS.states.warning}
+                    color={twoFAEnabled ? colors.states.success : colors.states.warning}
                   />
                   <Text style={[styles.chipText, twoFAEnabled && styles.chipTextSuccess]}>
                     {twoFAEnabled ? 'Ativo' : 'Inativo'}
@@ -434,7 +439,7 @@ export function SecurityScreen() {
 
           {twoFAEnabled ? (
             <View style={styles.alertSuccess}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.states.success} />
+              <Ionicons name="checkmark-circle" size={20} color={colors.states.success} />
               <Text style={styles.alertText}>2FA está ativado na sua conta</Text>
             </View>
           ) : (
@@ -470,8 +475,8 @@ export function SecurityScreen() {
                     size={14}
                     color={
                       user?.verifiedBadge?.isVerified
-                        ? COLORS.states.success
-                        : COLORS.states.warning
+                        ? colors.states.success
+                        : colors.states.warning
                     }
                   />
                   <Text style={[
@@ -493,7 +498,7 @@ export function SecurityScreen() {
 
           {user?.verifiedBadge?.isVerified ? (
             <View style={styles.alertSuccess}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.states.success} />
+              <Ionicons name="checkmark-circle" size={20} color={colors.states.success} />
               <Text style={styles.alertText}>Sua conta está verificada</Text>
             </View>
           ) : (
@@ -520,11 +525,11 @@ export function SecurityScreen() {
         <View style={[styles.modalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           <View style={styles.modalHeader}>
             <View style={styles.modalHeaderLeft}>
-              <Ionicons name="shield-checkmark" size={24} color={COLORS.secondary.main} />
+              <Ionicons name="shield-checkmark" size={24} color={colors.secondary.main} />
               <Text style={styles.modalTitle}>Configurar 2FA</Text>
             </View>
             <TouchableOpacity onPress={handleClose2FADialog}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -532,11 +537,11 @@ export function SecurityScreen() {
             {backupCodes.length > 0 ? (
               <View>
                 <View style={styles.alertSuccess}>
-                  <Ionicons name="checkmark-circle" size={20} color={COLORS.states.success} />
+                  <Ionicons name="checkmark-circle" size={20} color={colors.states.success} />
                   <Text style={styles.alertText}>✅ 2FA ativado com sucesso!</Text>
                 </View>
                 <View style={styles.alertWarning}>
-                  <Ionicons name="warning" size={20} color={COLORS.states.warning} />
+                  <Ionicons name="warning" size={20} color={colors.states.warning} />
                   <Text style={styles.alertText}>
                     ⚠️ Guarde estes códigos de backup em local seguro. Você precisará deles se perder acesso ao seu autenticador.
                   </Text>
@@ -565,7 +570,7 @@ export function SecurityScreen() {
 
                 {twoFASecret && (
                   <View style={styles.alertInfo}>
-                    <Ionicons name="information-circle" size={20} color={COLORS.states.info} />
+                    <Ionicons name="information-circle" size={20} color={colors.states.info} />
                     <Text style={styles.alertText}>
                       Ou digite manualmente: <Text style={styles.secretText}>{twoFASecret}</Text>
                     </Text>
@@ -577,7 +582,7 @@ export function SecurityScreen() {
                   <TextInput
                     style={[styles.input, styles.codeInput]}
                     placeholder="000000"
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                     value={setupCode}
                     onChangeText={(text) => setSetupCode(text.replace(/\D/g, ''))}
                     keyboardType="number-pad"
@@ -613,15 +618,15 @@ export function SecurityScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     paddingBottom: 12,
   },
   headerContent: {
@@ -631,7 +636,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   scrollContent: {
     padding: 16,
@@ -640,9 +645,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.states.error + '20',
+    backgroundColor: c.states.error + '20',
     borderWidth: 1,
-    borderColor: COLORS.states.error + '40',
+    borderColor: c.states.error + '40',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -651,9 +656,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.states.success + '20',
+    backgroundColor: c.states.success + '20',
     borderWidth: 1,
-    borderColor: COLORS.states.success + '40',
+    borderColor: c.states.success + '40',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -662,9 +667,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.states.warning + '20',
+    backgroundColor: c.states.warning + '20',
     borderWidth: 1,
-    borderColor: COLORS.states.warning + '40',
+    borderColor: c.states.warning + '40',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -673,9 +678,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.states.info + '20',
+    backgroundColor: c.states.info + '20',
     borderWidth: 1,
-    borderColor: COLORS.states.info + '40',
+    borderColor: c.states.info + '40',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -683,15 +688,15 @@ const styles = StyleSheet.create({
   alertText: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   section: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -703,12 +708,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconContainerSuccess: {
-    backgroundColor: COLORS.states.success,
+    backgroundColor: c.states.success,
   },
   sectionHeaderText: {
     flex: 1,
@@ -716,12 +721,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   chipContainer: {
     marginTop: 4,
@@ -734,30 +739,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: COLORS.states.warning + '20',
+    backgroundColor: c.states.warning + '20',
     borderWidth: 1,
-    borderColor: COLORS.states.warning + '40',
+    borderColor: c.states.warning + '40',
   },
   chipSuccess: {
-    backgroundColor: COLORS.states.success + '20',
-    borderColor: COLORS.states.success + '40',
+    backgroundColor: c.states.success + '20',
+    borderColor: c.states.success + '40',
   },
   chipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.states.warning,
+    color: c.states.warning,
   },
   chipTextSuccess: {
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.border.light,
     marginVertical: 16,
   },
   sectionDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
     lineHeight: 20,
   },
@@ -770,38 +775,38 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   passwordInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   passwordInput: {
     flex: 1,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   eyeButton: {
     padding: 12,
   },
   input: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   inputError: {
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
   },
   codeInput: {
     fontSize: 24,
@@ -810,17 +815,17 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   errorText: {
     fontSize: 12,
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   toggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     padding: 16,
     borderRadius: 8,
   },
@@ -830,12 +835,12 @@ const styles = StyleSheet.create({
   toggleLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   toggleDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   saveButton: {
     marginTop: 8,
@@ -848,7 +853,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -856,8 +861,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
-    backgroundColor: COLORS.background.paper,
+    borderBottomColor: c.border.light,
+    backgroundColor: c.background.paper,
   },
   modalHeaderLeft: {
     flexDirection: 'row',
@@ -867,14 +872,14 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   modalContent: {
     padding: 16,
   },
   modalDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -888,7 +893,7 @@ const styles = StyleSheet.create({
   secretText: {
     fontFamily: 'monospace',
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   verify2FAButton: {
     marginTop: 16,
@@ -897,7 +902,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     padding: 16,
     borderRadius: 8,
     marginTop: 16,
@@ -905,35 +910,35 @@ const styles = StyleSheet.create({
   backupCodeItem: {
     width: '48%',
     padding: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   backupCodeText: {
     fontSize: 14,
     fontFamily: 'monospace',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
   },
   modalFooter: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
-    backgroundColor: COLORS.background.paper,
+    borderTopColor: c.border.light,
+    backgroundColor: c.background.paper,
   },
   modalCloseButton: {
     width: '100%',
   },
   dangerOutlineBtn: {
     borderWidth: 1.5,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
   dangerOutlineBtnText: {
-    color: COLORS.states.error,
+    color: c.states.error,
     fontSize: 15,
     fontWeight: '600',
   },

@@ -9,7 +9,8 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { shopCommunityApi } from '../../services/api';
 import { showToast } from '../CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -60,6 +61,8 @@ interface ProductLikes {
 }
 
 export function ShopCommunityContent() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [comments, setComments] = useState<Comment[]>([]);
   const [likesByProduct, setLikesByProduct] = useState<ProductLikes[]>([]);
   const [loading, setLoading] = useState(false);
@@ -208,10 +211,10 @@ export function ShopCommunityContent() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'APPROVED': return COLORS.states.success;
-      case 'PENDING': return COLORS.states.warning;
-      case 'REJECTED': return COLORS.states.error;
-      default: return COLORS.text.secondary;
+      case 'APPROVED': return colors.states.success;
+      case 'PENDING': return colors.states.warning;
+      case 'REJECTED': return colors.states.error;
+      default: return colors.text.secondary;
     }
   };
 
@@ -245,17 +248,17 @@ export function ShopCommunityContent() {
       {/* Estatísticas */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <Ionicons name="chatbubbles-outline" size={24} color={COLORS.secondary.main} />
+          <Ionicons name="chatbubbles-outline" size={24} color={colors.secondary.main} />
           <Text style={styles.statValue}>{pendingCount}</Text>
           <Text style={styles.statLabel}>Pendentes</Text>
         </View>
         <View style={styles.statCard}>
-          <Ionicons name="checkmark-circle-outline" size={24} color={COLORS.states.success} />
+          <Ionicons name="checkmark-circle-outline" size={24} color={colors.states.success} />
           <Text style={styles.statValue}>{approvedCount}</Text>
           <Text style={styles.statLabel}>Aprovados</Text>
         </View>
         <View style={styles.statCard}>
-          <Ionicons name="heart-outline" size={24} color={COLORS.states.error} />
+          <Ionicons name="heart-outline" size={24} color={colors.states.error} />
           <Text style={styles.statValue}>{totalLikes}</Text>
           <Text style={styles.statLabel}>Total Likes</Text>
         </View>
@@ -286,12 +289,12 @@ export function ShopCommunityContent() {
 
         {commentsLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.secondary.main} />
+            <ActivityIndicator size="large" color={colors.secondary.main} />
             <Text style={styles.loadingText}>Carregando comentários...</Text>
           </View>
         ) : sortedComments.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubbles-outline" size={48} color={COLORS.text.secondary} />
+            <Ionicons name="chatbubbles-outline" size={48} color={colors.text.secondary} />
             <Text style={styles.emptyText}>Nenhum comentário encontrado nesta categoria.</Text>
           </View>
         ) : (
@@ -318,7 +321,7 @@ export function ShopCommunityContent() {
                         </View>
                         {comment.videoTimestamp && (
                           <View style={styles.timestampBadge}>
-                            <Ionicons name="videocam-outline" size={12} color={COLORS.text.secondary} />
+                            <Ionicons name="videocam-outline" size={12} color={colors.text.secondary} />
                             <Text style={styles.timestampText}>{formatTimestamp(comment.videoTimestamp)}</Text>
                           </View>
                         )}
@@ -333,7 +336,7 @@ export function ShopCommunityContent() {
                         setDetailOpen(true);
                       }}
                     >
-                      <Ionicons name="eye-outline" size={20} color={COLORS.text.secondary} />
+                      <Ionicons name="eye-outline" size={20} color={colors.text.secondary} />
                     </TouchableOpacity>
                     {comment.status === 'PENDING' && (
                       <>
@@ -342,14 +345,14 @@ export function ShopCommunityContent() {
                           onPress={() => handleApprove(comment._id)}
                           disabled={actionLoading}
                         >
-                          <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.states.success} />
+                          <Ionicons name="checkmark-circle-outline" size={20} color={colors.states.success} />
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.actionButton}
                           onPress={() => handleReject(comment._id)}
                           disabled={actionLoading}
                         >
-                          <Ionicons name="close-circle-outline" size={20} color={COLORS.states.error} />
+                          <Ionicons name="close-circle-outline" size={20} color={colors.states.error} />
                         </TouchableOpacity>
                       </>
                     )}
@@ -358,7 +361,7 @@ export function ShopCommunityContent() {
                       onPress={() => handleDelete(comment._id)}
                       disabled={actionLoading}
                     >
-                      <Ionicons name="trash-outline" size={20} color={COLORS.states.error} />
+                      <Ionicons name="trash-outline" size={20} color={colors.states.error} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -384,18 +387,18 @@ export function ShopCommunityContent() {
       {/* Seção de Likes */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="heart-outline" size={24} color={COLORS.secondary.main} />
+          <Ionicons name="heart-outline" size={24} color={colors.secondary.main} />
           <Text style={styles.sectionTitle}>Likes por Produto</Text>
         </View>
 
         {likesLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.secondary.main} />
+            <ActivityIndicator size="large" color={colors.secondary.main} />
             <Text style={styles.loadingText}>Carregando likes...</Text>
           </View>
         ) : likesByProduct.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="heart-outline" size={48} color={COLORS.text.secondary} />
+            <Ionicons name="heart-outline" size={48} color={colors.text.secondary} />
             <Text style={styles.emptyText}>Nenhum like encontrado nos seus produtos.</Text>
           </View>
         ) : (
@@ -459,7 +462,7 @@ export function ShopCommunityContent() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Detalhes do Comentário</Text>
             <TouchableOpacity onPress={() => setDetailOpen(false)}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -531,7 +534,7 @@ export function ShopCommunityContent() {
               onPress={() => selectedComment && handleDelete(selectedComment._id)}
               disabled={actionLoading}
             >
-              <Ionicons name="trash-outline" size={18} color={COLORS.states.error} />
+              <Ionicons name="trash-outline" size={18} color={colors.states.error} />
               <Text style={styles.deleteButtonText}>Remover</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -547,38 +550,38 @@ export function ShopCommunityContent() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   statsContainer: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     marginBottom: 12,
   },
   statCard: {
     flex: 1,
     alignItems: 'center',
     padding: 16,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
     gap: 8,
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   statLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   section: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     padding: 16,
     marginBottom: 12,
   },
@@ -591,7 +594,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 16,
   },
   tabsContainer: {
@@ -599,7 +602,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.tertiary,
+    borderBottomColor: c.background.tertiary,
   },
   tab: {
     paddingVertical: 12,
@@ -608,15 +611,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: COLORS.secondary.main,
+    borderBottomColor: c.secondary.main,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   tabTextActive: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   loadingContainer: {
     paddingVertical: 32,
@@ -625,7 +628,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   emptyContainer: {
     paddingVertical: 48,
@@ -634,7 +637,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   commentsList: {
@@ -642,7 +645,7 @@ const styles = StyleSheet.create({
   },
   commentCard: {
     padding: 16,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
     gap: 12,
   },
@@ -663,7 +666,7 @@ const styles = StyleSheet.create({
   commentUsername: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   commentMeta: {
@@ -686,12 +689,12 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 4,
   },
   timestampText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   commentActions: {
     flexDirection: 'row',
@@ -702,31 +705,31 @@ const styles = StyleSheet.create({
   },
   commentProduct: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   commentFile: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   commentLabel: {
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   commentContent: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 22,
   },
   commentDate: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   likesList: {
     gap: 12,
   },
   productLikeCard: {
     padding: 16,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
   },
   productLikeHeader: {
@@ -738,19 +741,19 @@ const styles = StyleSheet.create({
   productLikeTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
   },
   likesCountBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
   },
   likesCountText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   likesByFileContainer: {
     gap: 12,
@@ -761,7 +764,7 @@ const styles = StyleSheet.create({
   },
   fileLikeName: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
   },
   likesUsersContainer: {
@@ -775,40 +778,40 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
   },
   likeUsername: {
     fontSize: 12,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   moreLikesChip: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
   },
   moreLikesText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.tertiary,
+    borderBottomColor: c.background.tertiary,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   modalContent: {
     flex: 1,
@@ -826,41 +829,41 @@ const styles = StyleSheet.create({
   modalUsername: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   modalDivider: {
     height: 1,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginVertical: 16,
   },
   modalDetail: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 12,
   },
   modalDetailLabel: {
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   modalContentBox: {
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     marginTop: 8,
   },
   modalContentText: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 22,
   },
   modalActions: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopWidth: 1,
-    borderTopColor: COLORS.background.tertiary,
+    borderTopColor: c.background.tertiary,
   },
   modalButton: {
     flex: 1,
@@ -872,17 +875,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   rejectButton: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
   },
   rejectButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   approveButton: {
-    backgroundColor: COLORS.states.success,
+    backgroundColor: c.states.success,
   },
   approveButtonText: {
     fontSize: 14,
@@ -890,22 +893,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   deleteButton: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
   },
   deleteButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   closeButton: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   closeButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
 });
 

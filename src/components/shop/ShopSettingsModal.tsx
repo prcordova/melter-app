@@ -9,7 +9,8 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '../Button';
@@ -57,6 +58,8 @@ export function ShopSettingsModal({
   initialSettings,
   onNavigateToPlans,
 }: ShopSettingsModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [shopEnabled, setShopEnabled] = useState(false);
@@ -186,7 +189,7 @@ export function ShopSettingsModal({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Configurações da Loja</Text>
           <View style={styles.backButton} />
@@ -194,7 +197,7 @@ export function ShopSettingsModal({
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.secondary.main} />
+            <ActivityIndicator size="large" color={colors.secondary.main} />
             <Text style={styles.loadingText}>Carregando configurações...</Text>
           </View>
         ) : (
@@ -205,7 +208,7 @@ export function ShopSettingsModal({
                 <Ionicons
                   name={shopEnabled ? 'storefront' : 'storefront-outline'}
                   size={24}
-                  color={shopEnabled ? COLORS.states.success : COLORS.text.secondary}
+                  color={shopEnabled ? colors.states.success : colors.text.secondary}
                 />
                 <Text style={styles.sectionTitle}>Status da Loja</Text>
               </View>
@@ -223,7 +226,7 @@ export function ShopSettingsModal({
                 <Ionicons
                   name={shopEnabled ? 'checkmark-circle' : 'information-circle'}
                   size={16}
-                  color={shopEnabled ? COLORS.states.success : COLORS.primary.main}
+                  color={shopEnabled ? colors.states.success : colors.primary.main}
                 />
                 <Text style={styles.alertText}>
                   {shopEnabled
@@ -236,7 +239,7 @@ export function ShopSettingsModal({
             {/* Visibilidade */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="eye-outline" size={24} color={COLORS.text.primary} />
+                <Ionicons name="eye-outline" size={24} color={colors.text.primary} />
                 <Text style={styles.sectionTitle}>Visibilidade da Loja</Text>
               </View>
               <Text style={styles.label}>Quem pode ver</Text>
@@ -259,7 +262,7 @@ export function ShopSettingsModal({
             {/* Notificações de Vendas */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="notifications-outline" size={24} color={COLORS.text.primary} />
+                <Ionicons name="notifications-outline" size={24} color={colors.text.primary} />
                 <Text style={styles.sectionTitle}>Notificações de Vendas</Text>
               </View>
               <View style={styles.switchGroup}>
@@ -298,9 +301,9 @@ export function ShopSettingsModal({
                     onNavigateToPlans();
                   }}
                 >
-                  <Ionicons name="card-outline" size={20} color={COLORS.primary.main} />
+                  <Ionicons name="card-outline" size={20} color={colors.primary.main} />
                   <Text style={styles.actionButtonText}>Gerenciar assinaturas da loja</Text>
-                  <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
+                  <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
               </View>
             )}
@@ -324,7 +327,7 @@ export function ShopSettingsModal({
                 }}
                 disabled={saving}
               >
-                <Ionicons name="trash-outline" size={20} color={COLORS.states.error} />
+                <Ionicons name="trash-outline" size={20} color={colors.states.error} />
                 <Text style={styles.dangerButtonText}>Excluir Loja</Text>
               </TouchableOpacity>
               <Text style={styles.dangerDescription}>
@@ -363,19 +366,19 @@ export function ShopSettingsModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.tertiary,
+    borderBottomColor: c.background.tertiary,
   },
   backButton: {
     width: 40,
@@ -386,7 +389,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -396,13 +399,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   content: {
     flex: 1,
   },
   section: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     marginBottom: 12,
     padding: 16,
   },
@@ -415,7 +418,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   switchGroup: {
     flexDirection: 'row',
@@ -430,12 +433,12 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   switchDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 16,
   },
   alertBox: {
@@ -447,37 +450,37 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   alertSuccess: {
-    backgroundColor: COLORS.states.success + '20',
+    backgroundColor: c.states.success + '20',
   },
   alertInfo: {
-    backgroundColor: COLORS.primary.main + '20',
+    backgroundColor: c.primary.main + '20',
   },
   alertText: {
     flex: 1,
     fontSize: 12,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 16,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   pickerContainer: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.background.tertiary,
+    borderColor: c.background.tertiary,
     marginBottom: 8,
     overflow: 'hidden',
   },
   picker: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   helperText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 16,
   },
   actionButton: {
@@ -485,21 +488,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 12,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.background.tertiary,
+    borderColor: c.background.tertiary,
   },
   actionButtonText: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   dangerTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.states.error,
+    color: c.states.error,
     marginBottom: 12,
   },
   dangerButton: {
@@ -507,21 +510,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     padding: 12,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
     marginBottom: 8,
   },
   dangerButtonText: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   dangerDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 16,
   },
   footer: {
@@ -530,9 +533,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopWidth: 1,
-    borderTopColor: COLORS.background.tertiary,
+    borderTopColor: c.background.tertiary,
   },
   footerButton: {
     flex: 0,

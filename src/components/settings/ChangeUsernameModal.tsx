@@ -17,7 +17,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { userApi } from '../../services/api';
 import { showToast } from '../CustomToast';
 import { Button } from '../Button';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { validateUsername } from '../../lib/validation/username';
 
 type Props = {
@@ -40,6 +41,8 @@ type ChangeStatus = {
 };
 
 export function ChangeUsernameModal({ visible, onClose }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const { user, refreshUser } = useAuth();
 
   const [loadingStatus, setLoadingStatus] = useState(false);
@@ -243,10 +246,10 @@ export function ChangeUsernameModal({ visible, onClose }: Props) {
 
   const availabilityColor =
     availability.status === 'available'
-      ? COLORS.states.success
+      ? colors.states.success
       : availability.status === 'invalid' || availability.status === 'unavailable'
-        ? COLORS.states.error
-        : COLORS.text.secondary;
+        ? colors.states.error
+        : colors.text.secondary;
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={submitting ? undefined : onClose}>
@@ -257,13 +260,13 @@ export function ChangeUsernameModal({ visible, onClose }: Props) {
         <View style={styles.header}>
           <Text style={styles.title}>Alterar @</Text>
           <TouchableOpacity onPress={onClose} disabled={submitting}>
-            <Ionicons name="close" size={28} color={COLORS.text.primary} />
+            <Ionicons name="close" size={28} color={colors.text.primary} />
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           {loadingStatus ? (
-            <ActivityIndicator color={COLORS.primary.main} style={{ marginVertical: 24 }} />
+            <ActivityIndicator color={colors.primary.main} style={{ marginVertical: 24 }} />
           ) : (
             <>
               <Text style={styles.info}>
@@ -291,6 +294,7 @@ export function ChangeUsernameModal({ visible, onClose }: Props) {
                 autoCorrect={false}
                 editable={changeStatus?.canChange && !submitting}
                 placeholder="novo_username"
+                placeholderTextColor={colors.text.tertiary}
               />
               {availabilityHint ? (
                 <Text style={[styles.hint, { color: availabilityColor }]}>{availabilityHint}</Text>
@@ -319,6 +323,7 @@ export function ChangeUsernameModal({ visible, onClose }: Props) {
                     maxLength={6}
                     editable={!submitting}
                     placeholder="000000"
+                    placeholderTextColor={colors.text.tertiary}
                   />
 
                   <Text style={[styles.label, { marginTop: 16 }]}>Senha</Text>
@@ -330,12 +335,13 @@ export function ChangeUsernameModal({ visible, onClose }: Props) {
                       secureTextEntry={!showPassword}
                       editable={!submitting}
                       placeholder="Sua senha"
+                      placeholderTextColor={colors.text.tertiary}
                     />
                     <TouchableOpacity onPress={() => setShowPassword((v) => !v)} style={styles.eyeBtn}>
                       <Ionicons
                         name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                         size={22}
-                        color={COLORS.text.secondary}
+                        color={colors.text.secondary}
                       />
                     </TouchableOpacity>
                   </View>
@@ -358,10 +364,10 @@ export function ChangeUsernameModal({ visible, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     paddingTop: 48,
   },
   header: {
@@ -371,12 +377,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   scroll: {
     padding: 16,
@@ -384,41 +390,41 @@ const styles = StyleSheet.create({
   },
   info: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
     marginBottom: 16,
   },
   alert: {
-    backgroundColor: COLORS.states.warning + '25',
+    backgroundColor: c.states.warning + '25',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   alertText: {
     fontSize: 14,
-    color: COLORS.states.warning,
+    color: c.states.warning,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 6,
   },
   currentUser: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
     marginBottom: 16,
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.background.paper,
+    color: c.text.primary,
+    backgroundColor: c.background.paper,
     marginBottom: 4,
   },
   hint: {

@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { AppVideo } from './AppVideo';
 import { Ad } from '../types/feed';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { devWarn } from '../config/dev-logs';
 
 interface AdCardProps {
@@ -26,6 +27,8 @@ const MIN_SKIP_TIME = 5;
 const AUTO_SKIP_TIME = 30;
 
 export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [hasViewed, setHasViewed] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [canSkip, setCanSkip] = useState(false);
@@ -137,7 +140,7 @@ export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps)
             />
             {videoLoading ? (
               <View style={styles.loadingOverlay} pointerEvents="none">
-                <ActivityIndicator color={COLORS.secondary.main} size="large" />
+                <ActivityIndicator color={colors.secondary.main} size="large" />
               </View>
             ) : null}
           </View>
@@ -188,14 +191,14 @@ export function AdCard({ ad, onView, onClick, onSkip, onVideoEnd }: AdCardProps)
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     marginBottom: 20,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: c.border.medium,
     elevation: 4,
   },
   adBadge: {
@@ -218,7 +221,7 @@ const styles = StyleSheet.create({
   mediaContainer: {
     width: '100%',
     height: 280,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -229,7 +232,7 @@ const styles = StyleSheet.create({
   videoContainer: {
     width: '100%',
     height: 280,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -241,28 +244,28 @@ const styles = StyleSheet.create({
   },
   adInfo: {
     padding: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
   },
   adTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: c.text.primary,
     marginBottom: 4,
   },
   adDescription: {
     fontSize: 14,
-    color: '#475569',
+    color: c.text.secondary,
     lineHeight: 20,
     marginBottom: 12,
   },
   ctaContainer: {
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: c.divider,
   },
   adLink: {
     fontSize: 14,
-    color: '#B63385',
+    color: c.secondary.main,
     fontWeight: 'bold',
   },
   skipContainer: {
@@ -295,10 +298,10 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 3,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: c.border.light,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#B63385',
+    backgroundColor: c.secondary.main,
   },
 });

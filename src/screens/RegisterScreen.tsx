@@ -17,12 +17,16 @@ import { showToast } from '../components/CustomToast';
 import { AxiosError } from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Select } from '../components/ui/Select';
 
 export function RegisterScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const navigation = useNavigation();
   const [formData, setFormData] = useState({
     username: '',
@@ -262,6 +266,7 @@ export function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <ThemedStatusBar />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -299,7 +304,7 @@ export function RegisterScreen() {
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity onPress={handlePickAvatar} style={styles.avatarPlaceholder}>
-                    <Ionicons name="camera" size={32} color={COLORS.text.secondary} />
+                    <Ionicons name="camera" size={32} color={colors.text.secondary} />
                     <Text style={styles.avatarPlaceholderText}>Foto de perfil *</Text>
                   </TouchableOpacity>
                 )}
@@ -427,10 +432,10 @@ export function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: c.background.default,
   },
   scrollContent: {
     flexGrow: 1,
@@ -450,7 +455,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   formCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 32,
     shadowColor: '#000',
@@ -462,21 +467,21 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#d946ef',
+    color: c.secondary.light,
     textAlign: 'center',
     marginBottom: 8,
   },
   fieldLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 6,
     marginTop: 4,
   },
   formTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#1e293b',
+    color: c.text.primary,
     textAlign: 'center',
     marginBottom: 32,
   },
@@ -484,7 +489,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     padding: 12,
     borderRadius: 12,
     marginBottom: 24,
@@ -515,22 +520,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderRadius: 20,
     width: 36,
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#ffffff',
+    borderColor: c.background.paper,
   },
   avatarPlaceholder: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 2,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
@@ -538,7 +543,7 @@ const styles = StyleSheet.create({
   avatarPlaceholderText: {
     marginTop: 4,
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   form: {
     gap: 16,
@@ -554,16 +559,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.default,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.default,
   },
   chipActive: {
-    borderColor: COLORS.secondary.main,
-    backgroundColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   chipText: {
     fontSize: 13,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   chipTextActive: {
     color: '#fff',
@@ -580,24 +585,24 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     marginRight: 12,
     marginTop: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: COLORS.secondary.main,
-    borderColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
+    borderColor: c.secondary.main,
   },
   termsText: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
   termsLink: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontWeight: '600',
   },
   submitButton: {
@@ -605,7 +610,7 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     fontSize: 12,
-    color: '#d946ef',
+    color: c.secondary.light,
     fontWeight: '600',
   },
   loginContainer: {
@@ -614,14 +619,14 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+    borderTopColor: c.border.medium,
   },
   loginText: {
-    color: '#64748b',
+    color: c.text.secondary,
     fontSize: 14,
   },
   loginLink: {
-    color: '#d946ef',
+    color: c.secondary.light,
     fontSize: 14,
     fontWeight: 'bold',
   },

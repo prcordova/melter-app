@@ -21,7 +21,8 @@ import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { Comment } from '../types/feed';
 import { getCommentAuthor } from '../utils/comment-author';
 
@@ -37,6 +38,8 @@ interface CommentsModalProps {
 }
 
 export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
@@ -317,7 +320,7 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
               <View style={styles.headerTitleRow}>
                 <Text style={styles.headerTitle}>Comentários</Text>
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                  <Ionicons name="close" size={24} color={colors.text.primary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -330,11 +333,11 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
             >
               {loading ? (
                 <View style={styles.centerContainer}>
-                  <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                  <ActivityIndicator size="large" color={colors.secondary.main} />
                 </View>
               ) : comments.length === 0 ? (
                 <View style={styles.centerContainer}>
-                  <Ionicons name="chatbubbles-outline" size={48} color={COLORS.text.tertiary} />
+                  <Ionicons name="chatbubbles-outline" size={48} color={colors.text.tertiary} />
                   <Text style={styles.emptyText}>Nenhum comentário ainda.</Text>
                   <Text style={styles.emptySubtext}>Seja o primeiro a participar!</Text>
                 </View>
@@ -356,7 +359,7 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
                   setReplyingTo(null);
                   setCommentText('');
                 }}>
-                  <Ionicons name="close-circle" size={20} color={COLORS.text.secondary} />
+                  <Ionicons name="close-circle" size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
               </View>
             )}
@@ -399,7 +402,7 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
                   <TextInput
                     style={styles.input}
                     placeholder={replyingTo ? "Escreva sua resposta..." : "Escreva um comentário..."}
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                     value={commentText}
                     onChangeText={setCommentText}
                     multiline
@@ -426,17 +429,17 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   keyboardAvoid: {
     flex: 1,
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     height: '85%',
@@ -445,12 +448,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   headerIndicator: {
     width: 40,
     height: 4,
-    backgroundColor: COLORS.border.medium,
+    backgroundColor: c.border.medium,
     borderRadius: 2,
     marginBottom: 12,
   },
@@ -465,7 +468,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   closeButton: {
     position: 'absolute',
@@ -486,12 +489,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 14,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     marginTop: 4,
   },
   commentWrapper: {
@@ -515,7 +518,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   avatarPlaceholder: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -529,19 +532,19 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   commentBubble: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 16,
     padding: 12,
   },
   username: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 2,
   },
   text: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 18,
   },
   commentActions: {
@@ -552,7 +555,7 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     marginRight: 16,
   },
   actionButton: {
@@ -561,43 +564,43 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   likedText: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   repliesList: {
     marginLeft: 44,
     marginTop: 4,
     borderLeftWidth: 1,
-    borderLeftColor: COLORS.border.light,
+    borderLeftColor: c.border.light,
     paddingLeft: 12,
   },
   replyingToBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   replyingToText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   inputArea: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -605,7 +608,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     maxHeight: 100,
     paddingTop: Platform.OS === 'ios' ? 8 : 4,
   },
@@ -613,7 +616,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
@@ -623,11 +626,11 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     maxHeight: 150,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   suggestionsList: {
     maxHeight: 150,
@@ -637,14 +640,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   suggestionItemSelected: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   suggestionText: {
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginLeft: 12,
     fontWeight: '500',
   },

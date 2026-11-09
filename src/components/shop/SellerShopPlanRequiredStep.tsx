@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 export type SellerShopPlanGateInfo = {
   canCreateShop: boolean;
@@ -55,6 +56,8 @@ export function SellerShopPlanRequiredStep({
   allowProductCreateWithoutActiveShop = true,
   onGoToProducts,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const planLabel = formatPlanLabel(minPlanToCreateShop);
   const currentLabel = formatPlanLabel(currentPlan);
   const showProductsCta =
@@ -62,7 +65,7 @@ export function SellerShopPlanRequiredStep({
 
   return (
     <View style={styles.card}>
-      <Ionicons name="diamond-outline" size={40} color={COLORS.secondary.main} />
+      <Ionicons name="diamond-outline" size={40} color={colors.secondary.main} />
       <Text style={styles.title}>Plano {planLabel} necessário para abrir loja</Text>
       <Text style={styles.description}>
         Só usuários com o plano {planLabel} ou superior podem ter loja ativa e vender produtos. Seu
@@ -86,7 +89,7 @@ export function SellerShopPlanRequiredStep({
         ) : null}
         {showProductsCta ? (
           <TouchableOpacity style={styles.outlineBtn} onPress={onGoToProducts} activeOpacity={0.8}>
-            <Ionicons name="cube-outline" size={18} color={COLORS.primary.main} />
+            <Ionicons name="cube-outline" size={18} color={colors.primary.main} />
             <Text style={styles.outlineText}>Cadastrar produtos</Text>
           </TouchableOpacity>
         ) : null}
@@ -98,7 +101,7 @@ export function SellerShopPlanRequiredStep({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
     alignItems: 'center',
     gap: 12,
@@ -107,24 +110,24 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     lineHeight: 20,
   },
   body: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
     lineHeight: 20,
   },
   productsHint: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     lineHeight: 19,
   },
@@ -136,13 +139,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   primaryBtn: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 10,
   },
   primaryText: {
-    color: '#fff',
+    color: c.primary.contrastText,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -151,7 +154,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   secondaryText: {
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -160,13 +163,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     borderWidth: 1.5,
-    borderColor: COLORS.primary.main,
+    borderColor: c.primary.main,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
   },
   outlineText: {
-    color: COLORS.primary.main,
+    color: c.primary.main,
     fontWeight: '700',
     fontSize: 14,
   },

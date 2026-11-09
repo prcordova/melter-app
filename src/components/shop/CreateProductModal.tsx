@@ -19,7 +19,8 @@ import * as ImagePicker from 'expo-image-picker';
 // Document picker será implementado com expo-image-picker ou FileSystem
 import { Picker } from '@react-native-picker/picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { useAuth } from '../../contexts/AuthContext';
 import { productsApi, categoriesApi, subscriptionPlansApi } from '../../services/api';
@@ -101,6 +102,8 @@ export function CreateProductModal({
   onSave,
   product,
 }: CreateProductModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
@@ -728,14 +731,14 @@ export function CreateProductModal({
                 {product ? '✏️ Editar Produto' : '➕ Criar Produto'}
               </Text>
               <TouchableOpacity onPress={handleClose} disabled={saving || uploadingFiles}>
-                <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
 
             {/* Loading Overlay */}
             {saving && (
               <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color={COLORS.secondary.main} />
+                <ActivityIndicator size="large" color={colors.secondary.main} />
                 <Text style={styles.loadingText}>Salvando produto...</Text>
                 <View style={styles.progressBarContainer}>
                   <View style={[styles.progressBar, { width: `${overallProgress}%` }]} />
@@ -789,7 +792,7 @@ export function CreateProductModal({
                   }}
                   onBlur={() => markFieldAsTouched('title')}
                   placeholder="Digite o título do produto"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   maxLength={100}
                 />
                 <Text style={styles.helperText}>{formData.title.length}/100</Text>
@@ -813,7 +816,7 @@ export function CreateProductModal({
                   }}
                   onBlur={() => markFieldAsTouched('description')}
                   placeholder="Descreva o produto..."
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
@@ -840,7 +843,7 @@ export function CreateProductModal({
                     }}
                     onBlur={() => markFieldAsTouched('price')}
                     placeholder="10.00"
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                     keyboardType="numeric"
                   />
                   {!loadingFee && (
@@ -888,7 +891,7 @@ export function CreateProductModal({
                     Plano de Assinatura <Text style={styles.required}>*</Text>
                   </Text>
                   {loadingPlans ? (
-                    <ActivityIndicator size="small" color={COLORS.secondary.main} />
+                    <ActivityIndicator size="small" color={colors.secondary.main} />
                   ) : (
                     <View style={styles.pickerContainer}>
                       <Picker
@@ -922,7 +925,7 @@ export function CreateProductModal({
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Categoria (Opcional)</Text>
                 {loadingCategories ? (
-                  <ActivityIndicator size="small" color={COLORS.secondary.main} />
+                  <ActivityIndicator size="small" color={colors.secondary.main} />
                 ) : (
                   <View style={styles.pickerContainer}>
                     <Picker
@@ -951,10 +954,10 @@ export function CreateProductModal({
                   activeOpacity={0.7}
                 >
                   {uploadingImage ? (
-                    <ActivityIndicator size="small" color={COLORS.secondary.main} />
+                    <ActivityIndicator size="small" color={colors.secondary.main} />
                   ) : (
                     <>
-                      <Ionicons name="image-outline" size={20} color={COLORS.secondary.main} />
+                      <Ionicons name="image-outline" size={20} color={colors.secondary.main} />
                       <Text style={styles.imageUploadText}>
                         {formData.coverImage ? 'Trocar Capa' : 'Adicionar Capa'}
                       </Text>
@@ -973,7 +976,7 @@ export function CreateProductModal({
                       style={styles.removeImageButton}
                       onPress={() => setFormData((prev) => ({ ...prev, coverImage: null }))}
                     >
-                      <Ionicons name="close-circle" size={24} color={COLORS.states.error} />
+                      <Ionicons name="close-circle" size={24} color={colors.states.error} />
                     </TouchableOpacity>
                   </View>
                 )}
@@ -1013,7 +1016,7 @@ export function CreateProductModal({
                       }}
                       onBlur={() => markFieldAsTouched('downloadUrl')}
                       placeholder="https://drive.google.com/file/d/..."
-                      placeholderTextColor={COLORS.text.tertiary}
+                      placeholderTextColor={colors.text.tertiary}
                       maxLength={200}
                       keyboardType="url"
                       autoCapitalize="none"
@@ -1037,7 +1040,7 @@ export function CreateProductModal({
                         }));
                       }}
                       placeholder="Curso Completo de Marketing"
-                      placeholderTextColor={COLORS.text.tertiary}
+                      placeholderTextColor={colors.text.tertiary}
                     />
                   </View>
 
@@ -1050,7 +1053,7 @@ export function CreateProductModal({
                       disabled={uploadingFiles}
                       activeOpacity={0.7}
                     >
-                      <Ionicons name="document-attach-outline" size={20} color={COLORS.secondary.main} />
+                      <Ionicons name="document-attach-outline" size={20} color={colors.secondary.main} />
                       <Text style={styles.fileUploadText}>Adicionar Arquivo</Text>
                     </TouchableOpacity>
 
@@ -1063,7 +1066,7 @@ export function CreateProductModal({
                               <Ionicons
                                 name="document-outline"
                                 size={20}
-                                color={COLORS.text.secondary}
+                                color={colors.text.secondary}
                               />
                               <View style={styles.fileDetails}>
                                 <Text style={styles.fileName} numberOfLines={1}>
@@ -1089,7 +1092,7 @@ export function CreateProductModal({
                                 onPress={() => removeFile(index)}
                                 style={styles.removeFileButton}
                               >
-                                <Ionicons name="close-circle" size={20} color={COLORS.states.error} />
+                                <Ionicons name="close-circle" size={20} color={colors.states.error} />
                               </TouchableOpacity>
                             )}
                           </View>
@@ -1107,7 +1110,7 @@ export function CreateProductModal({
                               <Ionicons
                                 name="document-outline"
                                 size={20}
-                                color={COLORS.text.secondary}
+                                color={colors.text.secondary}
                               />
                               <View style={styles.fileDetails}>
                                 <Text style={styles.fileName} numberOfLines={1}>
@@ -1136,10 +1139,10 @@ export function CreateProductModal({
                         }));
                       }}
                       trackColor={{
-                        false: COLORS.border.medium,
-                        true: COLORS.secondary.main,
+                        false: colors.border.medium,
+                        true: colors.secondary.main,
                       }}
-                      thumbColor={formData.digital.allowDownload ? '#ffffff' : COLORS.text.tertiary}
+                      thumbColor={formData.digital.allowDownload ? '#ffffff' : colors.text.tertiary}
                     />
                   </View>
                 </>
@@ -1157,10 +1160,10 @@ export function CreateProductModal({
                     }));
                   }}
                   trackColor={{
-                    false: COLORS.border.medium,
-                    true: COLORS.states.success,
+                    false: colors.border.medium,
+                    true: colors.states.success,
                   }}
-                  thumbColor={formData.status === 'APPROVED' ? '#ffffff' : COLORS.text.tertiary}
+                  thumbColor={formData.status === 'APPROVED' ? '#ffffff' : colors.text.tertiary}
                 />
               </View>
 
@@ -1206,10 +1209,10 @@ export function CreateProductModal({
                           setFormData((prev) => ({ ...prev, showViews: value }));
                         }}
                         trackColor={{
-                          false: COLORS.border.medium,
-                          true: COLORS.secondary.main,
+                          false: colors.border.medium,
+                          true: colors.secondary.main,
                         }}
-                        thumbColor={formData.showViews ? '#ffffff' : COLORS.text.tertiary}
+                        thumbColor={formData.showViews ? '#ffffff' : colors.text.tertiary}
                       />
                     </View>
 
@@ -1221,10 +1224,10 @@ export function CreateProductModal({
                           setFormData((prev) => ({ ...prev, showLikes: value }));
                         }}
                         trackColor={{
-                          false: COLORS.border.medium,
-                          true: COLORS.secondary.main,
+                          false: colors.border.medium,
+                          true: colors.secondary.main,
                         }}
-                        thumbColor={formData.showLikes ? '#ffffff' : COLORS.text.tertiary}
+                        thumbColor={formData.showLikes ? '#ffffff' : colors.text.tertiary}
                       />
                     </View>
                   </View>
@@ -1241,10 +1244,10 @@ export function CreateProductModal({
                       setFormData((prev) => ({ ...prev, isAdultContent: value }));
                     }}
                     trackColor={{
-                      false: COLORS.border.medium,
-                      true: COLORS.states.warning,
+                      false: colors.border.medium,
+                      true: colors.states.warning,
                     }}
-                    thumbColor={formData.isAdultContent ? '#ffffff' : COLORS.text.tertiary}
+                    thumbColor={formData.isAdultContent ? '#ffffff' : colors.text.tertiary}
                   />
                 </View>
                 <Text style={styles.helperText}>
@@ -1262,10 +1265,10 @@ export function CreateProductModal({
                       setFormData((prev) => ({ ...prev, isAiContent: value }));
                     }}
                     trackColor={{
-                      false: COLORS.border.medium,
-                      true: COLORS.secondary.main,
+                      false: colors.border.medium,
+                      true: colors.secondary.main,
                     }}
-                    thumbColor={formData.isAiContent ? '#ffffff' : COLORS.text.tertiary}
+                    thumbColor={formData.isAiContent ? '#ffffff' : colors.text.tertiary}
                   />
                 </View>
                 <Text style={styles.helperText}>
@@ -1307,13 +1310,13 @@ export function CreateProductModal({
                           }));
                         }}
                         trackColor={{
-                          false: COLORS.border.medium,
-                          true: COLORS.secondary.main,
+                          false: colors.border.medium,
+                          true: colors.secondary.main,
                         }}
                         thumbColor={
                           formData.contentValidations[key as keyof typeof formData.contentValidations]
                             ? '#ffffff'
-                            : COLORS.text.tertiary
+                            : colors.text.tertiary
                         }
                       />
                     </View>
@@ -1366,19 +1369,19 @@ export function CreateProductModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   modalContainer: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     width: '100%',
     maxWidth: 600,
@@ -1391,12 +1394,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
   },
   loadingOverlay: {
@@ -1405,7 +1408,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: `${c.background.paper}F2`,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
@@ -1414,23 +1417,23 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   progressBarContainer: {
     width: '60%',
     maxWidth: 300,
     height: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   progressText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   content: {
     flex: 1,
@@ -1440,39 +1443,39 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   errorContainer: {
-    backgroundColor: COLORS.states.error + '20',
+    backgroundColor: c.states.error + '20',
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
   },
   errorTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.error,
+    color: c.states.error,
     marginBottom: 8,
   },
   errorText: {
     fontSize: 12,
-    color: COLORS.states.error,
+    color: c.states.error,
     marginBottom: 4,
   },
   infoBox: {
-    backgroundColor: COLORS.states.info + '20',
+    backgroundColor: c.states.info + '20',
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.states.info,
+    borderColor: c.states.info,
   },
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.info,
+    color: c.states.info,
     marginBottom: 4,
   },
   infoText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   inputGroup: {
     marginBottom: 16,
@@ -1480,38 +1483,38 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   required: {
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   input: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   inputError: {
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
   },
   textArea: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     minHeight: 100,
     textAlignVertical: 'top',
   },
   helperText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
   },
   row: {
@@ -1519,7 +1522,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   feeInfo: {
-    backgroundColor: COLORS.states.success + '20',
+    backgroundColor: c.states.success + '20',
     borderRadius: 8,
     padding: 8,
     marginTop: 8,
@@ -1527,38 +1530,38 @@ const styles = StyleSheet.create({
   feeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   feeSubtext: {
     fontSize: 10,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
   },
   pickerContainer: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     overflow: 'hidden',
   },
   picker: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   imageUploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderStyle: 'dashed',
   },
   imageUploadText: {
     fontSize: 14,
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontWeight: '600',
   },
   imagePreviewContainer: {
@@ -1576,7 +1579,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 20,
     padding: 4,
   },
@@ -1587,23 +1590,23 @@ const styles = StyleSheet.create({
   sectionTitleText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   fileUploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderStyle: 'dashed',
   },
   fileUploadText: {
     fontSize: 14,
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontWeight: '600',
   },
   filesList: {
@@ -1613,18 +1616,18 @@ const styles = StyleSheet.create({
   existingFilesTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
   },
   fileItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   fileInfo: {
     flexDirection: 'row',
@@ -1638,11 +1641,11 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   fileSize: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
   progressContainer: {
@@ -1651,12 +1654,12 @@ const styles = StyleSheet.create({
   },
   progressBarSmall: {
     height: 4,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderRadius: 2,
   },
   progressTextSmall: {
     fontSize: 10,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
   removeFileButton: {
@@ -1668,31 +1671,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   switchLabel: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
     marginRight: 12,
   },
   validationsContainer: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   validationsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   validationsSubtitle: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
   },
   subsection: {
@@ -1701,40 +1704,40 @@ const styles = StyleSheet.create({
   subsectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 12,
   },
   validationSwitch: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   validationSwitchError: {
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
   },
   validationLabel: {
     fontSize: 12,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
     marginRight: 12,
   },
   warningBox: {
-    backgroundColor: COLORS.states.warning + '20',
+    backgroundColor: c.states.warning + '20',
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: COLORS.states.warning,
+    borderColor: c.states.warning,
   },
   warningText: {
     fontSize: 11,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 16,
   },
   warningBold: {
@@ -1745,7 +1748,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   button: {
     flex: 1,
@@ -1755,20 +1758,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   submitButton: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   submitButtonDisabled: {
-    backgroundColor: COLORS.border.medium,
+    backgroundColor: c.border.medium,
     opacity: 0.6,
   },
   submitButtonText: {

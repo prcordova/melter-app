@@ -13,7 +13,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { storiesApi } from '../../services/api';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { Select } from '../ui/Select';
 
@@ -43,6 +44,8 @@ export function ReportStoryModal({
   storyId,
   storyOwnerUsername,
 }: ReportStoryModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState<ReportCategory | ''>('');
   const [description, setDescription] = useState('');
@@ -100,7 +103,7 @@ export function ReportStoryModal({
           <View style={styles.header}>
             <Text style={styles.title}>Denunciar Story</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -110,7 +113,7 @@ export function ReportStoryModal({
             </Text>
 
             <View style={styles.infoBox}>
-              <Ionicons name="information-circle-outline" size={20} color={COLORS.states.info} />
+              <Ionicons name="information-circle-outline" size={20} color={colors.states.info} />
               <Text style={styles.infoText}>
                 Sua denúncia será analisada por nossa equipe. Mantenha a descrição clara e objetiva.
               </Text>
@@ -134,7 +137,7 @@ export function ReportStoryModal({
               <TextInput
                 style={styles.textArea}
                 placeholder="Descreva o que aconteceu..."
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
                 value={description}
                 onChangeText={setDescription}
                 multiline
@@ -176,14 +179,14 @@ export function ReportStoryModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
@@ -195,12 +198,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   closeButton: {
     padding: 4,
@@ -211,13 +214,13 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: COLORS.states.info + '15',
+    backgroundColor: c.states.info + '15',
     padding: 12,
     borderRadius: 8,
     marginBottom: 20,
@@ -226,7 +229,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: COLORS.states.info,
+    color: c.states.info,
     lineHeight: 18,
   },
   fieldContainer: {
@@ -235,25 +238,25 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   selectWrapper: {
     marginBottom: 0,
   },
   textArea: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     minHeight: 100,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   charCount: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     marginTop: 4,
     textAlign: 'right',
   },
@@ -263,27 +266,27 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   submitButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
-    backgroundColor: COLORS.states.error,
+    backgroundColor: c.states.error,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -10,7 +10,8 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ReactionType, REACTIONS } from '../../types/feed';
 import { storiesApi } from '../../services/api';
-import { COLORS } from '../../theme/colors';
+import { useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 
 interface StoryReactionButtonProps {
@@ -36,6 +37,7 @@ export function StoryReactionButton({
   isFriend,
   onReactionAdded,
 }: StoryReactionButtonProps) {
+  const styles = useThemedStyles(createStyles);
   const [showPicker, setShowPicker] = useState(false);
   const [floatingReactions, setFloatingReactions] = useState<Array<{ id: string; emoji: string; x: number; y: number }>>([]);
 
@@ -126,7 +128,7 @@ export function StoryReactionButton({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   reactionButton: {
     width: 44,
     height: 44,
@@ -137,13 +139,13 @@ const styles = StyleSheet.create({
   },
   pickerOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pickerContainer: {
     flexDirection: 'row',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 30,
     padding: 8,
     gap: 8,

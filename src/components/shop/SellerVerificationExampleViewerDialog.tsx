@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { AppVideo } from '../AppVideo';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { getImageUrl } from '../../utils/image';
 import type { SellerVerificationExampleMedia } from '../../config/shops/seller-verification.config';
 
@@ -21,6 +22,7 @@ type Props = {
 };
 
 export function SellerVerificationExampleViewerDialog({ example, onClose }: Props) {
+  const styles = useThemedStyles(createStyles);
   const { width, height } = useWindowDimensions();
   const visible = Boolean(example);
   const mediaUrl = example ? getImageUrl(example.url) ?? example.url : undefined
@@ -79,17 +81,17 @@ export function SellerVerificationExampleViewerDialog({ example, onClose }: Prop
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.72)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 12,
   },
   card: {
     maxWidth: 720,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
@@ -109,7 +111,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingRight: 44,

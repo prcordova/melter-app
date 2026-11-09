@@ -9,7 +9,8 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getImageUrl } from '../utils/image';
 import { resolveProductCoverImageSource } from '../utils/product-cover-display';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 interface Product {
   _id: string;
@@ -86,6 +87,8 @@ export function ShopCard({
   secondaryFooterAction,
   avatarFallbackEnabled = true,
 }: ShopCardProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const imageSource = resolveProductCoverImageSource({
     coverImage: product.coverImage,
     sellerAvatar: product.userId?.avatar,
@@ -206,7 +209,7 @@ export function ShopCard({
         {/* Vendedor */}
         {product.userId && product.userId.username && (
           <View style={styles.seller}>
-            <Ionicons name="person-outline" size={14} color={COLORS.text.secondary} />
+            <Ionicons name="person-outline" size={14} color={colors.text.secondary} />
             <Text style={styles.sellerText}>@{product.userId.username}</Text>
           </View>
         )}
@@ -229,7 +232,7 @@ export function ShopCard({
 
           {product.salesCount !== undefined && product.salesCount > 0 && (
             <View style={styles.sales}>
-              <Ionicons name="cart-outline" size={14} color={COLORS.text.tertiary} />
+              <Ionicons name="cart-outline" size={14} color={colors.text.tertiary} />
               <Text style={styles.salesText}>{product.salesCount} vendas</Text>
             </View>
           )}
@@ -263,7 +266,7 @@ export function ShopCard({
             onPress={secondaryFooterAction.onPress}
             activeOpacity={0.85}
           >
-            <Ionicons name="megaphone-outline" size={14} color={COLORS.secondary.main} />
+            <Ionicons name="megaphone-outline" size={14} color={colors.secondary.main} />
             <Text style={styles.footerActionSecondaryText}>{secondaryFooterAction.label}</Text>
           </TouchableOpacity>
         ) : null}
@@ -273,9 +276,9 @@ export function ShopCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
@@ -291,7 +294,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: '100%',
     height: 180,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     position: 'relative',
   },
   image: {
@@ -304,7 +307,7 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   adultBadge: {
     position: 'absolute',
@@ -323,7 +326,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -364,12 +367,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   description: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
     lineHeight: 18,
   },
@@ -384,7 +387,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   seller: {
     flexDirection: 'row',
@@ -394,7 +397,7 @@ const styles = StyleSheet.create({
   },
   sellerText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '500',
   },
   footer: {
@@ -406,7 +409,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   sales: {
     flexDirection: 'row',
@@ -415,7 +418,7 @@ const styles = StyleSheet.create({
   },
   salesText: {
     fontSize: 11,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   inactiveOverlay: {
     position: 'absolute',
@@ -423,12 +426,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: `${c.background.paper}D9`,
     alignItems: 'center',
     justifyContent: 'center',
   },
   inactiveBadge: {
-    backgroundColor: COLORS.states.error,
+    backgroundColor: c.states.error,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -464,7 +467,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: COLORS.states.warning,
+    backgroundColor: c.states.warning,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -476,7 +479,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: COLORS.states.info,
+    backgroundColor: c.states.info,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -498,11 +501,11 @@ const styles = StyleSheet.create({
   statusChipText: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   subPlanName: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 6,
   },
   footerActionsRow: {
@@ -514,7 +517,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 12,
   },
   footerActionSplit: {
@@ -526,13 +529,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
     paddingVertical: 12,
   },
   footerActionSecondaryText: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontSize: 13,
     fontWeight: '700',
   },

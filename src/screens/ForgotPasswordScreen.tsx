@@ -16,11 +16,14 @@ import { BackButton } from '../components/BackButton';
 import { authApi } from '../services/api';
 import { showToast } from '../components/CustomToast';
 import { AxiosError } from 'axios';
-import { COLORS } from '../theme/colors';
+import { useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
 
 type Step = 'email' | 'token' | 'password';
 
 export function ForgotPasswordScreen() {
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -154,6 +157,7 @@ export function ForgotPasswordScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <ThemedStatusBar />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -316,10 +320,10 @@ export function ForgotPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: c.background.default,
   },
   scrollContent: {
     flexGrow: 1,
@@ -339,7 +343,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   formCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 32,
     shadowColor: '#000',
@@ -351,36 +355,36 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#d946ef',
+    color: c.secondary.light,
     textAlign: 'center',
     marginBottom: 8,
   },
   formTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#1e293b',
+    color: c.text.primary,
     textAlign: 'center',
     marginBottom: 32,
   },
   errorContainer: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: c.states.error + '20',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   errorText: {
-    color: '#dc2626',
+    color: c.states.error,
     fontSize: 14,
     textAlign: 'center',
   },
   successContainer: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: c.states.success + '20',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   successText: {
-    color: '#065f46',
+    color: c.states.success,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -389,7 +393,7 @@ const styles = StyleSheet.create({
   },
   stepDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     marginBottom: 8,
     lineHeight: 20,
@@ -405,7 +409,7 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     fontSize: 12,
-    color: '#d946ef',
+    color: c.secondary.light,
     fontWeight: '600',
   },
   backLink: {
@@ -413,7 +417,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   backLinkText: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -423,14 +427,14 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+    borderTopColor: c.border.medium,
   },
   loginText: {
-    color: '#64748b',
+    color: c.text.secondary,
     fontSize: 14,
   },
   loginLink: {
-    color: '#d946ef',
+    color: c.secondary.light,
     fontSize: 14,
     fontWeight: 'bold',
   },

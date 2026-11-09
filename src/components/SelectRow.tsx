@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable, type ViewInstance } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 interface SelectOption {
   value: string;
@@ -59,6 +60,8 @@ const SIZE_CHEVRON_MAP: Record<SelectRowSize, number> = {
 };
 
 export function SelectRow({ label, value, options, onChange, size = 'full' }: SelectRowProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [open, setOpen] = useState(false);
   const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 180 });
   const triggerRef = React.useRef<ViewInstance>(null);
@@ -109,7 +112,7 @@ export function SelectRow({ label, value, options, onChange, size = 'full' }: Se
           <Ionicons
             name={open ? 'chevron-up' : 'chevron-down'}
             size={chevronSize}
-            color={COLORS.secondary.main}
+            color={colors.secondary.main}
           />
         </TouchableOpacity>
       </View>
@@ -165,7 +168,7 @@ export function SelectRow({ label, value, options, onChange, size = 'full' }: Se
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     width: '100%',
     position: 'relative',
@@ -174,23 +177,23 @@ const styles = StyleSheet.create({
   },
   trigger: {
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     gap: 6,
   },
   triggerText: {
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     flex: 1,
   },
   optionsWrap: {
     position: 'absolute',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 10,
     padding: 6,
     gap: 6,
@@ -203,9 +206,9 @@ const styles = StyleSheet.create({
   },
   option: {
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 10,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     paddingVertical: 10,
     paddingHorizontal: 12,
     alignItems: 'flex-start',
@@ -217,18 +220,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   optionSelected: {
-    borderColor: COLORS.secondary.main,
-    backgroundColor: `${COLORS.secondary.main}14`,
+    borderColor: c.secondary.main,
+    backgroundColor: `${c.secondary.main}14`,
   },
   optionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   optionTextCompact: {
     fontSize: 12,
   },
   optionTextSelected: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
 });

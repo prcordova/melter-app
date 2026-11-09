@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { ShopShareButton } from './ShopShareButton';
 import {
   getSellerGrowthPromoContent,
@@ -40,6 +41,7 @@ function PromoCtaButton({
   variant: 'primary' | 'outline';
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <TouchableOpacity
       style={[styles.cta, variant === 'primary' ? styles.ctaPrimary : styles.ctaOutline]}
@@ -71,6 +73,7 @@ function PromoCtaRow({
   username?: string;
   onAction: (action: SellerGrowthPromoNavigateAction) => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   if (cta.action === 'share_shop' && username) {
     return (
       <View style={styles.shareCtaWrap}>
@@ -107,6 +110,7 @@ function PromoActions({
   isApprovedShop: boolean;
   username?: string;
 }) {
+  const styles = useThemedStyles(createStyles);
   const ctas: Array<{ cta: SellerGrowthPromoCta; variant: 'primary' | 'outline' }> = [];
   if (content.primaryCta) ctas.push({ cta: content.primaryCta, variant: 'primary' });
   if (content.secondaryCta) ctas.push({ cta: content.secondaryCta, variant: 'outline' });
@@ -155,6 +159,8 @@ export function SellerGrowthPromoCard({
   username,
   onAction,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const isApprovedShop = isSellerVerificationApproved(sellerStatus);
 
   const content = useMemo(() => {
@@ -195,7 +201,7 @@ export function SellerGrowthPromoCard({
         <Ionicons
           name="storefront-outline"
           size={variant === 'small' ? 22 : 28}
-          color={COLORS.secondary.main}
+          color={colors.secondary.main}
         />
         <View style={styles.headerText}>
           <Text style={variant === 'large' ? styles.titleLg : styles.title}>{content.title}</Text>
@@ -207,13 +213,13 @@ export function SellerGrowthPromoCard({
       {showShopTips ? (
         <View style={styles.tips}>
           <View style={styles.tipRow}>
-            <Ionicons name="link-outline" size={16} color={COLORS.secondary.main} />
+            <Ionicons name="link-outline" size={16} color={colors.secondary.main} />
             <Text style={styles.tipText}>
               Adicione links no perfil para direcionar sua audiência enquanto a loja é analisada.
             </Text>
           </View>
           <View style={styles.tipRow}>
-            <Ionicons name="people-outline" size={16} color={COLORS.secondary.main} />
+            <Ionicons name="people-outline" size={16} color={colors.secondary.main} />
             <Text style={styles.tipText}>
               Publique no feed e explore novos perfis para construir comunidade.
             </Text>
@@ -249,19 +255,19 @@ function resolvePress(
   onAction(action);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.secondary.main + '55',
-    backgroundColor: COLORS.secondary.main + '14',
+    borderColor: c.secondary.main + '55',
+    backgroundColor: c.secondary.main + '14',
     padding: 16,
     marginBottom: 16,
     gap: 12,
   },
   cardApproved: {
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.tertiary,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.tertiary,
   },
   inlineCtaWrap: {
     alignSelf: 'flex-end',
@@ -280,22 +286,22 @@ const styles = StyleSheet.create({
   titleLg: {
     fontSize: 17,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   description: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 18,
   },
   hint: {
     fontSize: 12,
     fontWeight: '500',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
   tips: {
@@ -309,7 +315,7 @@ const styles = StyleSheet.create({
   tipText: {
     flex: 1,
     fontSize: 13,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 18,
   },
   actions: {
@@ -335,12 +341,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ctaPrimary: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   ctaOutline: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   ctaText: {
     fontSize: 13,
@@ -349,6 +355,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   ctaTextOutline: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
 });

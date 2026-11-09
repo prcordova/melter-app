@@ -5,7 +5,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { PlanLocker } from '../../components/PlanLocker';
 import { ColorPickerField } from '../../components/ColorPickerField';
 import { UsernameGradientText } from '../../components/UsernameGradientText';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import type { UsernameDisplayEffectConfig } from '../../types/username-display-effect';
 import { DEFAULT_USERNAME_DISPLAY_EFFECT } from '../../types/username-display-effect';
 import type { PlanType } from '../../config/plan-features';
@@ -33,6 +34,8 @@ export function ProfileGradientEffectSection({
   previewUsername,
   previewPrefix,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   return (
     <>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -51,7 +54,7 @@ export function ProfileGradientEffectSection({
               );
               setHasChanges(true);
             }}
-            trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+            trackColor={{ false: colors.border.medium, true: colors.primary.main }}
             thumbColor="#ffffff"
           />
         </View>
@@ -71,7 +74,7 @@ export function ProfileGradientEffectSection({
                     setHasChanges(true);
                   }}
                   style={styles.picker}
-                  dropdownIconColor={COLORS.text.secondary}
+                  dropdownIconColor={colors.text.secondary}
                 >
                   <Picker.Item label="Estático" value="static" />
                   <Picker.Item label="Animado" value="animated" />
@@ -131,7 +134,7 @@ export function ProfileGradientEffectSection({
                     setHasChanges(true);
                   }}
                 >
-                  <Ionicons name="remove" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="remove" size={20} color={colors.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.sliderTrack}>
                   <View style={styles.sliderTrackBackground} />
@@ -140,7 +143,7 @@ export function ProfileGradientEffectSection({
                       styles.sliderTrackFill,
                       {
                         width: `${Math.max(0, Math.min(100, effect.glowIntensity))}%`,
-                        backgroundColor: COLORS.primary.main,
+                        backgroundColor: colors.primary.main,
                       },
                     ]}
                   />
@@ -153,7 +156,7 @@ export function ProfileGradientEffectSection({
                     setHasChanges(true);
                   }}
                 >
-                  <Ionicons name="add" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="add" size={20} color={colors.text.primary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -169,7 +172,7 @@ export function ProfileGradientEffectSection({
                     setHasChanges(true);
                   }}
                 >
-                  <Ionicons name="remove" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="remove" size={20} color={colors.text.primary} />
                 </TouchableOpacity>
                 <View style={styles.sliderTrack}>
                   <View style={styles.sliderTrackBackground} />
@@ -178,7 +181,7 @@ export function ProfileGradientEffectSection({
                       styles.sliderTrackFill,
                       {
                         width: `${Math.max(0, Math.min(100, effect.hoverGlowIntensity))}%`,
-                        backgroundColor: COLORS.primary.main,
+                        backgroundColor: colors.primary.main,
                       },
                     ]}
                   />
@@ -191,7 +194,7 @@ export function ProfileGradientEffectSection({
                     setHasChanges(true);
                   }}
                 >
-                  <Ionicons name="add" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="add" size={20} color={colors.text.primary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -204,7 +207,7 @@ export function ProfileGradientEffectSection({
                   setEffect((p) => ({ ...p, applyHover: value }));
                   setHasChanges(true);
                 }}
-                trackColor={{ false: COLORS.border.medium, true: COLORS.primary.main }}
+                trackColor={{ false: colors.border.medium, true: colors.primary.main }}
                 thumbColor="#ffffff"
               />
             </View>
@@ -222,7 +225,7 @@ export function ProfileGradientEffectSection({
                     setHasChanges(true);
                   }}
                   style={styles.picker}
-                  dropdownIconColor={COLORS.text.secondary}
+                  dropdownIconColor={colors.text.secondary}
                 >
                   <Picker.Item label="Gradiente sempre visível" value="always" />
                   <Picker.Item label="Só ao passar o rato (hover)" value="hover_only" />
@@ -247,16 +250,16 @@ export function ProfileGradientEffectSection({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 16,
   },
   helperCaption: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
     lineHeight: 18,
   },
@@ -277,18 +280,18 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   pickerWrapper: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     overflow: 'hidden',
   },
   picker: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   switchRow: {
     flexDirection: 'row',
@@ -298,7 +301,7 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   sliderContainer: {
     marginTop: 8,
@@ -310,9 +313,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -327,7 +330,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: COLORS.border.medium,
+    backgroundColor: c.border.medium,
     borderRadius: 2,
     top: '50%',
     marginTop: -2,

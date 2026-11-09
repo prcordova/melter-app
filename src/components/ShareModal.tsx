@@ -12,7 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { postsApi } from '../services/api';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { Button } from './Button';
 
 interface ShareModalProps {
@@ -25,6 +26,8 @@ interface ShareModalProps {
 type VisibilityType = 'PUBLIC' | 'FOLLOWERS' | 'FRIENDS';
 
 export function ShareModal({ visible, onClose, postId, onShared }: ShareModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [shareComment, setShareComment] = useState('');
   const [visibility, setVisibility] = useState<VisibilityType>('PUBLIC');
@@ -74,7 +77,7 @@ export function ShareModal({ visible, onClose, postId, onShared }: ShareModalPro
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Compartilhar Post</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -85,7 +88,7 @@ export function ShareModal({ visible, onClose, postId, onShared }: ShareModalPro
               <TextInput
                 style={styles.textArea}
                 placeholder="Diga algo sobre este post..."
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
                 value={shareComment}
                 onChangeText={setShareComment}
                 multiline
@@ -113,8 +116,8 @@ export function ShareModal({ visible, onClose, postId, onShared }: ShareModalPro
                     size={24}
                     color={
                       visibility === option.value
-                        ? COLORS.secondary.main
-                        : COLORS.text.secondary
+                        ? colors.secondary.main
+                        : colors.text.secondary
                     }
                   />
                   <Text
@@ -129,7 +132,7 @@ export function ShareModal({ visible, onClose, postId, onShared }: ShareModalPro
                     <Ionicons
                       name="checkmark-circle"
                       size={24}
-                      color={COLORS.secondary.main}
+                      color={colors.secondary.main}
                     />
                   )}
                 </TouchableOpacity>
@@ -152,14 +155,14 @@ export function ShareModal({ visible, onClose, postId, onShared }: ShareModalPro
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '80%',
@@ -176,12 +179,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   closeButton: {
     padding: 4,
@@ -195,23 +198,23 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 12,
   },
   textArea: {
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 8,
     padding: 12,
     minHeight: 100,
     textAlignVertical: 'top',
     fontSize: 14,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.background.tertiary,
+    color: c.text.primary,
+    backgroundColor: c.background.tertiary,
   },
   charCount: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'right',
     marginTop: 4,
   },
@@ -221,24 +224,24 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     marginBottom: 8,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   visibilityOptionActive: {
-    borderColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
     borderWidth: 2,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   visibilityLabel: {
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginLeft: 12,
   },
   visibilityLabelActive: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontWeight: 'bold',
   },
   shareButton: {

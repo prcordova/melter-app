@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 interface ColorPickerFieldProps {
   label: string;
@@ -57,6 +58,8 @@ export function ColorPickerField({
   fieldContainerStyle,
 }: ColorPickerFieldProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [modalVisible, setModalVisible] = useState(false);
   // Garantir que value sempre seja uma string válida
   const safeValue = value || '#000000';
@@ -137,7 +140,7 @@ export function ColorPickerField({
         >
           <View style={[styles.colorPreview, { backgroundColor: safeValue }]} />
           <Text style={styles.colorValue}>{safeValue.toUpperCase()}</Text>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.text.secondary} />
+          <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
         </TouchableOpacity>
       </View>
 
@@ -161,7 +164,7 @@ export function ColorPickerField({
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{label}</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                  <Ionicons name="close" size={24} color={colors.text.primary} />
                 </TouchableOpacity>
               </View>
 
@@ -178,7 +181,7 @@ export function ColorPickerField({
                       value={hexInput}
                       onChangeText={handleHexChange}
                       placeholder="#000000"
-                      placeholderTextColor={COLORS.text.tertiary}
+                      placeholderTextColor={colors.text.tertiary}
                       autoCapitalize="characters"
                       maxLength={7}
                     />
@@ -191,7 +194,7 @@ export function ColorPickerField({
                       value={rgbInput}
                       onChangeText={handleRgbChange}
                       placeholder="0, 0, 0"
-                      placeholderTextColor={COLORS.text.tertiary}
+                      placeholderTextColor={colors.text.tertiary}
                       keyboardType="numeric"
                     />
                   </View>
@@ -232,22 +235,22 @@ export function ColorPickerField({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   fieldContainer: {
     marginBottom: 16,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   colorButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     padding: 12,
     gap: 12,
@@ -257,21 +260,21 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   colorValue: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     width: '100%',
@@ -282,12 +285,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   modalBody: {
     padding: 16,
@@ -298,7 +301,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   inputsRow: {
     flexDirection: 'row',
@@ -314,17 +317,17 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   presetSection: {
     marginTop: 0,
@@ -332,7 +335,7 @@ const styles = StyleSheet.create({
   presetLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 10,
   },
   presetGrid: {
@@ -349,22 +352,22 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   presetColorSelected: {
-    borderColor: COLORS.primary.main,
+    borderColor: c.primary.main,
     borderWidth: 3,
   },
   modalFooter: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   saveButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
   },
   saveButtonText: {
-    color: '#ffffff',
+    color: c.primary.contrastText,
     fontSize: 16,
     fontWeight: '600',
   },

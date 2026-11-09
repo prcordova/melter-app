@@ -26,7 +26,8 @@ import {
   pricingFromPromotionConfig,
 } from '../../lib/shops/marketplace-slider/pricing'
 import { ShopPromotionPackagePicker } from './ShopPromotionPackagePicker'
-import { COLORS } from '../../theme/colors'
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext'
+import type { AppPalette } from '../../theme/palettes'
 
 type ShopPromotionsListProps = {
   refreshKey?: number
@@ -39,20 +40,22 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'Cancelada',
 }
 
-function statusColor(status: string): string {
+function statusColor(status: string, c: AppPalette): string {
   switch (status) {
     case 'ACTIVE':
-      return COLORS.states.success
+      return c.states.success
     case 'SCHEDULED':
-      return COLORS.states.info
+      return c.states.info
     case 'COMPLETED':
-      return COLORS.states.warning
+      return c.states.warning
     default:
-      return COLORS.text.secondary
+      return c.text.secondary
   }
 }
 
 export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) {
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<MyShopMarketplacePromotion[]>([])
@@ -171,7 +174,7 @@ export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={COLORS.secondary.main} />
+        <ActivityIndicator color={colors.secondary.main} />
       </View>
     )
   }
@@ -193,8 +196,8 @@ export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) 
                 <Text style={styles.productTitle} numberOfLines={2}>
                   {row.productTitle}
                 </Text>
-                <View style={[styles.statusBadge, { borderColor: statusColor(row.status) }]}>
-                  <Text style={[styles.statusText, { color: statusColor(row.status) }]}>
+                <View style={[styles.statusBadge, { borderColor: statusColor(row.status, colors) }]}>
+                  <Text style={[styles.statusText, { color: statusColor(row.status, colors) }]}>
                     {STATUS_LABELS[row.status] ?? row.status}
                   </Text>
                 </View>
@@ -268,7 +271,7 @@ export function ShopPromotionsList({ refreshKey = 0 }: ShopPromotionsListProps) 
 
           <View style={styles.costBox}>
             {extendConfigLoading ? (
-              <ActivityIndicator color={COLORS.secondary.main} />
+              <ActivityIndicator color={colors.secondary.main} />
             ) : (
               <>
                 <Text style={styles.costLabel}>Custo estimado</Text>
@@ -323,23 +326,25 @@ function Metric({
   label: string
   value: string
 }) {
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   return (
     <View style={styles.metric}>
-      <Ionicons name={icon} size={14} color={COLORS.text.secondary} />
+      <Ionicons name={icon} size={14} color={colors.text.secondary} />
       <Text style={styles.metricValue}>{value}</Text>
       <Text style={styles.metricLabel}>{label}</Text>
     </View>
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   centered: {
     paddingVertical: 32,
     alignItems: 'center',
   },
   empty: {
     fontSize: 15,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     paddingVertical: 24,
   },
@@ -347,10 +352,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     padding: 14,
     gap: 8,
   },
@@ -360,7 +365,7 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   statusBadge: {
     alignSelf: 'flex-start',
@@ -375,7 +380,7 @@ const styles = StyleSheet.create({
   },
   period: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   metrics: {
     flexDirection: 'row',
@@ -391,11 +396,11 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   metricLabel: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   actions: {
     flexDirection: 'row',
@@ -411,21 +416,21 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   modalHint: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   summaryBox: {
     padding: 12,
     borderRadius: 10,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     gap: 2,
   },
   summaryLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   summarySpaced: {
     marginTop: 8,
@@ -433,31 +438,31 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   summaryHighlight: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   costBox: {
     padding: 12,
     borderRadius: 10,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     gap: 4,
     minHeight: 72,
     justifyContent: 'center',
   },
   costLabel: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   costValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   balance: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   modalActions: {
     flexDirection: 'row',

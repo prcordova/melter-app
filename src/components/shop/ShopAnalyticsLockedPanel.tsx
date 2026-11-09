@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 const BENEFITS = [
   'Painel de crescimento: receita, vendas e assinantes',
@@ -12,12 +13,14 @@ const BENEFITS = [
 ] as const;
 
 export function ShopAnalyticsLockedPanel() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation();
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="analytics-outline" size={22} color={COLORS.secondary.main} />
+        <Ionicons name="analytics-outline" size={22} color={colors.secondary.main} />
         <Text style={styles.title}>Analytics da sua loja</Text>
       </View>
       <Text style={styles.description}>
@@ -26,7 +29,7 @@ export function ShopAnalyticsLockedPanel() {
       </Text>
       {BENEFITS.map((line) => (
         <View key={line} style={styles.benefitRow}>
-          <Ionicons name="checkmark-circle" size={16} color={COLORS.secondary.main} />
+          <Ionicons name="checkmark-circle" size={16} color={colors.secondary.main} />
           <Text style={styles.benefitText}>{line}</Text>
         </View>
       ))}
@@ -40,7 +43,7 @@ export function ShopAnalyticsLockedPanel() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     padding: 16,
     gap: 12,
@@ -53,11 +56,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
   benefitRow: {
@@ -68,11 +71,11 @@ const styles = StyleSheet.create({
   benefitText: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   cta: {
     marginTop: 8,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,

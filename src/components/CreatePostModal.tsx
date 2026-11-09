@@ -19,7 +19,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { Button } from './Button';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { postsApi, linksApi } from '../services/api';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
 import { showToast } from './CustomToast';
@@ -67,6 +68,8 @@ const CATEGORIES = [
 ];
 
 export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }: CreatePostModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -326,7 +329,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{isEditing ? 'Editar Post' : 'Criar Post'}</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={COLORS.text.primary} />
+            <Ionicons name="close" size={24} color={colors.text.primary} />
           </TouchableOpacity>
         </View>
 
@@ -369,7 +372,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
                   ? 'No que você está pensando?'
                   : 'Compartilhe algo...'
               }
-              placeholderTextColor={COLORS.text.tertiary}
+              placeholderTextColor={colors.text.tertiary}
               multiline
               value={content}
               onChangeText={(text) => {
@@ -444,7 +447,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
                 style={styles.removeLinkButton}
                 disabled={loading}
               >
-                <Ionicons name="close-circle" size={22} color={COLORS.text.tertiary} />
+                <Ionicons name="close-circle" size={22} color={colors.text.tertiary} />
               </TouchableOpacity>
             </View>
           ) : null}
@@ -688,10 +691,10 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -706,7 +709,7 @@ const styles = StyleSheet.create({
     maxWidth: 600,
     maxHeight: '95%',
     minHeight: 700,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 20,
     overflow: 'hidden',
     flexDirection: 'column',
@@ -717,9 +720,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   closeButton: {
     padding: 4,
@@ -727,7 +730,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   footer: {
     flexDirection: 'row',
@@ -736,8 +739,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
-    backgroundColor: COLORS.background.paper,
+    borderTopColor: c.border.light,
+    backgroundColor: c.background.paper,
     gap: 8,
     marginTop: 'auto',
   },
@@ -748,11 +751,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   cancelButtonText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '500',
   },
   postButtonContainer: {
@@ -762,7 +765,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   postButtonContainerDisabled: {
     opacity: 0.5,
@@ -791,7 +794,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -801,7 +804,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     marginRight: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   avatarText: {
     fontSize: 20,
@@ -815,34 +818,34 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   visibilityChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: `${COLORS.secondary.main}20`,
+    backgroundColor: `${c.secondary.main}20`,
     marginLeft: 'auto',
   },
   visibilityText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   textareaContainer: {
     minHeight: 150,
     maxHeight: 200,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   textarea: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     minHeight: 130,
     textAlignVertical: 'top',
   },
@@ -854,11 +857,11 @@ const styles = StyleSheet.create({
   },
   charCountText: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   hashtagCount: {
     fontSize: 12,
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontWeight: '600',
   },
   section: {
@@ -881,49 +884,49 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 6,
   },
   picker: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     minHeight: 40,
   },
   pickerRequired: {
-    borderColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
   },
   pickerText: {
     fontSize: 13,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
     marginRight: 4,
   },
   pickerArrow: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   uploadButton: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     minHeight: 40,
   },
   uploadButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   linkPreviewContainer: {
     flexDirection: 'row',
@@ -933,14 +936,14 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.default,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.default,
   },
   linkPreviewImage: {
     width: 48,
     height: 48,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   linkPreviewInfo: {
     flex: 1,
@@ -949,17 +952,17 @@ const styles = StyleSheet.create({
   linkPreviewTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 2,
   },
   linkPreviewDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 2,
   },
   linkPreviewUrl: {
     fontSize: 11,
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   removeLinkButton: {
     padding: 4,
@@ -970,12 +973,12 @@ const styles = StyleSheet.create({
   },
   linkEmptyStateText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
   addLinkButton: {
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
@@ -986,14 +989,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   upgradeNotice: {
-    backgroundColor: `${COLORS.secondary.light}20`,
+    backgroundColor: `${c.secondary.light}20`,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
   },
   upgradeNoticeText: {
     fontSize: 13,
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     textAlign: 'center',
   },
   imagePreviewContainer: {
@@ -1002,7 +1005,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   imagePreviewImage: {
     width: '100%',
@@ -1013,15 +1016,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   imagePreviewText: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   removeImageButton: {
     position: 'absolute',
@@ -1045,11 +1048,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   pickerModalContent: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -1058,23 +1061,23 @@ const styles = StyleSheet.create({
   pickerModalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 16,
   },
   pickerOption: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     marginBottom: 8,
   },
   pickerOptionSelected: {
-    backgroundColor: `${COLORS.secondary.main}20`,
+    backgroundColor: `${c.secondary.main}20`,
     borderWidth: 2,
-    borderColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
   },
   pickerOptionText: {
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
 });
 

@@ -14,7 +14,8 @@ import { PlanLocker } from '../PlanLocker';
 import { ColorPickerField } from '../ColorPickerField';
 import { ProfileGradientEffectSection } from '../../screens/settings/ProfileGradientEffectSection';
 import { shopApi } from '../../services/api';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { getImageUrl } from '../../utils/image';
 import { resolveUserPlanType, type PlanType } from '../../config/plan-features';
@@ -67,6 +68,8 @@ export function ShopAppearanceSettingsSection({
   onChange,
   hideInlineSaveButton = false,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [uploadingBackground, setUploadingBackground] = useState(false);
   const [savingAppearance, setSavingAppearance] = useState(false);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
@@ -210,7 +213,7 @@ export function ShopAppearanceSettingsSection({
         <View style={[styles.inner, busy && styles.innerBusy]}>
           {uploadingBackground ? (
             <View style={styles.uploadOverlay}>
-              <ActivityIndicator size="large" color={COLORS.primary.main} />
+              <ActivityIndicator size="large" color={colors.primary.main} />
             </View>
           ) : null}
 
@@ -225,7 +228,7 @@ export function ShopAppearanceSettingsSection({
               <Image source={{ uri: backgroundPreviewUrl }} style={styles.backgroundPreview} />
             ) : (
               <View style={styles.backgroundPlaceholder}>
-                <Ionicons name="image-outline" size={32} color={COLORS.text.secondary} />
+                <Ionicons name="image-outline" size={32} color={colors.text.secondary} />
                 <Text style={styles.backgroundPlaceholderText}>Toque para escolher imagem</Text>
               </View>
             )}
@@ -260,7 +263,7 @@ export function ShopAppearanceSettingsSection({
                   selectedValue={value.backgroundMode}
                   onValueChange={(mode) => patch({ backgroundMode: mode as 'full' | 'top' })}
                   style={styles.picker}
-                  dropdownIconColor={COLORS.text.secondary}
+                  dropdownIconColor={colors.text.secondary}
                   enabled={!busy}
                 >
                   <Picker.Item label="Página inteira" value="full" />
@@ -287,14 +290,14 @@ export function ShopAppearanceSettingsSection({
               }
               disabled={busy}
             >
-              <Ionicons name="remove" size={20} color={COLORS.text.primary} />
+              <Ionicons name="remove" size={20} color={colors.text.primary} />
             </TouchableOpacity>
             <View style={styles.sliderTrack}>
               <View style={styles.sliderTrackBg} />
               <View
                 style={[
                   styles.sliderTrackFill,
-                  { width: `${overlayValue}%`, backgroundColor: COLORS.primary.main },
+                  { width: `${overlayValue}%`, backgroundColor: colors.primary.main },
                 ]}
               />
             </View>
@@ -308,7 +311,7 @@ export function ShopAppearanceSettingsSection({
               }
               disabled={busy}
             >
-              <Ionicons name="add" size={20} color={COLORS.text.primary} />
+              <Ionicons name="add" size={20} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -345,7 +348,7 @@ export function ShopAppearanceSettingsSection({
               disabled={busy}
             >
               {savingAppearance ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.primary.contrastText} />
               ) : (
                 <Text style={styles.saveBtnText}>Salvar aparência</Text>
               )}
@@ -366,25 +369,25 @@ function readApiError(error: unknown): string | undefined {
   return undefined;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   section: {
     marginTop: 4,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   sectionCaption: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 16,
     marginBottom: 12,
   },
   adultHint: {
     fontSize: 12,
-    color: COLORS.states.warning,
+    color: c.states.warning,
     marginBottom: 12,
     lineHeight: 16,
   },
@@ -397,7 +400,7 @@ const styles = StyleSheet.create({
   uploadOverlay: {
     ...StyleSheet.absoluteFill,
     zIndex: 2,
-    backgroundColor: 'rgba(255,255,255,0.65)',
+    backgroundColor: c.isDark ? c.overlay : 'rgba(255,255,255,0.65)',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
@@ -405,7 +408,7 @@ const styles = StyleSheet.create({
   subsectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
     marginTop: 4,
   },
@@ -413,24 +416,24 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     marginBottom: 10,
   },
   backgroundPreview: {
     width: '100%',
     height: 140,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   backgroundPlaceholder: {
     height: 140,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   backgroundPlaceholderText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   backgroundActions: {
     flexDirection: 'row',
@@ -442,47 +445,47 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     alignItems: 'center',
   },
   secondaryBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   dangerOutlineBtn: {
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
     alignItems: 'center',
   },
   dangerOutlineBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   fieldLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 6,
     marginTop: 4,
   },
   pickerWrapper: {
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 6,
   },
   picker: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   helperText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 16,
     marginBottom: 8,
   },
@@ -496,7 +499,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -509,7 +512,7 @@ const styles = StyleSheet.create({
   },
   sliderTrackBg: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   sliderTrackFill: {
     position: 'absolute',
@@ -520,12 +523,12 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.border.light,
     marginVertical: 12,
   },
   saveBtn: {
     marginTop: 8,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -534,7 +537,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   saveBtnText: {
-    color: '#fff',
+    color: c.primary.contrastText,
     fontSize: 15,
     fontWeight: '700',
   },

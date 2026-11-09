@@ -11,7 +11,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { walletApi } from '../../services/api';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 interface WalletHistoryProps {
   refreshTrigger?: number;
@@ -64,6 +65,8 @@ const FILTERS = [
 ];
 
 export function WalletHistory({ refreshTrigger }: WalletHistoryProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
@@ -96,23 +99,23 @@ export function WalletHistory({ refreshTrigger }: WalletHistoryProps) {
     const isPositive = amount > 0;
     switch (type) {
       case TransactionType.BALANCE_PURCHASE:
-        return { name: 'add-circle', color: COLORS.states.success };
+        return { name: 'add-circle', color: colors.states.success };
       case TransactionType.PRODUCT_SALE:
-        return { name: 'storefront', color: COLORS.states.success };
+        return { name: 'storefront', color: colors.states.success };
       case TransactionType.DONATION:
       case TransactionType.TRANSFER:
       case TransactionType.POST_TIP:
-        return { name: isPositive ? 'arrow-down-circle' : 'arrow-up-circle', color: isPositive ? COLORS.states.success : COLORS.states.error };
+        return { name: isPositive ? 'arrow-down-circle' : 'arrow-up-circle', color: isPositive ? colors.states.success : colors.states.error };
       case TransactionType.WITHDRAWAL_REQUEST:
       case TransactionType.WITHDRAWAL_APPROVED:
       case TransactionType.WITHDRAWAL_COMPLETED:
-        return { name: 'cash-outline', color: COLORS.states.warning };
+        return { name: 'cash-outline', color: colors.states.warning };
       case TransactionType.ADMIN_CREDIT:
-        return { name: 'gift', color: COLORS.states.success };
+        return { name: 'gift', color: colors.states.success };
       case TransactionType.ADMIN_DEBIT:
-        return { name: 'remove-circle', color: COLORS.states.error };
+        return { name: 'remove-circle', color: colors.states.error };
       default:
-        return { name: 'swap-horizontal', color: COLORS.text.secondary };
+        return { name: 'swap-horizontal', color: colors.text.secondary };
     }
   };
 
@@ -128,7 +131,7 @@ export function WalletHistory({ refreshTrigger }: WalletHistoryProps) {
   if (loading && transactions.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.secondary.main} />
+        <ActivityIndicator size="large" color={colors.secondary.main} />
       </View>
     );
   }
@@ -158,7 +161,7 @@ export function WalletHistory({ refreshTrigger }: WalletHistoryProps) {
       {/* Lista de Transações */}
       {transactions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="wallet-outline" size={48} color={COLORS.text.secondary} />
+          <Ionicons name="wallet-outline" size={48} color={colors.text.secondary} />
           <Text style={styles.emptyText}>Nenhuma transação encontrada</Text>
         </View>
       ) : (
@@ -197,7 +200,7 @@ export function WalletHistory({ refreshTrigger }: WalletHistoryProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -216,18 +219,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   filterChipActive: {
-    backgroundColor: COLORS.secondary.main,
-    borderColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
+    borderColor: c.secondary.main,
   },
   filterChipText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   filterChipTextActive: {
     color: '#ffffff',
@@ -239,7 +242,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 12,
   },
   transactionsList: {
@@ -248,7 +251,7 @@ const styles = StyleSheet.create({
   transactionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
     padding: 16,
     marginHorizontal: 20,
@@ -258,7 +261,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -269,12 +272,12 @@ const styles = StyleSheet.create({
   transactionDescription: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   transactionDate: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   transactionAmountContainer: {
     alignItems: 'flex-end',
@@ -284,10 +287,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   transactionAmountPositive: {
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   transactionAmountNegative: {
-    color: COLORS.states.error,
+    color: c.states.error,
   },
 });
 

@@ -10,7 +10,8 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 interface EditableAvatarProps {
   src: string | null;
@@ -40,6 +41,8 @@ export function EditableAvatar({
   onAvatarChange,
   isLoading = false,
 }: EditableAvatarProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const getBorderColor = () => {
     if (planType === 'PRO' || planType === 'PRO_PLUS') {
       return borderColor || PLAN_BORDERS[planType];
@@ -143,9 +146,9 @@ export function EditableAvatar({
           activeOpacity={0.7}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#ffffff" />
+            <ActivityIndicator size="small" color={colors.primary.contrastText} />
           ) : (
-            <Ionicons name="camera" size={size * 0.2} color="#ffffff" />
+            <Ionicons name="camera" size={size * 0.2} color={colors.primary.contrastText} />
           )}
         </TouchableOpacity>
       )}
@@ -153,21 +156,21 @@ export function EditableAvatar({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     position: 'relative',
     alignSelf: 'center',
   },
   avatarContainer: {
     overflow: 'hidden',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   avatarImage: {
     width: '100%',
     height: '100%',
   },
   avatarPlaceholder: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -177,11 +180,11 @@ const styles = StyleSheet.create({
   },
   editButton: {
     position: 'absolute',
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: COLORS.background.paper,
+    borderColor: c.background.paper,
   },
 });
 

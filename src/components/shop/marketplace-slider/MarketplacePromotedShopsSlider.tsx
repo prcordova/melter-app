@@ -9,7 +9,8 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import type { MarketplaceSliderData, MarketplaceSliderItem } from '../../../config/shops/marketplace-slider/types'
 import { MARKETPLACE_SLIDER_AUTO_SCROLL_MS } from '../../../constants/marketplace-slider'
 import { marketplaceSliderApi } from '../../../services/shops/marketplace-slider'
-import { COLORS } from '../../../theme/colors'
+import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext'
+import type { AppPalette } from '../../../theme/palettes'
 import { ShopPromotionSliderCard } from './ShopPromotionSliderCard'
 import { ShopPromotionPlaceholderCard } from './ShopPromotionPlaceholderCard'
 
@@ -42,6 +43,8 @@ function buildSlides(
 export function MarketplacePromotedShopsSlider({
   showAdultContent,
 }: MarketplacePromotedShopsSliderProps) {
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   const [loading, setLoading] = useState(true)
   const [sliderData, setSliderData] = useState<MarketplaceSliderData | null>(null)
   const [slideIndex, setSlideIndex] = useState(0)
@@ -99,7 +102,7 @@ export function MarketplacePromotedShopsSlider({
     return (
       <View style={styles.wrapper}>
         <View style={styles.skeleton}>
-          <ActivityIndicator size="small" color={COLORS.secondary.main} />
+          <ActivityIndicator size="small" color={colors.secondary.main} />
         </View>
       </View>
     )
@@ -136,14 +139,14 @@ export function MarketplacePromotedShopsSlider({
               onPress={goPrev}
               accessibilityLabel="Slide anterior"
             >
-              <Ionicons name="chevron-back" size={18} color={COLORS.text.primary} />
+              <Ionicons name="chevron-back" size={18} color={colors.text.primary} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.navBtn, styles.navBtnRight]}
               onPress={goNext}
               accessibilityLabel="Próximo slide"
             >
-              <Ionicons name="chevron-forward" size={18} color={COLORS.text.primary} />
+              <Ionicons name="chevron-forward" size={18} color={colors.text.primary} />
             </TouchableOpacity>
           </>
         ) : null}
@@ -152,14 +155,14 @@ export function MarketplacePromotedShopsSlider({
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   wrapper: {
     marginBottom: 12,
   },
   skeleton: {
     minHeight: 148,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -173,11 +176,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     zIndex: 2,
   },
   navBtnLeft: {

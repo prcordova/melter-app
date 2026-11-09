@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { subscriptionPlansApi } from '../../services/api';
@@ -59,6 +60,8 @@ export function SubscriptionPlanFormModal({
   currentPlansCount,
   activePlansCount,
 }: SubscriptionPlanFormModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [saving, setSaving] = useState(false);
   const [showPromotionalValues, setShowPromotionalValues] = useState(false);
   const [formData, setFormData] = useState<SubscriptionPlan>({
@@ -284,7 +287,7 @@ export function SubscriptionPlanFormModal({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
             {plan ? 'Editar Plano' : 'Criar Novo Plano'}
@@ -301,7 +304,7 @@ export function SubscriptionPlanFormModal({
                 value={formData.name}
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
                 placeholder="Ex: Plano Básico, Plano Premium"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
               />
             </View>
 
@@ -312,7 +315,7 @@ export function SubscriptionPlanFormModal({
                 value={formData.description}
                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                 placeholder="Descreva os benefícios deste plano"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
                 multiline
                 numberOfLines={3}
               />
@@ -332,7 +335,7 @@ export function SubscriptionPlanFormModal({
                   }}
                   keyboardType="numeric"
                   placeholder="10.00"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                 />
                 <Text style={styles.helperText}>Mínimo: R$ 10,00</Text>
               </View>
@@ -348,7 +351,7 @@ export function SubscriptionPlanFormModal({
                   }}
                   keyboardType="numeric"
                   placeholder="30"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                 />
                 <Text style={styles.helperText}>Ex: 30 = mensal</Text>
               </View>
@@ -361,7 +364,7 @@ export function SubscriptionPlanFormModal({
               <Ionicons
                 name={showPromotionalValues ? 'chevron-up' : 'chevron-down'}
                 size={20}
-                color={COLORS.primary.main}
+                color={colors.primary.main}
               />
               <Text style={styles.toggleButtonText}>
                 {showPromotionalValues ? 'Ocultar descontos' : 'Descontos por duração de assinaturas'}
@@ -433,7 +436,7 @@ export function SubscriptionPlanFormModal({
                             }}
                             keyboardType="numeric"
                             placeholder="0"
-                            placeholderTextColor={COLORS.text.tertiary}
+                            placeholderTextColor={colors.text.tertiary}
                           />
                         </View>
 
@@ -500,19 +503,19 @@ export function SubscriptionPlanFormModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.tertiary,
+    borderBottomColor: c.background.tertiary,
   },
   backButton: {
     width: 40,
@@ -523,7 +526,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   content: {
     flex: 1,
@@ -545,17 +548,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderWidth: 1,
-    borderColor: COLORS.background.tertiary,
+    borderColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   textArea: {
     minHeight: 80,
@@ -563,7 +566,7 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
   },
   toggleButton: {
@@ -571,15 +574,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     padding: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.primary.main,
+    borderColor: c.primary.main,
   },
   toggleButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   discountsSection: {
     marginTop: 8,
@@ -588,21 +591,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 12,
     lineHeight: 18,
   },
   discountCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.background.tertiary,
+    borderColor: c.background.tertiary,
   },
   discountHeader: {
     flexDirection: 'row',
@@ -613,11 +616,11 @@ const styles = StyleSheet.create({
   discountLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   discountSubtext: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   discountContent: {
     flexDirection: 'row',
@@ -631,29 +634,29 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   basePrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   discountInput: {
     minWidth: 100,
   },
   discountInputLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
   },
   discountInputField: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.background.tertiary,
+    borderColor: c.background.tertiary,
     borderRadius: 8,
     padding: 8,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   finalPriceInfo: {
     alignItems: 'flex-end',
@@ -662,30 +665,30 @@ const styles = StyleSheet.create({
   discountAmount: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   finalPrice: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   switchGroup: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.background.tertiary,
+    borderColor: c.background.tertiary,
   },
   footer: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopWidth: 1,
-    borderTopColor: COLORS.background.tertiary,
+    borderTopColor: c.background.tertiary,
   },
   button: {
     flex: 1,
@@ -697,15 +700,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   cancelButton: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   saveButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
   },
   saveButtonDisabled: {
     opacity: 0.5,

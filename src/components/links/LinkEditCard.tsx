@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { linksApi } from '../../services/api';
 import { showToast } from '../CustomToast';
 import { API_CONFIG } from '../../config/api.config';
@@ -53,6 +54,8 @@ export function LinkEditCard({
   canMoveUp = false,
   canMoveDown = false,
 }: LinkEditCardProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const handleImagePicker = async () => {
@@ -151,7 +154,7 @@ export function LinkEditCard({
                 <Ionicons
                   name="chevron-up"
                   size={18}
-                  color={canMoveUp ? COLORS.text.primary : COLORS.text.tertiary}
+                  color={canMoveUp ? colors.text.primary : colors.text.tertiary}
                 />
               </TouchableOpacity>
               <TouchableOpacity
@@ -162,7 +165,7 @@ export function LinkEditCard({
                 <Ionicons
                   name="chevron-down"
                   size={18}
-                  color={canMoveDown ? COLORS.text.primary : COLORS.text.tertiary}
+                  color={canMoveDown ? colors.text.primary : colors.text.tertiary}
                 />
               </TouchableOpacity>
             </View>
@@ -172,7 +175,7 @@ export function LinkEditCard({
           onPress={() => onDelete(link.id)}
           style={styles.deleteButton}
         >
-          <Ionicons name="trash-outline" size={20} color={COLORS.states.error} />
+          <Ionicons name="trash-outline" size={20} color={colors.states.error} />
         </TouchableOpacity>
       </View>
 
@@ -189,7 +192,7 @@ export function LinkEditCard({
               style={styles.removeImageButton}
               onPress={handleRemoveImage}
             >
-              <Ionicons name="close-circle" size={24} color={COLORS.states.error} />
+              <Ionicons name="close-circle" size={24} color={colors.states.error} />
             </TouchableOpacity>
           </View>
         ) : (
@@ -199,10 +202,10 @@ export function LinkEditCard({
             disabled={uploadingImage}
           >
             {uploadingImage ? (
-              <ActivityIndicator size="small" color={COLORS.primary.main} />
+              <ActivityIndicator size="small" color={colors.primary.main} />
             ) : (
               <>
-                <Ionicons name="image-outline" size={24} color={COLORS.primary.main} />
+                <Ionicons name="image-outline" size={24} color={colors.primary.main} />
                 <Text style={styles.addImageText}>Adicionar Imagem</Text>
               </>
             )}
@@ -210,7 +213,7 @@ export function LinkEditCard({
         )
       ) : (
         <View style={styles.proLockedContainer}>
-          <Ionicons name="lock-closed" size={20} color={COLORS.text.tertiary} />
+          <Ionicons name="lock-closed" size={20} color={colors.text.tertiary} />
           <Text style={styles.proLockedText}>Imagens disponíveis no plano PRO</Text>
         </View>
       )}
@@ -224,7 +227,7 @@ export function LinkEditCard({
             value={link.title}
             onChangeText={(text) => onUpdate(link.id, { title: text })}
             placeholder="Título do link"
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
           />
         </View>
 
@@ -235,7 +238,7 @@ export function LinkEditCard({
             value={link.url}
             onChangeText={(text) => onUpdate(link.id, { url: text })}
             placeholder="https://..."
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
             keyboardType="url"
             autoCapitalize="none"
           />
@@ -248,7 +251,7 @@ export function LinkEditCard({
             value={link.description || ''}
             onChangeText={(text) => onUpdate(link.id, { description: text })}
             placeholder="Descrição do link"
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
             multiline
             numberOfLines={2}
             textAlignVertical="top"
@@ -268,7 +271,7 @@ export function LinkEditCard({
           <Switch
             value={link.visible}
             onValueChange={handleToggleVisible}
-            trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+            trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
             thumbColor="#ffffff"
           />
         </View>
@@ -277,14 +280,14 @@ export function LinkEditCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   header: {
     flexDirection: 'row',
@@ -333,35 +336,35 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
     borderWidth: 2,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderStyle: 'dashed',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
     marginBottom: 12,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   addImageText: {
     fontSize: 14,
-    color: COLORS.primary.main,
+    color: c.primary.main,
     fontWeight: '500',
   },
   proLockedContainer: {
     width: '100%',
     height: 120,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
     marginBottom: 12,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   proLockedText: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     textAlign: 'center',
   },
   fields: {
@@ -374,16 +377,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   input: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   textArea: {
     minHeight: 60,
@@ -391,7 +394,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
     paddingTop: 12,
   },
   visibilityContainer: {
@@ -406,11 +409,11 @@ const styles = StyleSheet.create({
   visibilityLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   visibilityDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
 });

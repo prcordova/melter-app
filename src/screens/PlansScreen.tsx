@@ -12,7 +12,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { BackButton } from '../components/BackButton';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi, paymentApi } from '../services/api';
 import { showToast } from '../components/CustomToast';
@@ -50,6 +52,8 @@ type PlansRouteParams = {
 };
 
 export function PlansScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<PlansRouteParams, 'Plans'>>();
@@ -184,11 +188,11 @@ export function PlansScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return COLORS.states.success;
+        return colors.states.success;
       case 'CANCELLED':
-        return COLORS.states.warning;
+        return colors.states.warning;
       default:
-        return COLORS.text.secondary;
+        return colors.text.secondary;
     }
   };
 
@@ -399,12 +403,13 @@ export function PlansScreen() {
   if (fetchingPlan) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <View style={styles.header}>
           <BackButton />
           <Text style={styles.headerTitle}>Planos</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
+          <ActivityIndicator size="large" color={colors.primary.main} />
         </View>
       </View>
     );
@@ -412,6 +417,7 @@ export function PlansScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       {/* Header */}
       <View style={styles.header}>
         <BackButton />
@@ -434,7 +440,7 @@ export function PlansScreen() {
                     {
                       color:
                         MARKETING_PLANS.find((p) => p.id === currentPlan)?.color ||
-                        COLORS.primary.main,
+                        colors.primary.main,
                     },
                   ]}
                 >
@@ -585,7 +591,7 @@ export function PlansScreen() {
                 key={plan.name}
                 style={[
                   styles.planCard,
-                  isCurrentPlan && { borderColor: COLORS.states.success, borderWidth: 2 },
+                  isCurrentPlan && { borderColor: colors.states.success, borderWidth: 2 },
                   plan.recommended && !isCurrentPlan && { borderColor: planColor, borderWidth: 2 },
                 ]}
               >
@@ -619,7 +625,7 @@ export function PlansScreen() {
                 <View style={styles.planFeatures}>
                   {plan.features.map((feature, index) => (
                     <View key={index} style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color={COLORS.states.success} />
+                      <Ionicons name="checkmark-circle" size={20} color={colors.states.success} />
                       <Text style={styles.featureText}>{feature}</Text>
                     </View>
                   ))}
@@ -650,7 +656,7 @@ export function PlansScreen() {
                   style={[
                     styles.subscribeButton,
                     isCurrentPlan && styles.subscribeButtonCurrent,
-                    { backgroundColor: isCurrentPlan ? COLORS.states.success : planColor },
+                    { backgroundColor: isCurrentPlan ? colors.states.success : planColor },
                   ]}
                   onPress={() => handleSubscribe(plan.name)}
                   disabled={isCurrentPlan || loading}
@@ -673,24 +679,24 @@ export function PlansScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.medium,
+    borderBottomColor: c.border.medium,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginLeft: 12,
   },
   scrollContent: {
@@ -702,17 +708,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   currentPlanCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   currentPlanTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 12,
   },
   currentPlanInfo: {
@@ -744,36 +750,36 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   gatewayText: {
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontSize: 12,
     fontWeight: '600',
   },
   expirationText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
   },
   cancelledText: {
-    color: COLORS.states.warning,
+    color: c.states.warning,
     fontWeight: 'bold',
   },
   lifetimeText: {
     fontSize: 14,
-    color: COLORS.states.success,
+    color: c.states.success,
     fontWeight: 'bold',
     marginTop: 4,
   },
   pendingPlanText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 8,
   },
   pendingPlanName: {
     fontWeight: 'bold',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   currentPlanActions: {
     flexDirection: 'row',
@@ -784,17 +790,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
   },
   cancelButtonText: {
-    color: COLORS.states.error,
+    color: c.states.error,
     fontWeight: '600',
   },
   renewButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
   },
   renewButtonText: {
     color: '#fff',
@@ -807,18 +813,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   syncNote: {
     fontSize: 13,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     textAlign: 'center',
     marginTop: 8,
     paddingHorizontal: 8,
@@ -829,12 +835,12 @@ const styles = StyleSheet.create({
   billingIntervalTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   billingIntervalSubtitle: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 12,
     lineHeight: 18,
   },
@@ -848,24 +854,24 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.paper,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.paper,
   },
   billingChipSelected: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: COLORS.primary.main + '18',
+    borderColor: c.primary.main,
+    backgroundColor: c.primary.main + '18',
   },
   billingChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   billingChipTextSelected: {
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   periodTotalText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -879,32 +885,32 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.paper,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.paper,
   },
   gatewayOptionSelected: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: COLORS.primary.main + '10',
+    borderColor: c.primary.main,
+    backgroundColor: c.primary.main + '10',
   },
   gatewayOptionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   gatewayOptionDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   plansContainer: {
     gap: 16,
   },
   planCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     position: 'relative',
   },
   recommendedBadge: {
@@ -937,11 +943,11 @@ const styles = StyleSheet.create({
   planPrice: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   planPriceUnit: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginLeft: 4,
   },
   planFeatures: {
@@ -956,7 +962,7 @@ const styles = StyleSheet.create({
   featureText: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   subscribeButton: {
     paddingVertical: 14,

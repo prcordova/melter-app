@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { sellerVerificationApi } from '../../services/api';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -22,6 +23,8 @@ interface AppealModalProps {
 }
 
 export function AppealModal({ visible, onClose, onSuccess }: AppealModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [appealReason, setAppealReason] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -85,7 +88,7 @@ export function AppealModal({ visible, onClose, onSuccess }: AppealModalProps) {
               disabled={submitting}
               style={styles.closeButton}
             >
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -102,7 +105,7 @@ export function AppealModal({ visible, onClose, onSuccess }: AppealModalProps) {
                 value={appealReason}
                 onChangeText={setAppealReason}
                 placeholder="Descreva o motivo da reativação..."
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
                 multiline
                 numberOfLines={8}
                 textAlignVertical="top"
@@ -116,10 +119,10 @@ export function AppealModal({ visible, onClose, onSuccess }: AppealModalProps) {
                 onValueChange={setTermsAccepted}
                 disabled={submitting}
                 trackColor={{
-                  false: COLORS.border.medium,
-                  true: COLORS.secondary.main,
+                  false: colors.border.medium,
+                  true: colors.secondary.main,
                 }}
-                thumbColor={termsAccepted ? '#ffffff' : COLORS.text.tertiary}
+                thumbColor={termsAccepted ? '#ffffff' : colors.text.tertiary}
               />
               <Text style={styles.termsText}>
                 Aceito que minha solicitação será analisada por um administrador e que a decisão
@@ -159,16 +162,16 @@ export function AppealModal({ visible, onClose, onSuccess }: AppealModalProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     width: '100%',
     maxWidth: 500,
@@ -181,12 +184,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
   },
   closeButton: {
@@ -197,7 +200,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
     marginBottom: 20,
   },
@@ -207,17 +210,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   textArea: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     minHeight: 120,
   },
   termsContainer: {
@@ -228,7 +231,7 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     flex: 1,
     lineHeight: 18,
   },
@@ -237,7 +240,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   button: {
     flex: 1,
@@ -247,20 +250,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   submitButton: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   submitButtonDisabled: {
-    backgroundColor: COLORS.border.medium,
+    backgroundColor: c.border.medium,
     opacity: 0.6,
   },
   submitButtonText: {

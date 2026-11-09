@@ -14,7 +14,8 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Header } from '../components/Header';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { userApi } from '../services/api';
 import { showToast } from '../components/CustomToast';
 import { getImageUrl } from '../utils/image';
@@ -65,6 +66,8 @@ interface Purchase {
 }
 
 export function PurchasesScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
@@ -121,14 +124,14 @@ export function PurchasesScreen() {
     if (!purchase.subscription || !purchase.expiresAt) return null;
 
     if (purchase.isExpired) {
-      return { text: 'Expirado', color: COLORS.states.error };
+      return { text: 'Expirado', color: colors.states.error };
     }
 
     if (purchase.daysUntilExpiry !== null && purchase.daysUntilExpiry !== undefined) {
       if (purchase.daysUntilExpiry <= 7) {
-        return { text: `Expira em ${purchase.daysUntilExpiry} dias`, color: COLORS.states.warning };
+        return { text: `Expira em ${purchase.daysUntilExpiry} dias`, color: colors.states.warning };
       } else {
-        return { text: `Expira em ${purchase.daysUntilExpiry} dias`, color: COLORS.states.info };
+        return { text: `Expira em ${purchase.daysUntilExpiry} dias`, color: colors.states.info };
       }
     }
 
@@ -192,13 +195,13 @@ export function PurchasesScreen() {
           <Text style={styles.statLabel}>Produtos Comprados</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: COLORS.states.success }]}>
+          <Text style={[styles.statValue, { color: colors.states.success }]}>
             R$ {totalInvested.toFixed(2)}
           </Text>
           <Text style={styles.statLabel}>Total Investido</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: COLORS.states.info }]}>
+          <Text style={[styles.statValue, { color: colors.states.info }]}>
             {activeSubscriptions}
           </Text>
           <Text style={styles.statLabel}>Assinaturas Ativas</Text>
@@ -244,12 +247,12 @@ export function PurchasesScreen() {
         <View style={styles.purchaseContent}>
           <View style={styles.purchaseHeader}>
             {purchase.subscriptionPlan ? (
-              <View style={[styles.badge, { backgroundColor: COLORS.primary.main }]}>
+              <View style={[styles.badge, { backgroundColor: colors.primary.main }]}>
                 <Text style={styles.badgeText}>Plano de Assinatura</Text>
               </View>
             ) : (
               purchase.productId && (
-                <View style={[styles.badge, { backgroundColor: COLORS.secondary.main }]}>
+                <View style={[styles.badge, { backgroundColor: colors.secondary.main }]}>
                   <Text style={styles.badgeText}>Pacote Digital</Text>
                 </View>
               )
@@ -275,7 +278,7 @@ export function PurchasesScreen() {
               <Ionicons
                 name="person-outline"
                 size={16}
-                color={COLORS.text.secondary}
+                color={colors.text.secondary}
               />
               <Text style={styles.sellerText}>@{sellerInfo.username}</Text>
             </View>
@@ -286,7 +289,7 @@ export function PurchasesScreen() {
               <Ionicons
                 name="cash-outline"
                 size={16}
-                color={COLORS.states.success}
+                color={colors.states.success}
               />
               <Text style={styles.priceText}>
                 R$ {purchase.amount.toFixed(2)}
@@ -296,7 +299,7 @@ export function PurchasesScreen() {
               <Ionicons
                 name="time-outline"
                 size={16}
-                color={COLORS.text.secondary}
+                color={colors.text.secondary}
               />
               <Text style={styles.dateText}>
                 {formatDate(purchase.createdAt)}
@@ -312,13 +315,13 @@ export function PurchasesScreen() {
                 onPress={() => handleCancelSubscription(purchase)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close-circle-outline" size={18} color={COLORS.states.error} />
+                <Ionicons name="close-circle-outline" size={18} color={colors.states.error} />
                 <Text style={styles.cancelButtonText}>Cancelar Assinatura</Text>
               </TouchableOpacity>
             )}
 
           {purchase.isCancelled && (
-            <View style={[styles.badge, { backgroundColor: COLORS.states.warning }]}>
+            <View style={[styles.badge, { backgroundColor: colors.states.warning }]}>
               <Text style={styles.badgeText}>Cancelado</Text>
             </View>
           )}
@@ -344,7 +347,7 @@ export function PurchasesScreen() {
     if (loading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="bag-outline" size={64} color={COLORS.text.tertiary} />
+        <Ionicons name="bag-outline" size={64} color={colors.text.tertiary} />
         <Text style={styles.emptyTitle}>Nenhuma compra encontrada</Text>
         <Text style={styles.emptyText}>
           Você ainda não comprou nenhum produto. Explore as lojas para encontrar
@@ -390,12 +393,12 @@ export function PurchasesScreen() {
 
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.secondary.main} />
+            <ActivityIndicator size="large" color={colors.secondary.main} />
             <Text style={styles.loadingText}>Carregando compras...</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={48} color={COLORS.states.error} />
+            <Ionicons name="alert-circle-outline" size={48} color={colors.states.error} />
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity
               style={styles.retryButton}
@@ -417,7 +420,7 @@ export function PurchasesScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={COLORS.secondary.main}
+                tintColor={colors.secondary.main}
               />
             }
           />
@@ -427,10 +430,10 @@ export function PurchasesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   content: {
     flex: 1,
@@ -439,23 +442,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 16,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
   },
   statsContainer: {
     flexDirection: 'row',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   statItem: {
     flex: 1,
@@ -464,28 +467,28 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.primary.main,
+    color: c.primary.main,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   listContent: {
     paddingBottom: 24,
   },
   purchaseCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   purchaseCardExpired: {
     opacity: 0.7,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
     borderWidth: 2,
   },
   purchaseImage: {
@@ -515,7 +518,7 @@ const styles = StyleSheet.create({
   purchaseTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   sellerInfo: {
@@ -526,7 +529,7 @@ const styles = StyleSheet.create({
   },
   sellerText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   purchaseInfo: {
     flexDirection: 'row',
@@ -535,7 +538,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   priceInfo: {
     flexDirection: 'row',
@@ -545,7 +548,7 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   dateInfo: {
     flexDirection: 'row',
@@ -554,7 +557,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   cancelButton: {
     flexDirection: 'row',
@@ -565,20 +568,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
     marginBottom: 8,
   },
   cancelButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   renewButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: COLORS.states.warning,
+    backgroundColor: c.states.warning,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -591,7 +594,7 @@ const styles = StyleSheet.create({
   },
   accessText: {
     fontSize: 12,
-    color: COLORS.primary.main,
+    color: c.primary.main,
     textAlign: 'center',
     fontWeight: '500',
     marginTop: 8,
@@ -605,7 +608,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   errorContainer: {
     flex: 1,
@@ -616,12 +619,12 @@ const styles = StyleSheet.create({
   errorText: {
     marginTop: 16,
     fontSize: 16,
-    color: COLORS.states.error,
+    color: c.states.error,
     textAlign: 'center',
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -639,13 +642,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,
@@ -654,7 +657,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,

@@ -11,7 +11,8 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { messageApi } from '../../services/api';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { API_CONFIG } from '../../config/api.config';
 import axios from 'axios';
@@ -40,6 +41,8 @@ export function StoryMessageInput({
   onBlur,
   alwaysExpanded = false,
 }: StoryMessageInputProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [message, setMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'image' | 'document' | null>(null);
@@ -179,7 +182,7 @@ export function StoryMessageInput({
           if (onFocus) onFocus();
         }}
       >
-        <Ionicons name="chatbubble-outline" size={20} color={COLORS.text.secondary} />
+        <Ionicons name="chatbubble-outline" size={20} color={colors.text.secondary} />
       </TouchableOpacity>
     );
   }
@@ -193,7 +196,7 @@ export function StoryMessageInput({
             style={styles.removeFileButton}
             onPress={handleRemoveFile}
           >
-            <Ionicons name="close-circle" size={24} color={COLORS.states.error} />
+            <Ionicons name="close-circle" size={24} color={colors.states.error} />
           </TouchableOpacity>
         </View>
       )}
@@ -248,12 +251,12 @@ export function StoryMessageInput({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   minimizedButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -306,7 +309,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     justifyContent: 'center',
     alignItems: 'center',
   },

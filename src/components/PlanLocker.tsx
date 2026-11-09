@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../theme/colors';
+import { useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { useNavigation } from '@react-navigation/native';
 import { showToast } from './CustomToast';
 
@@ -33,6 +34,7 @@ export function PlanLocker({
   isAdmin = false,
   variant = 'default',
 }: PlanLockerProps) {
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation();
   const isCompact = variant === 'compact';
 
@@ -68,7 +70,7 @@ export function PlanLocker({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     position: 'relative',
   },
@@ -90,7 +92,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -99,7 +101,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 999,

@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { verifyBiometricIdentity } from '../services/biometricLogin';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 type Props = {
   visible: boolean;
@@ -19,6 +20,8 @@ type Props = {
 };
 
 export function BiometricUnlockModal({ visible, onUnlocked, onLogout }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +46,7 @@ export function BiometricUnlockModal({ visible, onUnlocked, onLogout }: Props) {
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Ionicons name="finger-print" size={48} color={COLORS.secondary.main} style={styles.icon} />
+          <Ionicons name="finger-print" size={48} color={colors.secondary.main} style={styles.icon} />
           <Text style={styles.title}>Melter bloqueado</Text>
           <Text style={styles.subtitle}>
             Confirme com {Platform.OS === 'ios' ? 'Face ID / Touch ID' : 'impressão digital ou rosto'} para continuar.
@@ -73,7 +76,7 @@ export function BiometricUnlockModal({ visible, onUnlocked, onLogout }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.88)',
@@ -81,7 +84,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
     borderRadius: 20,
     paddingVertical: 28,
     paddingHorizontal: 22,
@@ -93,25 +96,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#0f172a',
+    color: c.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: '#64748b',
+    color: c.text.secondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 20,
   },
   error: {
-    color: '#dc2626',
+    color: c.states.error,
     fontSize: 14,
     marginBottom: 12,
     textAlign: 'center',
   },
   primaryBtn: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     width: '100%',
     paddingVertical: 14,
     borderRadius: 12,
@@ -130,7 +133,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   secondaryBtnText: {
-    color: '#64748b',
+    color: c.text.secondary,
     fontSize: 15,
     fontWeight: '500',
   },

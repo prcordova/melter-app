@@ -12,7 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from './Button';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { postsApi } from '../services/api';
 
 interface ReportPostModalProps {
@@ -41,6 +42,8 @@ export function ReportPostModal({
   postId,
   postAuthorUsername,
 }: ReportPostModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState<ReportCategory | null>(null);
   const [description, setDescription] = useState('');
@@ -97,14 +100,14 @@ export function ReportPostModal({
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Denunciar @{postAuthorUsername}</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView contentContainerStyle={styles.content}>
             {/* Alert Info */}
             <View style={styles.infoBox}>
-              <Ionicons name="information-circle" size={20} color={COLORS.states.info} />
+              <Ionicons name="information-circle" size={20} color={colors.states.info} />
               <Text style={styles.infoText}>
                 Sua denúncia será analisada por nossa equipe. Mantenha a descrição clara e objetiva.
               </Text>
@@ -142,7 +145,7 @@ export function ReportPostModal({
             <TextInput
               style={styles.textArea}
               placeholder="Descreva o que aconteceu..."
-              placeholderTextColor={COLORS.text.tertiary}
+              placeholderTextColor={colors.text.tertiary}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -167,14 +170,14 @@ export function ReportPostModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '90%',
@@ -191,12 +194,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   closeButton: {
     padding: 4,
@@ -206,7 +209,7 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#e3f2fd',
+    backgroundColor: c.states.info + '15',
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
@@ -215,13 +218,13 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: COLORS.states.info,
+    color: c.states.info,
     lineHeight: 18,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 12,
   },
   categoriesContainer: {
@@ -235,38 +238,38 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.default,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.default,
   },
   categoryButtonActive: {
-    borderColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
     borderWidth: 2,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   categoryText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '500',
   },
   categoryTextActive: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     fontWeight: '600',
   },
   textArea: {
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 8,
     padding: 12,
     minHeight: 120,
     textAlignVertical: 'top',
     fontSize: 14,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.background.tertiary,
+    color: c.text.primary,
+    backgroundColor: c.background.tertiary,
     marginBottom: 8,
   },
   charCount: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'right',
     marginBottom: 20,
   },

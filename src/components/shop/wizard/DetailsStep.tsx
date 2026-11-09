@@ -12,7 +12,8 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext';
+import type { AppPalette } from '../../../theme/palettes';
 import { showToast } from '../../CustomToast';
 import { useAuth } from '../../../contexts/AuthContext';
 import { subscriptionPlansApi } from '../../../services/api';
@@ -44,6 +45,8 @@ export function DetailsStep({
   productCoverAvatarFallbackEnabled = true,
   productId = null,
 }: DetailsStepProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user } = useAuth();
   const [categories, setCategories] = useState<Array<{ _id: string; name: string }>>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
@@ -241,7 +244,7 @@ export function DetailsStep({
               }
             }}
             placeholder="Nome do pacote"
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
             maxLength={100}
           />
         </View>
@@ -254,7 +257,7 @@ export function DetailsStep({
             <Text style={styles.lockedHint}>Categoria fixa após aprovação.</Text>
           ) : null}
           {loadingCategories ? (
-            <ActivityIndicator size="small" color={COLORS.secondary.main} />
+            <ActivityIndicator size="small" color={colors.secondary.main} />
           ) : (
             <View
               style={[styles.pickerContainer, lockCategory && styles.pickerLocked]}
@@ -303,7 +306,7 @@ export function DetailsStep({
               }
             }}
             placeholder="Opcional"
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
@@ -324,7 +327,7 @@ export function DetailsStep({
               }
             }}
             placeholder="Separadas por vírgula"
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
           />
         </View>
 
@@ -353,13 +356,13 @@ export function DetailsStep({
                           activeOpacity={0.7}
                         >
                           {uploadingImage ? (
-                            <ActivityIndicator size="small" color={COLORS.secondary.main} />
+                            <ActivityIndicator size="small" color={colors.secondary.main} />
                           ) : (
                             <>
                               <Ionicons
                                 name="cloud-upload-outline"
                                 size={16}
-                                color={COLORS.text.secondary}
+                                color={colors.text.secondary}
                               />
                               <Text style={styles.imageUploadText}>
                                 {safeFormData.coverImage ? 'Trocar capa' : 'Enviar capa'}
@@ -479,7 +482,7 @@ export function DetailsStep({
                 }
               }}
               placeholder="10.00"
-              placeholderTextColor={COLORS.text.tertiary}
+              placeholderTextColor={colors.text.tertiary}
               keyboardType="numeric"
             />
             <Text style={styles.helperText}>Mín. R$ 10</Text>
@@ -493,7 +496,7 @@ export function DetailsStep({
               Plano de Assinatura <Text style={styles.required}>*</Text>
             </Text>
             {loadingPlans ? (
-              <ActivityIndicator size="small" color={COLORS.secondary.main} />
+              <ActivityIndicator size="small" color={colors.secondary.main} />
             ) : (
               <View
                 style={[styles.pickerContainer, lockPaymentAndPlan && styles.pickerLocked]}
@@ -546,10 +549,10 @@ export function DetailsStep({
               }
             }}
             trackColor={{
-              false: COLORS.border.medium,
-              true: COLORS.secondary.main,
+              false: colors.border.medium,
+              true: colors.secondary.main,
             }}
-            thumbColor={safeFormData.allowDownload ? '#ffffff' : COLORS.text.tertiary}
+            thumbColor={safeFormData.allowDownload ? '#ffffff' : colors.text.tertiary}
           />
         </View>
 
@@ -565,10 +568,10 @@ export function DetailsStep({
               }
             }}
             trackColor={{
-              false: COLORS.border.medium,
-              true: COLORS.secondary.main,
+              false: colors.border.medium,
+              true: colors.secondary.main,
             }}
-            thumbColor={safeFormData.showViews !== false ? '#ffffff' : COLORS.text.tertiary}
+            thumbColor={safeFormData.showViews !== false ? '#ffffff' : colors.text.tertiary}
           />
         </View>
 
@@ -584,10 +587,10 @@ export function DetailsStep({
               }
             }}
             trackColor={{
-              false: COLORS.border.medium,
-              true: COLORS.secondary.main,
+              false: colors.border.medium,
+              true: colors.secondary.main,
             }}
-            thumbColor={safeFormData.showLikes !== false ? '#ffffff' : COLORS.text.tertiary}
+            thumbColor={safeFormData.showLikes !== false ? '#ffffff' : colors.text.tertiary}
           />
         </View>
 
@@ -603,10 +606,10 @@ export function DetailsStep({
               }
             }}
             trackColor={{
-              false: COLORS.border.medium,
-              true: COLORS.secondary.main,
+              false: colors.border.medium,
+              true: colors.secondary.main,
             }}
-            thumbColor={safeFormData.isAiContent ? '#ffffff' : COLORS.text.tertiary}
+            thumbColor={safeFormData.isAiContent ? '#ffffff' : colors.text.tertiary}
           />
         </View>
         <Text style={styles.helperText}>
@@ -638,14 +641,14 @@ export function DetailsStep({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     gap: 24,
   },
   pageTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   section: {
@@ -654,18 +657,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 12,
   },
   coverBlock: {
     marginTop: 4,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   coverHint: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 10,
     lineHeight: 16,
   },
@@ -678,7 +681,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 54,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   coverActions: {
     flex: 1,
@@ -693,24 +696,24 @@ const styles = StyleSheet.create({
   coverRemoveText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   imageUploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   imageUploadText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   inputGroup: {
     marginBottom: 16,
@@ -718,20 +721,20 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   required: {
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   input: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   textArea: {
     minHeight: 100,
@@ -739,38 +742,38 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
   },
   errorText: {
     fontSize: 16,
-    color: COLORS.states.error,
+    color: c.states.error,
     textAlign: 'center',
     padding: 20,
   },
   pickerContainer: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     overflow: 'hidden',
   },
   picker: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   radioGroup: {
     gap: 12,
   },
   radioOption: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 16,
     borderWidth: 2,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   radioOptionSelected: {
-    borderColor: COLORS.secondary.main,
-    backgroundColor: COLORS.secondary.main + '10',
+    borderColor: c.secondary.main,
+    backgroundColor: c.secondary.main + '10',
   },
   radioContent: {
     flexDirection: 'row',
@@ -782,7 +785,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
@@ -791,7 +794,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   radioTextContainer: {
     flex: 1,
@@ -805,11 +808,11 @@ const styles = StyleSheet.create({
   radioTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   radioDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginLeft: 26,
   },
   switchGroup: {
@@ -818,17 +821,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   switchLabel: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
     marginRight: 12,
   },
   lockedHint: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
     lineHeight: 18,
   },

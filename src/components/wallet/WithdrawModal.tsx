@@ -17,7 +17,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { walletApi } from '../../services/api';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 
 interface WithdrawModalProps {
@@ -98,6 +99,8 @@ const BRAZILIAN_STATES = [
 ];
 
 export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: WithdrawModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
 
   const [amount, setAmount] = useState('');
@@ -410,11 +413,11 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
-              <Ionicons name="cash-outline" size={32} color={COLORS.primary.main} />
+              <Ionicons name="cash-outline" size={32} color={colors.primary.main} />
               <Text style={styles.headerTitle}>Solicitar Saque</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -662,10 +665,10 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -676,7 +679,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 20,
     width: '90%',
     maxWidth: 600,
@@ -692,7 +695,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   headerContent: {
     flexDirection: 'row',
@@ -702,7 +705,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   closeButton: {
     padding: 4,
@@ -718,7 +721,7 @@ const styles = StyleSheet.create({
     minHeight: '100%',
   },
   balanceCard: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
@@ -741,48 +744,48 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: c.primary.main,
     marginBottom: 8,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   helperText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
   },
   amountInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.medium,
+    borderBottomColor: c.border.medium,
     paddingBottom: 8,
   },
   amountPrefix: {
     fontSize: 20,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginRight: 8,
   },
   amountInput: {
     flex: 1,
     fontSize: 24,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   input: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   inputHalf: {
     flex: 1,
@@ -793,13 +796,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   stateInput: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     minWidth: 120,
   },
   row: {
@@ -807,17 +810,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pickerContainer: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     marginBottom: 12,
   },
   picker: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   feeCard: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -831,32 +834,32 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.medium,
+    borderTopColor: c.border.medium,
   },
   feeLabel: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   feeValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   feeValueNegative: {
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   feeLabelTotal: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   feeValueTotal: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   infoCard: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -864,12 +867,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   infoText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
   actions: {
@@ -878,7 +881,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   button: {
     flex: 1,
@@ -888,17 +891,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   submitButton: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   submitButtonText: {
     fontSize: 16,
@@ -913,10 +916,10 @@ const styles = StyleSheet.create({
     top: 0,
     left: '100%',
     marginLeft: 8,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     minWidth: 200,
     maxWidth: 250,
     maxHeight: 200,
@@ -930,11 +933,11 @@ const styles = StyleSheet.create({
   suggestionItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   suggestionText: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
 });
 

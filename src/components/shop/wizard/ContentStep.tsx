@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext';
+import type { AppPalette } from '../../../theme/palettes';
 import { showToast } from '../../CustomToast';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getProductCreationStorageLimits, validateFileSize, PlanType } from '../../../config/plan-features';
@@ -33,6 +34,8 @@ export function ContentStep({
   isEditing = false,
   showMediaRequiredError = false,
 }: ContentStepProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user } = useAuth();
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
@@ -219,15 +222,15 @@ export function ContentStep({
   const getFileIcon = (mimeType?: string | null, fileType?: string | null) => {
     const m = mimeType || '';
     if (m.startsWith('image/') || fileType === 'image') {
-      return <Ionicons name="image-outline" size={24} color={COLORS.text.secondary} />;
+      return <Ionicons name="image-outline" size={24} color={colors.text.secondary} />;
     }
     if (m.startsWith('video/') || fileType === 'video') {
-      return <Ionicons name="videocam-outline" size={24} color={COLORS.text.secondary} />;
+      return <Ionicons name="videocam-outline" size={24} color={colors.text.secondary} />;
     }
     if (m.includes('pdf')) {
-      return <Ionicons name="document-text-outline" size={24} color={COLORS.text.secondary} />;
+      return <Ionicons name="document-text-outline" size={24} color={colors.text.secondary} />;
     }
-    return <Ionicons name="document-outline" size={24} color={COLORS.text.secondary} />;
+    return <Ionicons name="document-outline" size={24} color={colors.text.secondary} />;
   };
 
   const isImageOrVideoPreview = (file: any) => {
@@ -264,7 +267,7 @@ export function ContentStep({
           onPress={() => selectDeliveryMode('FILES_ONLY')}
           activeOpacity={0.85}
         >
-          <Ionicons name="folder-outline" size={32} color={COLORS.secondary.main} />
+          <Ionicons name="folder-outline" size={32} color={colors.secondary.main} />
           <Text style={styles.choiceTitle}>Só arquivos</Text>
           <Text style={styles.choiceDescription}>
             Imagens, vídeos ou documentos que o comprador acessa na Melter.
@@ -277,8 +280,8 @@ export function ContentStep({
           activeOpacity={0.85}
         >
           <View style={styles.choiceIconRow}>
-            <Ionicons name="folder-outline" size={28} color={COLORS.secondary.main} />
-            <Ionicons name="link-outline" size={24} color={COLORS.text.secondary} />
+            <Ionicons name="folder-outline" size={28} color={colors.secondary.main} />
+            <Ionicons name="link-outline" size={24} color={colors.text.secondary} />
           </View>
           <Text style={styles.choiceTitle}>Arquivos + links</Text>
           <Text style={styles.choiceDescription}>
@@ -367,7 +370,7 @@ export function ContentStep({
                       onPress={() => handleRemoveFile(file.id)}
                       style={styles.removeButton}
                     >
-                      <Ionicons name="close-circle" size={20} color={COLORS.states.error} />
+                      <Ionicons name="close-circle" size={20} color={colors.states.error} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -389,7 +392,7 @@ export function ContentStep({
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Links externos</Text>
             <TouchableOpacity style={styles.addButton} onPress={handleAddLink} activeOpacity={0.7}>
-              <Ionicons name="link-outline" size={18} color={COLORS.text.secondary} />
+              <Ionicons name="link-outline" size={18} color={colors.text.secondary} />
               <Text style={styles.addButtonText}>Adicionar Link</Text>
             </TouchableOpacity>
           </View>
@@ -408,7 +411,7 @@ export function ContentStep({
                       onPress={() => handleRemoveLink(link.id)}
                       style={styles.removeButton}
                     >
-                      <Ionicons name="close-circle" size={20} color={COLORS.states.error} />
+                      <Ionicons name="close-circle" size={20} color={colors.states.error} />
                     </TouchableOpacity>
                   </View>
 
@@ -419,7 +422,7 @@ export function ContentStep({
                       value={link.url}
                       onChangeText={(value) => handleLinkChange(link.id, 'url', value)}
                       placeholder="https://drive.google.com/file/d/..."
-                      placeholderTextColor={COLORS.text.tertiary}
+                      placeholderTextColor={colors.text.tertiary}
                       keyboardType="url"
                       autoCapitalize="none"
                     />
@@ -432,7 +435,7 @@ export function ContentStep({
                       value={link.title}
                       onChangeText={(value) => handleLinkChange(link.id, 'title', value)}
                       placeholder="Título do link"
-                      placeholderTextColor={COLORS.text.tertiary}
+                      placeholderTextColor={colors.text.tertiary}
                     />
                   </View>
 
@@ -443,7 +446,7 @@ export function ContentStep({
                       value={link.description}
                       onChangeText={(value) => handleLinkChange(link.id, 'description', value)}
                       placeholder="Descrição do link (opcional)"
-                      placeholderTextColor={COLORS.text.tertiary}
+                      placeholderTextColor={colors.text.tertiary}
                       multiline
                       numberOfLines={2}
                       textAlignVertical="top"
@@ -459,24 +462,24 @@ export function ContentStep({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   choiceCard: {
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 12,
     padding: 16,
     marginTop: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   choiceTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 8,
   },
   choiceDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
     lineHeight: 20,
   },
@@ -491,14 +494,14 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: `${COLORS.secondary.main}14`,
+    backgroundColor: `${c.secondary.main}14`,
     borderWidth: 1,
-    borderColor: `${COLORS.secondary.main}40`,
+    borderColor: `${c.secondary.main}40`,
   },
   alertInfoText: {
     flex: 1,
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 18,
   },
   container: {
@@ -511,12 +514,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   subtitle: {
     fontSize: 14,
     lineHeight: 20,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   section: {
     marginBottom: 24,
@@ -530,47 +533,47 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   addButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   emptyBox: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderStyle: 'dashed',
   },
   emptyText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   linksList: {
     gap: 12,
   },
   linkCard: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   linkHeader: {
     flexDirection: 'row',
@@ -581,7 +584,7 @@ const styles = StyleSheet.create({
   linkTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   removeButton: {
     padding: 4,
@@ -592,17 +595,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   textArea: {
     minHeight: 60,
@@ -616,11 +619,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   fileInfo: {
     flexDirection: 'row',
@@ -634,11 +637,11 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   fileSize: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
   progressContainer: {
@@ -647,41 +650,41 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     height: 4,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 2,
     overflow: 'hidden',
     marginBottom: 4,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   progressText: {
     fontSize: 10,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   alertWarning: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   alertWarningTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   alertWarningText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
   },
   alertWarningListItem: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginLeft: 8,
     marginTop: 4,
   },
@@ -695,23 +698,23 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   summaryBox: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   summaryText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });
 

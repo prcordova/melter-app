@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../services/api';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { setAdminSessionToken } from '../lib/admin-session';
 
 type Props = {
@@ -23,6 +24,8 @@ type Props = {
 
 export function AdminPasswordModal({ visible, onClose, onSuccess }: Props) {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -74,7 +77,7 @@ export function AdminPasswordModal({ visible, onClose, onSuccess }: Props) {
             value={password}
             onChangeText={setPassword}
             placeholder="Senha"
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={colors.text.tertiary}
             editable={!loading}
             autoCapitalize="none"
           />
@@ -97,41 +100,41 @@ export function AdminPasswordModal({ visible, onClose, onSuccess }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
   card: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 20,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   error: {
-    color: COLORS.states.error,
+    color: c.states.error,
     fontSize: 13,
     marginBottom: 8,
   },
@@ -146,11 +149,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   btnGhostText: {
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '600',
   },
   btnPrimary: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 10,

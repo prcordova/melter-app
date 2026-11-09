@@ -3,13 +3,16 @@ import { TouchableOpacity, StyleSheet, View, Text } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNotifications } from '../contexts/NotificationContext';
 import { NotificationModal } from './NotificationModal';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 
 interface NotificationButtonProps {
   onPress?: () => void;
 }
 
 export function NotificationButton({ onPress }: NotificationButtonProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { unreadCount } = useNotifications();
   const [showModal, setShowModal] = useState(false);
 
@@ -30,7 +33,7 @@ export function NotificationButton({ onPress }: NotificationButtonProps) {
         <Ionicons
           name="notifications-outline"
           size={24}
-          color={COLORS.secondary.main}
+          color={colors.secondary.main}
         />
         {unreadCount > 0 && (
           <View style={styles.badge}>
@@ -49,30 +52,30 @@ export function NotificationButton({ onPress }: NotificationButtonProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    padding: 8,
-    marginRight: 8,
-  },
-  badge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: COLORS.states.error,
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.background.paper,
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-});
-
+const createStyles = (c: AppPalette) =>
+  StyleSheet.create({
+    container: {
+      position: 'relative',
+      padding: 8,
+      marginRight: 8,
+    },
+    badge: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      backgroundColor: c.states.error,
+      borderRadius: 10,
+      minWidth: 18,
+      height: 18,
+      paddingHorizontal: 4,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: c.background.paper,
+    },
+    badgeText: {
+      color: '#ffffff',
+      fontSize: 10,
+      fontWeight: 'bold',
+    },
+  });

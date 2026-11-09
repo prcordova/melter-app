@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackButton } from '../../components/BackButton';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
-import { SURFACE_RADIUS, type AppPalette } from '../../theme/palettes';
+import { SURFACE_RADIUS, type AppPalette, type AppThemeMode } from '../../theme/palettes';
 import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { userApi } from '../../services/api';
 import { showToast } from '../../components/CustomToast';
@@ -43,6 +43,12 @@ import {
 } from '../../constants/user-platform-purposes';
 import { useDiscoveryPreference } from '../../contexts/DiscoveryPreferenceContext';
 
+const THEME_MODE_OPTIONS: { value: AppThemeMode; label: string; description: string }[] = [
+  { value: 'light', label: 'Claro', description: 'Rosa claro, identidade original do Melter' },
+  { value: 'dark', label: 'Escuro', description: 'Roxo escuro' },
+  { value: 'black', label: 'Preto', description: 'Preto total, ideal para telas OLED' },
+];
+
 interface CategoryPreferences {
   categoryInteractions: { [key: string]: number };
   blockedCategories: string[];
@@ -51,7 +57,7 @@ interface CategoryPreferences {
 
 export function PreferencesScreen() {
   const styles = useThemedStyles(createStyles);
-  const { colors, isDark, toggleDark } = useAppTheme();
+  const { colors, mode, setMode } = useAppTheme();
 
   const renderPreferencesSkeleton = () => (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -328,20 +334,29 @@ export function PreferencesScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🎨 Aparência</Text>
 
-          <View style={styles.emailItem}>
-            <View style={styles.emailInfo}>
-              <Text style={styles.emailTitle}>Tema escuro</Text>
-              <Text style={styles.emailDescription}>
-                Roxo escuro, igual ao Melter web. Desative para usar o tema claro rosa.
-              </Text>
-            </View>
-            <Switch
-              value={isDark}
-              onValueChange={(v) => toggleDark(v)}
-              trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
-              thumbColor="#ffffff"
-            />
-          </View>
+          {THEME_MODE_OPTIONS.map((option) => {
+            const selected = mode === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.emailItem, selected && styles.themeOptionSelected]}
+                onPress={() => setMode(option.value)}
+                activeOpacity={0.7}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+              >
+                <View style={styles.emailInfo}>
+                  <Text style={styles.emailTitle}>{option.label}</Text>
+                  <Text style={styles.emailDescription}>{option.description}</Text>
+                </View>
+                <Ionicons
+                  name={selected ? 'radio-button-on' : 'radio-button-off'}
+                  size={22}
+                  color={selected ? colors.secondary.main : colors.text.tertiary}
+                />
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <View style={styles.section}>
@@ -903,6 +918,10 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.divider,
     marginBottom: 12,
+  },
+  themeOptionSelected: {
+    borderColor: c.secondary.main,
+    backgroundColor: c.action.selected,
   },
   emailInfo: {
     flex: 1,

@@ -8,7 +8,8 @@ import {
   Alert,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { api } from '../services/api';
 
 interface WalletButtonProps {
@@ -16,6 +17,8 @@ interface WalletButtonProps {
 }
 
 export function WalletButton({ onPress }: WalletButtonProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isBalanceVisible, setIsBalanceVisible] = useState(false); // Por padrão oculto
@@ -49,7 +52,7 @@ export function WalletButton({ onPress }: WalletButtonProps) {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="small" color={COLORS.icon.inactive} />
+        <ActivityIndicator size="small" color={colors.icon.inactive} />
       </View>
     );
   }
@@ -61,7 +64,7 @@ export function WalletButton({ onPress }: WalletButtonProps) {
       activeOpacity={0.7}
     >
       {/* Ícone da Carteira */}
-      <Ionicons name="wallet-outline" size={16} color={COLORS.secondary.main} />
+      <Ionicons name="wallet-outline" size={16} color={colors.secondary.main} />
 
       {/* Saldo */}
       <View style={styles.balanceContainer}>
@@ -97,14 +100,14 @@ export function WalletButton({ onPress }: WalletButtonProps) {
         <Ionicons
           name={isBalanceVisible ? 'eye-off-outline' : 'eye-outline'}
           size={16}
-          color={COLORS.secondary.main}
+          color={colors.secondary.main}
         />
       </TouchableOpacity>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -112,8 +115,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
-    backgroundColor: COLORS.background.paper,
+    borderColor: c.border.light,
+    backgroundColor: c.background.paper,
     gap: 6,
     minWidth: 120,
   },
@@ -126,18 +129,18 @@ const styles = StyleSheet.create({
   currency: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   currencyVisible: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   amount: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   amountVisible: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   eyeButton: {
     padding: 4,

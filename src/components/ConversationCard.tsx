@@ -10,7 +10,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
-import { COLORS } from '../theme/colors';
+import { useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { Avatar } from './Avatar';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
@@ -54,6 +55,7 @@ export function ConversationCard({
   onOptionsPress,
   currentUserId,
 }: ConversationCardProps) {
+  const styles = useThemedStyles(createStyles);
   const swipeableRef = React.useRef<SwipeableMethods>(null);
 
   const handleAvatarPress = () => {
@@ -188,14 +190,14 @@ export function ConversationCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   avatarContainer: {
     position: 'relative',
@@ -210,7 +212,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: '#10b981',
     borderWidth: 2,
-    borderColor: COLORS.background.paper,
+    borderColor: c.background.paper,
   },
   info: {
     flex: 1,
@@ -224,12 +226,12 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
   },
   time: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     marginLeft: 8,
   },
   bottomRow: {
@@ -239,15 +241,15 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     flex: 1,
   },
   unreadMessage: {
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   badge: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -272,10 +274,10 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   optionsAction: {
-    backgroundColor: COLORS.text.tertiary,
+    backgroundColor: c.text.tertiary,
   },
   deleteAction: {
-    backgroundColor: COLORS.states.error,
+    backgroundColor: c.states.error,
   },
   actionText: {
     color: '#fff',

@@ -28,7 +28,8 @@ import {
   resolveDefaultPromotionProductId,
   sortPromotionProductsByNewest,
 } from '../../lib/shops/marketplace-slider/default-promotion-product'
-import { COLORS } from '../../theme/colors'
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext'
+import type { AppPalette } from '../../theme/palettes'
 
 type OwnerProduct = {
   _id: string
@@ -55,6 +56,8 @@ export function ShopPromotionModal({
   onSuccess,
   initialProductId,
 }: ShopPromotionModalProps) {
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   const navigation = useNavigation<any>()
   const { user, refreshUser } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -185,7 +188,7 @@ export function ShopPromotionModal({
         keyboardShouldPersistTaps="handled"
       >
         {loading ? (
-          <ActivityIndicator color={COLORS.secondary.main} style={{ marginVertical: 24 }} />
+          <ActivityIndicator color={colors.secondary.main} style={{ marginVertical: 24 }} />
         ) : products.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.warning}>
@@ -233,7 +236,7 @@ export function ShopPromotionModal({
                   value={scheduledStartAt}
                   onChangeText={setScheduledStartAt}
                   placeholder="2026-06-18T14:00"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   autoCapitalize="none"
                 />
               </View>
@@ -247,7 +250,7 @@ export function ShopPromotionModal({
                   value={promotionCoverUrl}
                   onChangeText={setPromotionCoverUrl}
                   placeholder="https://"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   autoCapitalize="none"
                 />
               </View>
@@ -285,7 +288,7 @@ export function ShopPromotionModal({
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingTop: 4,
@@ -294,7 +297,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   scroll: {
     maxHeight: 420,
@@ -311,21 +314,21 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.background.paper,
+    color: c.text.primary,
+    backgroundColor: c.background.paper,
   },
   warning: {
     fontSize: 14,
-    color: COLORS.states.warning,
+    color: c.states.warning,
     textAlign: 'center',
   },
   emptyState: {
@@ -339,27 +342,27 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   costBox: {
     marginTop: 4,
     padding: 12,
     borderRadius: 10,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     gap: 4,
   },
   costLabel: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   costValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   balance: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   footer: {
     flexDirection: 'row',

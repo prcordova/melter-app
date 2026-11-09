@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import type { SellerShopPlanGateInfo } from './SellerShopPlanRequiredStep';
 import { api } from '../../services/http-client';
 import {
@@ -21,6 +22,8 @@ type Props = {
 };
 
 export function SellerShopPlanPendingAlert({ gate, onGoToPlans }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const planLabel = formatPlanLabel(gate.minPlanToCreateShop);
   const [offerMode, setOfferMode] = useState<PlatformPlanOfferMode>('MONEY_BACK');
   const [offerDays, setOfferDays] = useState(DEFAULT_PLATFORM_PLAN_OFFER_DAYS);
@@ -76,7 +79,7 @@ export function SellerShopPlanPendingAlert({ gate, onGoToPlans }: Props) {
 
   return (
     <View style={styles.banner}>
-      <Ionicons name="diamond-outline" size={22} color={COLORS.states.warning} />
+      <Ionicons name="diamond-outline" size={22} color={colors.states.warning} />
       <View style={styles.content}>
         <Text style={styles.title}>Ative sua loja e alcance milhares de pessoas</Text>
         <Text style={styles.body}>{bodyOffer}</Text>
@@ -92,7 +95,7 @@ export function SellerShopPlanPendingAlert({ gate, onGoToPlans }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   banner: {
     flexDirection: 'row',
     gap: 12,
@@ -100,8 +103,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.states.warning,
-    backgroundColor: '#FFFBEB',
+    borderColor: c.states.warning,
+    backgroundColor: c.isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
   },
   content: {
     flex: 1,
@@ -110,27 +113,27 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   body: {
     fontSize: 13,
     lineHeight: 18,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   hint: {
     fontSize: 13,
     lineHeight: 18,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   cta: {
     alignSelf: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
   },
   ctaText: {
-    color: '#fff',
+    color: c.primary.contrastText,
     fontSize: 13,
     fontWeight: '600',
   },

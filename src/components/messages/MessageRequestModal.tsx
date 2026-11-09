@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { messageApi } from '../../services/api';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { Button } from '../Button';
 
@@ -34,6 +35,8 @@ export function MessageRequestModal({
   variant = 'outgoing',
   onSent,
 }: MessageRequestModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -107,7 +110,7 @@ export function MessageRequestModal({
             <View style={styles.header}>
               <Text style={styles.title}>Solicitação de mensagem</Text>
               <TouchableOpacity onPress={handleClose} disabled={sending}>
-                <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
 
@@ -118,7 +121,7 @@ export function MessageRequestModal({
               value={content}
               onChangeText={(t) => setContent(t.slice(0, 500))}
               placeholder="Escreva sua mensagem..."
-              placeholderTextColor={COLORS.text.tertiary}
+              placeholderTextColor={colors.text.tertiary}
               multiline
               maxLength={500}
               editable={!sending}
@@ -140,17 +143,17 @@ export function MessageRequestModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   keyboard: {
     width: '100%',
   },
   sheet: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -165,27 +168,27 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
     marginBottom: 16,
   },
   input: {
     minHeight: 100,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 12,
     padding: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlignVertical: 'top',
   },
   helper: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     marginTop: 6,
     marginBottom: 16,
   },

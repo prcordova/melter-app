@@ -17,7 +17,8 @@ import {
   formatRegisterCityLabel,
   isSameRegisterCity,
 } from '../../lib/geo/register-location-match';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 type Props = {
   country: ICountry | null;
@@ -28,6 +29,8 @@ type Props = {
 };
 
 export function RegisterCityPicker({ country, state, value, onChange, disabled }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -57,7 +60,7 @@ export function RegisterCityPicker({ country, state, value, onChange, disabled }
         <Text style={[styles.triggerText, !value && styles.placeholder]} numberOfLines={1}>
           {country ? label : 'Selecione o país primeiro'}
         </Text>
-        <Ionicons name="chevron-down" size={18} color={COLORS.text.secondary} />
+        <Ionicons name="chevron-down" size={18} color={colors.text.secondary} />
       </TouchableOpacity>
 
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
@@ -65,13 +68,13 @@ export function RegisterCityPicker({ country, state, value, onChange, disabled }
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Cidade</Text>
             <TouchableOpacity onPress={() => setOpen(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="close" size={26} color={COLORS.text.primary} />
+              <Ionicons name="close" size={26} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
           <TextInput
             style={styles.search}
             placeholder="Digite para buscar (mín. 2 letras)"
-            placeholderTextColor={COLORS.text.secondary}
+            placeholderTextColor={colors.text.tertiary}
             value={query}
             onChangeText={setQuery}
             autoCapitalize="words"
@@ -98,7 +101,7 @@ export function RegisterCityPicker({ country, state, value, onChange, disabled }
                   }}
                 >
                   <Text style={styles.rowText}>{formatRegisterCityLabel(item)}</Text>
-                  {selected ? <Ionicons name="checkmark" size={20} color={COLORS.primary.main} /> : null}
+                  {selected ? <Ionicons name="checkmark" size={20} color={colors.primary.main} /> : null}
                 </Pressable>
               );
             }}
@@ -109,17 +112,17 @@ export function RegisterCityPicker({ country, state, value, onChange, disabled }
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   triggerDisabled: {
     opacity: 0.6,
@@ -127,15 +130,15 @@ const styles = StyleSheet.create({
   triggerText: {
     flex: 1,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginRight: 8,
   },
   placeholder: {
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   modalRoot: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     paddingTop: 48,
   },
   modalHeader: {
@@ -148,19 +151,19 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   search: {
     marginHorizontal: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.background.paper,
+    color: c.text.primary,
+    backgroundColor: c.background.paper,
   },
   row: {
     flexDirection: 'row',
@@ -169,19 +172,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   rowSelected: {
     backgroundColor: 'rgba(33, 150, 243, 0.08)',
   },
   rowText: {
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
   },
   empty: {
     textAlign: 'center',
     padding: 24,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });

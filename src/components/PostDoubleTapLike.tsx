@@ -8,10 +8,9 @@ import {
   Pressable,
 } from 'react-native'
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg'
-import { COLORS } from '../theme/colors'
+import { useAppTheme } from '../contexts/ThemeContext'
 
 const DOUBLE_TAP_MS = 280
-const GRADIENT = COLORS.gradient.primary // roxo → rosa
 
 type PostDoubleTapLikeProps = {
   children: ReactNode
@@ -22,6 +21,7 @@ type PostDoubleTapLikeProps = {
 }
 
 function GradientHeart({ size, gradientId }: { size: number; gradientId: string }) {
+  const GRADIENT = useAppTheme().colors.gradient.primary // roxo → rosa
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Defs>
@@ -48,6 +48,7 @@ export function PostDoubleTapLike({
   disabled = false,
   style,
 }: PostDoubleTapLikeProps) {
+  const GRADIENT = useAppTheme().colors.gradient.primary
   const reactId = useId().replace(/:/g, '')
   const lastTapRef = useRef(0)
   const singleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)

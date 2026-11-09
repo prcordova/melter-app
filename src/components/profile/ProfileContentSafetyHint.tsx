@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { CustomModal } from '../CustomModal';
 import {
   PROFILE_CONTENT_SAFETY_STRINGS,
@@ -16,6 +17,8 @@ type Props = {
 };
 
 export function ProfileContentSafetyHint({ restrictedForGuests, reasons, style }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [infoVisible, setInfoVisible] = useState(false);
 
   if (!restrictedForGuests) return null;
@@ -33,7 +36,7 @@ export function ProfileContentSafetyHint({ restrictedForGuests, reasons, style }
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={styles.infoButton}
         >
-          <Ionicons name="information-circle-outline" size={18} color={COLORS.text.secondary} />
+          <Ionicons name="information-circle-outline" size={18} color={colors.text.secondary} />
         </TouchableOpacity>
       </View>
 
@@ -48,7 +51,7 @@ export function ProfileContentSafetyHint({ restrictedForGuests, reasons, style }
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -60,7 +63,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     lineHeight: 17,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontStyle: 'italic',
   },
   infoButton: {

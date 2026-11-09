@@ -16,7 +16,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { BackButton } from '../../components/BackButton';
 import { Select, SelectItem } from '../../components/ui/Select';
 import { postsApi } from '../../services/api';
-import { COLORS } from '../../theme/colors';
+import { useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
+import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { showToast } from '../../components/CustomToast';
 import { getImageUrl } from '../../utils/image';
 import { PostAnalyticsCard } from '../../components/analytics/PostAnalyticsCard';
@@ -71,6 +73,8 @@ interface AnalyticsData {
 type SortFilter = 'recent' | 'most-viewed' | 'most-engagement' | 'most-comments' | 'most-reactions';
 
 export function AnalyticsScreen() {
+  const styles = useThemedStyles(createStyles);
+
   const renderAnalyticsSkeleton = () => (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.analyticsSkeletonSummary} />
@@ -217,6 +221,7 @@ export function AnalyticsScreen() {
   if (loading && !analytics) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         {renderAnalyticsSkeleton()}
       </View>
     );
@@ -225,6 +230,7 @@ export function AnalyticsScreen() {
   if (!analytics || analytics.posts.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>Nenhum post encontrado</Text>
           <Text style={styles.emptySubtitle}>
@@ -237,6 +243,7 @@ export function AnalyticsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       <View style={styles.header}>
         <BackButton title="Configurações" />
         <Text style={styles.headerTitle}>📊 Análises</Text>
@@ -277,21 +284,21 @@ export function AnalyticsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     paddingBottom: 12,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     paddingHorizontal: 16,
     paddingTop: 8,
   },
@@ -303,12 +310,12 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   analyticsSkeletonSummary: {
     height: 140,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginBottom: 20,
   },
   analyticsSkeletonFilterRow: {
@@ -321,18 +328,18 @@ const styles = StyleSheet.create({
     width: 80,
     height: 12,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   analyticsSkeletonSelect: {
     width: 180,
     height: 36,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   analyticsSkeletonCard: {
     height: 120,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginBottom: 12,
   },
   scrollContent: {
@@ -382,7 +389,7 @@ const styles = StyleSheet.create({
   postsTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   selectWrapper: {
     minWidth: 220,
@@ -401,17 +408,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   paginationChipActive: {
-    backgroundColor: COLORS.primary.main,
-    borderColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
+    borderColor: c.primary.main,
   },
   paginationChipText: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   paginationChipTextActive: {
     color: '#ffffff',
@@ -425,12 +432,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     textAlign: 'center',
   },
 });

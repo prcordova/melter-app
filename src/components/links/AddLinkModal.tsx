@@ -9,7 +9,8 @@ import {
   Switch,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { ModalBottom } from '../ModalBottom';
 
 interface AddLinkModalProps {
@@ -20,6 +21,8 @@ interface AddLinkModalProps {
 }
 
 export function AddLinkModal({ visible, onClose, onAdd, loading = false }: AddLinkModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [linkData, setLinkData] = useState({
     title: '',
     url: '',
@@ -55,7 +58,7 @@ export function AddLinkModal({ visible, onClose, onAdd, loading = false }: AddLi
           <View style={styles.header}>
             <Text style={styles.title}>Adicionar Link</Text>
             <TouchableOpacity onPress={handleClose} disabled={loading}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -68,7 +71,7 @@ export function AddLinkModal({ visible, onClose, onAdd, loading = false }: AddLi
                 value={linkData.title}
                 onChangeText={(text) => setLinkData((prev) => ({ ...prev, title: text }))}
                 placeholder="Ex: Meu Instagram"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
                 editable={!loading}
               />
             </View>
@@ -80,7 +83,7 @@ export function AddLinkModal({ visible, onClose, onAdd, loading = false }: AddLi
                 value={linkData.url}
                 onChangeText={(text) => setLinkData((prev) => ({ ...prev, url: text }))}
                 placeholder="https://..."
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
                 keyboardType="url"
                 autoCapitalize="none"
                 editable={!loading}
@@ -97,7 +100,7 @@ export function AddLinkModal({ visible, onClose, onAdd, loading = false }: AddLi
               <Switch
                 value={linkData.visible}
                 onValueChange={(value) => setLinkData((prev) => ({ ...prev, visible: value }))}
-                trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+                trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
                 thumbColor="#ffffff"
                 disabled={loading}
               />
@@ -119,7 +122,7 @@ export function AddLinkModal({ visible, onClose, onAdd, loading = false }: AddLi
               disabled={loading || !isValid}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="#ffffff" />
+                <ActivityIndicator size="small" color={colors.primary.contrastText} />
               ) : (
                 <Text style={styles.submitButtonText}>Adicionar</Text>
               )}
@@ -130,9 +133,9 @@ export function AddLinkModal({ visible, onClose, onAdd, loading = false }: AddLi
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   modalContainer: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
   },
   header: {
     flexDirection: 'row',
@@ -140,12 +143,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   content: {
     padding: 16,
@@ -157,16 +160,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   input: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   switchGroup: {
     flexDirection: 'row',
@@ -179,7 +182,7 @@ const styles = StyleSheet.create({
   },
   switchDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
   },
   footer: {
@@ -187,7 +190,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   button: {
     flex: 1,
@@ -197,17 +200,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   submitButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
   },
   submitButtonDisabled: {
     opacity: 0.5,
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
+    color: c.primary.contrastText,
   },
 });
 

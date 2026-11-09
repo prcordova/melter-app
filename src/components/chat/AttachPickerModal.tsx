@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 export type AttachPickerOption = 'photo' | 'document';
 
@@ -21,6 +22,8 @@ interface AttachPickerModalProps {
 
 export function AttachPickerModal({ visible, onClose, onSelect }: AttachPickerModalProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -42,13 +45,13 @@ export function AttachPickerModal({ visible, onClose, onSelect }: AttachPickerMo
             activeOpacity={0.7}
           >
             <View style={[styles.optionIcon, { backgroundColor: 'rgba(182, 51, 133, 0.12)' }]}>
-              <Ionicons name="image-outline" size={24} color={COLORS.secondary.main} />
+              <Ionicons name="image-outline" size={24} color={colors.secondary.main} />
             </View>
             <View style={styles.optionText}>
               <Text style={styles.optionTitle}>Foto</Text>
               <Text style={styles.optionDescription}>Galeria de imagens</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.text.tertiary} />
+            <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -59,14 +62,14 @@ export function AttachPickerModal({ visible, onClose, onSelect }: AttachPickerMo
             }}
             activeOpacity={0.7}
           >
-            <View style={[styles.optionIcon, { backgroundColor: 'rgba(35, 4, 53, 0.08)' }]}>
-              <Ionicons name="document-text-outline" size={24} color={COLORS.primary.main} />
+            <View style={[styles.optionIcon, { backgroundColor: colors.action.selected }]}>
+              <Ionicons name="document-text-outline" size={24} color={colors.primary.main} />
             </View>
             <View style={styles.optionText}>
               <Text style={styles.optionTitle}>Documento</Text>
               <Text style={styles.optionDescription}>PDF, arquivos e outros</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.text.tertiary} />
+            <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
@@ -78,14 +81,14 @@ export function AttachPickerModal({ visible, onClose, onSelect }: AttachPickerMo
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
@@ -96,18 +99,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.border.light,
     marginBottom: 16,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 20,
   },
   option: {
@@ -115,7 +118,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   optionIcon: {
     width: 48,
@@ -131,11 +134,11 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   optionDescription: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
   cancelButton: {
@@ -146,6 +149,6 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });

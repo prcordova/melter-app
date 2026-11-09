@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 const DEFAULT_WATERMARK = require('../../../assets/bgMelter.jpg');
 
@@ -27,6 +28,8 @@ export function MediaUploadPickerRow({
   disabled = false,
   loading = false,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <TouchableOpacity
       style={[styles.container, (disabled || loading) && styles.containerDisabled]}
@@ -43,10 +46,10 @@ export function MediaUploadPickerRow({
         resizeMode="cover"
       >
         {loading ? (
-          <ActivityIndicator size="small" color={COLORS.secondary.main} />
+          <ActivityIndicator size="small" color={colors.secondary.main} />
         ) : (
           <View style={styles.iconColumn} pointerEvents="none">
-            <Ionicons name="images-outline" size={40} color={COLORS.text.primary} style={styles.icon} />
+            <Ionicons name="images-outline" size={40} color={colors.text.primary} style={styles.icon} />
             <Text style={styles.label}>{label}</Text>
           </View>
         )}
@@ -55,14 +58,14 @@ export function MediaUploadPickerRow({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     width: '100%',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     overflow: 'hidden',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     minHeight: 100,
     maxHeight: 128,
     aspectRatio: 21 / 9,
@@ -89,7 +92,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     letterSpacing: 0.3,
   },
 });

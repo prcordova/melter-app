@@ -9,7 +9,8 @@ import {
   Modal,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { subscriptionPlansApi } from '../../services/api';
 import { showToast } from '../CustomToast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -97,6 +98,8 @@ export function ShopSubscriptionPlansSection({
   planIdToOpen,
   onPlanOpened,
 }: ShopSubscriptionPlansSectionProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user, refreshUser } = useAuth();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -219,7 +222,7 @@ export function ShopSubscriptionPlansSection({
   if (loading) {
     return (
       <View style={styles.loadingBox}>
-        <ActivityIndicator color={COLORS.secondary.main} />
+        <ActivityIndicator color={colors.secondary.main} />
       </View>
     );
   }
@@ -284,7 +287,7 @@ export function ShopSubscriptionPlansSection({
                 {selectedPlan?.name}
               </Text>
               <TouchableOpacity onPress={() => setModalOpen(false)} hitSlop={12}>
-                <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+                <Ionicons name="close" size={24} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
 
@@ -362,7 +365,7 @@ export function ShopSubscriptionPlansSection({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   loadingBox: {
     paddingVertical: 24,
     alignItems: 'center',
@@ -374,12 +377,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 6,
   },
   sectionDesc: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 18,
     marginBottom: 14,
   },
@@ -389,27 +392,27 @@ const styles = StyleSheet.create({
   },
   planCard: {
     width: 220,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.background.tertiary,
+    borderColor: c.background.tertiary,
   },
   planName: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     minHeight: 40,
   },
   planPrice: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     marginTop: 4,
   },
   planMeta: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     marginTop: 6,
   },
   activePill: {
@@ -423,7 +426,7 @@ const styles = StyleSheet.create({
   activePillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   planBtn: {
     marginTop: 12,
@@ -431,7 +434,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 10,
     borderRadius: 10,
   },
@@ -442,11 +445,11 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
@@ -462,13 +465,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     paddingRight: 8,
   },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
   },
   chips: {
@@ -481,14 +484,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   chipOn: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   chipText: {
     fontSize: 13,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     fontWeight: '600',
   },
   chipTextOn: {
@@ -499,16 +502,16 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   totalValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   discountNote: {
     fontSize: 12,
-    color: COLORS.states.success,
+    color: c.states.success,
     marginTop: 4,
   },
   row: {
@@ -518,10 +521,10 @@ const styles = StyleSheet.create({
   },
   muted: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   cta: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',

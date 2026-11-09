@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 interface PaymentStatusModalProps {
   visible: boolean;
@@ -19,6 +20,8 @@ interface PaymentStatusModalProps {
 }
 
 export function PaymentStatusModal({ visible, status, onClose }: PaymentStatusModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
 
   if (!status) return null;
@@ -28,7 +31,7 @@ export function PaymentStatusModal({ visible, status, onClose }: PaymentStatusMo
       case 'success':
         return {
           icon: 'checkmark-circle',
-          iconColor: COLORS.states.success,
+          iconColor: colors.states.success,
           title: '✅ Pagamento Aprovado',
           message: 'Seu pagamento foi processado com sucesso!',
           description: 'O saldo foi adicionado à sua carteira.',
@@ -36,7 +39,7 @@ export function PaymentStatusModal({ visible, status, onClose }: PaymentStatusMo
       case 'pending':
         return {
           icon: 'hourglass',
-          iconColor: COLORS.states.warning,
+          iconColor: colors.states.warning,
           title: '⏳ Pagamento Pendente',
           message: 'Aguardando confirmação do pagamento...',
           description: 'Estamos verificando o status do seu pagamento.',
@@ -44,7 +47,7 @@ export function PaymentStatusModal({ visible, status, onClose }: PaymentStatusMo
       case 'cancelled':
         return {
           icon: 'close-circle',
-          iconColor: COLORS.states.error,
+          iconColor: colors.states.error,
           title: '❌ Pagamento Cancelado',
           message: 'O pagamento foi cancelado.',
           description: 'Nenhum valor foi debitado da sua conta.',
@@ -80,7 +83,7 @@ export function PaymentStatusModal({ visible, status, onClose }: PaymentStatusMo
             <Text style={styles.description}>{config.description}</Text>
             {status === 'pending' && (
               <View style={styles.checkingContainer}>
-                <ActivityIndicator size="small" color={COLORS.text.secondary} />
+                <ActivityIndicator size="small" color={colors.text.secondary} />
                 <Text style={styles.checkingText}>Verificando status...</Text>
               </View>
             )}
@@ -94,15 +97,15 @@ export function PaymentStatusModal({ visible, status, onClose }: PaymentStatusMo
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 20,
     padding: 24,
     marginHorizontal: 20,
@@ -121,20 +124,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -146,13 +149,13 @@ const styles = StyleSheet.create({
   },
   checkingText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   closeButton: {
     marginTop: 20,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderRadius: 12,
     alignItems: 'center',
   },

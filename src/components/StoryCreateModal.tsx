@@ -18,7 +18,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { AppVideo, type AppVideoHandle } from './AppVideo';
 import { storiesApi } from '../services/api';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { showToast } from './CustomToast';
 
 const { width, height } = Dimensions.get('window');
@@ -34,6 +35,8 @@ export function StoryCreateModal({
   onClose,
   onStoryCreated,
 }: StoryCreateModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
   const [selectedMediaSize, setSelectedMediaSize] = useState<number | null>(null);
@@ -848,20 +851,20 @@ export function StoryCreateModal({
         <View style={styles.selectionHeader}>
           <Text style={styles.selectionTitle}>Criar Story</Text>
           <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={28} color={COLORS.text.primary} />
+            <Ionicons name="close" size={28} color={colors.text.primary} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.optionsContainer}>
           <TouchableOpacity style={styles.optionCard} onPress={handlePickMedia}>
-            <View style={[styles.iconContainer, { backgroundColor: COLORS.secondary.main }]}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.secondary.main }]}>
               <Ionicons name="images" size={32} color="#ffffff" />
             </View>
             <Text style={styles.optionText}>Galeria</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.optionCard} onPress={handleTakePhoto}>
-            <View style={[styles.iconContainer, { backgroundColor: COLORS.primary.main }]}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.primary.main }]}>
               <Ionicons name="camera" size={32} color="#ffffff" />
             </View>
             <Text style={styles.optionText}>Câmera</Text>
@@ -885,16 +888,16 @@ export function StoryCreateModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
   },
   modalOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   selectionContainer: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -909,7 +912,7 @@ const styles = StyleSheet.create({
   selectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   optionsContainer: {
     flexDirection: 'row',
@@ -930,7 +933,7 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   previewContainer: {
     flex: 1,
@@ -974,7 +977,7 @@ const styles = StyleSheet.create({
   timelineSelected: {
     position: 'absolute',
     height: '100%',
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     borderRadius: 2,
   },
   timelineHandle: {
@@ -992,7 +995,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#ffffff',
     borderWidth: 2,
-    borderColor: COLORS.primary.main,
+    borderColor: c.primary.main,
   },
   previewOverlay: {
     ...StyleSheet.absoluteFill,
@@ -1037,7 +1040,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     justifyContent: 'center',
     alignItems: 'center',
   },

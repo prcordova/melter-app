@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { sellerVerificationApi } from '../../services/api';
 import { SellerDocumentUploadField } from './SellerDocumentUploadField';
@@ -188,6 +189,8 @@ export function SellerVerificationFormModal({
   existingData,
   viewerUsername,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
   const twoColumnPersonal = width >= 400;
   const twoColumnDocs = width >= 480;
@@ -859,7 +862,7 @@ export function SellerVerificationFormModal({
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{modalTitle}</Text>
             <TouchableOpacity onPress={handleClose} disabled={submitting}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -904,7 +907,7 @@ export function SellerVerificationFormModal({
                           <Ionicons
                             name={done ? 'checkmark-circle' : 'ellipse-outline'}
                             size={20}
-                            color={done ? COLORS.states.success : COLORS.states.error}
+                            color={done ? colors.states.success : colors.states.error}
                             style={styles.alertChecklistIcon}
                           />
                           <Text
@@ -944,7 +947,7 @@ export function SellerVerificationFormModal({
                   value={cpf}
                   onChangeText={handleCpfChange}
                   placeholder="000.000.000-00"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   keyboardType="numeric"
                   maxLength={14}
                   editable={canEditField('cpf') && !submitting}
@@ -970,7 +973,7 @@ export function SellerVerificationFormModal({
                     if (canEditField('birthDate')) setBirthDateInput(t);
                   }}
                   placeholder="DD/MM/AAAA"
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                   editable={canEditField('birthDate') && !submitting}
                 />
                 {!canEditField('birthDate') ? (
@@ -1182,7 +1185,7 @@ export function SellerVerificationFormModal({
                 <Text
                   style={[
                     styles.switchLabel,
-                    !canEditField('contentType') && { color: COLORS.text.tertiary },
+                    !canEditField('contentType') && { color: colors.text.tertiary },
                   ]}
                 >
                   Conteúdo adulto (+18)
@@ -1282,17 +1285,17 @@ export function SellerVerificationFormModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   overlayFull: {
     justifyContent: 'flex-start',
   },
   container: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '92%',
@@ -1311,12 +1314,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
     paddingRight: 8,
   },
@@ -1331,19 +1334,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   alertError: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: c.isDark ? 'rgba(220, 38, 38, 0.12)' : '#FEF2F2',
     borderWidth: 1,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
   },
   alertWarning: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: c.isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
     borderWidth: 1,
-    borderColor: COLORS.states.warning,
+    borderColor: c.states.warning,
   },
-  alertTitle: { fontSize: 14, fontWeight: '700', color: COLORS.text.primary },
-  alertBody: { fontSize: 13, color: COLORS.text.primary, lineHeight: 18 },
+  alertTitle: { fontSize: 14, fontWeight: '700', color: c.text.primary },
+  alertBody: { fontSize: 13, color: c.text.primary, lineHeight: 18 },
   alertBodyStrong: { fontWeight: '700' },
-  alertHint: { fontSize: 12, color: COLORS.text.secondary, marginTop: 4 },
+  alertHint: { fontSize: 12, color: c.text.secondary, marginTop: 4 },
   alertChecklistRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1355,32 +1358,32 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 18,
   },
   alertChecklistLabelDone: {
     fontWeight: '500',
-    color: COLORS.states.success,
+    color: c.states.success,
     textDecorationLine: 'line-through',
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 12,
     marginBottom: 8,
   },
-  sectionSubtitle: { fontSize: 11, fontWeight: '400', color: COLORS.text.secondary },
+  sectionSubtitle: { fontSize: 11, fontWeight: '400', color: c.text.secondary },
   videoInstruction: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 17,
     marginBottom: 8,
   },
-  videoInstructionStrong: { fontWeight: '700', color: COLORS.text.primary },
+  videoInstructionStrong: { fontWeight: '700', color: c.text.primary },
   sectionHighlight: {
     borderWidth: 2,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
     borderRadius: 10,
     padding: 8,
     marginBottom: 4,
@@ -1389,34 +1392,34 @@ const styles = StyleSheet.create({
   personalCol: { flexDirection: 'column' },
   fieldHalf: { flex: 1, minWidth: 0 },
   fieldFull: { width: '100%', flex: undefined },
-  label: { fontSize: 13, fontWeight: '600', color: COLORS.text.primary, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: c.text.primary, marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.background.paper,
+    color: c.text.primary,
+    backgroundColor: c.background.paper,
   },
   inputDisabled: {
-    backgroundColor: COLORS.background.tertiary,
-    color: COLORS.text.secondary,
+    backgroundColor: c.background.tertiary,
+    color: c.text.secondary,
   },
   inputBirthDateError: {
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
     borderWidth: 2,
   },
   readonlyValue: { paddingVertical: 12 },
-  fieldHint: { fontSize: 11, color: COLORS.text.secondary, marginTop: 4 },
-  fieldHintError: { fontSize: 11, color: COLORS.states.error, marginTop: 4, fontWeight: '600' },
+  fieldHint: { fontSize: 11, color: c.text.secondary, marginTop: 4 },
+  fieldHintError: { fontSize: 11, color: c.states.error, marginTop: 4, fontWeight: '600' },
   docsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   docsCol: { flexDirection: 'column' },
   docHalf: { width: '48%', minWidth: 0, flexGrow: 1 },
   selfieSpan: { width: '100%' },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  switchLabel: { flex: 1, fontSize: 13, color: COLORS.text.primary, lineHeight: 18 },
+  switchLabel: { flex: 1, fontSize: 13, color: c.text.primary, lineHeight: 18 },
   termsDisabled: { opacity: 1 },
   footer: {
     flexDirection: 'row',
@@ -1424,7 +1427,7 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   footerColumn: {
     flexDirection: 'column',
@@ -1449,12 +1452,12 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   cancelBtn: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
-  cancelBtnText: { fontSize: 15, fontWeight: '600', color: COLORS.text.primary },
-  submitBtn: { backgroundColor: COLORS.secondary.main },
+  cancelBtnText: { fontSize: 15, fontWeight: '600', color: c.text.primary },
+  submitBtn: { backgroundColor: c.secondary.main },
   submitDisabled: { opacity: 0.6 },
   submitBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
 });

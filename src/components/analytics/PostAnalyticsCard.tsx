@@ -8,7 +8,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { getImageUrl } from '../../utils/image';
 import { stripRichTextMarkup } from '../../lib/rich-text';
 
@@ -47,6 +48,8 @@ interface PostAnalyticsCardProps {
 }
 
 export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -103,17 +106,17 @@ export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
       {/* Header: Data e Visibilidade */}
       <View style={styles.cardHeader}>
         <View style={styles.headerLeft}>
-          <Ionicons name="calendar-outline" size={14} color={COLORS.text.secondary} />
+          <Ionicons name="calendar-outline" size={14} color={colors.text.secondary} />
           <Text style={styles.headerDate}>{formatDateTime(post.createdAt)}</Text>
         </View>
         <View style={styles.headerRight}>
           <View style={styles.visibilityChip}>
-            <Ionicons name={visibilityInfo.icon as any} size={14} color={COLORS.text.secondary} />
+            <Ionicons name={visibilityInfo.icon as any} size={14} color={colors.text.secondary} />
             <Text style={styles.visibilityText}>{visibilityInfo.label}</Text>
           </View>
           {post.reach > 0 && (
             <View style={styles.reachChip}>
-              <Ionicons name="pulse-outline" size={14} color={COLORS.states.info} />
+              <Ionicons name="pulse-outline" size={14} color={colors.states.info} />
               <Text style={styles.reachText}>Alcance: {post.reach.toLocaleString()}</Text>
             </View>
           )}
@@ -140,8 +143,8 @@ export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
         <View style={styles.metricsContainer}>
           <View style={styles.metricRow}>
             <View style={styles.metricItem}>
-              <View style={[styles.metricIconContainer, { backgroundColor: COLORS.primary.main + '20' }]}>
-                <Ionicons name="eye-outline" size={18} color={COLORS.primary.main} />
+              <View style={[styles.metricIconContainer, { backgroundColor: colors.primary.main + '20' }]}>
+                <Ionicons name="eye-outline" size={18} color={colors.primary.main} />
               </View>
               <View style={styles.metricContent}>
                 <Text style={styles.metricValue}>{post.viewsCount.toLocaleString()}</Text>
@@ -150,8 +153,8 @@ export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
             </View>
 
             <View style={styles.metricItem}>
-              <View style={[styles.metricIconContainer, { backgroundColor: COLORS.states.info + '20' }]}>
-                <Ionicons name="chatbubble-outline" size={18} color={COLORS.states.info} />
+              <View style={[styles.metricIconContainer, { backgroundColor: colors.states.info + '20' }]}>
+                <Ionicons name="chatbubble-outline" size={18} color={colors.states.info} />
               </View>
               <View style={styles.metricContent}>
                 <Text style={styles.metricValue}>{post.commentsCount.toLocaleString()}</Text>
@@ -162,8 +165,8 @@ export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
 
           <View style={styles.metricRow}>
             <View style={styles.metricItem}>
-              <View style={[styles.metricIconContainer, { backgroundColor: COLORS.states.success + '20' }]}>
-                <Ionicons name="person-add-outline" size={18} color={COLORS.states.success} />
+              <View style={[styles.metricIconContainer, { backgroundColor: colors.states.success + '20' }]}>
+                <Ionicons name="person-add-outline" size={18} color={colors.states.success} />
               </View>
               <View style={styles.metricContent}>
                 <Text style={styles.metricValue}>{post.newFollowers.toLocaleString()}</Text>
@@ -172,8 +175,8 @@ export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
             </View>
 
             <View style={styles.metricItem}>
-              <View style={[styles.metricIconContainer, { backgroundColor: COLORS.states.warning + '20' }]}>
-                <Ionicons name="trending-up-outline" size={18} color={COLORS.states.warning} />
+              <View style={[styles.metricIconContainer, { backgroundColor: colors.states.warning + '20' }]}>
+                <Ionicons name="trending-up-outline" size={18} color={colors.states.warning} />
               </View>
               <View style={styles.metricContent}>
                 <Text style={styles.metricValue}>
@@ -214,7 +217,7 @@ export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
               onPress={() => onPromote?.(post._id)}
               activeOpacity={0.7}
             >
-              <Ionicons name="rocket-outline" size={18} color={COLORS.states.warning} />
+              <Ionicons name="rocket-outline" size={18} color={colors.states.warning} />
               <Text style={styles.promoteButtonText}>🚀 Promover</Text>
             </TouchableOpacity>
           )}
@@ -224,21 +227,21 @@ export function PostAnalyticsCard({ post, onPromote }: PostAnalyticsCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     position: 'relative',
   },
   promotionBadge: {
     position: 'absolute',
     top: -12,
     right: 16,
-    backgroundColor: COLORS.states.success,
+    backgroundColor: c.states.success,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
@@ -259,7 +262,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -268,7 +271,7 @@ const styles = StyleSheet.create({
   },
   headerDate: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '500',
   },
   headerRight: {
@@ -284,11 +287,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   visibilityText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '500',
   },
   reachChip: {
@@ -298,11 +301,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: COLORS.states.info + '15',
+    backgroundColor: c.states.info + '15',
   },
   reachText: {
     fontSize: 12,
-    color: COLORS.states.info,
+    color: c.states.info,
     fontWeight: '500',
   },
   content: {
@@ -316,14 +319,14 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   postTextContainer: {
     flex: 1,
   },
   postText: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 20,
   },
   metricsContainer: {
@@ -338,7 +341,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     padding: 12,
     borderRadius: 8,
   },
@@ -355,12 +358,12 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 2,
   },
   metricLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   promotionSection: {
     marginTop: 4,
@@ -376,26 +379,26 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   progressText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: COLORS.border.light,
+    backgroundColor: c.border.light,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     borderRadius: 4,
   },
   progressFooter: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   promoteButton: {
     flexDirection: 'row',
@@ -404,13 +407,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.states.warning,
+    borderColor: c.states.warning,
     gap: 8,
   },
   promoteButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.warning,
+    color: c.states.warning,
   },
 });
 

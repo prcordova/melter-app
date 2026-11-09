@@ -15,7 +15,9 @@ import { BackButton } from '../components/BackButton';
 import { authApi } from '../services/api';
 import { showToast } from '../components/CustomToast';
 import { AxiosError } from 'axios';
-import { COLORS } from '../theme/colors';
+import { useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
+import { ThemedStatusBar } from '../components/ThemedStatusBar';
 
 type AuthStackParamList = {
   VerifyEmail: {
@@ -24,6 +26,7 @@ type AuthStackParamList = {
 };
 
 export function VerifyEmailScreen() {
+  const styles = useThemedStyles(createStyles);
   const navigation = useNavigation();
   const route = useRoute<RouteProp<AuthStackParamList, 'VerifyEmail'>>();
   const [email, setEmail] = useState(route.params?.email || '');
@@ -137,6 +140,7 @@ export function VerifyEmailScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <ThemedStatusBar />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -224,10 +228,10 @@ export function VerifyEmailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: c.background.default,
   },
   scrollContent: {
     flexGrow: 1,
@@ -247,7 +251,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   formCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 32,
     shadowColor: '#000',
@@ -259,38 +263,38 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#d946ef',
+    color: c.secondary.light,
     textAlign: 'center',
     marginBottom: 8,
   },
   formTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#1e293b',
+    color: c.text.primary,
     textAlign: 'center',
     marginBottom: 16,
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
   },
   infoContainer: {
-    backgroundColor: COLORS.primary.light + '20',
+    backgroundColor: c.primary.light + '20',
     padding: 12,
     borderRadius: 8,
     marginBottom: 24,
   },
   infoText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 18,
   },
   infoBold: {
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   form: {
     gap: 16,
@@ -313,14 +317,14 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+    borderTopColor: c.border.medium,
   },
   loginText: {
-    color: '#64748b',
+    color: c.text.secondary,
     fontSize: 14,
   },
   loginLink: {
-    color: '#d946ef',
+    color: c.secondary.light,
     fontSize: 14,
     fontWeight: 'bold',
   },

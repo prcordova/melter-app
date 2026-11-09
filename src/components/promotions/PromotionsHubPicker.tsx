@@ -1,7 +1,8 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import Ionicons from '@expo/vector-icons/Ionicons'
-import { COLORS } from '../../theme/colors'
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext'
+import type { AppPalette } from '../../theme/palettes'
 
 export type PromotionsHubSection = 'ads' | 'shop'
 
@@ -11,6 +12,7 @@ type PromotionsHubPickerProps = {
 }
 
 export function PromotionsHubPicker({ section, onChange }: PromotionsHubPickerProps) {
+  const styles = useThemedStyles(createStyles)
   return (
     <View style={styles.row}>
       <HubCard
@@ -44,6 +46,8 @@ function HubCard({
   selected: boolean
   onPress: () => void
 }) {
+  const { colors } = useAppTheme()
+  const styles = useThemedStyles(createStyles)
   return (
     <TouchableOpacity
       style={[styles.card, selected && styles.cardSelected]}
@@ -53,7 +57,7 @@ function HubCard({
       <Ionicons
         name={icon}
         size={22}
-        color={selected ? COLORS.secondary.main : COLORS.text.secondary}
+        color={selected ? colors.secondary.main : colors.text.secondary}
       />
       <Text style={[styles.cardTitle, selected && styles.cardTitleSelected]}>{title}</Text>
       <Text style={styles.cardDescription} numberOfLines={2}>
@@ -63,7 +67,7 @@ function HubCard({
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 10,
@@ -74,25 +78,25 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
-    backgroundColor: COLORS.background.paper,
+    borderColor: c.border.light,
+    backgroundColor: c.background.paper,
     gap: 4,
   },
   cardSelected: {
-    borderColor: COLORS.secondary.main,
-    backgroundColor: `${COLORS.secondary.main}10`,
+    borderColor: c.secondary.main,
+    backgroundColor: `${c.secondary.main}10`,
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   cardTitleSelected: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   cardDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 16,
   },
 })

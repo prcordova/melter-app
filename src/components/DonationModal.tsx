@@ -15,7 +15,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { walletApi } from '../services/api';
-import { COLORS } from '../theme/colors';
+import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
+import type { AppPalette } from '../theme/palettes';
 import { showToast } from './CustomToast';
 
 const QUICK_AMOUNTS = [5, 10, 20, 50, 100] as const;
@@ -29,6 +30,8 @@ type Props = {
 };
 
 export function DonationModal({ visible, onClose, recipientUsername, onSuccess }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
@@ -124,11 +127,11 @@ export function DonationModal({ visible, onClose, recipientUsername, onSuccess }
           <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.header}>
               <View style={styles.titleRow}>
-                <Ionicons name="heart" size={22} color={COLORS.secondary.main} />
+                <Ionicons name="heart" size={22} color={colors.secondary.main} />
                 <Text style={styles.title}>Doação</Text>
               </View>
               <TouchableOpacity onPress={handleClose} disabled={submitting} hitSlop={12}>
-                <Ionicons name="close" size={26} color={COLORS.text.secondary} />
+                <Ionicons name="close" size={26} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
 
@@ -141,7 +144,7 @@ export function DonationModal({ visible, onClose, recipientUsername, onSuccess }
               <View style={styles.balanceRow}>
                 <Text style={styles.muted}>Saldo disponível</Text>
                 {loadingMeta ? (
-                  <ActivityIndicator size="small" color={COLORS.secondary.main} />
+                  <ActivityIndicator size="small" color={colors.secondary.main} />
                 ) : (
                   <Text style={styles.balanceValue}>R$ {currentBalance.toFixed(2)}</Text>
                 )}
@@ -153,7 +156,7 @@ export function DonationModal({ visible, onClose, recipientUsername, onSuccess }
                 value={amount}
                 onChangeText={handleAmountChange}
                 placeholder="0,00"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
                 keyboardType="decimal-pad"
                 editable={!submitting}
               />
@@ -196,7 +199,7 @@ export function DonationModal({ visible, onClose, recipientUsername, onSuccess }
                 value={message}
                 onChangeText={(t) => setMessage(t.slice(0, 200))}
                 placeholder="Deixe uma mensagem..."
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
                 multiline
                 numberOfLines={3}
                 maxLength={200}
@@ -228,17 +231,17 @@ export function DonationModal({ visible, onClose, recipientUsername, onSuccess }
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   keyboard: {
     width: '100%',
   },
   sheet: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
@@ -259,10 +262,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   recipientBox: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
@@ -270,12 +273,12 @@ const styles = StyleSheet.create({
   },
   recipientLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   recipientUser: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 4,
   },
   balanceRow: {
@@ -285,38 +288,38 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     marginBottom: 16,
   },
   muted: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   balanceValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 6,
   },
   helper: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.background.paper,
+    color: c.text.primary,
+    backgroundColor: c.background.paper,
   },
   textArea: {
     minHeight: 88,
@@ -324,7 +327,7 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 11,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     alignSelf: 'flex-end',
     marginTop: 4,
   },
@@ -339,7 +342,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
   },
   quickChipDisabled: {
     opacity: 0.35,
@@ -347,18 +350,18 @@ const styles = StyleSheet.create({
   quickChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   quickChipTextDisabled: {
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   feeBox: {
     marginTop: 12,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#eff6ff',
+    backgroundColor: c.background.tertiary,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: c.border.medium,
   },
   feeLine: {
     flexDirection: 'row',
@@ -369,23 +372,23 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#cbd5e1',
+    borderTopColor: c.border.dark,
     marginBottom: 0,
   },
   feeStrong: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   feeDeduction: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   feeNet: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   actions: {
     flexDirection: 'row',
@@ -399,19 +402,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   btnGhostText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   btnPrimary: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   btnPrimaryDisabled: {
     opacity: 0.5,

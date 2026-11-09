@@ -20,7 +20,9 @@ import { BackButton } from '../../components/BackButton';
 import { Select, SelectItem } from '../../components/ui/Select';
 import { adsApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
+import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { showToast } from '../../components/CustomToast';
 import { FIXED_CATEGORIES } from '../../constants/categories';
 import { getImageUrl } from '../../utils/image';
@@ -73,6 +75,8 @@ type AdStatus = 'ACTIVE' | 'INACTIVE' | 'PAUSED';
 type ActiveTab = 0 | 1; // 0 = Campanhas, 1 = Histórico
 
 export function PromotionsScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const route = useRoute<RouteProp<{ PromotionsSettings: PromotionsScreenParams }, 'PromotionsSettings'>>();
   const routeHubSection = route.params?.hubSection;
   const routeOpenCreate = route.params?.openCreate === true;
@@ -104,7 +108,7 @@ export function PromotionsScreen() {
         ))}
       </View>
     ),
-    []
+    [styles]
   );
 
   const insets = useSafeAreaInsets();
@@ -330,6 +334,7 @@ export function PromotionsScreen() {
   if (loading && hubSection === 'ads' && ads.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {renderPromotionsSkeleton}
         </ScrollView>
@@ -339,6 +344,7 @@ export function PromotionsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       <View style={styles.header}>
         <BackButton title="Perfil" />
         <View style={styles.headerContent}>
@@ -419,7 +425,7 @@ export function PromotionsScreen() {
                 placeholder="Buscar por título ou descrição..."
                 value={searchTerm}
                 onChangeText={setSearchTerm}
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
               />
               
               <View style={styles.filterRow}>
@@ -524,9 +530,9 @@ export function PromotionsScreen() {
                           <View style={styles.statusChip}>
                             <Text style={[
                               styles.statusChipText,
-                              { color: ad.pendingApproval ? COLORS.states.warning : 
-                                      ad.status === 'ACTIVE' ? COLORS.states.success :
-                                      COLORS.text.secondary }
+                              { color: ad.pendingApproval ? colors.states.warning : 
+                                      ad.status === 'ACTIVE' ? colors.states.success :
+                                      colors.text.secondary }
                             ]}>
                               {ad.pendingApproval ? 'Pendente' :
                                ad.status === 'ACTIVE' ? 'Ativo' :
@@ -555,12 +561,12 @@ export function PromotionsScreen() {
                       {/* Métricas */}
                       <View style={styles.metricsGrid}>
                         <View style={styles.metricItem}>
-                          <Ionicons name="eye-outline" size={16} color={COLORS.text.secondary} />
+                          <Ionicons name="eye-outline" size={16} color={colors.text.secondary} />
                           <Text style={styles.metricValue}>{ad.views}</Text>
                           <Text style={styles.metricLabel}>Visualizações</Text>
                         </View>
                         <View style={styles.metricItem}>
-                          <Ionicons name="hand-left-outline" size={16} color={COLORS.text.secondary} />
+                          <Ionicons name="hand-left-outline" size={16} color={colors.text.secondary} />
                           <Text style={styles.metricValue}>{ad.clicks}</Text>
                           <Text style={styles.metricLabel}>Cliques</Text>
                         </View>
@@ -589,7 +595,7 @@ export function PromotionsScreen() {
                               setExtendDialogOpen(true);
                             }}
                           >
-                            <Ionicons name="time-outline" size={18} color={COLORS.primary.main} />
+                            <Ionicons name="time-outline" size={18} color={colors.primary.main} />
                           </TouchableOpacity>
                         )}
                         {ad.status === 'INACTIVE' && !ad.pendingApproval && (
@@ -600,7 +606,7 @@ export function PromotionsScreen() {
                               showToast.info('Em breve', 'Funcionalidade de reativar em desenvolvimento');
                             }}
                           >
-                            <Ionicons name="refresh-outline" size={18} color={COLORS.states.success} />
+                            <Ionicons name="refresh-outline" size={18} color={colors.states.success} />
                           </TouchableOpacity>
                         )}
                         <TouchableOpacity
@@ -610,7 +616,7 @@ export function PromotionsScreen() {
                             setDeleteDialogOpen(true);
                           }}
                         >
-                          <Ionicons name="trash-outline" size={18} color={COLORS.states.error} />
+                          <Ionicons name="trash-outline" size={18} color={colors.states.error} />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -646,7 +652,7 @@ export function PromotionsScreen() {
                     onPress={() => setClearHistoryDialogOpen(true)}
                     disabled={clearingHistory}
                   >
-                    <Ionicons name="trash-outline" size={18} color={COLORS.states.error} />
+                    <Ionicons name="trash-outline" size={18} color={colors.states.error} />
                     <Text style={styles.clearHistoryText}>Limpar Histórico</Text>
                   </TouchableOpacity>
                 </View>
@@ -677,15 +683,15 @@ export function PromotionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     paddingBottom: 12,
   },
   hubPickerWrap: {
@@ -710,13 +716,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -728,9 +734,9 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   tab: {
     flex: 1,
@@ -739,15 +745,15 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: COLORS.secondary.main,
+    borderBottomColor: c.secondary.main,
   },
   tabText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   activeTabText: {
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   scrollContent: {
     padding: 16,
@@ -762,7 +768,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   skeletonWrapper: {
     gap: 12,
@@ -770,7 +776,7 @@ const styles = StyleSheet.create({
   skeletonFilter: {
     height: 42,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   skeletonFilterRow: {
     flexDirection: 'row',
@@ -780,14 +786,14 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   skeletonCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     gap: 10,
   },
   skeletonHeaderRow: {
@@ -798,7 +804,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   skeletonHeaderContent: {
     flex: 1,
@@ -809,13 +815,13 @@ const styles = StyleSheet.create({
     width: '72%',
     height: 12,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   skeletonLineSecondary: {
     width: '44%',
     height: 10,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   skeletonMetricsRow: {
     flexDirection: 'row',
@@ -825,7 +831,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 30,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   historySkeletonWrapper: {
     gap: 10,
@@ -833,21 +839,21 @@ const styles = StyleSheet.create({
   historySkeletonItem: {
     height: 56,
     borderRadius: 10,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   filtersContainer: {
     gap: 12,
     marginBottom: 16,
   },
   searchInput: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   filterRow: {
     flexDirection: 'row',
@@ -862,21 +868,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   clearFiltersText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   adsList: {
     gap: 16,
   },
   adCard: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     gap: 12,
   },
   adCardHeader: {
@@ -887,7 +893,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   adCardInfo: {
     flex: 1,
@@ -896,14 +902,14 @@ const styles = StyleSheet.create({
   adTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   statusChip: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   statusChipText: {
     fontSize: 12,
@@ -919,15 +925,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   categoryChipText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   noCategoryText: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -943,11 +949,11 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   metricLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -957,7 +963,7 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   emptyContainer: {
     padding: 32,
@@ -965,7 +971,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   clearHistoryContainer: {
@@ -980,16 +986,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.states.error,
+    borderColor: c.states.error,
   },
   clearHistoryText: {
     fontSize: 14,
-    color: COLORS.states.error,
+    color: c.states.error,
     fontWeight: '600',
   },
   comingSoonText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     padding: 32,
   },

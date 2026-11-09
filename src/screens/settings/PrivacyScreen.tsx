@@ -11,7 +11,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { BackButton } from '../../components/BackButton';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
+import { ThemedStatusBar } from '../../components/ThemedStatusBar';
 import { userApi } from '../../services/api';
 import { showToast } from '../../components/CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -29,6 +31,9 @@ interface BlockedUser {
 }
 
 export function PrivacyScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
   const renderPrivacySkeleton = () => (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.privacySkeletonDescription} />
@@ -110,6 +115,7 @@ export function PrivacyScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ThemedStatusBar />
         <View style={styles.header}>
           <BackButton title="Configurações" />
           <View style={styles.headerContent}>
@@ -123,6 +129,7 @@ export function PrivacyScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ThemedStatusBar />
       <View style={styles.header}>
         <BackButton title="Configurações" />
         <View style={styles.headerContent}>
@@ -140,7 +147,7 @@ export function PrivacyScreen() {
 
         {blockedUsers.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="person-off-outline" size={64} color={COLORS.text.tertiary} />
+            <Ionicons name="person-off-outline" size={64} color={colors.text.tertiary} />
             <Text style={styles.emptyTitle}>Nenhum usuário bloqueado</Text>
             <Text style={styles.emptyDescription}>
               Você ainda não bloqueou nenhum usuário. Quando bloquear alguém, eles aparecerão aqui.
@@ -185,15 +192,15 @@ export function PrivacyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   header: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     paddingBottom: 12,
   },
   headerContent: {
@@ -203,7 +210,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -213,23 +220,23 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   privacySkeletonDescription: {
     width: '100%',
     height: 44,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     marginBottom: 20,
   },
   privacySkeletonCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     gap: 12,
     marginBottom: 12,
   },
@@ -237,7 +244,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   privacySkeletonContent: {
     flex: 1,
@@ -247,20 +254,20 @@ const styles = StyleSheet.create({
     width: '52%',
     height: 10,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   privacySkeletonLineSecondary: {
     width: '75%',
     height: 9,
     borderRadius: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   scrollContent: {
     padding: 16,
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 24,
     lineHeight: 20,
   },
@@ -273,11 +280,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   emptyDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     paddingHorizontal: 32,
     lineHeight: 20,
@@ -289,11 +296,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     gap: 12,
   },
   userInfo: {
@@ -308,12 +315,12 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   blockedDate: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   unblockButton: {
     minWidth: 100,

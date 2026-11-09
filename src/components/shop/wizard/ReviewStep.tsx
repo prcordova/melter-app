@@ -7,7 +7,8 @@ import {
   ScrollView,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext';
+import type { AppPalette } from '../../../theme/palettes';
 
 interface ReviewStepProps {
   formData: any;
@@ -16,6 +17,8 @@ interface ReviewStepProps {
 }
 
 export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewStepProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   // Garantir que contentValidations existe
   const contentValidations = formData.contentValidations || {
     readTerms: false,
@@ -196,37 +199,37 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
         {/* Lista de Validações */}
         <View style={styles.validationsList}>
           <View style={styles.validationListItem}>
-            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="checkmark-circle-outline" size={16} color={colors.text.secondary} />
             <Text style={styles.validationListItemText}>
               Li e aceito os Termos de Uso
             </Text>
           </View>
           <View style={styles.validationListItem}>
-            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="checkmark-circle-outline" size={16} color={colors.text.secondary} />
             <Text style={styles.validationListItemText}>
               Sou o proprietário legítimo deste conteúdo
             </Text>
           </View>
           <View style={styles.validationListItem}>
-            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="checkmark-circle-outline" size={16} color={colors.text.secondary} />
             <Text style={styles.validationListItemText}>
               O conteúdo não é de terceiros
             </Text>
           </View>
           <View style={styles.validationListItem}>
-            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="checkmark-circle-outline" size={16} color={colors.text.secondary} />
             <Text style={styles.validationListItemText}>
               Não contém violência ou conteúdo violento
             </Text>
           </View>
           <View style={styles.validationListItem}>
-            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="checkmark-circle-outline" size={16} color={colors.text.secondary} />
             <Text style={styles.validationListItemText}>
               Não contém discurso de ódio
             </Text>
           </View>
           <View style={styles.validationListItem}>
-            <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="checkmark-circle-outline" size={16} color={colors.text.secondary} />
             <Text style={styles.validationListItemText}>
               Não contém spam ou conteúdo enganoso
             </Text>
@@ -255,10 +258,10 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
             value={allValidationsChecked}
             onValueChange={handleAcceptAll}
             trackColor={{
-              false: COLORS.border.medium,
-              true: COLORS.secondary.main,
+              false: colors.border.medium,
+              true: colors.secondary.main,
             }}
-            thumbColor={allValidationsChecked ? '#ffffff' : COLORS.text.tertiary}
+            thumbColor={allValidationsChecked ? '#ffffff' : colors.text.tertiary}
           />
         </View>
 
@@ -275,7 +278,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -286,12 +289,12 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   pageSubtitle: {
     fontSize: 14,
     lineHeight: 20,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   section: {
     marginBottom: 24,
@@ -299,7 +302,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 16,
   },
   summaryGrid: {
@@ -310,16 +313,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   summaryLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   summaryValue: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
     textAlign: 'right',
   },
@@ -330,24 +333,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   chip: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 16,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   chipActive: {
-    borderColor: COLORS.border.medium,
-    backgroundColor: COLORS.background.paper,
+    borderColor: c.border.medium,
+    backgroundColor: c.background.paper,
   },
   chipText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     fontWeight: '600',
   },
   chipTextActive: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   contentList: {
     marginTop: 12,
@@ -355,7 +358,7 @@ const styles = StyleSheet.create({
   contentListTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   contentItem: {
@@ -364,13 +367,13 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   contentBullet: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.text.tertiary,
+    backgroundColor: c.text.tertiary,
     marginTop: 6,
   },
   contentItemText: {
@@ -379,36 +382,36 @@ const styles = StyleSheet.create({
   contentItemTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   contentItemSubtitle: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 2,
   },
   infoBox: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   infoText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   warningBox: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   warningText: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     fontWeight: '600',
   },
   validationsList: {
@@ -423,22 +426,22 @@ const styles = StyleSheet.create({
   },
   validationListItemText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     flex: 1,
   },
   validationItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   validationItemError: {
-    borderColor: COLORS.states.error,
-    backgroundColor: COLORS.states.error + '10',
+    borderColor: c.states.error,
+    backgroundColor: c.states.error + '10',
   },
   validationContent: {
     flex: 1,
@@ -447,24 +450,24 @@ const styles = StyleSheet.create({
   validationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   validationDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   finalWarningBox: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   finalWarningText: {
     fontSize: 11,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 16,
   },
   finalWarningBold: {

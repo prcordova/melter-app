@@ -14,7 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { adsApi } from '../../services/api';
 import { FIXED_CATEGORIES } from '../../constants/categories';
@@ -39,6 +40,8 @@ export function CreateAdModal({
   reactivatingAd,
   campaignConfig,
 }: CreateAdModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const { user, refreshUser } = useAuth();
   
@@ -395,7 +398,7 @@ export function CreateAdModal({
               {reactivatingAd ? 'Reativar Campanha' : 'Criar Anúncio'}
             </Text>
             <TouchableOpacity onPress={onClose} disabled={saving}>
-              <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -447,7 +450,7 @@ export function CreateAdModal({
                   value={mediaUrl}
                   onChangeText={setMediaUrl}
                   placeholder="https://..."
-                  placeholderTextColor={COLORS.text.tertiary}
+                  placeholderTextColor={colors.text.tertiary}
                 />
               </View>
             )}
@@ -460,7 +463,7 @@ export function CreateAdModal({
                 value={title}
                 onChangeText={setTitle}
                 placeholder="Título do anúncio"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
               />
             </View>
 
@@ -472,7 +475,7 @@ export function CreateAdModal({
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Descrição do anúncio"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
                 multiline
                 numberOfLines={3}
               />
@@ -486,7 +489,7 @@ export function CreateAdModal({
                 value={link}
                 onChangeText={setLink}
                 placeholder="https://..."
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={colors.text.tertiary}
               />
             </View>
 
@@ -506,7 +509,7 @@ export function CreateAdModal({
                             setTargetCategories(targetCategories.filter(id => id !== categoryId));
                           }}
                         >
-                          <Ionicons name="close-circle" size={18} color={COLORS.text.secondary} />
+                          <Ionicons name="close-circle" size={18} color={colors.text.secondary} />
                         </TouchableOpacity>
                       </View>
                     );
@@ -546,7 +549,7 @@ export function CreateAdModal({
                     }}
                     placeholder="Ex: 7"
                     keyboardType="numeric"
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                   />
                   {campaignConfig && targetCategories.length > 0 && (
                     <Text style={styles.helperText}>
@@ -576,14 +579,14 @@ export function CreateAdModal({
                     }}
                     placeholder="Ex: 1000"
                     keyboardType="numeric"
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                   />
                 </View>
 
                 {/* Custo Estimado */}
                 {estimatedCost > 0 && (
                   <View style={styles.costAlert}>
-                    <Ionicons name="information-circle" size={20} color={COLORS.primary.main} />
+                    <Ionicons name="information-circle" size={20} color={colors.primary.main} />
                     <View style={styles.costAlertText}>
                       <Text style={styles.costAlertTitle}>
                         Custo Estimado: R$ {estimatedCost.toFixed(2)}
@@ -625,7 +628,7 @@ export function CreateAdModal({
                       }
                     }}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                   />
                   <Text style={styles.helperText}>Data em que a campanha deve iniciar</Text>
                 </View>
@@ -637,7 +640,7 @@ export function CreateAdModal({
                     value={startTime}
                     onChangeText={setStartTime}
                     placeholder="HH:MM"
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                   />
                   <Text style={styles.helperText}>Hora em que a campanha deve iniciar</Text>
                 </View>
@@ -656,7 +659,7 @@ export function CreateAdModal({
                       setEndDate(newEndDate);
                     }}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                   />
                   <Text style={styles.helperText}>
                     {campaignDays ? `Calculado automaticamente: ${campaignDays} dias` : 'Data em que a campanha deve terminar'}
@@ -676,7 +679,7 @@ export function CreateAdModal({
                       setEndTime(newEndTime);
                     }}
                     placeholder="HH:MM"
-                    placeholderTextColor={COLORS.text.tertiary}
+                    placeholderTextColor={colors.text.tertiary}
                     editable={!!endDate}
                   />
                   <Text style={styles.helperText}>Hora em que a campanha deve terminar</Text>
@@ -686,7 +689,7 @@ export function CreateAdModal({
 
             {targetCategories.length === 0 && (
               <View style={styles.warningAlert}>
-                <Ionicons name="warning-outline" size={20} color={COLORS.states.warning} />
+                <Ionicons name="warning-outline" size={20} color={colors.states.warning} />
                 <Text style={styles.warningText}>
                   Selecione pelo menos uma categoria para continuar
                 </Text>
@@ -722,10 +725,10 @@ export function CreateAdModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   modalContent: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -733,12 +736,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   modalBody: {
     flex: 1,
@@ -750,18 +753,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
   },
   textArea: {
     minHeight: 80,
@@ -772,7 +775,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -790,11 +793,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   mediaUrlText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   categoriesContainer: {
     flexDirection: 'row',
@@ -806,34 +809,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
   categoryChipText: {
     fontSize: 12,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   noCategoriesText: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: c.text.tertiary,
     fontStyle: 'italic',
   },
   helperText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
   },
   costAlert: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    backgroundColor: COLORS.primary.main + '15',
+    backgroundColor: c.primary.main + '15',
     borderWidth: 1,
-    borderColor: COLORS.primary.main + '40',
+    borderColor: c.primary.main + '40',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -845,19 +848,19 @@ const styles = StyleSheet.create({
   costAlertTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: COLORS.primary.main,
+    color: c.primary.main,
   },
   costAlertSubtitle: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   warningAlert: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    backgroundColor: COLORS.states.warning + '20',
+    backgroundColor: c.states.warning + '20',
     borderWidth: 1,
-    borderColor: COLORS.states.warning + '40',
+    borderColor: c.states.warning + '40',
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -865,14 +868,14 @@ const styles = StyleSheet.create({
   warningText: {
     flex: 1,
     fontSize: 12,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   modalFooter: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
+    borderTopColor: c.border.light,
   },
   button: {
     flex: 1,
@@ -882,15 +885,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   cancelButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   saveButton: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
   },
   saveButtonDisabled: {
     opacity: 0.5,

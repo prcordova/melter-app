@@ -10,7 +10,8 @@ import {
   Image,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { resolveProductCoverImageSource } from '../../utils/product-cover-display';
 import { ordersApi } from '../../services/api';
 import { showToast } from '../CustomToast';
@@ -55,6 +56,8 @@ export function ProductCheckoutModal({
   onClose,
   onSuccess,
 }: ProductCheckoutModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
 
   if (!product) return null;
@@ -104,7 +107,7 @@ export function ProductCheckoutModal({
           <View style={styles.header}>
             <Text style={styles.title}>Finalizar compra</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+              <Ionicons name="close" size={24} color={colors.text.secondary} />
             </TouchableOpacity>
           </View>
 
@@ -151,7 +154,7 @@ export function ProductCheckoutModal({
             )}
             {aiDisclosureMessage ? (
               <View style={styles.aiNotice}>
-                <Ionicons name="sparkles" size={18} color={COLORS.secondary.main} />
+                <Ionicons name="sparkles" size={18} color={colors.secondary.main} />
                 <Text style={styles.aiNoticeText}>{aiDisclosureMessage}</Text>
               </View>
             ) : null}
@@ -174,14 +177,14 @@ export function ProductCheckoutModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: c.overlay,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingHorizontal: 20,
@@ -198,7 +201,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   productRow: {
     flexDirection: 'row',
@@ -209,7 +212,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: c.background.tertiary,
   },
   presentationVideo: {
     width: '100%',
@@ -225,12 +228,12 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   seller: {
     marginTop: 4,
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   row: {
     flexDirection: 'row',
@@ -240,24 +243,24 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   price: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
   },
   balance: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   balanceLow: {
-    color: COLORS.states.error,
+    color: c.states.error,
   },
   warn: {
     fontSize: 13,
-    color: COLORS.states.warning,
+    color: c.states.warning,
     marginBottom: 12,
   },
   aiNotice: {
@@ -267,7 +270,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.secondary.main,
+    borderColor: c.secondary.main,
     backgroundColor: 'rgba(202, 57, 148, 0.08)',
     marginBottom: 12,
   },
@@ -275,10 +278,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   cta: {
-    backgroundColor: COLORS.secondary.main,
+    backgroundColor: c.secondary.main,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',

@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CustomModal } from '../CustomModal';
 import { showToast } from '../CustomToast';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import {
   SHOP_SHARE_MODAL_OPTIONS,
   copyShopShareLink,
@@ -34,6 +35,8 @@ export function ShopShareOptionsModal({
   title = 'Compartilhar link da loja',
   onAfterShare,
 }: ShopShareOptionsModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const handleOption = async (key: ShopShareOptionKey) => {
     if (!username) return;
 
@@ -65,9 +68,9 @@ export function ShopShareOptionsModal({
             activeOpacity={0.8}
             onPress={() => void handleOption(option.key)}
           >
-            <Ionicons name={OPTION_ICONS[option.key]} size={20} color={COLORS.secondary.main} />
+            <Ionicons name={OPTION_ICONS[option.key]} size={20} color={colors.secondary.main} />
             <Text style={styles.optionLabel}>{option.label}</Text>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.text.tertiary} />
+            <Ionicons name="chevron-forward" size={18} color={colors.text.tertiary} />
           </TouchableOpacity>
         ))}
       </View>
@@ -75,7 +78,7 @@ export function ShopShareOptionsModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   options: {
     gap: 8,
     paddingTop: 4,
@@ -87,12 +90,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
   },
   optionLabel: {
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
 });

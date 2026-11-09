@@ -3,17 +3,17 @@
  *
  * - `light` → rosa claro (identidade original, igual a `COLORS`).
  * - `dark`  → roxo escuro (padrão).
- * - `black` → preto (OLED). Não aparece no toggle: só entra quando `DEFAULT_THEME_MODE = 'black'`.
+ * - `black` → preto (OLED).
  *
- * Telas migradas leem as cores via `useAppTheme()` / `useThemedStyles()`.
- * Telas ainda não migradas continuam em `COLORS` (tema claro estático).
+ * Os 3 modos são escolhíveis em Preferências. Sem escolha salva, vale `DEFAULT_THEME_MODE`.
+ * Componentes leem as cores via `useAppTheme()` / `useThemedStyles()`.
  */
 export type AppThemeMode = 'light' | 'dark' | 'black';
 
 /** Tema aplicado a quem nunca escolheu manualmente (mesmo default do web). */
 export const DEFAULT_THEME_MODE = 'dark' as AppThemeMode;
 
-/** Modo escuro usado pelo toggle claro/escuro — vira `black` quando o default for `black`. */
+/** Modo escuro do toggle rápido claro/escuro — vira `black` quando o default for `black`. */
 export const DARK_THEME_MODE: Exclude<AppThemeMode, 'light'> =
   DEFAULT_THEME_MODE === 'black' ? 'black' : 'dark';
 

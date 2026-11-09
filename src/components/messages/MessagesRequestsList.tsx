@@ -11,7 +11,8 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { InboxRequestItem } from '../../types/messages-inbox';
 import { getAvatarUrl, getUserInitials } from '../../utils/image';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 
 type Props = {
   items: InboxRequestItem[];
@@ -26,10 +27,13 @@ export const MessagesRequestsList = forwardRef<FlatList, Props>(
     { items, loading = false, actionLoadingId = null, onAccept, onReject },
     ref
   ) {
+    const { colors } = useAppTheme();
+    const styles = useThemedStyles(createStyles);
+
     if (loading) {
       return (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.secondary.main} />
+          <ActivityIndicator size="large" color={colors.secondary.main} />
         </View>
       );
     }
@@ -90,7 +94,7 @@ export const MessagesRequestsList = forwardRef<FlatList, Props>(
                   disabled={busy}
                   onPress={() => onReject(item)}
                 >
-                  <Ionicons name="close" size={22} color={COLORS.text.primary} />
+                  <Ionicons name="close" size={22} color={colors.text.primary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -101,30 +105,30 @@ export const MessagesRequestsList = forwardRef<FlatList, Props>(
   }
 );
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   list: { paddingBottom: 24 },
   center: { padding: 32, alignItems: 'center' },
-  emptyText: { color: COLORS.text.secondary, textAlign: 'center' },
+  emptyText: { color: c.text.secondary, textAlign: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
+    borderBottomColor: c.border.light,
     gap: 12,
   },
   avatar: { width: 44, height: 44, borderRadius: 22 },
   avatarPlaceholder: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarLetter: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  avatarLetter: { color: c.primary.contrastText, fontWeight: '700', fontSize: 16 },
   body: { flex: 1, minWidth: 0 },
-  username: { fontWeight: '700', fontSize: 15, color: COLORS.text.primary },
-  preview: { marginTop: 4, fontSize: 13, color: COLORS.text.secondary, lineHeight: 18 },
-  previewMuted: { marginTop: 4, fontSize: 13, color: COLORS.text.tertiary },
+  username: { fontWeight: '700', fontSize: 15, color: c.text.primary },
+  preview: { marginTop: 4, fontSize: 13, color: c.text.secondary, lineHeight: 18 },
+  previewMuted: { marginTop: 4, fontSize: 13, color: c.text.tertiary },
   actions: { flexDirection: 'row', gap: 8, paddingTop: 4 },
   btn: {
     width: 40,
@@ -133,10 +137,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnAccept: { backgroundColor: COLORS.secondary.main },
+  btnAccept: { backgroundColor: c.secondary.main },
   btnReject: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderWidth: 1,
-    borderColor: COLORS.border.medium,
+    borderColor: c.border.medium,
   },
 });

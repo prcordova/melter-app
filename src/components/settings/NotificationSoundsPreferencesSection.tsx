@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Switch } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import {
   getNotificationSoundPrefs,
   setNotificationSoundPrefs,
@@ -50,6 +51,8 @@ const CATEGORIES: Array<{
 ];
 
 export function NotificationSoundsPreferencesSection() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const [prefs, setPrefs] = useState<NotificationSoundPrefs>(() => getNotificationSoundPrefs());
 
   useEffect(() => {
@@ -97,14 +100,14 @@ export function NotificationSoundsPreferencesSection() {
         <Switch
           value={prefs.enabled}
           onValueChange={(v) => void setMaster(v)}
-          trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+          trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
           thumbColor="#ffffff"
         />
       </View>
 
       {CATEGORIES.map(({ key, icon, title, description }) => (
         <View key={key} style={styles.item}>
-          <Ionicons name={icon} size={22} color={COLORS.primary.main} style={styles.itemIcon} />
+          <Ionicons name={icon} size={22} color={colors.primary.main} style={styles.itemIcon} />
           <View style={styles.itemText}>
             <Text style={styles.itemTitle}>{title}</Text>
             <Text style={styles.itemDesc}>{description}</Text>
@@ -113,7 +116,7 @@ export function NotificationSoundsPreferencesSection() {
             value={prefs.enabled && prefs.categories[key] !== false}
             onValueChange={(v) => void setCategory(key, v)}
             disabled={!prefs.enabled}
-            trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+            trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
             thumbColor="#ffffff"
           />
         </View>
@@ -122,30 +125,30 @@ export function NotificationSoundsPreferencesSection() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   section: {
     marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   sectionDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 16,
     lineHeight: 20,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     marginBottom: 12,
   },
   itemIcon: {
@@ -158,12 +161,12 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   itemDesc: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 18,
   },
 });

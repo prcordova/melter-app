@@ -7,7 +7,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { shopAnalyticsApi } from '../../services/shops/analytics';
 import { showToast } from '../CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -107,6 +108,8 @@ interface AnalyticsData {
 }
 
 export function ShopAnalyticsContent() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user } = useAuth();
   const userPlan = (user?.plan?.type || 'FREE') as 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
   const hasAnalyticsAccess =
@@ -209,7 +212,7 @@ export function ShopAnalyticsContent() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.secondary.main} />
+        <ActivityIndicator size="large" color={colors.secondary.main} />
         <Text style={styles.loadingText}>Carregando analytics...</Text>
       </View>
     );
@@ -218,7 +221,7 @@ export function ShopAnalyticsContent() {
   if (error && !analytics) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color={COLORS.states.error} />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.states.error} />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={fetchAnalytics}>
           <Text style={styles.retryButtonText}>Tentar Novamente</Text>
@@ -237,7 +240,7 @@ export function ShopAnalyticsContent() {
     return (
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.emptyContainer}>
-          <Ionicons name="analytics-outline" size={64} color={COLORS.text.secondary} />
+          <Ionicons name="analytics-outline" size={64} color={colors.text.secondary} />
           <Text style={styles.emptyTitle}>Analytics da Loja</Text>
           <Text style={styles.emptyText}>
             {analytics.message || "Use o analytics para entender seu público e melhorar suas vendas. Aqui você verá visitas, visualizações de produtos, cliques em comprar e muito mais."}
@@ -286,7 +289,7 @@ export function ShopAnalyticsContent() {
         )}
 
         <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
-          <Ionicons name="refresh-outline" size={16} color={COLORS.primary.main} />
+          <Ionicons name="refresh-outline" size={16} color={colors.primary.main} />
           <Text style={styles.clearButtonText}>Limpar Filtros</Text>
         </TouchableOpacity>
       </View>
@@ -319,37 +322,37 @@ export function ShopAnalyticsContent() {
       {/* Cards de Estatísticas */}
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Ionicons name="cart-outline" size={24} color={COLORS.secondary.main} />
+          <Ionicons name="cart-outline" size={24} color={colors.secondary.main} />
           <Text style={styles.statValue}>{analytics.summary.totalSales}</Text>
           <Text style={styles.statLabel}>Total de Vendas</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Ionicons name="people-outline" size={24} color={COLORS.secondary.main} />
+          <Ionicons name="people-outline" size={24} color={colors.secondary.main} />
           <Text style={styles.statValue}>{analytics.summary.activeSubscribers || 0}</Text>
           <Text style={styles.statLabel}>Assinantes Ativos</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Ionicons name="storefront-outline" size={24} color={COLORS.secondary.main} />
+          <Ionicons name="storefront-outline" size={24} color={colors.secondary.main} />
           <Text style={styles.statValue}>{analytics.summary.shopVisits || 0}</Text>
           <Text style={styles.statLabel}>Visitas à Loja</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Ionicons name="add-circle-outline" size={24} color={COLORS.secondary.main} />
+          <Ionicons name="add-circle-outline" size={24} color={colors.secondary.main} />
           <Text style={styles.statValue}>{analytics.summary.productsCreated || 0}</Text>
           <Text style={styles.statLabel}>Produtos Criados</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Ionicons name="trash-outline" size={24} color={COLORS.secondary.main} />
+          <Ionicons name="trash-outline" size={24} color={colors.secondary.main} />
           <Text style={styles.statValue}>{analytics.summary.productsDeleted || 0}</Text>
           <Text style={styles.statLabel}>Produtos Deletados</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Ionicons name="hand-left-outline" size={24} color={COLORS.secondary.main} />
+          <Ionicons name="hand-left-outline" size={24} color={colors.secondary.main} />
           <Text style={styles.statValue}>{analytics.summary.checkoutClicksWithoutPurchase || 0}</Text>
           <Text style={styles.statLabel}>Cliques sem Compra</Text>
         </View>
@@ -361,28 +364,28 @@ export function ShopAnalyticsContent() {
           <Text style={styles.sectionTitle}>Demografia do Público</Text>
           <View style={styles.demographicsGrid}>
             <View style={styles.demographicCard}>
-              <Ionicons name="people-outline" size={20} color={COLORS.primary.main} />
+              <Ionicons name="people-outline" size={20} color={colors.primary.main} />
               <Text style={styles.demographicValue}>
                 {analytics.demographics.averageAge ? `${analytics.demographics.averageAge} anos` : 'N/A'}
               </Text>
               <Text style={styles.demographicLabel}>Idade Média</Text>
             </View>
             <View style={styles.demographicCard}>
-              <Ionicons name="globe-outline" size={20} color={COLORS.primary.main} />
+              <Ionicons name="globe-outline" size={20} color={colors.primary.main} />
               <Text style={styles.demographicValue}>
                 {analytics.demographics.topCountry || 'Não disponível'}
               </Text>
               <Text style={styles.demographicLabel}>País Principal</Text>
             </View>
             <View style={styles.demographicCard}>
-              <Ionicons name="location-outline" size={20} color={COLORS.primary.main} />
+              <Ionicons name="location-outline" size={20} color={colors.primary.main} />
               <Text style={styles.demographicValue}>
                 {analytics.demographics.topState || 'Não disponível'}
               </Text>
               <Text style={styles.demographicLabel}>Estado Principal</Text>
             </View>
             <View style={styles.demographicCard}>
-              <Ionicons name="language-outline" size={20} color={COLORS.primary.main} />
+              <Ionicons name="language-outline" size={20} color={colors.primary.main} />
               <Text style={styles.demographicValue}>
                 {analytics.demographics.topLanguage || 'Não disponível'}
               </Text>
@@ -438,7 +441,7 @@ export function ShopAnalyticsContent() {
       {/* Informações sobre Taxa */}
       <View style={styles.section}>
         <View style={styles.feeCard}>
-          <Ionicons name="information-circle-outline" size={20} color={COLORS.primary.main} />
+          <Ionicons name="information-circle-outline" size={20} color={colors.primary.main} />
           <View style={styles.feeInfo}>
             <Text style={styles.feeTitle}>Taxa da Plataforma</Text>
             <Text style={styles.feeValue}>{analytics.feeStructure.platformFeePercentage}%</Text>
@@ -450,10 +453,10 @@ export function ShopAnalyticsContent() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
   },
   loadingContainer: {
     flex: 1,
@@ -463,7 +466,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   errorContainer: {
     flex: 1,
@@ -474,13 +477,13 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: COLORS.states.error,
+    color: c.states.error,
     textAlign: 'center',
   },
   retryButton: {
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: c.primary.main,
     borderRadius: 8,
   },
   retryButtonText: {
@@ -498,26 +501,26 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: 8,
   },
   filtersContainer: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     padding: 16,
     marginBottom: 12,
     gap: 12,
@@ -528,17 +531,17 @@ const styles = StyleSheet.create({
   filterLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   pickerContainer: {
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.background.tertiary,
+    borderColor: c.background.tertiary,
     overflow: 'hidden',
   },
   picker: {
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   clearButton: {
     flexDirection: 'row',
@@ -550,18 +553,18 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: 14,
-    color: COLORS.primary.main,
+    color: c.primary.main,
     fontWeight: '600',
   },
   section: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     padding: 16,
     marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 16,
   },
   financialGrid: {
@@ -574,30 +577,30 @@ const styles = StyleSheet.create({
     minWidth: '30%',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
   },
   financialValueSuccess: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.states.success,
+    color: c.states.success,
     marginBottom: 4,
   },
   financialValueError: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.states.error,
+    color: c.states.error,
     marginBottom: 4,
   },
   financialValuePrimary: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.primary.main,
+    color: c.primary.main,
     marginBottom: 4,
   },
   financialLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   statsGrid: {
@@ -605,25 +608,25 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
     padding: 16,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     marginBottom: 12,
   },
   statCard: {
     width: '47%',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
     gap: 8,
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   statLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   demographicsGrid: {
@@ -635,31 +638,31 @@ const styles = StyleSheet.create({
     width: '47%',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
     gap: 6,
   },
   demographicValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     textAlign: 'center',
   },
   demographicLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
   },
   productCard: {
     padding: 16,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
     marginBottom: 12,
   },
   productTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 12,
   },
   productStats: {
@@ -672,16 +675,16 @@ const styles = StyleSheet.create({
   productStatValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   productStatLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   saleCard: {
     padding: 16,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
     marginBottom: 12,
   },
@@ -694,12 +697,12 @@ const styles = StyleSheet.create({
   saleProduct: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     flex: 1,
   },
   saleDate: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   saleDetails: {
     flexDirection: 'row',
@@ -708,18 +711,18 @@ const styles = StyleSheet.create({
   },
   saleBuyer: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   saleAmount: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.states.success,
+    color: c.states.success,
   },
   feeCard: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    backgroundColor: COLORS.background.default,
+    backgroundColor: c.background.default,
     borderRadius: 8,
   },
   feeInfo: {
@@ -728,18 +731,18 @@ const styles = StyleSheet.create({
   feeTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   feeValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.primary.main,
+    color: c.primary.main,
     marginBottom: 4,
   },
   feeDescription: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 16,
   },
 });

@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const SELLER_ONBOARDING_PAID_ACCESS = {
@@ -50,6 +51,8 @@ export function SellerVerificationStatusCard({
   onOpenSupport,
   compact = false,
 }: SellerVerificationStatusCardProps) {
+  const { colors, isDark } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const getStatusConfig = () => {
     if (!sellerVerification) {
       return {
@@ -59,9 +62,9 @@ export function SellerVerificationStatusCard({
           : 'Como funciona: após a verificação de documentos e aprovação, você adiciona produtos; compradores pagam e só quem compra (ou assina) acessa seu conteúdo — o valor das vendas vai para sua carteira Melter.\n\n' +
             'A plataforma valida documentos de vendedores e usa proteção Cloudflare contra ataques. Pode enviar o cadastro com tranquilidade: analisamos e avisamos em cada etapa.',
         icon: 'storefront-outline' as const,
-        color: COLORS.text.secondary,
-        bgColor: COLORS.background.tertiary,
-        borderColor: COLORS.border.medium,
+        color: colors.text.secondary,
+        bgColor: colors.background.tertiary,
+        borderColor: colors.border.medium,
         showButton: true,
         buttonText: 'Criar Loja',
         buttonAction: onOpenForm,
@@ -78,9 +81,9 @@ export function SellerVerificationStatusCard({
               : ''
           }`,
           icon: 'hourglass-outline' as const,
-          color: COLORS.states.info,
-          bgColor: '#EFF6FF',
-          borderColor: COLORS.states.info,
+          color: colors.states.info,
+          bgColor: isDark ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF',
+          borderColor: colors.states.info,
           showButton: false,
         };
 
@@ -89,9 +92,9 @@ export function SellerVerificationStatusCard({
           title: 'Cadastro Rejeitado',
           description: sellerVerification.rejectionReason || 'Seu cadastro foi rejeitado.',
           icon: 'close-circle-outline' as const,
-          color: COLORS.states.error,
-          bgColor: '#FEF2F2',
-          borderColor: COLORS.states.error,
+          color: colors.states.error,
+          bgColor: isDark ? 'rgba(220, 38, 38, 0.12)' : '#FEF2F2',
+          borderColor: colors.states.error,
           showButton: true,
           buttonText: 'Reenviar Cadastro',
           buttonAction: onOpenForm,
@@ -116,9 +119,9 @@ export function SellerVerificationStatusCard({
             sellerVerification.rejectionReason ||
             'Sua loja foi desabilitada.',
           icon: 'ban-outline' as const,
-          color: COLORS.states.error,
-          bgColor: '#FEF2F2',
-          borderColor: COLORS.states.error,
+          color: colors.states.error,
+          bgColor: isDark ? 'rgba(220, 38, 38, 0.12)' : '#FEF2F2',
+          borderColor: colors.states.error,
           showButton: !isBlocked,
           buttonText: 'Solicitar Reativação',
           buttonAction: onOpenAppeal,
@@ -137,9 +140,9 @@ export function SellerVerificationStatusCard({
               : ''
           }`,
           icon: 'time-outline' as const,
-          color: COLORS.states.warning,
-          bgColor: '#FFFBEB',
-          borderColor: COLORS.states.warning,
+          color: colors.states.warning,
+          bgColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
+          borderColor: colors.states.warning,
           showButton: false,
           appealReason: sellerVerification.appealReason,
         };
@@ -149,9 +152,9 @@ export function SellerVerificationStatusCard({
           title: 'Revisão Necessária',
           description: sellerVerification.needsReviewReason || 'Seu cadastro precisa ser revisado.',
           icon: 'warning-outline' as const,
-          color: COLORS.states.warning,
-          bgColor: '#FFFBEB',
-          borderColor: COLORS.states.warning,
+          color: colors.states.warning,
+          bgColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
+          borderColor: colors.states.warning,
           showButton: true,
           buttonText: 'Abrir para Revisão',
           buttonAction: onOpenForm,
@@ -163,9 +166,9 @@ export function SellerVerificationStatusCard({
           title: 'Loja Aprovada',
           description: 'Sua loja foi aprovada! Você pode ativá-la e começar a vender.',
           icon: 'checkmark-circle-outline' as const,
-          color: COLORS.states.success,
-          bgColor: '#F0FDF4',
-          borderColor: COLORS.states.success,
+          color: colors.states.success,
+          bgColor: isDark ? 'rgba(16, 185, 129, 0.12)' : '#F0FDF4',
+          borderColor: colors.states.success,
           showButton: false,
         };
 
@@ -174,9 +177,9 @@ export function SellerVerificationStatusCard({
           title: `Status: ${sellerVerification.status || 'Indefinido'}`,
           description: 'Status desconhecido.',
           icon: 'help-circle-outline' as const,
-          color: COLORS.text.secondary,
-          bgColor: COLORS.background.tertiary,
-          borderColor: COLORS.border.medium,
+          color: colors.text.secondary,
+          bgColor: colors.background.tertiary,
+          borderColor: colors.border.medium,
           showButton: false,
         };
     }
@@ -199,7 +202,7 @@ export function SellerVerificationStatusCard({
       {showPaidAccessBanner ? (
         <View style={[styles.paidAccessBanner, compact && styles.paidAccessBannerCompact]}>
           <View style={styles.paidAccessBannerHeader}>
-            <Ionicons name="lock-closed-outline" size={compact ? 16 : 20} color={COLORS.states.warning} />
+            <Ionicons name="lock-closed-outline" size={compact ? 16 : 20} color={colors.states.warning} />
             <Text style={[styles.paidAccessBannerTitle, compact && styles.paidAccessBannerTitleCompact]}>
               {SELLER_ONBOARDING_PAID_ACCESS.title}
             </Text>
@@ -321,7 +324,7 @@ export function SellerVerificationStatusCard({
             onPress={onOpenSupport}
             activeOpacity={0.75}
           >
-            <Ionicons name="chatbubbles-outline" size={18} color={COLORS.secondary.main} />
+            <Ionicons name="chatbubbles-outline" size={18} color={colors.secondary.main} />
             <Text style={styles.supportButtonText}>Precisa de ajuda? Falar com o suporte</Text>
           </TouchableOpacity>
         ) : null}
@@ -333,7 +336,7 @@ export function SellerVerificationStatusCard({
             onPress={onRefresh}
             activeOpacity={0.7}
           >
-            <Ionicons name="refresh-outline" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="refresh-outline" size={16} color={colors.text.secondary} />
             <Text style={styles.refreshText}>Atualizar</Text>
           </TouchableOpacity>
         )}
@@ -342,7 +345,7 @@ export function SellerVerificationStatusCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   card: {
     borderRadius: 12,
     borderWidth: 2,
@@ -355,10 +358,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   paidAccessBanner: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: c.isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.states.warning,
+    borderColor: c.states.warning,
     padding: 14,
     marginBottom: 16,
   },
@@ -372,12 +375,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   paidAccessBannerNote: {
     fontSize: 13,
     lineHeight: 19,
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   paidAccessBannerCompact: {
     padding: 10,
@@ -389,7 +392,7 @@ const styles = StyleSheet.create({
   paidAccessBannerNoteCompact: {
     fontSize: 12,
     lineHeight: 16,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
   header: {
     alignItems: 'center',
@@ -410,12 +413,12 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 20,
     textAlign: 'center',
   },
   reasonBox: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
@@ -423,16 +426,16 @@ const styles = StyleSheet.create({
   reasonLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 6,
   },
   reasonText: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 20,
   },
   reasonsList: {
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
@@ -440,31 +443,31 @@ const styles = StyleSheet.create({
   reasonsListTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   reasonItem: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 4,
   },
   blockedBox: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: c.isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: COLORS.states.warning,
+    borderColor: c.states.warning,
   },
   blockedTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.states.warning,
+    color: c.states.warning,
     marginBottom: 6,
   },
   blockedText: {
     fontSize: 12,
-    color: COLORS.text.primary,
+    color: c.text.primary,
     lineHeight: 18,
   },
   blockedDate: {
@@ -472,7 +475,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -506,14 +509,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.secondary.main,
-    backgroundColor: COLORS.background.paper,
+    borderColor: c.secondary.main,
+    backgroundColor: c.background.paper,
   },
   supportButtonText: {
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.secondary.main,
+    color: c.secondary.main,
     textAlign: 'center',
   },
   refreshButton: {
@@ -526,7 +529,7 @@ const styles = StyleSheet.create({
   },
   refreshText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
   },
 });
 

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Modal, View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { PROFILE_CONTENT_SAFETY_STRINGS } from '../../config/profile-content-safety-strings';
 
 type Props = {
@@ -15,6 +16,8 @@ export function ProfileAiModerationModal({
   title = PROFILE_CONTENT_SAFETY_STRINGS.ai.modalTitle,
   body = PROFILE_CONTENT_SAFETY_STRINGS.ai.modalBody,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const spin = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -45,7 +48,7 @@ export function ProfileAiModerationModal({
       <View style={styles.overlay}>
         <View style={styles.container}>
           <Animated.View style={[styles.iconWrap, { transform: [{ rotate }] }]}>
-            <Ionicons name="sparkles" size={28} color={COLORS.primary.main} />
+            <Ionicons name="sparkles" size={28} color={colors.primary.main} />
           </Animated.View>
           <View style={styles.textCol}>
             <Text style={styles.title}>{title}</Text>
@@ -57,10 +60,10 @@ export function ProfileAiModerationModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: c.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -68,7 +71,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     maxWidth: 340,
-    backgroundColor: COLORS.background.paper,
+    backgroundColor: c.background.paper,
     borderRadius: 16,
     padding: 24,
     flexDirection: 'row',
@@ -90,12 +93,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 4,
   },
   body: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     lineHeight: 20,
   },
 });

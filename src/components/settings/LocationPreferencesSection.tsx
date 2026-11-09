@@ -6,7 +6,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Select } from '../ui/Select';
 import { Button } from '../Button';
 import { RegisterCityPicker } from './RegisterCityPicker';
-import { COLORS } from '../../theme/colors';
+import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import type { AppPalette } from '../../theme/palettes';
 import { userApi } from '../../services/api';
 import { showToast } from '../CustomToast';
 import { useIpGeoLocationPrefill } from '../../hooks/useIpGeoLocationPrefill';
@@ -21,6 +22,8 @@ type Props = {
 };
 
 export function LocationPreferencesSection({ prefsLoaded }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const countries = useMemo(() => Country.getAllCountries(), []);
 
   const [loading, setLoading] = useState(true);
@@ -160,7 +163,7 @@ export function LocationPreferencesSection({ prefsLoaded }: Props) {
 
       <View style={styles.card}>
         {loading ? (
-          <ActivityIndicator color={COLORS.primary.main} style={{ marginVertical: 16 }} />
+          <ActivityIndicator color={colors.primary.main} style={{ marginVertical: 16 }} />
         ) : (
           <>
             <Text style={styles.fieldLabel}>País</Text>
@@ -210,7 +213,7 @@ export function LocationPreferencesSection({ prefsLoaded }: Props) {
                 value={hideLocation}
                 onValueChange={setHideLocation}
                 disabled={disabled}
-                trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+                trackColor={{ false: colors.border.medium, true: colors.secondary.main }}
                 thumbColor="#ffffff"
               />
             </View>
@@ -225,31 +228,31 @@ export function LocationPreferencesSection({ prefsLoaded }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: AppPalette) => StyleSheet.create({
   section: {
     marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 8,
   },
   sectionDescription: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 8,
     lineHeight: 20,
   },
   hint: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginBottom: 12,
     lineHeight: 18,
   },
   card: {
     borderWidth: 1,
-    borderColor: COLORS.border.light,
+    borderColor: c.border.light,
     borderRadius: 12,
     borderStyle: 'dashed',
     padding: 14,
@@ -258,7 +261,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
     marginBottom: 6,
   },
   switchRow: {
@@ -274,11 +277,11 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: c.text.primary,
   },
   switchHint: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: c.text.secondary,
     marginTop: 4,
     lineHeight: 18,
   },
