@@ -58,7 +58,9 @@ export function SellerVerificationStatusCard({
   const { colors, isDark } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const getStatusConfig = () => {
-    if (!sellerVerification) {
+    // Sem status = ainda não enviou cadastro. Nunca mostrar “Criar Loja” se o pai
+    // passou status aprovado/pendente (evita CTA falso em race de loading).
+    if (!sellerVerification || sellerVerification.status == null) {
       return {
         title: 'Criar sua Loja',
         description: compact

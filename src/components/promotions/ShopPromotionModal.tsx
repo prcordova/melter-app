@@ -170,9 +170,11 @@ export function ShopPromotionModal({
   const handleGoToShop = () => {
     if (!user?.username) return
     onClose()
+    // Abre a loja pedindo o wizard de pacote — MyShop só abre após confirmar
+    // que o cadastro/loja já existe (não mostra “Criar Loja” por race de loading).
     navigation.navigate('ProfileStack', {
       screen: 'MyShop',
-      params: { username: user.username },
+      params: { username: user.username, openCreateProduct: true },
     })
   }
 

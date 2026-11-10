@@ -153,6 +153,8 @@ export function MyShopScreen() {
 
   // Estados principais
   const [loading, setLoading] = useState(true);
+  /** Dono: settings/onboarding ainda não chegaram — não tratar como “sem loja”. */
+  const [ownerShopContextLoading, setOwnerShopContextLoading] = useState(true);
   const [shopOwner, setShopOwner] = useState<any>(null);
   const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('products');
@@ -238,17 +240,20 @@ export function MyShopScreen() {
     setShopOwner(null);
     if (!isOwner) {
       setShopSettings(null);
+      setOwnerShopContextLoading(false);
+    } else {
+      setOwnerShopContextLoading(true);
     }
 
     let cancelled = false;
 
     (async () => {
-      await fetchShopData();
-      if (cancelled) return;
+      // Perfil + settings em paralelo no dono: evita flash de “Criar Loja” com loja já ativa.
       if (isOwner) {
-        await fetchShopSettings();
+        await Promise.all([fetchShopData(), fetchShopSettings()]);
       } else {
-        setShopSettings(null);
+        await fetchShopData();
+        if (!cancelled) setShopSettings(null);
       }
     })();
 
@@ -288,15 +293,10 @@ export function MyShopScreen() {
     setPlanAutoOpenConsumed(false);
   }, [route.params?.openPlan, username]);
 
-  useEffect(() => {
-    if (!route.params?.openCreateProduct || !isOwner) return;
-    setShowCreateProductModal(true);
-    navigation.setParams({ openCreateProduct: undefined });
-  }, [route.params?.openCreateProduct, isOwner, navigation]);
-
   // Buscar configurações da loja (apenas para dono)
   const fetchShopSettings = async (): Promise<any[]> => {
     try {
+      setOwnerShopContextLoading(true);
       const [response, onboardingRes] = await Promise.all([
         shopApi.getSettings(),
         shopApi.getOnboardingContext().catch(() => null),
@@ -317,6 +317,8 @@ export function MyShopScreen() {
       console.error('[MyShopScreen] Erro ao carregar configurações:', error);
       setShopSettings(null);
       return [];
+    } finally {
+      setOwnerShopContextLoading(false);
     }
   };
 
@@ -569,19 +571,44 @@ export function MyShopScreen() {
   };
 
   const ownerApproved = sellerVerification?.status === 'approved';
+  const ownerShopContextReady = !isOwner || !ownerShopContextLoading;
   const canPrepareShopCatalogWhilePending =
     isOwner &&
+    ownerShopContextReady &&
     (sellerVerification?.status === 'pending' || sellerVerification?.status === 'needs_review');
   const canPrepareCatalogWithoutActiveShop =
     isOwner &&
+    ownerShopContextReady &&
     (shopPlanGate == null || shopPlanGate.allowProductCreateWithoutActiveShop !== false);
   const showSecondaryShopTabs = isAdmin || ownerApproved;
   const showTabs =
     isAdmin ||
     (isOwner &&
+      ownerShopContextReady &&
       (ownerApproved || canPrepareShopCatalogWhilePending || canPrepareCatalogWithoutActiveShop));
   const shopIsPublicAndActive =
     Boolean(shopSettings?.isEnabled) && shopSettings?.visibility === 'public';
+  const canOpenCreateProductWizard =
+    isOwner &&
+    ownerShopContextReady &&
+    (ownerApproved || canPrepareShopCatalogWhilePending || canPrepareCatalogWithoutActiveShop);
+
+  // Deep link / Promoções: abrir wizard de pacote só depois de saber se a loja já existe.
+  useEffect(() => {
+    if (!route.params?.openCreateProduct || !isOwner) return;
+    if (!ownerShopContextReady) return;
+    navigation.setParams({ openCreateProduct: undefined });
+    if (!canOpenCreateProductWizard) return;
+    // Já tem cadastro/loja: nunca forçar fluxo “Criar Loja”; só o wizard de produto.
+    setEditingProduct(null);
+    setShowCreateProductModal(true);
+  }, [
+    route.params?.openCreateProduct,
+    isOwner,
+    ownerShopContextReady,
+    canOpenCreateProductWizard,
+    navigation,
+  ]);
 
   const mapVerificationToFormData = (
     data: SellerVerification | null | undefined
@@ -929,7 +956,7 @@ export function MyShopScreen() {
   const showShopColorOverlay = shouldShowShopColorOverlay(shopVisual);
   const shopTitleColor = resolveShopTitleColor(shopVisual, colors.icon.active);
 
-  if (loading || authLoading) {
+  if (loading || authLoading || (isOwner && ownerShopContextLoading)) {
     return (
       <View style={styles.container}>
         <Header />
@@ -1587,7 +1614,7 @@ export function MyShopScreen() {
           </View>
         ) : (
           <View style={styles.tabContent}>
-            {isOwner && (
+            {isOwner ? (
               <SellerVerificationStatusCard
                 sellerVerification={sellerVerification || null}
                 onOpenForm={() => {
@@ -1601,7 +1628,7 @@ export function MyShopScreen() {
                 shopPlanGate={shopPlanGate}
                 compact
               />
-            )}
+            ) : null}
 
             <ShopSubscriptionPlansSection
               username={username}
