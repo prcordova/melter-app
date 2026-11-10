@@ -14,8 +14,8 @@ export type WizardStepIssue = {
 };
 
 const PLACEHOLDER_TITLE = 'Rascunho sem título';
-const TITLE_MIN = 10;
-const DESCRIPTION_MIN = 50;
+const TITLE_MIN = 3;
+const DESCRIPTION_MIN = 20;
 const PRICE_MIN = 10;
 
 const TERM_FIELDS = [

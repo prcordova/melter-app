@@ -89,6 +89,8 @@ export interface Story {
   content: {
     type: 'image' | 'video' | 'gif';
     mediaUrl: string;
+    /** Preview JPEG assinado (feed); vídeos precisam disso — Image não renderiza mp4. */
+    thumbnailUrl?: string;
     text?: string;
     elements?: Array<{
       type: 'text' | 'music';

@@ -25,6 +25,7 @@ import {
   getLocalFileSize,
   persistLocalMediaForUpload,
 } from '../utils/presigned-upload';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 
 const { width, height } = Dimensions.get('window');
 
@@ -509,11 +510,46 @@ export function StoryCreateModal({
         throw new Error(uploadResponse.message || 'Erro ao fazer upload');
       }
 
-        // 3. Criar story com texto simples (fixo na parte inferior)
+      // Thumbnail para o card do feed (vídeo → frame JPEG; imagem → mesma key)
+      let thumbnailUrl: string | null = null;
+      if (isVideoToUpload) {
+        try {
+          const thumbTimeMs = Math.max(
+            0,
+            Math.round((videoStartTimeToUpload || 0) * 1000)
+          );
+          const thumb = await VideoThumbnails.getThumbnailAsync(mediaToUpload, {
+            time: thumbTimeMs,
+            quality: 0.7,
+          });
+          const thumbPersist = await persistLocalMediaForUpload(
+            thumb.uri,
+            'jpg',
+            'image/jpeg'
+          );
+          const thumbSize = await getLocalFileSize(thumbPersist);
+          const thumbUpload = await storiesApi.uploadStoryMedia(
+            thumbPersist,
+            `story_thumb_${Date.now()}.jpg`,
+            'image/jpeg',
+            thumbSize
+          );
+          if (thumbUpload.success && thumbUpload.data?.url) {
+            thumbnailUrl = thumbUpload.data.url;
+          }
+        } catch (thumbError) {
+          console.warn('[StoryCreate] Falha ao gerar thumbnail do vídeo:', thumbError);
+        }
+      } else {
+        thumbnailUrl = uploadResponse.data.url;
+      }
+
+        // 3. Criar story com texto simples (texto na parte inferior)
       const storyData = {
         content: {
             type: isVideoToUpload ? ('video' as const) : ('image' as const),
           mediaUrl: uploadResponse.data.url,
+            thumbnailUrl,
             text: textToUpload || null,
           elements: [],
           zoom: 1,

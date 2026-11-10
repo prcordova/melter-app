@@ -7,9 +7,11 @@ import {
   Modal,
   Pressable,
   Dimensions,
+  ScrollView,
   type ViewInstance,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
 
@@ -35,6 +37,8 @@ interface SelectRowProps {
 const ICON_TRIGGER_SIZE = 36;
 const ICON_DROPDOWN_WIDTH = 190;
 const DROPDOWN_SCREEN_MARGIN = 8;
+/** Evita colar na barra de gestos / botões virtuais (mesmo critério do ModalBottom). */
+const DROPDOWN_MAX_HEIGHT = 280;
 
 const SIZE_WIDTH_MAP: Record<SelectRowSize, number | '100%'> = {
   compact: '100%',
@@ -87,8 +91,14 @@ export function SelectRow({
 }: SelectRowProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
-  const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 180 });
+  const [dropdownLayout, setDropdownLayout] = useState({
+    x: 0,
+    y: 0,
+    width: 180,
+    maxHeight: DROPDOWN_MAX_HEIGHT,
+  });
   const triggerRef = React.useRef<ViewInstance>(null);
   const triggerSizeStyle = SIZE_TRIGGER_STYLE_MAP[size];
   const textSizeStyle = SIZE_TEXT_STYLE_MAP[size];
@@ -106,12 +116,33 @@ export function SelectRow({
     }
     if (triggerRef.current) {
       triggerRef.current.measureInWindow((x, y, width, height) => {
-        const dropdownWidth = icon ? ICON_DROPDOWN_WIDTH : Math.max(width, SIZE_MIN_DROPDOWN_MAP[size]);
-        const maxX = Dimensions.get('window').width - dropdownWidth - DROPDOWN_SCREEN_MARGIN;
+        const window = Dimensions.get('window');
+        const dropdownWidth = icon
+          ? ICON_DROPDOWN_WIDTH
+          : Math.max(width, SIZE_MIN_DROPDOWN_MAP[size]);
+        const maxX = window.width - dropdownWidth - DROPDOWN_SCREEN_MARGIN;
+        const topSafe = Math.max(insets.top, DROPDOWN_SCREEN_MARGIN);
+        const bottomSafe = Math.max(insets.bottom, 16) + DROPDOWN_SCREEN_MARGIN;
+        const spaceBelow = window.height - (y + height) - bottomSafe;
+        const spaceAbove = y - topSafe;
+        const optionH = isCompact ? 40 : 48;
+        const titleExtra = icon ? 28 : 12;
+        const desired = Math.min(
+          DROPDOWN_MAX_HEIGHT,
+          titleExtra + options.length * optionH + 12
+        );
+        const openUp = spaceBelow < Math.min(desired, 140) && spaceAbove > spaceBelow;
+        const available = Math.max(96, openUp ? spaceAbove : spaceBelow);
+        const maxHeight = Math.min(desired, available, DROPDOWN_MAX_HEIGHT);
+        const top = openUp
+          ? Math.max(topSafe, y - 6 - maxHeight)
+          : y + height + 6;
+
         setDropdownLayout({
           x: Math.max(DROPDOWN_SCREEN_MARGIN, Math.min(x, maxX)),
-          y: y + height + 6,
+          y: top,
           width: dropdownWidth,
+          maxHeight,
         });
         setOpen(true);
       });
@@ -181,35 +212,43 @@ export function SelectRow({
                   left: dropdownLayout.x,
                   top: dropdownLayout.y,
                   width: dropdownLayout.width,
+                  maxHeight: dropdownLayout.maxHeight,
                 },
               ]}
               onPress={(event) => event.stopPropagation()}
             >
               {icon ? <Text style={styles.dropdownTitle}>{label}</Text> : null}
-              {options.map((option) => {
-                const selected = option.value === value;
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[styles.option, isCompact && styles.optionCompact, selected && styles.optionSelected]}
-                    onPress={() => {
-                      onChange(option.value);
-                      setOpen(false);
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        isCompact && styles.optionTextCompact,
-                        selected && styles.optionTextSelected,
-                      ]}
+              <ScrollView
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled"
+                bounces={false}
+                style={{ maxHeight: dropdownLayout.maxHeight - (icon ? 28 : 8) }}
+              >
+                {options.map((option) => {
+                  const selected = option.value === value;
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[styles.option, isCompact && styles.optionCompact, selected && styles.optionSelected]}
+                      onPress={() => {
+                        onChange(option.value);
+                        setOpen(false);
+                      }}
+                      activeOpacity={0.75}
                     >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Text
+                        style={[
+                          styles.optionText,
+                          isCompact && styles.optionTextCompact,
+                          selected && styles.optionTextSelected,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </Pressable>
           </Pressable>
         </Modal>
@@ -248,6 +287,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     textTransform: 'uppercase',
     paddingHorizontal: 4,
     paddingTop: 2,
+    paddingBottom: 4,
   },
   trigger: {
     borderWidth: 1,
@@ -273,6 +313,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     gap: 6,
     zIndex: 30,
     elevation: 4,
+    overflow: 'hidden',
   },
   backdrop: {
     flex: 1,
@@ -287,6 +328,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     paddingHorizontal: 12,
     alignItems: 'flex-start',
     justifyContent: 'center',
+    marginBottom: 6,
   },
   optionCompact: {
     paddingVertical: 8,

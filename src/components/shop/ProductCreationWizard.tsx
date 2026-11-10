@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
-  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -69,8 +68,6 @@ export function ProductCreationWizard({
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
-  const isTinyScreen = windowWidth < 400;
   const isDraft = product?.status === 'DRAFT';
   const isEditing = Boolean(product) && !isDraft;
   const serverProductId = product?._id ? String(product._id) : draftProductId;
@@ -237,6 +234,7 @@ export function ProductCreationWizard({
 
   const [validationNonce, setValidationNonce] = useState(0);
   const scrollRef = useRef<any>(null);
+  const scrollYRef = useRef(0);
   const stepIssues = useMemo(
     () =>
       validationNonce === 0
@@ -250,8 +248,10 @@ export function ProductCreationWizard({
   const rejectStep = (step: number) => {
     const found = collectWizardStepIssues(step, formData, { isEditing });
     if (found.length === 0) return false;
+    Keyboard.dismiss();
     setShowMediaRequiredError(found.some((issue) => issue.field === 'files'));
     setActiveStep(step);
+    // Nonce depois do dismiss — steps rolam/focam o campo faltante
     setValidationNonce(Date.now());
     showToast.error('Falta preencher', found[0].message);
     return true;
@@ -259,6 +259,7 @@ export function ProductCreationWizard({
 
   const handleNext = () => {
     try {
+      Keyboard.dismiss();
       if (rejectStep(activeStep)) return;
       setShowMediaRequiredError(false);
       setValidationNonce(0);
@@ -287,6 +288,7 @@ export function ProductCreationWizard({
   };
 
   const handleSave = () => {
+    Keyboard.dismiss();
     for (const step of [0, 1, 2]) {
       if (rejectStep(step)) return;
     }
@@ -310,6 +312,7 @@ export function ProductCreationWizard({
             showMediaRequiredError={showMediaRequiredError}
             storageOptions={storageOptions}
             scrollRef={scrollRef}
+            scrollYRef={scrollYRef}
             focusField={focusField}
             focusNonce={validationNonce}
             issueFields={issueFields}
@@ -326,6 +329,7 @@ export function ProductCreationWizard({
             lockCategory={product?.status === 'APPROVED'}
             productCoverAvatarFallbackEnabled={productCoverAvatarFallbackEnabled}
             scrollRef={scrollRef}
+            scrollYRef={scrollYRef}
             focusField={focusField}
             focusNonce={validationNonce}
             issueFields={issueFields}
@@ -337,6 +341,7 @@ export function ProductCreationWizard({
             formData={formData}
             setFormData={setFormData}
             scrollRef={scrollRef}
+            scrollYRef={scrollYRef}
             focusField={focusField}
             focusNonce={validationNonce}
             issueFields={issueFields}
@@ -369,21 +374,10 @@ export function ProductCreationWizard({
         keyboardVerticalOffset={Platform.OS === 'ios' ? Math.max(insets.top, 12) : 0}
         enabled={Platform.OS === 'ios'}
       >
-        <View
-          style={[
-            styles.overlay,
-            isTinyScreen && styles.overlayFullScreen,
-            { paddingTop: isTinyScreen ? 0 : Math.max(insets.top, 12) },
-          ]}
-        >
-          <View style={[styles.modalContainer, isTinyScreen && styles.modalContainerFullScreen]}>
+        <View style={[styles.overlay, styles.overlayFullScreen]}>
+          <View style={[styles.modalContainer, styles.modalContainerFullScreen]}>
             {/* Header */}
-            <View
-              style={[
-                styles.header,
-                isTinyScreen && { paddingTop: Math.max(insets.top, 12) },
-              ]}
-            >
+            <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
               <Text style={styles.title}>
                 {isEditing ? 'Editar Produto' : 'Criar Produto Digital'}
               </Text>
@@ -481,6 +475,10 @@ export function ProductCreationWizard({
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled={true}
                 keyboardDismissMode="on-drag"
+                scrollEventThrottle={16}
+                onScroll={(event) => {
+                  scrollYRef.current = event.nativeEvent.contentOffset.y;
+                }}
               >
                 {product?.analysisNotes ? (
                   <View
@@ -502,7 +500,13 @@ export function ProductCreationWizard({
             ) : null}
 
             {/* Footer */}
-            <View style={[styles.footer, showStorageUsage && styles.footerAttached]}>
+            <View
+              style={[
+                styles.footer,
+                showStorageUsage && styles.footerAttached,
+                { paddingBottom: Math.max(insets.bottom, 16) },
+              ]}
+            >
               <TouchableOpacity
                 style={[styles.button, styles.backButton]}
                 onPress={
@@ -698,7 +702,8 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     marginBottom: 16,
   },
   qualityThermometer: {
-    marginBottom: 16,
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
   analysisNotesRejected: {
     borderColor: c.states.error,

@@ -34,6 +34,7 @@ interface ContentStepProps {
   showMediaRequiredError?: boolean;
   storageOptions?: ProductStorageOptions;
   scrollRef?: { current: any };
+  scrollYRef?: { current: number };
   focusField?: string | null;
   focusNonce?: number;
   issueFields?: string[];
@@ -47,6 +48,7 @@ export function ContentStep({
   showMediaRequiredError = false,
   storageOptions,
   scrollRef,
+  scrollYRef,
   focusField = null,
   focusNonce = 0,
   issueFields = [],
@@ -60,8 +62,11 @@ export function ContentStep({
     if (!focusNonce || !focusField) return;
     const target = focusField === 'delivery' ? deliveryRef : focusField === 'files' ? filesRef : null;
     if (!target) return;
-    scrollFieldIntoView(scrollRef, target);
-  }, [focusNonce, focusField, scrollRef]);
+    const timer = setTimeout(() => {
+      scrollFieldIntoView(scrollRef, target, scrollYRef?.current ?? 0);
+    }, 320);
+    return () => clearTimeout(timer);
+  }, [focusNonce, focusField, scrollRef, scrollYRef]);
   const { user } = useAuth();
   const userPlan = (user?.plan?.type || 'FREE') as PlanType;
   const storageLimits = useMemo(

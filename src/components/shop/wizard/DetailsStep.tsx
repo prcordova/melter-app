@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Switch,
+  type TextInputInstance,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -40,6 +41,7 @@ interface DetailsStepProps {
   /** Pacote novo: cria o rascunho antes de enviar o vídeo de apresentação. */
   onEnsureDraft?: () => Promise<string>;
   scrollRef?: { current: any };
+  scrollYRef?: { current: number };
   focusField?: string | null;
   focusNonce?: number;
   issueFields?: string[];
@@ -54,6 +56,7 @@ export function DetailsStep({
   productId = null,
   onEnsureDraft,
   scrollRef,
+  scrollYRef,
   focusField = null,
   focusNonce = 0,
   issueFields = [],
@@ -76,6 +79,9 @@ export function DetailsStep({
   const descriptionRef = useRef<any>(null);
   const priceRef = useRef<any>(null);
   const planRef = useRef<any>(null);
+  const titleInputRef = useRef<TextInputInstance>(null);
+  const descriptionInputRef = useRef<TextInputInstance>(null);
+  const priceInputRef = useRef<TextInputInstance>(null);
 
   useEffect(() => {
     if (!focusNonce || !focusField) return;
@@ -87,8 +93,22 @@ export function DetailsStep({
       plan: planRef,
     }[focusField];
     if (!target) return;
-    scrollFieldIntoView(scrollRef, target);
-  }, [focusNonce, focusField, scrollRef]);
+    // 1) rola com teclado fechado 2) foca depois — senão a descrição no meio some sob o teclado
+    const scrollY = () => scrollYRef?.current ?? 0;
+    const scrollTimer = setTimeout(() => {
+      scrollFieldIntoView(scrollRef, target, scrollY());
+    }, 280);
+    const focusTimer = setTimeout(() => {
+      scrollFieldIntoView(scrollRef, target, scrollY());
+      if (focusField === 'title') titleInputRef.current?.focus();
+      if (focusField === 'description') descriptionInputRef.current?.focus();
+      if (focusField === 'price') priceInputRef.current?.focus();
+    }, 520);
+    return () => {
+      clearTimeout(scrollTimer);
+      clearTimeout(focusTimer);
+    };
+  }, [focusNonce, focusField, scrollRef, scrollYRef]);
 
   // Garantir que formData existe
   const safeFormData = formData || {
@@ -266,6 +286,7 @@ export function DetailsStep({
             Título <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
+            ref={titleInputRef}
             style={[styles.input, issueFields.includes('title') && styles.inputError]}
             value={safeFormData.title || ''}
             onChangeText={(text) => {
@@ -280,7 +301,7 @@ export function DetailsStep({
             placeholderTextColor={colors.text.tertiary}
             maxLength={100}
           />
-          <Text style={styles.helperText}>Mínimo de 10 caracteres</Text>
+          <Text style={styles.helperText}>Mínimo de 3 caracteres</Text>
         </View>
 
         <View
@@ -320,6 +341,7 @@ export function DetailsStep({
             Descrição <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
+            ref={descriptionInputRef}
             style={[
               styles.input,
               styles.textArea,
@@ -334,7 +356,7 @@ export function DetailsStep({
                 console.error('[DetailsStep] Erro ao atualizar descrição:', error);
               }
             }}
-            placeholder="O que o comprador recebe (mín. 50 caracteres)"
+            placeholder="O que o comprador recebe (mín. 20 caracteres)"
             placeholderTextColor={colors.text.tertiary}
             multiline
             numberOfLines={3}
@@ -342,7 +364,7 @@ export function DetailsStep({
             maxLength={1000}
           />
           <Text style={styles.helperText}>
-            {(safeFormData.description || '').trim().length}/50 · mínimo de 50 caracteres
+            {(safeFormData.description || '').trim().length}/20 · mínimo de 20 caracteres
           </Text>
         </View>
 
@@ -507,6 +529,7 @@ export function DetailsStep({
               Preço (R$) <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
+              ref={priceInputRef}
               style={[styles.input, issueFields.includes('price') && styles.inputError]}
               value={priceText}
               onChangeText={(text) => {

@@ -60,8 +60,14 @@ export function StoriesCarousel({
 
     const isViewed = isGroupViewed(group);
     const isCurrentUser = group.user._id === user?.id;
-    const firstStory = group.stories?.[0];
-    const storyImageUrl = firstStory?.content?.mediaUrl;
+    // Igual web: preview = story mais recente; clique abre do mais antigo
+    const latestStory = group.stories[group.stories.length - 1];
+    const content = latestStory?.content;
+    const previewUrl =
+      content?.thumbnailUrl ||
+      (content?.type === 'image' || content?.type === 'gif' ? content?.mediaUrl : undefined) ||
+      undefined;
+    const isVideoPreview = content?.type === 'video';
 
     return (
       <TouchableOpacity
@@ -70,10 +76,10 @@ export function StoriesCarousel({
         onPress={() => onStoryClick(group)}
       >
         <View style={styles.storyCard}>
-          {/* Preview do story (imagem/vídeo) */}
-          {storyImageUrl ? (
+          {/* Preview do story (thumbnail JPEG; nunca URL de vídeo no Image) */}
+          {previewUrl ? (
             <Image
-              source={{ uri: storyImageUrl }}
+              source={{ uri: previewUrl }}
               style={styles.storyPreview}
               resizeMode="cover"
             />
@@ -84,6 +90,11 @@ export function StoriesCarousel({
               </Text>
             </View>
           )}
+          {isVideoPreview ? (
+            <View style={styles.videoBadge}>
+              <Ionicons name="play" size={14} color="#ffffff" />
+            </View>
+          ) : null}
 
           {/* Overlay escuro no topo */}
           <View style={styles.storyOverlay} />
@@ -206,6 +217,17 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#d946ef',
+  },
+  videoBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   storyOverlay: {
     ...StyleSheet.absoluteFill,

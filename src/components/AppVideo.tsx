@@ -72,11 +72,12 @@ export function AppVideo({
 
   useEventListener(player, 'statusChange', ({ status, error }) => {
     if (status === 'loading') onLoadStart?.();
+    // readyToPlay = buffer suficiente para exibir — não usar sourceLoad (metadados cedo demais).
+    if (status === 'readyToPlay') {
+      const durationSeconds = Number.isFinite(player.duration) ? player.duration : 0;
+      onLoad?.(durationSeconds);
+    }
     if (status === 'error') onError?.(error?.message ?? 'Erro ao carregar vídeo');
-  });
-
-  useEventListener(player, 'sourceLoad', ({ duration }) => {
-    onLoad?.(duration);
   });
 
   useEventListener(player, 'playToEnd', () => {

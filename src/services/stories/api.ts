@@ -146,6 +146,7 @@ export const storiesApi = {
     content: {
       type: 'image' | 'video' | 'gif';
       mediaUrl: string;
+      thumbnailUrl?: string | null;
       text?: string | null;
       elements?: Array<{
         type: 'text' | 'music';

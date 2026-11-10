@@ -14,6 +14,7 @@ interface ReviewStepProps {
   formData: any;
   setFormData: (data: any) => void;
   scrollRef?: { current: any };
+  scrollYRef?: { current: number };
   focusField?: string | null;
   focusNonce?: number;
   issueFields?: string[];
@@ -23,6 +24,7 @@ export function ReviewStep({
   formData,
   setFormData,
   scrollRef,
+  scrollYRef,
   focusField = null,
   focusNonce = 0,
   issueFields = [],
@@ -33,8 +35,11 @@ export function ReviewStep({
 
   useEffect(() => {
     if (!focusNonce || focusField !== 'terms') return;
-    scrollFieldIntoView(scrollRef, termsRef);
-  }, [focusNonce, focusField, scrollRef]);
+    const timer = setTimeout(() => {
+      scrollFieldIntoView(scrollRef, termsRef, scrollYRef?.current ?? 0);
+    }, 320);
+    return () => clearTimeout(timer);
+  }, [focusNonce, focusField, scrollRef, scrollYRef]);
   // Garantir que contentValidations existe
   const contentValidations = formData.contentValidations || {
     readTerms: false,

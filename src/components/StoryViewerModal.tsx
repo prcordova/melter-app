@@ -34,9 +34,17 @@ import { API_CONFIG } from '../config/api.config';
 import { AppVideo } from './AppVideo';
 
 const { width, height } = Dimensions.get('window');
-const STORY_DURATION = 5000; // 5 segundos por story
+const STORY_DURATION_FALLBACK_MS = 5000;
 /** Presigned GET de stories expira em ~15 min — renovar antes (igual web). */
 const STORY_SIGNED_URL_REFRESH_MS = 12 * 60 * 1000;
+
+function resolveStoryDurationMs(story: Story | undefined): number {
+  const seconds = Number(story?.duration);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return Math.min(30, Math.max(3, seconds)) * 1000;
+  }
+  return STORY_DURATION_FALLBACK_MS;
+}
 
 function isRawStoryStorageKey(url: string): boolean {
   const trimmed = url.trim();
@@ -280,9 +288,17 @@ export function StoryViewerModal({
   useEffect(() => {
     if (!visible || loading || isPaused || !currentStory) return;
 
+    // Retoma só o tempo restante (se buffering pausou a barra no meio, não reinicia 5s cheios).
+    let startValue = 0;
+    progress.stopAnimation((value) => {
+      startValue = typeof value === 'number' ? value : 0;
+    });
+    const totalMs = resolveStoryDurationMs(currentStory);
+    const remainingMs = Math.max(120, (1 - Math.min(1, Math.max(0, startValue))) * totalMs);
+
     const animation = Animated.timing(progress, {
       toValue: 1,
-      duration: STORY_DURATION,
+      duration: remainingMs,
       useNativeDriver: false,
     });
 
@@ -540,11 +556,16 @@ export function StoryViewerModal({
                 style={styles.media}
                 contentFit="cover"
                 autoPlay
-                paused={isPaused}
-                loop
+                paused={isPaused || loading}
+                loop={false}
                 onLoadStart={() => setLoading(true)}
                 onLoad={() => {
                   setLoading(false);
+                }}
+                onEnd={() => {
+                  // Para a barra antes — evita nextStory duplo (timer + fim do vídeo)
+                  progress.stopAnimation();
+                  if (!isPaused) nextStory();
                 }}
                 onError={(error) => {
                   console.error('Erro ao carregar vídeo do story:', {
