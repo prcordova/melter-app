@@ -32,7 +32,7 @@ const TOUR_STEPS: Array<CustomTooltipTutorialStep & { tab: string }> = [
     id: 'explorer',
     tab: 'CommunityStack',
     title: 'Comunidade',
-    description: 'Aqui você explora vendedores e a comunidade.',
+    description: 'Aqui você encontra pessoas, amigos e a comunidade.',
   },
   {
     id: 'messages',
