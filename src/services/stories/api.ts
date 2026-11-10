@@ -336,6 +336,18 @@ export const storiesApi = {
     const response = await api.get<ApiResponse<any>>(`/api/stories/${storyId}/reactions`);
     return response.data;
   },
+
+  /** Renova URL assinada da mídia (bucket privado; TTL ~15 min). Paridade com web StoriesViewer. */
+  signMedia: async (storyId: string) => {
+    const response = await api.post<ApiResponse<{
+      mediaUrl: string;
+      contentType?: string;
+      storageKey?: string | null;
+      storyContentType?: string;
+      expiresInSeconds?: number;
+    }>>(`/api/stories/${storyId}/media/sign`, {});
+    return response.data;
+  },
 };
 
 // API de Pagamentos

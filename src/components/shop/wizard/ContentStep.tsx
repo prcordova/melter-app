@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { getImageUrl } from '../../../utils/image';
 import type { PackContentDeliveryMode } from '../ProductCreationWizard';
 import { Button } from '../../Button';
 import { productsApi } from '../../../services/products';
+import { scrollFieldIntoView } from './scroll-field-into-view';
 
 export type ProductStorageOptions = Parameters<typeof getProductCreationStorageLimits>[1];
 
@@ -32,6 +33,10 @@ interface ContentStepProps {
   productId?: string | null;
   showMediaRequiredError?: boolean;
   storageOptions?: ProductStorageOptions;
+  scrollRef?: { current: any };
+  focusField?: string | null;
+  focusNonce?: number;
+  issueFields?: string[];
 }
 
 export function ContentStep({
@@ -41,9 +46,22 @@ export function ContentStep({
   productId = null,
   showMediaRequiredError = false,
   storageOptions,
+  scrollRef,
+  focusField = null,
+  focusNonce = 0,
+  issueFields = [],
 }: ContentStepProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const deliveryRef = useRef<any>(null);
+  const filesRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!focusNonce || !focusField) return;
+    const target = focusField === 'delivery' ? deliveryRef : focusField === 'files' ? filesRef : null;
+    if (!target) return;
+    scrollFieldIntoView(scrollRef, target);
+  }, [focusNonce, focusField, scrollRef]);
   const { user } = useAuth();
   const userPlan = (user?.plan?.type || 'FREE') as PlanType;
   const storageLimits = useMemo(
@@ -276,7 +294,10 @@ export function ContentStep({
 
   if (needsDeliveryChoice) {
     return (
-      <View style={styles.container}>
+      <View
+        ref={deliveryRef}
+        style={[styles.container, issueFields.includes('delivery') && styles.highlight]}
+      >
         <Text style={styles.title}>O que você vai enviar neste pacote?</Text>
         <Text style={styles.subtitle}>
           Todo pacote precisa de pelo menos um arquivo de mídia na Melter. Links externos são
@@ -339,7 +360,10 @@ export function ContentStep({
         </View>
       )}
 
-      <View style={styles.section}>
+      <View
+        ref={filesRef}
+        style={[styles.section, issueFields.includes('files') && styles.highlight]}
+      >
         <Text style={styles.sectionTitle}>Arquivos de mídia</Text>
         <View style={styles.addFilesRow}>
           <Button
@@ -548,6 +572,12 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+  },
+  highlight: {
+    borderWidth: 2,
+    borderColor: c.states.warning,
+    borderRadius: 12,
+    padding: 8,
   },
   addFilesRow: {
     alignItems: 'center',

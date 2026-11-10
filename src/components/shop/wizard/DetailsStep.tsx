@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext';
@@ -26,6 +25,8 @@ import { PRODUCT_DRAFTS_API } from '../../../config/shops/api-paths';
 import { PlanLocker } from '../../PlanLocker';
 import { FIXED_CATEGORIES } from '../../../constants/categories';
 import { PresentationVideoSellerPanel } from '../PresentationVideoSellerPanel';
+import { SelectRow } from '../../SelectRow';
+import { scrollFieldIntoView } from './scroll-field-into-view';
 
 interface DetailsStepProps {
   formData: any;
@@ -38,6 +39,10 @@ interface DetailsStepProps {
   productId?: string | null;
   /** Pacote novo: cria o rascunho antes de enviar o vídeo de apresentação. */
   onEnsureDraft?: () => Promise<string>;
+  scrollRef?: { current: any };
+  focusField?: string | null;
+  focusNonce?: number;
+  issueFields?: string[];
 }
 
 export function DetailsStep({
@@ -48,6 +53,10 @@ export function DetailsStep({
   productCoverAvatarFallbackEnabled = true,
   productId = null,
   onEnsureDraft,
+  scrollRef,
+  focusField = null,
+  focusNonce = 0,
+  issueFields = [],
 }: DetailsStepProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
@@ -60,15 +69,33 @@ export function DetailsStep({
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [priceText, setPriceText] = useState(() =>
-    formData?.price != null ? String(formData.price) : '10'
+    typeof formData?.price === 'number' && formData.price >= 10 ? String(formData.price) : ''
   );
+  const titleRef = useRef<any>(null);
+  const categoryRef = useRef<any>(null);
+  const descriptionRef = useRef<any>(null);
+  const priceRef = useRef<any>(null);
+  const planRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!focusNonce || !focusField) return;
+    const target = {
+      title: titleRef,
+      category: categoryRef,
+      description: descriptionRef,
+      price: priceRef,
+      plan: planRef,
+    }[focusField];
+    if (!target) return;
+    scrollFieldIntoView(scrollRef, target);
+  }, [focusNonce, focusField, scrollRef]);
 
   // Garantir que formData existe
   const safeFormData = formData || {
     title: '',
     description: '',
     tags: '',
-    price: 10,
+    price: null,
     categoryId: '',
     coverImage: null,
     paymentMode: 'UNICO' as const,
@@ -234,12 +261,12 @@ export function DetailsStep({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Informações</Text>
 
-        <View style={styles.inputGroup}>
+        <View ref={titleRef} style={styles.inputGroup}>
           <Text style={styles.label}>
             Título <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, issueFields.includes('title') && styles.inputError]}
             value={safeFormData.title || ''}
             onChangeText={(text) => {
               try {
@@ -253,9 +280,14 @@ export function DetailsStep({
             placeholderTextColor={colors.text.tertiary}
             maxLength={100}
           />
+          <Text style={styles.helperText}>Mínimo de 10 caracteres</Text>
         </View>
 
-        <View style={styles.inputGroup}>
+        <View
+          ref={categoryRef}
+          style={styles.inputGroup}
+          pointerEvents={lockCategory ? 'none' : 'auto'}
+        >
           <Text style={styles.label}>
             Categoria <Text style={styles.required}>*</Text>
           </Text>
@@ -265,43 +297,34 @@ export function DetailsStep({
           {loadingCategories ? (
             <ActivityIndicator size="small" color={colors.secondary.main} />
           ) : (
-            <View
-              style={[styles.pickerContainer, lockCategory && styles.pickerLocked]}
-              pointerEvents={lockCategory ? 'none' : 'auto'}
-            >
-              <Picker
-                enabled={!lockCategory}
-                selectedValue={safeFormData.categoryId || ''}
-                onValueChange={(value: string) => {
-                  if (value !== undefined && value !== null) {
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      categoryId: String(value),
-                    }));
-                  }
-                }}
-                style={styles.picker}
-              >
-                <Picker.Item label="Selecione uma categoria" value="" />
-                {categories.map((category) => {
-                  const categoryValue = String(category._id || '');
-                  return (
-                    <Picker.Item
-                      key={category._id}
-                      label={category.name}
-                      value={categoryValue}
-                    />
-                  );
-                })}
-              </Picker>
-            </View>
+            <SelectRow
+              label="Selecione uma categoria"
+              value={safeFormData.categoryId || ''}
+              options={categories.map((category) => ({
+                value: String(category._id || ''),
+                label: category.name,
+              }))}
+              onChange={(value) =>
+                setFormData((prev: any) => ({ ...prev, categoryId: String(value) }))
+              }
+              size="full"
+            />
           )}
+          {issueFields.includes('category') ? (
+            <Text style={styles.errorHelperText}>Selecione uma categoria</Text>
+          ) : null}
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Descrição</Text>
+        <View ref={descriptionRef} style={styles.inputGroup}>
+          <Text style={styles.label}>
+            Descrição <Text style={styles.required}>*</Text>
+          </Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[
+              styles.input,
+              styles.textArea,
+              issueFields.includes('description') && styles.inputError,
+            ]}
             value={safeFormData.description || ''}
             onChangeText={(text) => {
               try {
@@ -311,13 +334,16 @@ export function DetailsStep({
                 console.error('[DetailsStep] Erro ao atualizar descrição:', error);
               }
             }}
-            placeholder="Opcional"
+            placeholder="O que o comprador recebe (mín. 50 caracteres)"
             placeholderTextColor={colors.text.tertiary}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
             maxLength={1000}
           />
+          <Text style={styles.helperText}>
+            {(safeFormData.description || '').trim().length}/50 · mínimo de 50 caracteres
+          </Text>
         </View>
 
         <View style={styles.inputGroup}>
@@ -335,6 +361,9 @@ export function DetailsStep({
             placeholder="Separadas por vírgula"
             placeholderTextColor={colors.text.tertiary}
           />
+          <Text style={styles.helperText}>
+            Não obrigatórias. Ajudam o desempenho da campanha.
+          </Text>
         </View>
 
         <View style={styles.coverBlock}>
@@ -473,75 +502,68 @@ export function DetailsStep({
 
         {/* Preço (se UNICO) */}
         {safeFormData.paymentMode === 'UNICO' && (
-          <View style={styles.inputGroup}>
+          <View ref={priceRef} style={styles.inputGroup}>
             <Text style={styles.label}>
               Preço (R$) <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={[styles.input, Number(safeFormData.price) < 10 && styles.inputError]}
+              style={[styles.input, issueFields.includes('price') && styles.inputError]}
               value={priceText}
               onChangeText={(text) => {
                 const sanitized = text.replace(/[^0-9.,]/g, '');
                 setPriceText(sanitized);
+                if (!sanitized || sanitized === '.' || sanitized === ',') {
+                  setFormData((prev: any) => ({ ...prev, price: null }));
+                  return;
+                }
                 const numValue = Number(sanitized.replace(',', '.'));
                 setFormData((prev: any) => ({
                   ...prev,
-                  price: Number.isFinite(numValue) ? numValue : 0,
+                  price: Number.isFinite(numValue) ? numValue : null,
                 }));
               }}
-              placeholder="10.00"
+              placeholder="0,00"
               placeholderTextColor={colors.text.tertiary}
               keyboardType="decimal-pad"
             />
-            <Text
-              style={[styles.helperText, Number(safeFormData.price) < 10 && styles.errorHelperText]}
-            >
-              Mín. R$ 10
+            <Text style={styles.helperText}>
+              Escolha o valor. Mínimo R$ 10. Na média (R$ 20 a R$ 150) a campanha tende a converter
+              melhor.
             </Text>
           </View>
         )}
 
         {/* Plano de Assinatura (se ASSINATURA) */}
         {safeFormData.paymentMode === 'ASSINATURA' && (
-          <View style={styles.inputGroup}>
+          <View
+            ref={planRef}
+            style={styles.inputGroup}
+            pointerEvents={lockPaymentAndPlan ? 'none' : 'auto'}
+          >
             <Text style={styles.label}>
               Plano de Assinatura <Text style={styles.required}>*</Text>
             </Text>
             {loadingPlans ? (
               <ActivityIndicator size="small" color={colors.secondary.main} />
             ) : (
-              <View
-                style={[styles.pickerContainer, lockPaymentAndPlan && styles.pickerLocked]}
-                pointerEvents={lockPaymentAndPlan ? 'none' : 'auto'}
-              >
-                <Picker
-                  enabled={!lockPaymentAndPlan}
-                  selectedValue={safeFormData.subscriptionPlanId || ''}
-                  onValueChange={(value) => {
-                    try {
-                      setFormData((prev: any) => ({
-                        ...prev,
-                        subscriptionPlanId: value || undefined,
-                      }));
-                    } catch (error) {
-                      console.error('[DetailsStep] Erro ao atualizar subscriptionPlanId:', error);
-                    }
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecione um plano" value="" />
-                  {subscriptionPlans
-                    .filter((plan) => plan.isActive)
-                    .map((plan) => (
-                      <Picker.Item
-                        key={plan._id}
-                        label={`${plan.name} - R$ ${plan.price.toFixed(2)}`}
-                        value={plan._id}
-                      />
-                    ))}
-                </Picker>
-              </View>
+              <SelectRow
+                label="Selecione um plano"
+                value={safeFormData.subscriptionPlanId || ''}
+                options={subscriptionPlans
+                  .filter((plan) => plan.isActive)
+                  .map((plan) => ({
+                    value: plan._id,
+                    label: `${plan.name} - R$ ${plan.price.toFixed(2)}`,
+                  }))}
+                onChange={(value) =>
+                  setFormData((prev: any) => ({ ...prev, subscriptionPlanId: value || undefined }))
+                }
+                size="full"
+              />
             )}
+            {issueFields.includes('plan') ? (
+              <Text style={styles.errorHelperText}>Selecione um plano de assinatura</Text>
+            ) : null}
           </View>
         )}
       </View>
@@ -630,23 +652,17 @@ export function DetailsStep({
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Comentários</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={safeFormData.allowComments || 'ALL'}
-              onValueChange={(value) => {
-                try {
-                  setFormData((prev: any) => ({ ...prev, allowComments: value }));
-                } catch (error) {
-                  console.error('[DetailsStep] Erro ao atualizar allowComments:', error);
-                }
-              }}
-              style={styles.picker}
-            >
-              <Picker.Item label="Todos" value="ALL" />
-              <Picker.Item label="Sob Análise" value="MODERATED" />
-              <Picker.Item label="Nenhum" value="NONE" />
-            </Picker>
-          </View>
+          <SelectRow
+            label="Comentários"
+            value={safeFormData.allowComments || 'ALL'}
+            options={[
+              { value: 'ALL', label: 'Todos' },
+              { value: 'MODERATED', label: 'Sob análise' },
+              { value: 'NONE', label: 'Nenhum' },
+            ]}
+            onChange={(value) => setFormData((prev: any) => ({ ...prev, allowComments: value }))}
+            size="full"
+          />
         </View>
       </View>
     </View>

@@ -103,9 +103,19 @@ export function normalizeDraftTitleForWizard(title: string | null | undefined): 
 
 export function resolveWizardCategoryId(product: any): string {
   const raw = product?.categoryId;
-  if (raw && typeof raw === 'object' && raw._id) return String(raw._id);
-  if (raw) return String(raw);
-  return product?._id ? '' : DEFAULT_PACK_CATEGORY_ID;
+  const categoryId =
+    raw && typeof raw === 'object' && raw._id ? String(raw._id) : raw ? String(raw) : '';
+  const title = normalizeDraftTitleForWizard(product?.title);
+  if (!title && categoryId === DEFAULT_PACK_CATEGORY_ID) return '';
+  return categoryId;
+}
+
+export function wizardPriceFromProduct(product: any): number | null {
+  const value = Number(product?.price);
+  if (!Number.isFinite(value) || value < 10) return null;
+  const title = normalizeDraftTitleForWizard(product?.title);
+  if (!title && value === 10) return null;
+  return value;
 }
 
 function validWizardLinks(formData: {

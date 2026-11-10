@@ -33,7 +33,8 @@ const DIMENSION_LABELS: Record<PackageQualityDimension['id'], string> = {
   storage: 'Volume de mídia',
   images: 'Imagens',
   videos: 'Vídeos',
-  presentation: 'Capa e descrição',
+  presentation: 'Capa, texto e tags',
+  price: 'Preço na média',
 };
 
 function dimensionValue(dimension: PackageQualityDimension): string {
@@ -43,6 +44,8 @@ function dimensionValue(dimension: PackageQualityDimension): string {
       return `${current} · excelente ~${target}`;
     case 'presentation':
       return `${current} capa`;
+    case 'price':
+      return `${current} · média ${target}`;
     default:
       return `${current} / pelo menos ${target}`;
   }
@@ -65,6 +68,10 @@ function tipText(tip: PackageQualityCriterion, quality: PackageQualityResult): s
       return 'Complete a descrição do pacote.';
     case 'improve_title':
       return 'Use um título mais descritivo.';
+    case 'add_tags':
+      return 'Tags melhoram a campanha (não são obrigatórias).';
+    case 'set_average_price':
+      return 'Preço na média: R$ 20 a R$ 150.';
   }
 }
 

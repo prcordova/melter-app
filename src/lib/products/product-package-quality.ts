@@ -34,12 +34,15 @@ const MIN_VIDEOS_BY_PLAN: Record<PlanType, number> = {
   PRO_PLUS: 2,
 };
 
-const DESCRIPTION_MIN_CHARS = 80;
-const TITLE_MIN_CHARS = 10;
+const DESCRIPTION_MIN_CHARS = 160;
+const TITLE_MIN_CHARS = 24;
+const PRICE_MIN = 10;
+const PRICE_AVERAGE_MIN = 20;
+const PRICE_AVERAGE_MAX = 150;
 
 export type PackageQualityLevel = 'basic' | 'starter' | 'good' | 'excellent';
 
-export type PackageQualityDimensionId = 'storage' | 'images' | 'videos' | 'presentation';
+export type PackageQualityDimensionId = 'storage' | 'images' | 'videos' | 'presentation' | 'price';
 
 export type PackageQualityCriterion =
   | 'add_media'
@@ -48,7 +51,9 @@ export type PackageQualityCriterion =
   | 'add_storage'
   | 'add_cover'
   | 'add_description'
-  | 'improve_title';
+  | 'improve_title'
+  | 'add_tags'
+  | 'set_average_price';
 
 export type PackageQualityFile = {
   size?: number;
@@ -63,6 +68,9 @@ export type PackageQualityFormInput = {
   title?: string;
   description?: string;
   coverImage?: string | null;
+  tags?: string | null;
+  price?: number | null;
+  paymentMode?: string | null;
 };
 
 export type PackageQualityTargets = {
@@ -91,10 +99,11 @@ export type PackageQualityResult = {
 };
 
 const DIMENSION_WEIGHTS: Record<PackageQualityDimensionId, number> = {
-  storage: 0.35,
-  images: 0.25,
-  videos: 0.2,
-  presentation: 0.2,
+  storage: 0.3,
+  images: 0.22,
+  videos: 0.18,
+  presentation: 0.18,
+  price: 0.12,
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -138,6 +147,8 @@ function buildTips(input: {
   hasCover: boolean;
   descriptionLength: number;
   titleLength: number;
+  hasTags: boolean;
+  priceScore: number;
   targets: PackageQualityTargets;
 }): PackageQualityCriterion[] {
   const tips: Array<{ id: PackageQualityCriterion; priority: number }> = [];
@@ -169,6 +180,8 @@ function buildTips(input: {
     });
   }
   if (input.titleLength < TITLE_MIN_CHARS) tips.push({ id: 'improve_title', priority: 25 });
+  if (input.priceScore < 100) tips.push({ id: 'set_average_price', priority: 30 });
+  if (!input.hasTags) tips.push({ id: 'add_tags', priority: 18 });
 
   return tips
     .sort((a, b) => b.priority - a.priority)
@@ -202,14 +215,29 @@ export function computePackageQuality(
   }
 
   const hasCover = Boolean(formData.coverImage?.trim());
+  const hasTags = Boolean((formData.tags ?? '').trim());
   const descriptionLength = (formData.description ?? '').trim().length;
   const titleLength = (formData.title ?? '').trim().length;
+  const priceValue = Number(formData.price);
+  const priceScore =
+    formData.paymentMode === 'ASSINATURA'
+      ? 100
+      : !Number.isFinite(priceValue) || priceValue < PRICE_MIN
+        ? 0
+        : priceValue >= PRICE_AVERAGE_MIN && priceValue <= PRICE_AVERAGE_MAX
+          ? 100
+          : priceValue < PRICE_AVERAGE_MIN
+            ? 45
+            : priceValue <= 300
+              ? 55
+              : 25;
 
   const presentationScore = Math.round(
     clamp(
-      (hasCover ? 40 : 0) +
-        ratioScore(descriptionLength, DESCRIPTION_MIN_CHARS) * 0.35 +
-        ratioScore(titleLength, TITLE_MIN_CHARS) * 0.25,
+      (hasCover ? 35 : 0) +
+        ratioScore(descriptionLength, DESCRIPTION_MIN_CHARS) * 0.3 +
+        ratioScore(titleLength, TITLE_MIN_CHARS) * 0.2 +
+        (hasTags ? 15 : 0),
       0,
       100
     )
@@ -240,6 +268,17 @@ export function computePackageQuality(
       currentLabel: hasCover ? '✓' : '—',
       targetLabel: '✓',
     },
+    {
+      id: 'price',
+      score: priceScore,
+      currentLabel:
+        formData.paymentMode === 'ASSINATURA'
+          ? 'plano'
+          : priceScore === 0
+            ? '—'
+            : `R$ ${priceValue}`,
+      targetLabel: `R$ ${PRICE_AVERAGE_MIN}–${PRICE_AVERAGE_MAX}`,
+    },
   ];
 
   const score = clamp(
@@ -259,6 +298,8 @@ export function computePackageQuality(
       hasCover,
       descriptionLength,
       titleLength,
+      hasTags,
+      priceScore,
       targets,
     }),
     dimensions,

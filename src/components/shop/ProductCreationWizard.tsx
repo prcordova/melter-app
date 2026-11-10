@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,14 +22,15 @@ import { ReviewStep } from './wizard/ReviewStep';
 import { ProductPackageQualityThermometer } from './wizard/ProductPackageQualityThermometer';
 import { WizardStorageUsageBar } from './wizard/WizardStorageUsageBar';
 import { showToast } from '../CustomToast';
-import { DEFAULT_PACK_CATEGORY_ID } from '../../constants/categories';
 import {
   buildWizardDigitalPayload,
   mapProductDigitalToWizard,
   normalizeDraftTitleForWizard,
   resolveWizardCategoryId,
+  wizardPriceFromProduct,
   type PackContentDeliveryMode,
 } from '../../lib/products/product-wizard-form';
+import { collectWizardStepIssues } from '../../lib/products/product-wizard-step-issues';
 
 export interface ProductCreationWizardProps {
   visible: boolean;
@@ -89,7 +90,7 @@ export function ProductCreationWizard({
     title: '',
     description: '',
     tags: '',
-    price: 10,
+    price: null as number | null,
     categoryId: '',
     coverImage: null as string | null,
     paymentMode: 'UNICO' as 'UNICO' | 'ASSINATURA',
@@ -171,7 +172,7 @@ export function ProductCreationWizard({
         title: normalizeDraftTitleForWizard(product.title),
         description: product.description || '',
         tags: product.tags || '',
-        price: product.price || 10,
+        price: wizardPriceFromProduct(product),
         categoryId: resolveWizardCategoryId(product),
         coverImage: product.coverImage || null,
         paymentMode: product.paymentMode || 'UNICO',
@@ -208,8 +209,8 @@ export function ProductCreationWizard({
         title: '',
         description: '',
         tags: '',
-        price: 10,
-        categoryId: DEFAULT_PACK_CATEGORY_ID,
+        price: null,
+        categoryId: '',
         coverImage: null,
         paymentMode: 'UNICO',
         subscriptionScope: undefined,
@@ -234,56 +235,33 @@ export function ProductCreationWizard({
     }
   }, [product, visible]);
 
-  const canProceedToNext = (step: number): boolean => {
-    try {
-      switch (step) {
-        case 0: {
-          if (!isEditing && !formData.contentDeliveryMode) return false;
-          return true;
-        }
-        case 1: // Detalhes
-          const hasTitle = Boolean(formData.title && String(formData.title).trim() !== '');
-          const hasCategory = Boolean(formData.categoryId && String(formData.categoryId).trim() !== '');
+  const [validationNonce, setValidationNonce] = useState(0);
+  const scrollRef = useRef<any>(null);
+  const stepIssues = useMemo(
+    () =>
+      validationNonce === 0
+        ? []
+        : collectWizardStepIssues(activeStep, formData, { isEditing }),
+    [validationNonce, activeStep, formData, isEditing]
+  );
+  const focusField = stepIssues[0]?.field ?? null;
+  const issueFields = stepIssues.map((issue) => issue.field);
 
-          if (formData.paymentMode === 'ASSINATURA') {
-            return hasTitle && hasCategory && !!formData.subscriptionPlanId;
-          } else {
-            const price = Number(formData.price) || 0;
-            return hasTitle && hasCategory && price >= 10;
-          }
-        case 2: // Revisão
-          const validations = formData.contentValidations || {};
-          return (
-            validations.readTerms &&
-            validations.noViolence &&
-            validations.noThirdParty &&
-            validations.ownContent &&
-            validations.noHateSpeech &&
-            validations.noSpam
-          );
-        default:
-          return false;
-      }
-    } catch (error) {
-      console.error('[ProductCreationWizard] Erro ao validar step:', error);
-      return false;
-    }
+  const rejectStep = (step: number) => {
+    const found = collectWizardStepIssues(step, formData, { isEditing });
+    if (found.length === 0) return false;
+    setShowMediaRequiredError(found.some((issue) => issue.field === 'files'));
+    setActiveStep(step);
+    setValidationNonce(Date.now());
+    showToast.error('Falta preencher', found[0].message);
+    return true;
   };
 
   const handleNext = () => {
     try {
-      if (!canProceedToNext(activeStep)) return;
-
-      if (activeStep === 0 && !formHasHostedMedia(formData.files)) {
-        setShowMediaRequiredError(true);
-        showToast.error(
-          'Arquivo obrigatório',
-          'Envie pelo menos um arquivo de mídia. Links sozinhos não são suficientes.'
-        );
-        return;
-      }
-
+      if (rejectStep(activeStep)) return;
       setShowMediaRequiredError(false);
+      setValidationNonce(0);
       setActiveStep((prev) => prev + 1);
     } catch (error) {
       console.error('[ProductCreationWizard] Erro ao avançar step:', error);
@@ -309,6 +287,9 @@ export function ProductCreationWizard({
   };
 
   const handleSave = () => {
+    for (const step of [0, 1, 2]) {
+      if (rejectStep(step)) return;
+    }
     onSave({
       ...formData,
       isAdultContent: formData.categoryId === 'conteudo-18',
@@ -328,6 +309,10 @@ export function ProductCreationWizard({
             productId={serverProductId}
             showMediaRequiredError={showMediaRequiredError}
             storageOptions={storageOptions}
+            scrollRef={scrollRef}
+            focusField={focusField}
+            focusNonce={validationNonce}
+            issueFields={issueFields}
           />
         );
       case 1:
@@ -340,6 +325,10 @@ export function ProductCreationWizard({
             lockPaymentAndPlan={isEditing}
             lockCategory={product?.status === 'APPROVED'}
             productCoverAvatarFallbackEnabled={productCoverAvatarFallbackEnabled}
+            scrollRef={scrollRef}
+            focusField={focusField}
+            focusNonce={validationNonce}
+            issueFields={issueFields}
           />
         );
       case 2:
@@ -347,7 +336,10 @@ export function ProductCreationWizard({
           <ReviewStep
             formData={formData}
             setFormData={setFormData}
-            canProceed={canProceedToNext(2)}
+            scrollRef={scrollRef}
+            focusField={focusField}
+            focusNonce={validationNonce}
+            issueFields={issueFields}
           />
         );
       default:
@@ -457,6 +449,10 @@ export function ProductCreationWizard({
               ))}
             </View>
 
+            <View style={styles.qualityThermometer}>
+              <ProductPackageQualityThermometer formData={formData} />
+            </View>
+
             {/* Progress Bar */}
             {saving && (
               <View style={styles.progressContainer}>
@@ -472,6 +468,7 @@ export function ProductCreationWizard({
             {/* Step Content */}
             <View style={styles.contentWrapper}>
               <ScrollView
+                ref={scrollRef}
                 style={styles.content}
                 contentContainerStyle={[
                   styles.contentContainer,
@@ -494,11 +491,6 @@ export function ProductCreationWizard({
                   >
                     <Text style={styles.analysisNotesTitle}>Observações da análise</Text>
                     <Text style={styles.analysisNotesText}>{product.analysisNotes}</Text>
-                  </View>
-                ) : null}
-                {isEditing || formData.contentDeliveryMode ? (
-                  <View style={styles.qualityThermometer}>
-                    <ProductPackageQualityThermometer formData={formData} />
                   </View>
                 ) : null}
                 {getStepContent()}
@@ -532,13 +524,9 @@ export function ProductCreationWizard({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[
-                  styles.button,
-                  styles.nextButton,
-                  (!canProceedToNext(activeStep) || saving) && styles.nextButtonDisabled,
-                ]}
+                style={[styles.button, styles.nextButton, saving && styles.nextButtonDisabled]}
                 onPress={activeStep === steps.length - 1 ? handleSave : handleNext}
-                disabled={!canProceedToNext(activeStep) || saving}
+                disabled={saving}
               >
                 {saving ? (
                   <ActivityIndicator size="small" color="#ffffff" />

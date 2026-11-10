@@ -432,14 +432,17 @@ export function StoryCreateModal({
       try {
 
         // 1. Obter informações do arquivo
-        const filename = mediaToUpload.split('/').pop() || `story_${Date.now()}.${isVideoToUpload ? 'mp4' : 'jpg'}`;
+        // Android ImagePicker às vezes devolve URI sem extensão (cache/UUID) —
+        // o backend precisa de MIME + extensão conhecida para a key S3.
+        const rawFilename = mediaToUpload.split('/').pop() || '';
+        const decodedFilename = decodeURIComponent(rawFilename.split('?')[0] || rawFilename);
         
         // Determinar o tipo de arquivo - priorizar o tipo armazenado
         let fileType = mediaTypeToUpload;
         
         // Se não tiver tipo armazenado ou for inválido, inferir do nome do arquivo
         if (!fileType || (!fileType.startsWith('image/') && !fileType.startsWith('video/'))) {
-          const match = /\.(\w+)$/.exec(filename.toLowerCase());
+          const match = /\.(\w+)$/.exec(decodedFilename.toLowerCase());
           if (match) {
             const ext = match[1].toLowerCase();
             // Mapear extensões para tipos MIME válidos (usar exatamente como o backend espera)
@@ -478,6 +481,24 @@ export function StoryCreateModal({
         if (!validTypes.includes(fileType)) {
           fileType = isVideoToUpload ? 'video/mp4' : 'image/jpeg';
         }
+
+        const mimeToExt: { [key: string]: string } = {
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/png': 'png',
+          'image/gif': 'gif',
+          'image/webp': 'webp',
+          'video/mp4': 'mp4',
+          'video/webm': 'webm',
+          'video/quicktime': 'mov',
+          'video/x-msvideo': 'avi',
+        };
+        const knownExts = new Set(Object.values(mimeToExt));
+        const rawExt = decodedFilename.split('.').pop()?.toLowerCase() || '';
+        const safeExt = knownExts.has(rawExt)
+          ? (rawExt === 'jpeg' ? 'jpg' : rawExt)
+          : (mimeToExt[fileType] || (isVideoToUpload ? 'mp4' : 'jpg'));
+        const filename = `story_${Date.now()}.${safeExt}`;
         
         // Obter tamanho do arquivo (usar do ImagePicker se disponível, senão buscar via fetch)
         let fileSize = mediaSizeToUpload;

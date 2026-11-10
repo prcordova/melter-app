@@ -1,24 +1,40 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Switch,
-  ScrollView,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../../../contexts/ThemeContext';
 import type { AppPalette } from '../../../theme/palettes';
+import { scrollFieldIntoView } from './scroll-field-into-view';
 
 interface ReviewStepProps {
   formData: any;
   setFormData: (data: any) => void;
-  canProceed?: boolean;
+  scrollRef?: { current: any };
+  focusField?: string | null;
+  focusNonce?: number;
+  issueFields?: string[];
 }
 
-export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewStepProps) {
+export function ReviewStep({
+  formData,
+  setFormData,
+  scrollRef,
+  focusField = null,
+  focusNonce = 0,
+  issueFields = [],
+}: ReviewStepProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const termsRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!focusNonce || focusField !== 'terms') return;
+    scrollFieldIntoView(scrollRef, termsRef);
+  }, [focusNonce, focusField, scrollRef]);
   // Garantir que contentValidations existe
   const contentValidations = formData.contentValidations || {
     readTerms: false,
@@ -54,7 +70,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
   const allValidationsChecked = Object.values(contentValidations).every(Boolean);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Revisão final</Text>
         <Text style={styles.pageSubtitle}>
@@ -187,7 +203,10 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
       </View>
 
       {/* Validações de Conteúdo */}
-      <View style={styles.section}>
+      <View
+        ref={termsRef}
+        style={[styles.section, issueFields.includes('terms') && styles.sectionError]}
+      >
         <Text style={styles.sectionTitle}>Declarações de conteúdo</Text>
 
         <View style={styles.infoBox}>
@@ -236,7 +255,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
           </View>
         </View>
 
-        {!canProceed && !allValidationsChecked && (
+        {issueFields.includes('terms') && !allValidationsChecked && (
           <View style={styles.warningBox}>
             <Text style={styles.warningText}>
               Você deve confirmar todas as validações para continuar
@@ -274,7 +293,7 @@ export function ReviewStep({ formData, setFormData, canProceed = true }: ReviewS
           </Text>
         </View>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -298,6 +317,12 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+  },
+  sectionError: {
+    borderWidth: 2,
+    borderColor: c.states.warning,
+    borderRadius: 12,
+    padding: 8,
   },
   sectionTitle: {
     fontSize: 16,

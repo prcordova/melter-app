@@ -35,6 +35,48 @@ import { AppVideo } from './AppVideo';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 segundos por story
+/** Presigned GET de stories expira em ~15 min — renovar antes (igual web). */
+const STORY_SIGNED_URL_REFRESH_MS = 12 * 60 * 1000;
+
+function isRawStoryStorageKey(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed || trimmed.startsWith('data:') || /^https?:\/\//i.test(trimmed)) return false;
+  return trimmed.startsWith('stories/');
+}
+
+/** URL utilizável em Image/Video (presigned, http, data). Key crua `stories/...` não serve. */
+function getBrowsableStoryMediaUrl(stored: string | null | undefined): string | undefined {
+  if (!stored?.trim()) return undefined;
+  const trimmed = stored.trim();
+  if (trimmed.startsWith('data:') || /^https?:\/\//i.test(trimmed)) return trimmed;
+  if (isRawStoryStorageKey(trimmed)) return undefined;
+  return trimmed;
+}
+
+function mediaPathname(url: string): string {
+  try {
+    if (/^https?:\/\//i.test(url)) return new URL(url).pathname;
+  } catch {
+    // URL inválida — cair no split por query
+  }
+  return url.split('?')[0] || url;
+}
+
+function isStoryVideoMedia(typeOrMime: string | undefined, mediaUrl: string): boolean {
+  const hint = typeOrMime?.toLowerCase() || '';
+  if (hint === 'video' || hint.startsWith('video/')) return true;
+  if (hint === 'image' || hint === 'gif' || hint.startsWith('image/')) return false;
+  return /\.(mp4|webm|mov|avi|mkv|flv|wmv|m4v)$/i.test(mediaPathname(mediaUrl));
+}
+
+function mediaDebugPath(url: string): string {
+  try {
+    if (/^https?:\/\//i.test(url)) return new URL(url).pathname;
+  } catch {
+    // ignore
+  }
+  return (url.split('?')[0] || url).slice(0, 160);
+}
 
 interface StoryViewerModalProps {
   visible: boolean;
@@ -69,10 +111,27 @@ export function StoryViewerModal({
   const [showReportModal, setShowReportModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [textExpanded, setTextExpanded] = useState(false);
+  const [signedMediaUrl, setSignedMediaUrl] = useState<string | null>(null);
+  const [signedMediaContentType, setSignedMediaContentType] = useState<string | null>(null);
   
   const progress = useRef(new Animated.Value(0)).current;
+  const mediaSignRetryForStoryRef = useRef<string | null>(null);
   const currentGroup = storiesGroups[groupIndex];
   const currentStory = currentGroup?.stories[storyIndex];
+  const rawStoryMediaUrl = currentStory?.content?.mediaUrl || '';
+  const canvasData =
+    currentStory?.content && 'canvasData' in currentStory.content
+      ? (currentStory.content as { canvasData?: string }).canvasData
+      : undefined;
+  const activeMediaUrl =
+    (canvasData && canvasData.startsWith('data:') ? canvasData : undefined) ||
+    signedMediaUrl ||
+    getBrowsableStoryMediaUrl(rawStoryMediaUrl) ||
+    '';
+  const activeMediaKindHint =
+    signedMediaContentType ||
+    currentStory?.content?.type ||
+    undefined;
   const isOwnStory = currentStory?.userId?._id === currentUser?.id || 
                      (typeof currentStory?.userId === 'string' && currentStory?.userId === currentUser?.id) ||
                      (currentGroup?.user?._id === currentUser?.id);
@@ -274,6 +333,86 @@ export function StoryViewerModal({
     }
   }, [visible, currentStory?._id]);
 
+  // Assinar / renovar URL da mídia privada (paridade com web StoriesViewer)
+  useEffect(() => {
+    if (!visible || !currentStory?._id) {
+      setSignedMediaUrl(null);
+      setSignedMediaContentType(null);
+      mediaSignRetryForStoryRef.current = null;
+      return;
+    }
+
+    const storyId = currentStory._id;
+    const initialUrl = currentStory.content?.mediaUrl || null;
+    mediaSignRetryForStoryRef.current = null;
+    setSignedMediaContentType(null);
+
+    if (initialUrl && !isRawStoryStorageKey(initialUrl)) {
+      setSignedMediaUrl(getBrowsableStoryMediaUrl(initialUrl) ?? null);
+    } else {
+      setSignedMediaUrl(null);
+    }
+
+    let cancelled = false;
+
+    const refreshSignedUrl = async (isInitial = false) => {
+      try {
+        const response = await storiesApi.signMedia(storyId);
+        if (cancelled) return;
+        if (response.success && response.data?.mediaUrl) {
+          setSignedMediaUrl(response.data.mediaUrl);
+          if (response.data.contentType) {
+            setSignedMediaContentType(response.data.contentType);
+          }
+          return;
+        }
+        if (isInitial && isRawStoryStorageKey(initialUrl || '')) {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Erro ao renovar URL do story:', error);
+        if (!cancelled && isInitial && isRawStoryStorageKey(initialUrl || '')) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void refreshSignedUrl(true);
+    const intervalId = setInterval(() => void refreshSignedUrl(false), STORY_SIGNED_URL_REFRESH_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [visible, currentStory?._id]);
+
+  const refreshStoryMediaOnError = useCallback(async () => {
+    if (!currentStory?._id) {
+      setLoading(false);
+      return;
+    }
+    // Uma tentativa de reassinatura por story — evita loop se a mídia for inválida de verdade
+    if (mediaSignRetryForStoryRef.current === currentStory._id) {
+      setLoading(false);
+      return;
+    }
+    mediaSignRetryForStoryRef.current = currentStory._id;
+    setLoading(true);
+    try {
+      const response = await storiesApi.signMedia(currentStory._id);
+      if (response.success && response.data?.mediaUrl) {
+        setSignedMediaUrl(response.data.mediaUrl);
+        if (response.data.contentType) {
+          setSignedMediaContentType(response.data.contentType);
+        }
+        return;
+      }
+    } catch (error) {
+      console.error('Erro ao reassinar mídia do story após falha de carga:', error);
+    }
+    setLoading(false);
+  }, [currentStory?._id]);
+
   // Mostrar Alert de confirmação de exclusão
   useEffect(() => {
     if (showDeleteConfirm && currentStory) {
@@ -388,16 +527,15 @@ export function StoryViewerModal({
         {/* Background do Story */}
         <View style={styles.mediaContainer}>
           {(() => {
-            // Determinar se é vídeo: verificar tipo (case-insensitive) ou extensão da URL
-            const contentType = currentStory.content.type?.toLowerCase() || '';
-            const mediaUrl = currentStory.content.mediaUrl || '';
-            const isVideoFile = 
-              contentType === 'video' || 
-              /\.(mp4|webm|mov|avi|mkv|flv|wmv|m4v)$/i.test(mediaUrl);
-            
+            const mediaUrl = activeMediaUrl;
+            if (!mediaUrl) {
+              return null;
+            }
+            const isVideoFile = isStoryVideoMedia(activeMediaKindHint, mediaUrl);
+
             return isVideoFile ? (
               <AppVideo
-                key={currentStory._id}
+                key={`${currentStory._id}:${mediaDebugPath(mediaUrl)}`}
                 uri={mediaUrl}
                 style={styles.media}
                 contentFit="cover"
@@ -409,13 +547,18 @@ export function StoryViewerModal({
                   setLoading(false);
                 }}
                 onError={(error) => {
-                  console.error('Erro ao carregar vídeo do story:', error);
-                  setLoading(false);
+                  console.error('Erro ao carregar vídeo do story:', {
+                    storyId: currentStory._id,
+                    path: mediaDebugPath(mediaUrl),
+                    contentType: activeMediaKindHint,
+                    error,
+                  });
+                  void refreshStoryMediaOnError();
                 }}
               />
             ) : (
               <Image
-                key={currentStory._id}
+                key={`${currentStory._id}:${mediaDebugPath(mediaUrl)}`}
                 source={{ uri: mediaUrl }}
                 style={styles.media}
                 resizeMode="cover"
@@ -424,11 +567,12 @@ export function StoryViewerModal({
                 onError={(error) => {
                   console.error('Erro ao carregar imagem do story:', {
                     storyId: currentStory._id,
-                    mediaUrl,
-                    contentType: currentStory.content.type,
+                    path: mediaDebugPath(mediaUrl),
+                    storyType: currentStory.content.type,
+                    responseContentType: signedMediaContentType,
                     error: error.nativeEvent?.error || error,
                   });
-                  setLoading(false);
+                  void refreshStoryMediaOnError();
                 }}
               />
             );
