@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
   ScrollView,
   TextInput,
@@ -14,13 +13,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { walletApi } from '../../services/api';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import { digitsOnly, formatCnpj, isValidCnpj, isValidCpf } from '../../utils/seller/validation';
+import { CustomModal } from '../CustomModal';
+import { CustomSelect } from '../CustomSelect';
+import { Button } from '../Button';
 
 interface WithdrawModalProps {
   visible: boolean;
@@ -50,7 +51,6 @@ function getPixPlaceholder(type: string): string {
   return placeholders[type] || '';
 }
 
-// Funções de máscara
 function maskCPF(value: string): string {
   const numbers = value.replace(/\D/g, '');
   if (numbers.length <= 3) return numbers;
@@ -72,7 +72,6 @@ function maskCEP(value: string): string {
   return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`;
 }
 
-// Estados brasileiros com autocomplete
 const BRAZILIAN_STATES = [
   { uf: 'AC', name: 'Acre' },
   { uf: 'AL', name: 'Alagoas' },
@@ -149,21 +148,23 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
       const savedData = await AsyncStorage.getItem('withdrawFormData');
       if (savedData) {
         const parsed = JSON.parse(savedData);
-        setPersonalData(parsed.personalData || {
-          fullName: '',
-          cpf: '',
-          address: {
-            street: '',
-            number: '',
-            complement: '',
-            neighborhood: '',
-            city: '',
-            state: '',
-            zipCode: '',
-          },
-          phone: '',
-          email: '',
-        });
+        setPersonalData(
+          parsed.personalData || {
+            fullName: '',
+            cpf: '',
+            address: {
+              street: '',
+              number: '',
+              complement: '',
+              neighborhood: '',
+              city: '',
+              state: '',
+              zipCode: '',
+            },
+            phone: '',
+            email: '',
+          }
+        );
         setPixKeyType(parsed.pixKeyType || 'CPF');
       }
     } catch (error) {
@@ -173,11 +174,13 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
 
   const saveFormData = async () => {
     try {
-      const dataToSave = {
-        personalData,
-        pixKeyType,
-      };
-      await AsyncStorage.setItem('withdrawFormData', JSON.stringify(dataToSave));
+      await AsyncStorage.setItem(
+        'withdrawFormData',
+        JSON.stringify({
+          personalData,
+          pixKeyType,
+        })
+      );
     } catch (error) {
       console.error('Erro ao salvar dados do formulário:', error);
     }
@@ -220,7 +223,6 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
   const handlePersonalDataChange = (field: string, value: string) => {
     let processedValue = value;
 
-    // Aplicar máscaras
     if (field === 'cpf') {
       processedValue = maskCPF(value);
     } else if (field === 'phone') {
@@ -229,11 +231,11 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
       processedValue = maskCEP(value);
     } else if (field === 'address.state') {
       processedValue = value.toUpperCase();
-      // Autocomplete de estados
       if (value.length >= 2) {
-        const filtered = BRAZILIAN_STATES.filter(state => 
-          state.uf.startsWith(value.toUpperCase()) || 
-          state.name.toLowerCase().includes(value.toLowerCase())
+        const filtered = BRAZILIAN_STATES.filter(
+          (state) =>
+            state.uf.startsWith(value.toUpperCase()) ||
+            state.name.toLowerCase().includes(value.toLowerCase())
         );
         setStateSuggestions(filtered);
         setShowStateSuggestions(filtered.length > 0);
@@ -245,7 +247,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
 
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
-      setPersonalData(prev => ({
+      setPersonalData((prev) => ({
         ...prev,
         [parent]: {
           ...(prev[parent as keyof typeof prev] as any),
@@ -253,7 +255,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
         },
       }));
     } else {
-      setPersonalData(prev => ({
+      setPersonalData((prev) => ({
         ...prev,
         [field]: processedValue,
       }));
@@ -262,7 +264,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
   };
 
   const handleStateSelect = (state: { uf: string; name: string }) => {
-    setPersonalData(prev => ({
+    setPersonalData((prev) => ({
       ...prev,
       address: {
         ...prev.address,
@@ -314,7 +316,6 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
       return;
     }
 
-    // Validar pixKeyType
     if (!PIX_KEY_TYPES.some((type) => type.value === pixKeyType)) {
       showToast.error('Tipo de chave Pix inválido');
       return;
@@ -335,14 +336,12 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
       return;
     }
 
-    // Validar CPF (mínimo 11 caracteres, máximo 14)
     const cpfCleaned = personalData.cpf.replace(/[^\d]/g, '');
     if (!cpfCleaned || cpfCleaned.length < 11 || cpfCleaned.length > 14) {
       showToast.error('CPF inválido');
       return;
     }
 
-    // Validar email se fornecido
     if (personalData.email && personalData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(personalData.email.trim())) {
@@ -353,12 +352,10 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
 
     try {
       setLoading(true);
-      
-      // Preparar dados para envio (sanitizar e validar)
-      // Remover máscaras antes de enviar
+
       const phoneCleaned = personalData.phone?.replace(/\D/g, '') || undefined;
       const zipCodeCleaned = personalData.address.zipCode?.replace(/\D/g, '') || undefined;
-      
+
       const withdrawalData = {
         amount: amountNum,
         pixKey:
@@ -393,9 +390,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
         setPixKey('');
         await AsyncStorage.removeItem('withdrawFormData');
         onClose();
-        if (onSuccess) {
-          onSuccess();
-        }
+        onSuccess?.();
       }
     } catch (error: any) {
       console.error('Erro ao solicitar saque:', error);
@@ -421,51 +416,47 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
   };
 
   return (
-    <Modal
+    <CustomModal
       visible={visible}
+      onClose={loading ? undefined : onClose}
+      closeOnBackdropPress={!loading}
       animationType="fade"
-      transparent={true}
-      onRequestClose={onClose}
+      overlayStyle={styles.overlay}
     >
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <KeyboardAvoidingView
-          style={styles.keyboardAvoiding}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Math.max(insets.bottom, 12)}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoiding}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <Pressable
+          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) }]}
+          onPress={(e) => e.stopPropagation()}
         >
-          <View
-            style={[styles.container, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 16) }]}
-            onStartShouldSetResponder={() => true}
-            onMoveShouldSetResponder={() => false}
-          >
-          {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <Ionicons name="cash-outline" size={32} color={colors.primary.main} />
-              <Text style={styles.headerTitle}>Solicitar Saque</Text>
+            <View style={styles.headerLeft}>
+              <Ionicons name="cash-outline" size={22} color={colors.secondary.main} />
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                Solicitar Saque
+              </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={colors.text.primary} />
-            </TouchableOpacity>
+            <Button variant="ghost" size="sm" responsive={false} onPress={onClose} disabled={loading}>
+              Fechar
+            </Button>
           </View>
 
-          <ScrollView 
-            style={styles.content} 
+          <ScrollView
+            style={styles.content}
             contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={true}
+            showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
-            nestedScrollEnabled={true}
           >
-            {/* Saldo Disponível */}
             <View style={styles.balanceCard}>
-              <Text style={styles.balanceLabel}>Saldo Disponível</Text>
+              <Text style={styles.balanceLabel}>Saldo disponível</Text>
               <Text style={styles.balanceAmount}>R$ {currentBalance.toFixed(2)}</Text>
             </View>
 
-            {/* Valor do Saque */}
             <View style={styles.section}>
-              <Text style={styles.label}>Valor do Saque</Text>
+              <Text style={styles.label}>Valor do saque</Text>
               <View style={styles.amountInputContainer}>
                 <Text style={styles.amountPrefix}>R$</Text>
                 <TextInput
@@ -473,18 +464,19 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                   value={amount}
                   onChangeText={handleAmountChange}
                   placeholder="0.00"
+                  placeholderTextColor={colors.text.tertiary}
                   keyboardType="numeric"
                   maxLength={4}
                   editable={!loadingFees}
                 />
               </View>
               <Text style={styles.helperText}>
-                Mínimo: R$ {minimumWithdrawal.toFixed(2)} | Máximo: R$ {Math.min(maximumWithdrawal, currentBalance).toFixed(2)}
+                Mínimo: R$ {minimumWithdrawal.toFixed(2)} | Máximo: R${' '}
+                {Math.min(maximumWithdrawal, currentBalance).toFixed(2)}
               </Text>
             </View>
 
-            {/* Cálculo da Taxa */}
-            {amount && parseFloat(amount) > 0 && withdrawalFee > 0 && (
+            {amount && parseFloat(amount) > 0 && withdrawalFee > 0 ? (
               <View style={styles.feeCard}>
                 <View style={styles.feeRow}>
                   <Text style={styles.feeLabel}>Valor solicitado:</Text>
@@ -492,7 +484,11 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                 </View>
                 <View style={styles.feeRow}>
                   <Text style={styles.feeLabel}>
-                    Taxa ({withdrawalFeeType === 'percentage' ? `${withdrawalFee}%` : `R$ ${withdrawalFee.toFixed(2)}`}):
+                    Taxa (
+                    {withdrawalFeeType === 'percentage'
+                      ? `${withdrawalFee}%`
+                      : `R$ ${withdrawalFee.toFixed(2)}`}
+                    ):
                   </Text>
                   <Text style={[styles.feeValue, styles.feeValueNegative]}>
                     - R$ {calculateFee().toFixed(2)}
@@ -503,25 +499,18 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                   <Text style={styles.feeValueTotal}>R$ {calculateNetAmount().toFixed(2)}</Text>
                 </View>
               </View>
-            )}
+            ) : null}
 
-            {/* Tipo de Chave Pix */}
             <View style={styles.section}>
-              <Text style={styles.label}>Tipo de Chave Pix</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={pixKeyType}
-                  onValueChange={handlePixKeyTypeChange}
-                  style={styles.picker}
-                >
-                  {PIX_KEY_TYPES.map((type) => (
-                    <Picker.Item key={type.value} label={type.label} value={type.value} />
-                  ))}
-                </Picker>
-              </View>
+              <CustomSelect
+                label="Tipo de chave Pix"
+                value={pixKeyType}
+                options={PIX_KEY_TYPES}
+                onChange={handlePixKeyTypeChange}
+                disabled={loading}
+              />
             </View>
 
-            {/* Chave Pix */}
             <View style={styles.section}>
               <Text style={styles.label}>Chave Pix</Text>
               <TextInput
@@ -529,6 +518,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                 value={pixKey}
                 onChangeText={handlePixKeyChange}
                 placeholder={getPixPlaceholder(pixKeyType)}
+                placeholderTextColor={colors.text.tertiary}
                 autoCapitalize="none"
                 keyboardType={
                   pixKeyType === 'PHONE'
@@ -540,16 +530,16 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
               />
             </View>
 
-            {/* Dados Pessoais */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📋 Dados Pessoais</Text>
-              <Text style={styles.helperText}>💾 Seus dados serão salvos automaticamente</Text>
+              <Text style={styles.sectionTitle}>Dados pessoais</Text>
+              <Text style={styles.helperText}>Seus dados serão salvos automaticamente neste aparelho.</Text>
 
               <TextInput
                 style={styles.input}
                 value={personalData.fullName}
                 onChangeText={(value) => handlePersonalDataChange('fullName', value)}
                 placeholder="Nome completo"
+                placeholderTextColor={colors.text.tertiary}
               />
 
               <View style={styles.row}>
@@ -558,6 +548,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                   value={personalData.cpf}
                   onChangeText={(value) => handlePersonalDataChange('cpf', value)}
                   placeholder="CPF"
+                  placeholderTextColor={colors.text.tertiary}
                   keyboardType="numeric"
                 />
                 <TextInput
@@ -565,6 +556,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                   value={personalData.phone}
                   onChangeText={(value) => handlePersonalDataChange('phone', value)}
                   placeholder="Telefone"
+                  placeholderTextColor={colors.text.tertiary}
                   keyboardType="phone-pad"
                 />
               </View>
@@ -574,15 +566,15 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                 value={personalData.email}
                 onChangeText={(value) => handlePersonalDataChange('email', value)}
                 placeholder="E-mail (opcional)"
+                placeholderTextColor={colors.text.tertiary}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
             </View>
 
-            {/* Endereço */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🏠 Endereço</Text>
+              <Text style={styles.sectionTitle}>Endereço</Text>
 
               <View style={styles.row}>
                 <TextInput
@@ -590,12 +582,14 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                   value={personalData.address.street}
                   onChangeText={(value) => handlePersonalDataChange('address.street', value)}
                   placeholder="Rua"
+                  placeholderTextColor={colors.text.tertiary}
                 />
                 <TextInput
                   style={[styles.input, styles.inputHalf]}
                   value={personalData.address.number}
                   onChangeText={(value) => handlePersonalDataChange('address.number', value)}
                   placeholder="Número"
+                  placeholderTextColor={colors.text.tertiary}
                 />
               </View>
 
@@ -604,6 +598,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                 value={personalData.address.complement}
                 onChangeText={(value) => handlePersonalDataChange('address.complement', value)}
                 placeholder="Complemento"
+                placeholderTextColor={colors.text.tertiary}
               />
 
               <TextInput
@@ -611,6 +606,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                 value={personalData.address.neighborhood}
                 onChangeText={(value) => handlePersonalDataChange('address.neighborhood', value)}
                 placeholder="Bairro"
+                placeholderTextColor={colors.text.tertiary}
               />
 
               <View style={styles.row}>
@@ -619,6 +615,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                   value={personalData.address.city}
                   onChangeText={(value) => handlePersonalDataChange('address.city', value)}
                   placeholder="Cidade"
+                  placeholderTextColor={colors.text.tertiary}
                 />
                 <View style={[styles.inputHalf, { position: 'relative' }]}>
                   <TextInput
@@ -626,11 +623,12 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                     value={personalData.address.state}
                     onChangeText={(value) => handlePersonalDataChange('address.state', value)}
                     placeholder="Estado (UF)"
+                    placeholderTextColor={colors.text.tertiary}
                     maxLength={2}
                     autoCapitalize="characters"
                     onBlur={() => setTimeout(() => setShowStateSuggestions(false), 200)}
                   />
-                  {showStateSuggestions && stateSuggestions.length > 0 && (
+                  {showStateSuggestions && stateSuggestions.length > 0 ? (
                     <View style={styles.suggestionsContainer}>
                       {stateSuggestions.map((state) => (
                         <TouchableOpacity
@@ -644,7 +642,7 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                         </TouchableOpacity>
                       ))}
                     </View>
-                  )}
+                  ) : null}
                 </View>
               </View>
 
@@ -653,325 +651,297 @@ export function WithdrawModal({ visible, onClose, currentBalance, onSuccess }: W
                 value={personalData.address.zipCode}
                 onChangeText={(value) => handlePersonalDataChange('address.zipCode', value)}
                 placeholder="CEP"
+                placeholderTextColor={colors.text.tertiary}
                 keyboardType="numeric"
                 maxLength={9}
               />
             </View>
 
-            {/* Informações */}
             <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>ℹ️ Informações</Text>
+              <Text style={styles.infoTitle}>Informações</Text>
               <Text style={styles.infoText}>
-                • Valor mínimo: R$ {minimumWithdrawal.toFixed(2)}{'\n'}
-                {withdrawalFee > 0 && `• Taxa: ${withdrawalFeeType === 'percentage' ? `${withdrawalFee}%` : `R$ ${withdrawalFee.toFixed(2)}`}\n`}
+                • Valor mínimo: R$ {minimumWithdrawal.toFixed(2)}
+                {'\n'}
+                {withdrawalFee > 0
+                  ? `• Taxa: ${
+                      withdrawalFeeType === 'percentage'
+                        ? `${withdrawalFee}%`
+                        : `R$ ${withdrawalFee.toFixed(2)}`
+                    }\n`
+                  : ''}
                 • Processamento em até 3 dias úteis{'\n'}
-                • Transferência via Pix{'\n'}
-                • Você receberá confirmação por e-mail
+                • Transferência via Pix{'\n'}• Você receberá confirmação por e-mail
               </Text>
             </View>
           </ScrollView>
 
-          {/* Actions */}
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
+            <Button
+              variant="ghost"
+              size="sm"
+              responsive={false}
               onPress={onClose}
               disabled={loading}
+              style={styles.actionBtn}
             >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, styles.submitButton, (!isFormValid() || loading) && styles.buttonDisabled]}
-              onPress={handleSubmit}
-              disabled={!isFormValid() || loading}
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              responsive={false}
+              onPress={() => void handleSubmit()}
+              loading={loading}
+              disabled={!isFormValid() || loading || loadingFees}
+              style={styles.actionBtn}
             >
-              {loading ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text style={styles.submitButtonText}>Solicitar Saque</Text>
-              )}
-            </TouchableOpacity>
+              Solicitar saque
+            </Button>
           </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Pressable>
-    </Modal>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </CustomModal>
   );
 }
 
-const createStyles = (c: AppPalette) => StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: c.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  keyboardAvoiding: {
-    width: '100%',
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    backgroundColor: c.background.paper,
-    borderRadius: 20,
-    width: '90%',
-    maxWidth: 600,
-    maxHeight: '95%',
-    minHeight: 700,
-    flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border.light,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: c.text.primary,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  contentContainer: {
-    paddingVertical: 16,
-    paddingBottom: 20,
-    flexGrow: 1,
-    minHeight: '100%',
-  },
-  balanceCard: {
-    backgroundColor: c.isDark ? c.primary.dark : c.primary.main,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  balanceLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 4,
-  },
-  balanceAmount: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: c.primary.main,
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.text.primary,
-    marginBottom: 8,
-  },
-  helperText: {
-    fontSize: 12,
-    color: c.text.secondary,
-    marginTop: 4,
-  },
-  amountInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: c.border.medium,
-    paddingBottom: 8,
-  },
-  amountPrefix: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: c.text.primary,
-    marginRight: 8,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: '700',
-    color: c.text.primary,
-  },
-  input: {
-    backgroundColor: c.background.tertiary,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: c.text.primary,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: c.border.light,
-  },
-  inputHalf: {
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  stateInputContainer: {
-    position: 'relative',
-    marginHorizontal: 4,
-  },
-  stateInput: {
-    backgroundColor: c.background.tertiary,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: c.text.primary,
-    borderWidth: 1,
-    borderColor: c.border.light,
-    minWidth: 120,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  pickerContainer: {
-    backgroundColor: c.background.tertiary,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: c.border.light,
-    marginBottom: 12,
-  },
-  picker: {
-    color: c.text.primary,
-  },
-  feeCard: {
-    backgroundColor: c.background.tertiary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  feeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  feeRowTotal: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: c.border.medium,
-  },
-  feeLabel: {
-    fontSize: 14,
-    color: c.text.secondary,
-  },
-  feeValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.text.primary,
-  },
-  feeValueNegative: {
-    color: c.states.error,
-  },
-  feeLabelTotal: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: c.text.primary,
-  },
-  feeValueTotal: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: c.states.success,
-  },
-  infoCard: {
-    backgroundColor: c.background.tertiary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: c.text.primary,
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 12,
-    color: c.text.secondary,
-    lineHeight: 20,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: c.border.light,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: c.background.tertiary,
-    borderWidth: 1,
-    borderColor: c.border.medium,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: c.text.primary,
-  },
-  submitButton: {
-    backgroundColor: c.secondary.main,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  suggestionsContainer: {
-    position: 'absolute',
-    top: 0,
-    left: '100%',
-    marginLeft: 8,
-    backgroundColor: c.background.paper,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: c.border.medium,
-    minWidth: 200,
-    maxWidth: 250,
-    maxHeight: 200,
-    zIndex: 1000,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  suggestionItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border.light,
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: c.text.primary,
-  },
-});
-
+const createStyles = (c: AppPalette) =>
+  StyleSheet.create({
+    overlay: {
+      paddingHorizontal: 12,
+      paddingVertical: 16,
+      justifyContent: 'center',
+    },
+    keyboardAvoiding: {
+      width: '100%',
+      maxHeight: '92%',
+      alignSelf: 'center',
+    },
+    sheet: {
+      width: '100%',
+      maxWidth: 560,
+      maxHeight: '100%',
+      backgroundColor: c.background.paper,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: c.border.light,
+      overflow: 'hidden',
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: c.border.light,
+      minWidth: 0,
+    },
+    headerLeft: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    headerTitle: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 18,
+      fontWeight: '700',
+      color: c.text.primary,
+    },
+    content: {
+      flexGrow: 0,
+      flexShrink: 1,
+      maxHeight: 520,
+    },
+    contentContainer: {
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: 16,
+    },
+    balanceCard: {
+      backgroundColor: c.secondary.main,
+      borderRadius: 12,
+      padding: 18,
+      alignItems: 'center',
+      marginBottom: 18,
+    },
+    balanceLabel: {
+      fontSize: 12,
+      color: 'rgba(255, 255, 255, 0.9)',
+      marginBottom: 4,
+    },
+    balanceAmount: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: '#ffffff',
+    },
+    section: {
+      marginBottom: 16,
+      width: '100%',
+      minWidth: 0,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: c.text.primary,
+      marginBottom: 6,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: c.text.primary,
+      marginBottom: 8,
+    },
+    helperText: {
+      fontSize: 12,
+      color: c.text.secondary,
+      marginTop: 4,
+      marginBottom: 8,
+      lineHeight: 16,
+    },
+    amountInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: c.border.medium,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: c.background.tertiary,
+    },
+    amountPrefix: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: c.text.secondary,
+      marginRight: 8,
+    },
+    amountInput: {
+      flex: 1,
+      fontSize: 22,
+      fontWeight: '700',
+      color: c.text.primary,
+      padding: 0,
+    },
+    input: {
+      backgroundColor: c.background.tertiary,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: c.text.primary,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: c.border.light,
+    },
+    inputHalf: {
+      flex: 1,
+      minWidth: 0,
+    },
+    row: {
+      flexDirection: 'row',
+      gap: 8,
+      width: '100%',
+      minWidth: 0,
+    },
+    feeCard: {
+      backgroundColor: c.background.tertiary,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: c.border.light,
+    },
+    feeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+      gap: 8,
+    },
+    feeRowTotal: {
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: c.border.medium,
+      marginBottom: 0,
+    },
+    feeLabel: {
+      fontSize: 14,
+      color: c.text.secondary,
+      flexShrink: 1,
+    },
+    feeValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: c.text.primary,
+    },
+    feeValueNegative: {
+      color: c.states.error,
+    },
+    feeLabelTotal: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: c.text.primary,
+    },
+    feeValueTotal: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: c.states.success,
+    },
+    infoCard: {
+      backgroundColor: c.background.tertiary,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: c.border.light,
+    },
+    infoTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: c.text.primary,
+      marginBottom: 8,
+    },
+    infoText: {
+      fontSize: 12,
+      color: c.text.secondary,
+      lineHeight: 20,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: c.border.light,
+      minWidth: 0,
+    },
+    actionBtn: {
+      flex: 1,
+      minWidth: 0,
+    },
+    suggestionsContainer: {
+      position: 'absolute',
+      top: 48,
+      left: 0,
+      right: 0,
+      backgroundColor: c.background.paper,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: c.border.medium,
+      maxHeight: 180,
+      zIndex: 1000,
+      elevation: 5,
+    },
+    suggestionItem: {
+      padding: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border.light,
+    },
+    suggestionText: {
+      fontSize: 14,
+      color: c.text.primary,
+    },
+  });

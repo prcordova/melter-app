@@ -252,6 +252,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
         setCurrentPackageIndex(0);
       } else {
         setPackages([]);
+        setCurrentPackageIndex(0);
       }
 
       if (feeResponse.success && feeResponse.data) {
@@ -380,11 +381,17 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
     return packages.find(p => p._id === selectedPackageId) || null;
   };
 
+  const needsPackageCarousel = packages.length > VISIBLE_PACKAGES;
+  const maxPackageStartIndex = Math.max(0, packages.length - VISIBLE_PACKAGES);
+  const canScrollPackagesLeft = needsPackageCarousel && currentPackageIndex > 0;
+  const canScrollPackagesRight =
+    needsPackageCarousel && currentPackageIndex < maxPackageStartIndex;
+
   const handlePrevPackage = () => {
-    if (packages.length <= 1) return;
-    const nextIndex = currentPackageIndex === 0 ? packages.length - 1 : currentPackageIndex - 1;
-    const nextPackage = packages[nextIndex];
+    if (!canScrollPackagesLeft) return;
+    const nextIndex = Math.max(0, currentPackageIndex - 1);
     setCurrentPackageIndex(nextIndex);
+    const nextPackage = packages[nextIndex];
     if (nextPackage) {
       setSelectedPackageId(nextPackage._id);
       setUseCustomAmount(false);
@@ -393,17 +400,20 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
   };
 
   const handleNextPackage = () => {
-    if (packages.length <= 1) return;
-    const nextIndex = currentPackageIndex === packages.length - 1 ? 0 : currentPackageIndex + 1;
+    if (!canScrollPackagesRight) return;
+    const nextIndex = Math.min(maxPackageStartIndex, currentPackageIndex + 1);
     setCurrentPackageIndex(nextIndex);
+    const nextPackage = packages[nextIndex];
+    if (nextPackage) {
+      setSelectedPackageId(nextPackage._id);
+      setUseCustomAmount(false);
+      setCustomAmount('');
+    }
   };
 
   const getVisiblePackages = () => {
-    if (packages.length <= VISIBLE_PACKAGES) return packages;
-    return Array.from({ length: VISIBLE_PACKAGES }, (_, idx) => {
-      const packageIndex = (currentPackageIndex + idx) % packages.length;
-      return packages[packageIndex];
-    });
+    if (!needsPackageCarousel) return packages;
+    return packages.slice(currentPackageIndex, currentPackageIndex + VISIBLE_PACKAGES);
   };
 
   return (
@@ -425,7 +435,10 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
               isStripeMode ? styles.containerStripe : styles.containerMercadoPago,
               { paddingTop: 12, paddingBottom: 16 },
             ]}
-            onPress={(e) => e.stopPropagation()}
+            onPress={(e) => {
+              e.stopPropagation();
+              if (showInfo) setShowInfo(false);
+            }}
           >
           {/* Header */}
           <View style={styles.header}>
@@ -458,6 +471,12 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
             nestedScrollEnabled={true}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
+            onScrollBeginDrag={() => {
+              if (showInfo) setShowInfo(false);
+            }}
+            onTouchStart={() => {
+              if (showInfo) setShowInfo(false);
+            }}
           >
 
             {pixData ? (
@@ -504,7 +523,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
                 {/* Valor primeiro — depois método de pagamento (paridade web) */}
                 <Text style={styles.sectionLabel}>Escolha o valor</Text>
                 <View style={styles.packagesCarouselContainer}>
-                  {packages.length > 1 ? (
+                  {canScrollPackagesLeft ? (
                     <TouchableOpacity
                       style={styles.carouselArrowButton}
                       onPress={handlePrevPackage}
@@ -513,9 +532,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
                     >
                       <Ionicons name="chevron-back" size={18} color={colors.secondary.main} />
                     </TouchableOpacity>
-                  ) : (
-                    <View style={styles.carouselArrowSpacer} />
-                  )}
+                  ) : null}
 
                   <View style={styles.carouselCardsRow}>
                     {getVisiblePackages().map((pkg) => {
@@ -568,7 +585,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
                     })}
                   </View>
 
-                  {packages.length > 1 ? (
+                  {canScrollPackagesRight ? (
                     <TouchableOpacity
                       style={styles.carouselArrowButton}
                       onPress={handleNextPackage}
@@ -577,9 +594,7 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
                     >
                       <Ionicons name="chevron-forward" size={18} color={colors.secondary.main} />
                     </TouchableOpacity>
-                  ) : (
-                    <View style={styles.carouselArrowSpacer} />
-                  )}
+                  ) : null}
                 </View>
 
                 {!isStripeMode ? (
@@ -706,10 +721,22 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
           {/* Actions */}
           {pixData ? (
             <View style={styles.actions}>
-              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setPixData(null)}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => {
+                  setShowInfo(false);
+                  setPixData(null);
+                }}
+              >
                 <Text style={styles.cancelButtonText}>Voltar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.button, styles.purchaseButton]} onPress={() => void handleCopyPix()}>
+              <TouchableOpacity
+                style={[styles.button, styles.purchaseButton]}
+                onPress={() => {
+                  setShowInfo(false);
+                  void handleCopyPix();
+                }}
+              >
                 <Text style={styles.purchaseButtonText}>Copiar código</Text>
               </TouchableOpacity>
             </View>
@@ -717,14 +744,20 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
             <View style={styles.actions}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
-                onPress={onClose}
+                onPress={() => {
+                  setShowInfo(false);
+                  onClose();
+                }}
                 disabled={loading}
               >
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, styles.purchaseButton, loading && styles.buttonDisabled]}
-                onPress={handlePurchase}
+                onPress={() => {
+                  setShowInfo(false);
+                  handlePurchase();
+                }}
                 disabled={loading}
               >
                 {loading ? (
@@ -737,6 +770,14 @@ export function AddBalanceModal({ visible, onClose, onSuccess, onDepositComplete
               </TouchableOpacity>
             </View>
           )}
+
+          {showInfo ? (
+            <Pressable
+              style={styles.infoDismissOverlay}
+              onPress={() => setShowInfo(false)}
+              accessibilityLabel="Fechar informações"
+            />
+          ) : null}
           </Pressable>
         </KeyboardAvoidingView>
       </Pressable>
@@ -763,12 +804,12 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     flexDirection: 'column',
   },
   containerStripe: {
-    maxHeight: '82%',
-    minHeight: '60%',
+    maxHeight: '92%',
+    minHeight: '72%',
   },
   containerMercadoPago: {
-    maxHeight: '94%',
-    minHeight: '72%',
+    maxHeight: '96%',
+    minHeight: '82%',
   },
   header: {
     flexDirection: 'row',
@@ -855,19 +896,12 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     minWidth: 0,
   },
   carouselArrowButton: {
-    width: 26,
+    width: 22,
     minHeight: 148,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: c.border.medium,
-    backgroundColor: c.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-  carouselArrowSpacer: {
-    width: 8,
-    flexShrink: 0,
+    backgroundColor: 'transparent',
   },
   packageCard: {
     backgroundColor: c.background.tertiary,
@@ -1062,6 +1096,10 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   pixWaitingText: {
     fontSize: 13,
     color: c.text.secondary,
+  },
+  infoDismissOverlay: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 20,
   },
   infoContent: {
     paddingHorizontal: 20,
