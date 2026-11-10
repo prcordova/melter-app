@@ -1,6 +1,11 @@
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import { productsApi } from '../../services/products';
 import type { RegisteredProductFile } from '../../services/products';
-import { getLocalFileSize, putLocalFileToPresignedUrl } from '../presigned-upload';
+import {
+  getLocalFileSize,
+  persistLocalMediaForUpload,
+  putLocalFileToPresignedUrl,
+} from '../presigned-upload';
 
 export type PickedProductFile = {
   uri: string;
@@ -55,6 +60,37 @@ export async function uploadProductFileDirect(options: {
   const signedType = presigned.metadata?.fileType?.trim() || requestedType;
   await putLocalFileToPresignedUrl(presigned.presignedUrl, file.uri, signedType, onProgress);
 
+  // Preview JPEG para cards (vídeo) — mesmo padrão dos stories / web CustomCard.
+  let thumbnailUrl: string | null = null;
+  if (signedType.startsWith('video/')) {
+    try {
+      const frame = await VideoThumbnails.getThumbnailAsync(file.uri, {
+        time: 250,
+        quality: 0.7,
+      });
+      const thumbUri = await persistLocalMediaForUpload(frame.uri, 'jpg', 'image/jpeg');
+      const thumbSize = await getLocalFileSize(thumbUri);
+      const thumbName = `product_thumb_${Date.now()}.jpg`;
+      const thumbPresigned = await productsApi.getPresignedUploadUrl(
+        productId,
+        thumbName,
+        'image/jpeg',
+        thumbSize,
+        order
+      );
+      if (thumbPresigned.success && thumbPresigned.presignedUrl && thumbPresigned.fileKey) {
+        await putLocalFileToPresignedUrl(
+          thumbPresigned.presignedUrl,
+          thumbUri,
+          'image/jpeg'
+        );
+        thumbnailUrl = thumbPresigned.storageRef || thumbPresigned.fileKey;
+      }
+    } catch (thumbError) {
+      console.warn('[uploadProductFileDirect] Falha ao gerar thumbnail do vídeo:', thumbError);
+    }
+  }
+
   const registered = await productsApi.registerUploadedFile({
     productId,
     fileUrl: presigned.storageRef || presigned.fileKey,
@@ -65,6 +101,7 @@ export async function uploadProductFileDirect(options: {
     customFileName: customFileName ?? null,
     description: description ?? null,
     duration: file.durationSeconds ?? null,
+    thumbnailUrl,
   });
   if (!registered.success || !registered.data) {
     throw new ProductUploadError(

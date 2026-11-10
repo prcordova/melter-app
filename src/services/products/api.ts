@@ -84,6 +84,8 @@ export const productsApi = {
     customFileName?: string | null;
     description?: string | null;
     duration?: number | null;
+    /** Key/URL de JPEG de preview (vídeos). */
+    thumbnailUrl?: string | null;
   }) => {
     const response = await api.post<ApiResponse<RegisteredProductFile> & { upgradeRequired?: boolean }>(
       PRODUCT_DRAFTS_API.uploadFiles,

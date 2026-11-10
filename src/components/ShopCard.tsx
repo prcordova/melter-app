@@ -12,6 +12,7 @@ import { resolveProductCoverImageSource } from '../utils/product-cover-display';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
 import { resolveProductContentStats } from '../lib/products/product-content-stats';
+import { CustomMenuDots, type CustomMenuDotsItem } from './CustomMenuDots';
 
 interface Product {
   _id: string;
@@ -68,7 +69,9 @@ interface ShopCardProps {
   footerAction?: { label: string; onPress: () => void };
   /** Ação secundária ao lado da principal (ex.: Promover) */
   secondaryFooterAction?: { label: string; onPress: () => void };
-  /** Dono: remover pacote da loja (soft delete `REMOVED_BY_SELLER`). */
+  /** Dono: editar via menu ⋮ (canto superior direito da capa). */
+  onEdit?: () => void;
+  /** Dono: remover pacote da loja (soft delete `REMOVED_BY_SELLER`) via menu ⋮. */
   onDelete?: () => void;
   /** De `meta.productCoverAvatarFallbackEnabled` (admin > Parâmetros). */
   avatarFallbackEnabled?: boolean;
@@ -98,11 +101,30 @@ export function ShopCard({
   statusChip,
   footerAction,
   secondaryFooterAction,
+  onEdit,
   onDelete,
   avatarFallbackEnabled = true,
 }: ShopCardProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const ownerMenuItems: CustomMenuDotsItem[] = [];
+  if (onEdit) {
+    ownerMenuItems.push({
+      key: 'edit',
+      label: 'Editar',
+      icon: 'create-outline',
+      onPress: onEdit,
+    });
+  }
+  if (onDelete) {
+    ownerMenuItems.push({
+      key: 'delete',
+      label: 'Excluir',
+      icon: 'trash-outline',
+      danger: true,
+      onPress: onDelete,
+    });
+  }
   const imageSource = resolveProductCoverImageSource({
     coverImage: product.coverImage,
     sellerAvatar: product.userId?.avatar,
@@ -163,19 +185,22 @@ export function ShopCard({
           </View>
         )}
 
-        {/* Badge +18 - canto direito superior */}
-        {product.isAdultContent && (
-          <View style={[styles.adultBadge, product.isAiContent && styles.adultBadgeWithAi]}>
-            <Text style={styles.adultBadgeText}>+18</Text>
-          </View>
-        )}
-
-        {/* Selo IA — ao lado do +18 */}
-        {product.isAiContent && (
-          <View style={styles.aiBadge}>
-            <Ionicons name="sparkles" size={14} color="#ffffff" />
-          </View>
-        )}
+        {/* Canto direito superior: IA / +18 / menu ⋮ (igual web) */}
+        <View style={styles.topRightOverlay}>
+          {product.isAiContent ? (
+            <View style={styles.aiBadge}>
+              <Ionicons name="sparkles" size={14} color="#ffffff" />
+            </View>
+          ) : null}
+          {product.isAdultContent ? (
+            <View style={styles.adultBadge}>
+              <Text style={styles.adultBadgeText}>+18</Text>
+            </View>
+          ) : null}
+          {ownerMenuItems.length > 0 ? (
+            <CustomMenuDots items={ownerMenuItems} accessibilityLabel="Opções do produto" />
+          ) : null}
+        </View>
 
         {/* Badge Status Pendente (apenas para dono) - ajustar posição se tiver avatar */}
         {showPendingBadge && product.status === 'PENDING' && (
@@ -315,16 +340,6 @@ export function ShopCard({
             <Text style={styles.footerActionSecondaryText}>{secondaryFooterAction.label}</Text>
           </TouchableOpacity>
         ) : null}
-        {onDelete ? (
-          <TouchableOpacity
-            style={styles.footerActionDelete}
-            onPress={onDelete}
-            activeOpacity={0.85}
-            accessibilityLabel="Remover pacote da loja"
-          >
-            <Ionicons name="trash-outline" size={16} color={colors.states.error} />
-          </TouchableOpacity>
-        ) : null}
       </View>
     ) : null}
     </View>
@@ -364,30 +379,28 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: c.background.tertiary,
   },
-  adultBadge: {
+  topRightOverlay: {
     position: 'absolute',
     top: 8,
     right: 8,
+    zIndex: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  adultBadge: {
     backgroundColor: '#dc2626',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
-    zIndex: 2,
-  },
-  adultBadgeWithAi: {
-    right: 44,
   },
   aiBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
     backgroundColor: c.secondary.main,
     width: 28,
     height: 28,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
@@ -594,13 +607,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   footerActionsRow: {
     flexDirection: 'row',
-  },
-  footerActionDelete: {
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderLeftWidth: 1,
-    borderLeftColor: c.border.light,
   },
   rejectedBadge: {
     backgroundColor: c.states.error,

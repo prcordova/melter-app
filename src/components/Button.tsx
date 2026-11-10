@@ -15,7 +15,7 @@ import { useAppTheme } from '../contexts/ThemeContext';
 interface ButtonProps extends TouchableOpacityProps {
   children: React.ReactNode;
   loading?: boolean;
-  variant?: 'primary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'outline' | 'ghost' | 'danger';
   size?: 'xs' | 'sm' | 'md' | 'lg';
   /** Quando false, ignora redução automática em telas menores. Padrão: true. */
   responsive?: boolean;
@@ -100,6 +100,11 @@ export function Button({
         borderWidth: 2,
         borderColor: colors.secondary.main,
       },
+      danger: {
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderColor: colors.states.error,
+      },
     };
 
     return {
@@ -127,6 +132,7 @@ export function Button({
       primary: { color: '#ffffff' },
       outline: { color: colors.secondary.main },
       ghost: { color: colors.secondary.main },
+      danger: { color: colors.states.error },
     };
 
     return {
@@ -140,7 +146,13 @@ export function Button({
     if (loading) {
       return (
         <ActivityIndicator
-          color={variant === 'primary' ? '#ffffff' : colors.secondary.main}
+          color={
+            variant === 'primary'
+              ? '#ffffff'
+              : variant === 'danger'
+                ? colors.states.error
+                : colors.secondary.main
+          }
           size="small"
           animating={true}
         />

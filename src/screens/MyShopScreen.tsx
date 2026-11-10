@@ -1560,6 +1560,11 @@ export function MyShopScreen() {
                                     }
                                   : undefined
                               }
+                              onEdit={
+                                isOwner
+                                  ? () => handleProductPrimaryAction(product, 'owner')
+                                  : undefined
+                              }
                               onDelete={isOwner ? () => handleDeleteProduct(product) : undefined}
                             />
                           );
@@ -1756,6 +1761,11 @@ export function MyShopScreen() {
                                   label: 'Promover',
                                   onPress: () => handlePromoteProductPress(product._id),
                                 }
+                              : undefined
+                          }
+                          onEdit={
+                            isOwner
+                              ? () => handleProductPrimaryAction(product, 'owner')
                               : undefined
                           }
                           onDelete={isOwner ? () => handleDeleteProduct(product) : undefined}

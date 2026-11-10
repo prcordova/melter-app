@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppVideo, type AppVideoHandle } from '../components/AppVideo';
+import { ProductVideoThumb } from '../components/shop/ProductVideoThumb';
 import { CustomModal } from '../components/CustomModal';
 import { useEnterVideoFullscreenOnLandscape } from '../hooks/useEnterVideoFullscreenOnLandscape';
 import type { ProductFileProgress, ProductModule } from '../services/products';
@@ -765,22 +766,11 @@ export function ProductScreen() {
                   }
                   onLongPress={() => void handleDownloadFile(video.serverIndex)}
                 >
-                  {video.thumbnail ? (
-                    <View style={styles.videoThumbnailContainer}>
-                      <Image
-                        source={{ uri: getImageUrl(video.thumbnail) }}
-                        style={styles.mediaThumbnail}
-                        resizeMode="cover"
-                      />
-                      <View style={styles.playOverlay}>
-                        <Ionicons name="play-circle" size={48} color="#ffffff" />
-                      </View>
-                    </View>
-                  ) : (
-                    <View style={styles.mediaPlaceholder}>
-                      <Ionicons name="videocam-outline" size={32} color={colors.text.secondary} />
-                    </View>
-                  )}
+                  <ProductVideoThumb
+                    thumbnail={video.thumbnail}
+                    videoUrl={video.url}
+                    style={styles.mediaThumbnail}
+                  />
                   <Text style={styles.mediaTitle} numberOfLines={2}>
                     {video.customFileName || video.fileName}
                   </Text>

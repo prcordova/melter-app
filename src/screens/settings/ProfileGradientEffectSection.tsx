@@ -1,11 +1,12 @@
 import React, { type Dispatch, type SetStateAction } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { View, Text, StyleSheet } from 'react-native';
 import { PlanLocker } from '../../components/PlanLocker';
 import { ColorPickerField } from '../../components/ColorPickerField';
 import { UsernameGradientText } from '../../components/UsernameGradientText';
-import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import { CustomToggle } from '../../components/CustomToggle';
+import { CustomSelect } from '../../components/CustomSelect';
+import { CustomSlider } from '../../components/CustomSlider';
+import { useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import type { UsernameDisplayEffectConfig } from '../../types/username-display-effect';
 import { DEFAULT_USERNAME_DISPLAY_EFFECT } from '../../types/username-display-effect';
@@ -35,52 +36,46 @@ export function ProfileGradientEffectSection({
   previewPrefix,
 }: Props) {
   const styles = useThemedStyles(createStyles);
-  const { colors } = useAppTheme();
+
   return (
     <>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionTitle} numberOfLines={2}>
+        {title}
+      </Text>
       <Text style={styles.helperCaption}>{caption}</Text>
 
       <PlanLocker requiredPlan="PRO" currentPlan={planType}>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Ativar efeito</Text>
-          <Switch
-            value={effect.enabled}
-            onValueChange={(value) => {
-              setEffect((prev) =>
-                value
-                  ? { ...DEFAULT_USERNAME_DISPLAY_EFFECT, ...prev, enabled: true }
-                  : { ...prev, enabled: false }
-              );
-              setHasChanges(true);
-            }}
-            trackColor={{ false: colors.border.medium, true: colors.primary.main }}
-            thumbColor="#ffffff"
-          />
-        </View>
+        <CustomToggle
+          checked={effect.enabled}
+          label="Ativar efeito"
+          onChange={(value) => {
+            setEffect((prev) =>
+              value
+                ? { ...DEFAULT_USERNAME_DISPLAY_EFFECT, ...prev, enabled: true }
+                : { ...prev, enabled: false }
+            );
+            setHasChanges(true);
+          }}
+          style={styles.toggle}
+        />
 
         {effect.enabled ? (
           <>
-            <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>Movimento do gradiente</Text>
-              <View style={styles.pickerWrapper}>
-                <Picker
-                  selectedValue={effect.motionMode}
-                  onValueChange={(value) => {
-                    setEffect((p) => ({
-                      ...p,
-                      motionMode: value as UsernameDisplayEffectConfig['motionMode'],
-                    }));
-                    setHasChanges(true);
-                  }}
-                  style={styles.picker}
-                  dropdownIconColor={colors.text.secondary}
-                >
-                  <Picker.Item label="Estático" value="static" />
-                  <Picker.Item label="Animado" value="animated" />
-                </Picker>
-              </View>
-            </View>
+            <CustomSelect
+              label="Movimento do gradiente"
+              value={effect.motionMode}
+              options={[
+                { value: 'static', label: 'Estático' },
+                { value: 'animated', label: 'Animado' },
+              ]}
+              onChange={(value) => {
+                setEffect((p) => ({
+                  ...p,
+                  motionMode: value as UsernameDisplayEffectConfig['motionMode'],
+                }));
+                setHasChanges(true);
+              }}
+            />
 
             <View style={styles.colorPairRow}>
               <ColorPickerField
@@ -123,115 +118,57 @@ export function ProfileGradientEffectSection({
               />
             </View>
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>Intensidade do brilho: {effect.glowIntensity}</Text>
-              <View style={styles.sliderContainer}>
-                <TouchableOpacity
-                  style={styles.sliderButton}
-                  onPress={() => {
-                    const v = Math.max(0, effect.glowIntensity - 5);
-                    setEffect((p) => ({ ...p, glowIntensity: v }));
-                    setHasChanges(true);
-                  }}
-                >
-                  <Ionicons name="remove" size={20} color={colors.text.primary} />
-                </TouchableOpacity>
-                <View style={styles.sliderTrack}>
-                  <View style={styles.sliderTrackBackground} />
-                  <View
-                    style={[
-                      styles.sliderTrackFill,
-                      {
-                        width: `${Math.max(0, Math.min(100, effect.glowIntensity))}%`,
-                        backgroundColor: colors.primary.main,
-                      },
-                    ]}
-                  />
-                </View>
-                <TouchableOpacity
-                  style={styles.sliderButton}
-                  onPress={() => {
-                    const v = Math.min(100, effect.glowIntensity + 5);
-                    setEffect((p) => ({ ...p, glowIntensity: v }));
-                    setHasChanges(true);
-                  }}
-                >
-                  <Ionicons name="add" size={20} color={colors.text.primary} />
-                </TouchableOpacity>
-              </View>
-            </View>
+            <CustomSlider
+              label="Intensidade do brilho"
+              value={effect.glowIntensity}
+              min={0}
+              max={100}
+              step={1}
+              steppersStep={5}
+              onChange={(v) => {
+                setEffect((p) => ({ ...p, glowIntensity: v }));
+                setHasChanges(true);
+              }}
+            />
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>Brilho no hover (web): {effect.hoverGlowIntensity}</Text>
-              <View style={styles.sliderContainer}>
-                <TouchableOpacity
-                  style={styles.sliderButton}
-                  onPress={() => {
-                    const v = Math.max(0, effect.hoverGlowIntensity - 5);
-                    setEffect((p) => ({ ...p, hoverGlowIntensity: v }));
-                    setHasChanges(true);
-                  }}
-                >
-                  <Ionicons name="remove" size={20} color={colors.text.primary} />
-                </TouchableOpacity>
-                <View style={styles.sliderTrack}>
-                  <View style={styles.sliderTrackBackground} />
-                  <View
-                    style={[
-                      styles.sliderTrackFill,
-                      {
-                        width: `${Math.max(0, Math.min(100, effect.hoverGlowIntensity))}%`,
-                        backgroundColor: colors.primary.main,
-                      },
-                    ]}
-                  />
-                </View>
-                <TouchableOpacity
-                  style={styles.sliderButton}
-                  onPress={() => {
-                    const v = Math.min(100, effect.hoverGlowIntensity + 5);
-                    setEffect((p) => ({ ...p, hoverGlowIntensity: v }));
-                    setHasChanges(true);
-                  }}
-                >
-                  <Ionicons name="add" size={20} color={colors.text.primary} />
-                </TouchableOpacity>
-              </View>
-            </View>
+            <CustomSlider
+              label="Brilho no hover (web)"
+              value={effect.hoverGlowIntensity}
+              min={0}
+              max={100}
+              step={1}
+              steppersStep={5}
+              onChange={(v) => {
+                setEffect((p) => ({ ...p, hoverGlowIntensity: v }));
+                setHasChanges(true);
+              }}
+            />
 
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Cores alternam ao passar o rato (web)</Text>
-              <Switch
-                value={effect.applyHover}
-                onValueChange={(value) => {
-                  setEffect((p) => ({ ...p, applyHover: value }));
-                  setHasChanges(true);
-                }}
-                trackColor={{ false: colors.border.medium, true: colors.primary.main }}
-                thumbColor="#ffffff"
-              />
-            </View>
+            <CustomToggle
+              checked={effect.applyHover}
+              label="Cores alternam ao passar o rato (web)"
+              onChange={(value) => {
+                setEffect((p) => ({ ...p, applyHover: value }));
+                setHasChanges(true);
+              }}
+              style={styles.toggle}
+            />
 
-            <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>Modo em listagens explorar (web)</Text>
-              <View style={styles.pickerWrapper}>
-                <Picker
-                  selectedValue={effect.explorerMode}
-                  onValueChange={(value) => {
-                    setEffect((p) => ({
-                      ...p,
-                      explorerMode: value as UsernameDisplayEffectConfig['explorerMode'],
-                    }));
-                    setHasChanges(true);
-                  }}
-                  style={styles.picker}
-                  dropdownIconColor={colors.text.secondary}
-                >
-                  <Picker.Item label="Gradiente sempre visível" value="always" />
-                  <Picker.Item label="Só ao passar o rato (hover)" value="hover_only" />
-                </Picker>
-              </View>
-            </View>
+            <CustomSelect
+              label="Modo em listagens explorar (web)"
+              value={effect.explorerMode}
+              options={[
+                { value: 'always', label: 'Gradiente sempre visível' },
+                { value: 'hover_only', label: 'Só ao passar o rato (hover)' },
+              ]}
+              onChange={(value) => {
+                setEffect((p) => ({
+                  ...p,
+                  explorerMode: value as UsernameDisplayEffectConfig['explorerMode'],
+                }));
+                setHasChanges(true);
+              }}
+            />
 
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>Pré-visualização</Text>
@@ -250,97 +187,48 @@ export function ProfileGradientEffectSection({
   );
 }
 
-const createStyles = (c: AppPalette) => StyleSheet.create({
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: c.text.primary,
-    marginBottom: 16,
-  },
-  helperCaption: {
-    fontSize: 13,
-    color: c.text.secondary,
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  colorPairRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-    alignItems: 'flex-start',
-  },
-  colorPairField: {
-    flex: 1,
-    marginBottom: 0,
-    minWidth: 0,
-  },
-  fieldContainer: {
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.text.primary,
-    marginBottom: 8,
-  },
-  pickerWrapper: {
-    backgroundColor: c.background.default,
-    borderWidth: 1,
-    borderColor: c.border.medium,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  picker: {
-    color: c.text.primary,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  switchLabel: {
-    fontSize: 14,
-    color: c.text.primary,
-  },
-  sliderContainer: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  sliderButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: c.background.default,
-    borderWidth: 1,
-    borderColor: c.border.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sliderTrack: {
-    flex: 1,
-    height: 40,
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  sliderTrackBackground: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 4,
-    backgroundColor: c.border.medium,
-    borderRadius: 2,
-    top: '50%',
-    marginTop: -2,
-  },
-  sliderTrackFill: {
-    position: 'absolute',
-    left: 0,
-    height: 4,
-    borderRadius: 2,
-    top: '50%',
-    marginTop: -2,
-  },
-});
+const createStyles = (c: AppPalette) =>
+  StyleSheet.create({
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: c.text.primary,
+      marginBottom: 8,
+      flexShrink: 1,
+    },
+    helperCaption: {
+      fontSize: 13,
+      color: c.text.secondary,
+      marginBottom: 12,
+      lineHeight: 18,
+      flexShrink: 1,
+    },
+    toggle: {
+      marginBottom: 12,
+    },
+    colorPairRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 16,
+      alignItems: 'flex-start',
+      width: '100%',
+      minWidth: 0,
+    },
+    colorPairField: {
+      flex: 1,
+      marginBottom: 0,
+      minWidth: 0,
+    },
+    fieldContainer: {
+      marginBottom: 16,
+      width: '100%',
+      minWidth: 0,
+    },
+    fieldLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: c.text.primary,
+      marginBottom: 8,
+      flexShrink: 1,
+    },
+  });

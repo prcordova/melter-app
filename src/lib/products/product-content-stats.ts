@@ -49,9 +49,16 @@ export function computeProductContentStats(
   };
 }
 
+export type ProductContentStatsInput = {
+  videoCount?: number;
+  imageCount?: number;
+  documentCount?: number;
+  totalVideoDurationSeconds?: number;
+};
+
 export function resolveProductContentStats(product: {
   digital?: {
-    contentStats?: ProductContentStats | null;
+    contentStats?: ProductContentStatsInput | null;
     files?: ProductFileForStats[];
   } | null;
 }): ProductContentStats {

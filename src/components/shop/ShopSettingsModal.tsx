@@ -2,30 +2,33 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Modal,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
-  Switch,
+  Pressable,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import type { AppPalette } from '../../theme/palettes';
 import { showToast } from '../CustomToast';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '../Button';
 import { shopApi } from '../../services/api';
-import { Picker } from '@react-native-picker/picker';
 import { useCustomModal, CustomModal } from '../CustomModal';
+import { CustomToggle } from '../CustomToggle';
+import { CustomSelect } from '../CustomSelect';
 import { formatPlanTypeForDisplay } from '../../config/plan-features';
 import {
   ShopAppearanceSettingsSection,
   DEFAULT_SHOP_APPEARANCE,
   type ShopAppearanceSettings,
 } from './ShopAppearanceSettingsSection';
+import { SubscriptionPlansContent } from './SubscriptionPlansContent';
 import type { UsernameDisplayEffectConfig } from '../../types/username-display-effect';
 
 type ShopVisibility = 'public' | 'preview' | 'friends' | 'followers';
+type SettingsPanel = 'general' | 'subscriptions';
+type SellerSubscriptionPlanTier = 'FREE' | 'STARTER' | 'PRO' | 'PRO_PLUS';
 
 interface ShopSettingsModalProps {
   visible: boolean;
@@ -46,6 +49,7 @@ interface ShopSettingsModalProps {
     titleColor?: string | null;
     titleDisplayEffect?: UsernameDisplayEffectConfig | null;
   } | null;
+  /** Plano da plataforma Melter (upgrade / gate de publicação). */
   onNavigateToPlans?: () => void;
   /** 403 `requiresSellerVerification` ao ativar a loja. */
   onOpenVerification?: () => void;
@@ -53,6 +57,18 @@ interface ShopSettingsModalProps {
   sellerVerificationStatus?: string | null;
   shopPlanGate?: { canCreateShop?: boolean; minPlanToCreateShop?: string | null } | null;
 }
+
+function resolveSellerSubscriptionPlanTier(plan?: string): SellerSubscriptionPlanTier {
+  if (plan === 'STARTER' || plan === 'PRO' || plan === 'PRO_PLUS') return plan;
+  return 'FREE';
+}
+
+const VISIBILITY_OPTIONS: Array<{ value: ShopVisibility; label: string }> = [
+  { value: 'public', label: 'Público' },
+  { value: 'followers', label: 'Seguidores' },
+  { value: 'friends', label: 'Amigos' },
+  { value: 'preview', label: 'Preview' },
+];
 
 function publishBlockedByKycMessage(status?: string | null): string {
   switch (status) {
@@ -85,6 +101,7 @@ export function ShopSettingsModal({
 }: ShopSettingsModalProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [shopEnabled, setShopEnabled] = useState(false);
@@ -92,7 +109,9 @@ export function ShopSettingsModal({
   const [saleNotifications, setSaleNotifications] = useState(false);
   const [shopAppearance, setShopAppearance] =
     useState<ShopAppearanceSettings>(DEFAULT_SHOP_APPEARANCE);
+  const [panel, setPanel] = useState<SettingsPanel>('general');
   const { showConfirm, modalProps, hideModal } = useCustomModal();
+  const sellerPlanTier = resolveSellerSubscriptionPlanTier(currentPlan);
 
   const applyAppearanceFromSettings = (data: ShopSettingsModalProps['initialSettings']) => {
     if (!data) {
@@ -112,6 +131,7 @@ export function ShopSettingsModal({
 
   useEffect(() => {
     if (visible) {
+      setPanel('general');
       if (initialSettings) {
         setShopEnabled(initialSettings.isEnabled);
         setVisibility(initialSettings.visibility);
@@ -248,366 +268,357 @@ export function ShopSettingsModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Configurações da Loja</Text>
-          <View style={styles.backButton} />
-        </View>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.secondary.main} />
-            <Text style={styles.loadingText}>Carregando configurações...</Text>
+    <>
+      <CustomModal
+        visible={visible}
+        onClose={saving ? undefined : onClose}
+        closeOnBackdropPress={!saving}
+        animationType="fade"
+        overlayStyle={styles.overlay}
+      >
+        <Pressable
+          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) }]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <View style={styles.header}>
+            {panel === 'subscriptions' ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                responsive={false}
+                onPress={() => setPanel('general')}
+                icon={<Ionicons name="arrow-back" size={18} color={colors.secondary.main} />}
+              >
+                Voltar
+              </Button>
+            ) : null}
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {panel === 'subscriptions' ? 'Assinaturas da loja' : 'Configurações da Loja'}
+            </Text>
+            <Button variant="ghost" size="sm" responsive={false} onPress={onClose} disabled={saving}>
+              Fechar
+            </Button>
           </View>
-        ) : (
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Status da Loja */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons
-                  name={shopEnabled ? 'storefront' : 'storefront-outline'}
-                  size={24}
-                  color={shopEnabled ? colors.states.success : colors.text.secondary}
-                />
-                <Text style={styles.sectionTitle}>Status da Loja</Text>
-              </View>
-              <View style={styles.switchGroup}>
-                <Text style={styles.switchLabel}>
-                  {shopEnabled ? 'Loja Ativa' : 'Loja Desativada'}
-                </Text>
-                <Switch
-                  value={shopEnabled}
-                  onValueChange={setShopEnabled}
-                  disabled={saving}
-                />
-              </View>
-              <View style={[styles.alertBox, shopEnabled ? styles.alertSuccess : styles.alertInfo]}>
-                <Ionicons
-                  name={shopEnabled ? 'checkmark-circle' : 'information-circle'}
-                  size={16}
-                  color={shopEnabled ? colors.states.success : colors.primary.main}
-                />
-                <Text style={styles.alertText}>
-                  {shopEnabled
-                    ? 'Sua loja está ativa! Os visitantes podem ver seus produtos.'
-                    : 'Loja desativada. Apenas você pode visualizar no modo preview.'}
-                </Text>
-              </View>
-            </View>
 
-            {/* Visibilidade */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="eye-outline" size={24} color={colors.text.primary} />
-                <Text style={styles.sectionTitle}>Visibilidade da Loja</Text>
-              </View>
-              <Text style={styles.label}>Quem pode ver</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={visibility}
-                  onValueChange={(value) => setVisibility(value)}
-                  style={styles.picker}
-                  enabled={!saving}
-                >
-                  <Picker.Item label="Público" value="public" />
-                  <Picker.Item label="Seguidores" value="followers" />
-                  <Picker.Item label="Amigos" value="friends" />
-                  <Picker.Item label="Preview" value="preview" />
-                </Picker>
-              </View>
-              <Text style={styles.helperText}>{getVisibilityDescription(visibility)}</Text>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.secondary.main} />
+              <Text style={styles.loadingText}>Carregando configurações...</Text>
             </View>
-
-            {/* Notificações de Vendas */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="notifications-outline" size={24} color={colors.text.primary} />
-                <Text style={styles.sectionTitle}>Notificações de Vendas</Text>
-              </View>
-              <View style={styles.switchGroup}>
-                <View style={styles.switchLabelContainer}>
-                  <Text style={styles.switchLabel}>
-                    {saleNotifications ? 'Ativadas' : 'Desativadas'}
-                  </Text>
-                  <Text style={styles.switchDescription}>
-                    Receba notificações quando alguém comprar seus produtos
+          ) : panel === 'subscriptions' ? (
+            <View style={styles.content}>
+              <Text style={styles.subscriptionsHint}>
+                Planos que seus clientes assinam na sua loja (inscrição comprador → vendedor). Não é o
+                plano da plataforma Melter.
+              </Text>
+              <SubscriptionPlansContent userPlan={sellerPlanTier} />
+            </View>
+          ) : (
+            <ScrollView
+              style={styles.content}
+              contentContainerStyle={styles.contentInner}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons
+                    name={shopEnabled ? 'storefront' : 'storefront-outline'}
+                    size={22}
+                    color={shopEnabled ? colors.states.success : colors.text.secondary}
+                  />
+                  <Text style={styles.sectionTitle} numberOfLines={2}>
+                    Status da Loja
                   </Text>
                 </View>
-                <Switch
-                  value={saleNotifications}
-                  onValueChange={setSaleNotifications}
+                <CustomToggle
+                  checked={shopEnabled}
+                  onChange={setShopEnabled}
+                  label={shopEnabled ? 'Loja Ativa' : 'Loja Desativada'}
+                  disabled={saving}
+                />
+                <View style={[styles.alertBox, shopEnabled ? styles.alertSuccess : styles.alertInfo]}>
+                  <Ionicons
+                    name={shopEnabled ? 'checkmark-circle' : 'information-circle'}
+                    size={16}
+                    color={shopEnabled ? colors.states.success : colors.primary.main}
+                  />
+                  <Text style={styles.alertText}>
+                    {shopEnabled
+                      ? 'Sua loja está ativa! Os visitantes podem ver seus produtos.'
+                      : 'Loja desativada. Apenas você pode visualizar no modo preview.'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="eye-outline" size={22} color={colors.text.primary} />
+                  <Text style={styles.sectionTitle} numberOfLines={2}>
+                    Visibilidade da Loja
+                  </Text>
+                </View>
+                <CustomSelect
+                  label="Quem pode ver"
+                  value={visibility}
+                  options={VISIBILITY_OPTIONS}
+                  onChange={(value) => setVisibility(value as ShopVisibility)}
+                  helperText={getVisibilityDescription(visibility)}
                   disabled={saving}
                 />
               </View>
-            </View>
 
-            <ShopAppearanceSettingsSection
-              currentPlan={currentPlan}
-              username={username}
-              isAdultShop={isAdultShop}
-              value={shopAppearance}
-              onChange={setShopAppearance}
-              hideInlineSaveButton
-            />
-
-            {/* Botão Gerenciar Planos */}
-            {onNavigateToPlans && (
               <View style={styles.section}>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => {
-                    onClose();
-                    onNavigateToPlans();
-                  }}
-                >
-                  <Ionicons name="card-outline" size={20} color={colors.primary.main} />
-                  <Text style={styles.actionButtonText}>Gerenciar assinaturas da loja</Text>
-                  <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
-                </TouchableOpacity>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="notifications-outline" size={22} color={colors.text.primary} />
+                  <Text style={styles.sectionTitle} numberOfLines={2}>
+                    Notificações de Vendas
+                  </Text>
+                </View>
+                <CustomToggle
+                  checked={saleNotifications}
+                  onChange={setSaleNotifications}
+                  label="Notificações de vendas"
+                  description="Receba notificações quando alguém comprar seus produtos"
+                  disabled={saving}
+                />
               </View>
-            )}
 
-            {/* Zona de Perigo */}
-            <View style={styles.section}>
-              <Text style={styles.dangerTitle}>Zona de Perigo</Text>
-              <TouchableOpacity
-                style={styles.dangerButton}
-                onPress={() => {
-                  showConfirm(
-                    'Confirmar Exclusão',
-                    'Tem certeza que deseja excluir sua loja? Isso desativará todos os seus produtos. Você precisará solicitar a abertura da loja novamente.',
-                    handleDeleteShop,
-                    {
-                      confirmText: 'Excluir Loja',
-                      cancelText: 'Cancelar',
-                      destructive: true,
-                    }
-                  );
-                }}
+              <View style={styles.section}>
+                <ShopAppearanceSettingsSection
+                  currentPlan={currentPlan}
+                  username={username}
+                  isAdultShop={isAdultShop}
+                  value={shopAppearance}
+                  onChange={setShopAppearance}
+                  hideInlineSaveButton
+                />
+              </View>
+
+              <View style={styles.section}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  responsive={false}
+                  onPress={() => setPanel('subscriptions')}
+                  icon={<Ionicons name="card-outline" size={18} color={colors.secondary.main} />}
+                  style={styles.fullWidthBtn}
+                >
+                  Gerenciar assinaturas da loja
+                </Button>
+                <Text style={styles.subscriptionsHintInline}>
+                  Crie planos para clientes assinarem seus pacotes — separado do plano Melter.
+                </Text>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.dangerTitle}>Zona de Perigo</Text>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  responsive={false}
+                  disabled={saving}
+                  onPress={() => {
+                    showConfirm(
+                      'Confirmar Exclusão',
+                      'Tem certeza que deseja excluir sua loja? Isso desativará todos os seus produtos. Você precisará solicitar a abertura da loja novamente.',
+                      handleDeleteShop,
+                      {
+                        confirmText: 'Excluir Loja',
+                        cancelText: 'Cancelar',
+                        destructive: true,
+                      }
+                    );
+                  }}
+                  icon={<Ionicons name="trash-outline" size={18} color={colors.states.error} />}
+                  style={styles.fullWidthBtn}
+                >
+                  Excluir Loja
+                </Button>
+                <Text style={styles.dangerDescription}>
+                  Isso desativará todos os seus produtos. Você precisará solicitar a abertura da loja novamente.
+                </Text>
+              </View>
+            </ScrollView>
+          )}
+
+          {panel === 'general' ? (
+            <View style={styles.footer}>
+              <Button
+                variant="ghost"
+                size="sm"
+                responsive={false}
+                onPress={onClose}
                 disabled={saving}
+                style={styles.footerButton}
               >
-                <Ionicons name="trash-outline" size={20} color={colors.states.error} />
-                <Text style={styles.dangerButtonText}>Excluir Loja</Text>
-              </TouchableOpacity>
-              <Text style={styles.dangerDescription}>
-                Isso desativará todos os seus produtos. Você precisará solicitar a abertura da loja novamente.
-              </Text>
+                Fechar
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                responsive={false}
+                onPress={() => void handleSave()}
+                loading={saving}
+                disabled={saving || loading}
+                style={styles.footerButton}
+              >
+                Salvar
+              </Button>
             </View>
-          </ScrollView>
-        )}
+          ) : null}
+        </Pressable>
+      </CustomModal>
 
-        <View style={styles.footer}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onPress={onClose}
-            disabled={saving}
-            style={styles.footerButton}
-          >
-            Fechar
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onPress={() => void handleSave()}
-            loading={saving}
-            disabled={saving || loading}
-            style={styles.footerButton}
-          >
-            Salvar
-          </Button>
-        </View>
-      </View>
-
-      {/* Modal de Confirmação Customizado */}
       <CustomModal {...modalProps} onClose={hideModal} />
-    </Modal>
+    </>
   );
 }
 
-const createStyles = (c: AppPalette) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: c.background.default,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: c.background.paper,
-    borderBottomWidth: 1,
-    borderBottomColor: c.background.tertiary,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: c.text.primary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: c.text.secondary,
-  },
-  content: {
-    flex: 1,
-  },
-  section: {
-    backgroundColor: c.background.paper,
-    marginBottom: 12,
-    padding: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: c.text.primary,
-  },
-  switchGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  switchLabelContainer: {
-    flex: 1,
-    marginRight: 12,
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: c.text.primary,
-    marginBottom: 4,
-  },
-  switchDescription: {
-    fontSize: 12,
-    color: c.text.secondary,
-    lineHeight: 16,
-  },
-  alertBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-  },
-  alertSuccess: {
-    backgroundColor: c.states.success + '20',
-  },
-  alertInfo: {
-    backgroundColor: c.primary.main + '20',
-  },
-  alertText: {
-    flex: 1,
-    fontSize: 12,
-    color: c.text.primary,
-    lineHeight: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.text.primary,
-    marginBottom: 8,
-  },
-  pickerContainer: {
-    backgroundColor: c.background.default,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: c.background.tertiary,
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  picker: {
-    color: c.text.primary,
-  },
-  helperText: {
-    fontSize: 12,
-    color: c.text.secondary,
-    lineHeight: 16,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    backgroundColor: c.background.default,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: c.background.tertiary,
-  },
-  actionButtonText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.primary.main,
-  },
-  dangerTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: c.states.error,
-    marginBottom: 12,
-  },
-  dangerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    backgroundColor: c.background.default,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: c.states.error,
-    marginBottom: 8,
-  },
-  dangerButtonText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.states.error,
-  },
-  dangerDescription: {
-    fontSize: 12,
-    color: c.text.secondary,
-    lineHeight: 16,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    padding: 16,
-    backgroundColor: c.background.paper,
-    borderTopWidth: 1,
-    borderTopColor: c.background.tertiary,
-  },
-  footerButton: {
-    flex: 0,
-    minWidth: 120,
-  },
-});
-
+const createStyles = (c: AppPalette) =>
+  StyleSheet.create({
+    overlay: {
+      paddingHorizontal: 12,
+      paddingVertical: 16,
+    },
+    sheet: {
+      width: '100%',
+      maxWidth: 560,
+      height: '90%',
+      maxHeight: '90%',
+      alignSelf: 'center',
+      backgroundColor: c.background.paper,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: c.border.light,
+      overflow: 'hidden',
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: c.border.light,
+      minWidth: 0,
+    },
+    headerTitle: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 17,
+      fontWeight: '700',
+      color: c.text.primary,
+    },
+    loadingContainer: {
+      paddingVertical: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+    },
+    loadingText: {
+      fontSize: 14,
+      color: c.text.secondary,
+    },
+    content: {
+      flex: 1,
+      minHeight: 0,
+    },
+    contentInner: {
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: 8,
+      gap: 12,
+    },
+    section: {
+      width: '100%',
+      minWidth: 0,
+      backgroundColor: c.background.default,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: c.border.light,
+      padding: 14,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 12,
+      minWidth: 0,
+    },
+    sectionTitle: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 16,
+      fontWeight: '700',
+      color: c.text.primary,
+    },
+    alertBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      padding: 12,
+      borderRadius: 8,
+      marginTop: 12,
+      minWidth: 0,
+    },
+    alertSuccess: {
+      backgroundColor: c.states.success + '20',
+    },
+    alertInfo: {
+      backgroundColor: c.primary.main + '20',
+    },
+    alertText: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 12,
+      color: c.text.primary,
+      lineHeight: 16,
+    },
+    fullWidthBtn: {
+      width: '100%',
+    },
+    subscriptionsHint: {
+      fontSize: 12,
+      lineHeight: 16,
+      color: c.text.secondary,
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      paddingBottom: 4,
+      flexShrink: 1,
+    },
+    subscriptionsHintInline: {
+      marginTop: 8,
+      fontSize: 12,
+      lineHeight: 16,
+      color: c.text.secondary,
+      flexShrink: 1,
+    },
+    dangerTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: c.states.error,
+      marginBottom: 12,
+    },
+    dangerDescription: {
+      marginTop: 8,
+      fontSize: 12,
+      color: c.text.secondary,
+      lineHeight: 16,
+    },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: c.border.light,
+      minWidth: 0,
+    },
+    footerButton: {
+      flex: 1,
+      minWidth: 0,
+    },
+  });

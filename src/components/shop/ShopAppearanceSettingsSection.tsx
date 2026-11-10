@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { PlanLocker } from '../PlanLocker';
@@ -24,6 +23,9 @@ import {
   DEFAULT_USERNAME_DISPLAY_EFFECT,
   normalizeUsernameDisplayEffect,
 } from '../../types/username-display-effect';
+import { Button } from '../Button';
+import { CustomSelect } from '../CustomSelect';
+import { CustomSlider } from '../CustomSlider';
 
 export type ShopAppearanceSettings = {
   backgroundImage: string | null;
@@ -205,7 +207,9 @@ export function ShopAppearanceSettingsSection({
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Aparência da vitrine</Text>
+      <Text style={styles.sectionTitle} numberOfLines={2}>
+        Aparência da vitrine
+      </Text>
       <Text style={styles.sectionCaption}>
         Personalize o fundo e o título da sua loja (separado do perfil).
       </Text>
@@ -218,154 +222,132 @@ export function ShopAppearanceSettingsSection({
 
       <View style={[styles.inner, busy && styles.innerBusy]}>
         <PlanLocker requiredPlan="PRO" currentPlan={planType}>
-          <View>
-          {uploadingBackground ? (
-            <View style={styles.uploadOverlay}>
-              <ActivityIndicator size="large" color={colors.primary.main} />
-            </View>
-          ) : null}
-
-          <Text style={styles.subsectionTitle}>Imagem de fundo</Text>
-          <TouchableOpacity
-            style={styles.backgroundPreviewWrap}
-            onPress={() => void handleBackgroundPick()}
-            disabled={busy}
-            activeOpacity={0.85}
-          >
-            {backgroundPreviewUrl ? (
-              <Image source={{ uri: backgroundPreviewUrl }} style={styles.backgroundPreview} />
-            ) : (
-              <View style={styles.backgroundPlaceholder}>
-                <Ionicons name="image-outline" size={32} color={colors.text.secondary} />
-                <Text style={styles.backgroundPlaceholderText}>Toque para escolher imagem</Text>
+          <View style={styles.block}>
+            {uploadingBackground ? (
+              <View style={styles.uploadOverlay}>
+                <ActivityIndicator size="large" color={colors.primary.main} />
               </View>
-            )}
-          </TouchableOpacity>
+            ) : null}
 
-          <View style={styles.backgroundActions}>
+            <Text style={styles.subsectionTitle}>Imagem de fundo</Text>
             <TouchableOpacity
-              style={styles.secondaryBtn}
+              style={styles.backgroundPreviewWrap}
               onPress={() => void handleBackgroundPick()}
               disabled={busy}
+              activeOpacity={0.85}
             >
-              <Text style={styles.secondaryBtnText}>
-                {hasCustomBackground ? 'Trocar imagem' : 'Escolher imagem'}
-              </Text>
+              {backgroundPreviewUrl ? (
+                <Image source={{ uri: backgroundPreviewUrl }} style={styles.backgroundPreview} />
+              ) : (
+                <View style={styles.backgroundPlaceholder}>
+                  <Ionicons name="image-outline" size={32} color={colors.text.secondary} />
+                  <Text style={styles.backgroundPlaceholderText}>Toque para escolher imagem</Text>
+                </View>
+              )}
             </TouchableOpacity>
-            {hasCustomBackground ? (
-              <TouchableOpacity
-                style={styles.dangerOutlineBtn}
-                onPress={() => void handleRemoveBackground()}
+
+            <View style={styles.backgroundActions}>
+              <Button
+                variant="outline"
+                size="sm"
+                responsive={false}
+                onPress={() => void handleBackgroundPick()}
                 disabled={busy}
+                style={styles.flexBtn}
               >
-                <Text style={styles.dangerOutlineBtnText}>Remover</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {hasCustomBackground ? (
-            <>
-              <Text style={styles.fieldLabel}>Modo de exibição</Text>
-              <View style={styles.pickerWrapper}>
-                <Picker
-                  selectedValue={value.backgroundMode}
-                  onValueChange={(mode) => patch({ backgroundMode: mode as 'full' | 'top' })}
-                  style={styles.picker}
-                  dropdownIconColor={colors.text.secondary}
-                  enabled={!busy}
+                {hasCustomBackground ? 'Trocar imagem' : 'Escolher imagem'}
+              </Button>
+              {hasCustomBackground ? (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  responsive={false}
+                  onPress={() => void handleRemoveBackground()}
+                  disabled={busy}
                 >
-                  <Picker.Item label="Página inteira" value="full" />
-                  <Picker.Item label="Até antes das abas" value="top" />
-                </Picker>
-              </View>
-              <Text style={styles.helperText}>
-                {value.backgroundMode === 'top'
-                  ? 'A imagem aparece só no topo da vitrine, antes das abas.'
-                  : 'A imagem cobre toda a área rolável da loja.'}
-              </Text>
-            </>
-          ) : null}
-
-          <Text style={styles.fieldLabel}>Opacidade do overlay: {overlayValue}%</Text>
-          <View style={styles.sliderRow}>
-            <TouchableOpacity
-              style={styles.sliderBtn}
-              onPress={() =>
-                patch({
-                  backgroundOverlayOpacity: Math.max(0, overlayValue - 5),
-                  backgroundOverlay: overlayValue - 5 > 0,
-                })
-              }
-              disabled={busy}
-            >
-              <Ionicons name="remove" size={20} color={colors.text.primary} />
-            </TouchableOpacity>
-            <View style={styles.sliderTrack}>
-              <View style={styles.sliderTrackBg} />
-              <View
-                style={[
-                  styles.sliderTrackFill,
-                  { width: `${overlayValue}%`, backgroundColor: colors.primary.main },
-                ]}
-              />
+                  Remover
+                </Button>
+              ) : null}
             </View>
-            <TouchableOpacity
-              style={styles.sliderBtn}
-              onPress={() =>
+
+            {hasCustomBackground ? (
+              <CustomSelect
+                label="Modo de exibição"
+                value={value.backgroundMode}
+                options={[
+                  { value: 'full', label: 'Página inteira' },
+                  { value: 'top', label: 'Até antes das abas' },
+                ]}
+                onChange={(mode) => patch({ backgroundMode: mode as 'full' | 'top' })}
+                helperText={
+                  value.backgroundMode === 'top'
+                    ? 'A imagem aparece só no topo da vitrine, antes das abas.'
+                    : 'A imagem cobre toda a área rolável da loja.'
+                }
+                disabled={busy}
+              />
+            ) : null}
+
+            <CustomSlider
+              label="Opacidade do overlay"
+              value={overlayValue}
+              valueSuffix="%"
+              min={0}
+              max={100}
+              step={1}
+              steppersStep={5}
+              disabled={busy}
+              onChange={(next) =>
                 patch({
-                  backgroundOverlayOpacity: Math.min(100, overlayValue + 5),
-                  backgroundOverlay: true,
+                  backgroundOverlayOpacity: next,
+                  backgroundOverlay: next > 0,
                 })
               }
-              disabled={busy}
-            >
-              <Ionicons name="add" size={20} color={colors.text.primary} />
-            </TouchableOpacity>
-          </View>
+            />
           </View>
         </PlanLocker>
 
-          <View style={styles.divider} />
+        <View style={styles.divider} />
 
-          <Text style={styles.subsectionTitle}>Título da loja</Text>
-          <PlanLocker requiredPlan="STARTER" currentPlan={planType}>
-            <ColorPickerField
-              label="Cor do título"
-              value={value.titleColor || '#9333ea'}
-              onChange={(color) => patch({ titleColor: color })}
-            />
-          </PlanLocker>
-
-          <ProfileGradientEffectSection
-            title="Efeito no título"
-            caption="Gradiente no texto “Loja de @user” (mesmo sistema do perfil, via SVG)."
-            planType={planType}
-            effect={titleEffect}
-            setEffect={(updater) => {
-              setTitleEffect((prev) => {
-                const next = typeof updater === 'function' ? updater(prev) : updater;
-                patch({ titleDisplayEffect: next });
-                return next;
-              });
-            }}
-            setHasChanges={() => {}}
-            previewUsername={username || 'username'}
-            previewPrefix="Loja de "
+        <Text style={styles.subsectionTitle}>Título da loja</Text>
+        <PlanLocker requiredPlan="STARTER" currentPlan={planType}>
+          <ColorPickerField
+            label="Cor do título"
+            value={value.titleColor || '#9333ea'}
+            onChange={(color) => patch({ titleColor: color })}
           />
+        </PlanLocker>
 
-          {!hideInlineSaveButton && canEditTitleColor ? (
-            <TouchableOpacity
-              style={[styles.saveBtn, busy && styles.saveBtnDisabled]}
-              onPress={() => void handleSaveAppearance()}
-              disabled={busy}
-            >
-              {savingAppearance ? (
-                <ActivityIndicator size="small" color={colors.primary.contrastText} />
-              ) : (
-                <Text style={styles.saveBtnText}>Salvar aparência</Text>
-              )}
-            </TouchableOpacity>
-          ) : null}
+        <ProfileGradientEffectSection
+          title="Efeito no título"
+          caption="Gradiente no texto “Loja de @user” (mesmo sistema do perfil, via SVG)."
+          planType={planType}
+          effect={titleEffect}
+          setEffect={(updater) => {
+            setTitleEffect((prev) => {
+              const next = typeof updater === 'function' ? updater(prev) : updater;
+              patch({ titleDisplayEffect: next });
+              return next;
+            });
+          }}
+          setHasChanges={() => {}}
+          previewUsername={username || 'username'}
+          previewPrefix="Loja de "
+        />
+
+        {!hideInlineSaveButton && canEditTitleColor ? (
+          <Button
+            variant="primary"
+            size="sm"
+            responsive={false}
+            onPress={() => void handleSaveAppearance()}
+            loading={savingAppearance}
+            disabled={busy}
+            style={styles.saveBtn}
+          >
+            Salvar aparência
+          </Button>
+        ) : null}
       </View>
     </View>
   );
@@ -382,31 +364,43 @@ function readApiError(error: unknown): string | undefined {
 
 const createStyles = (c: AppPalette) => StyleSheet.create({
   section: {
-    marginTop: 4,
+    marginTop: 0,
+    width: '100%',
+    minWidth: 0,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: c.text.primary,
     marginBottom: 4,
+    flexShrink: 1,
   },
   sectionCaption: {
     fontSize: 12,
     color: c.text.secondary,
     lineHeight: 16,
     marginBottom: 12,
+    flexShrink: 1,
   },
   adultHint: {
     fontSize: 12,
     color: c.states.warning,
     marginBottom: 12,
     lineHeight: 16,
+    flexShrink: 1,
   },
   inner: {
     position: 'relative',
+    width: '100%',
+    minWidth: 0,
   },
   innerBusy: {
     opacity: 0.85,
+  },
+  block: {
+    width: '100%',
+    minWidth: 0,
+    position: 'relative',
   },
   uploadOverlay: {
     ...StyleSheet.absoluteFill,
@@ -422,6 +416,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     color: c.text.primary,
     marginBottom: 8,
     marginTop: 4,
+    flexShrink: 1,
   },
   backgroundPreviewWrap: {
     borderRadius: 10,
@@ -429,6 +424,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border.light,
     marginBottom: 10,
+    width: '100%',
   },
   backgroundPreview: {
     width: '100%',
@@ -441,96 +437,23 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: c.background.default,
+    paddingHorizontal: 12,
   },
   backgroundPlaceholderText: {
     fontSize: 13,
     color: c.text.secondary,
+    textAlign: 'center',
   },
   backgroundActions: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 12,
+    width: '100%',
+    minWidth: 0,
   },
-  secondaryBtn: {
+  flexBtn: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: c.border.medium,
-    alignItems: 'center',
-  },
-  secondaryBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.primary.main,
-  },
-  dangerOutlineBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: c.states.error,
-    alignItems: 'center',
-  },
-  dangerOutlineBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: c.states.error,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: c.text.primary,
-    marginBottom: 6,
-    marginTop: 4,
-  },
-  pickerWrapper: {
-    borderWidth: 1,
-    borderColor: c.border.light,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 6,
-  },
-  picker: {
-    color: c.text.primary,
-  },
-  helperText: {
-    fontSize: 12,
-    color: c.text.secondary,
-    lineHeight: 16,
-    marginBottom: 8,
-  },
-  sliderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  sliderBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: c.background.tertiary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sliderTrack: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  sliderTrackBg: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: c.background.tertiary,
-  },
-  sliderTrackFill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    borderRadius: 4,
+    minWidth: 0,
   },
   divider: {
     height: 1,
@@ -539,17 +462,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   saveBtn: {
     marginTop: 8,
-    backgroundColor: c.primary.main,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  saveBtnDisabled: {
-    opacity: 0.6,
-  },
-  saveBtnText: {
-    color: c.primary.contrastText,
-    fontSize: 15,
-    fontWeight: '700',
+    width: '100%',
   },
 });
