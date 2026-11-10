@@ -100,6 +100,8 @@ export function CustomModal({
   const resolvedAnimationType = animationType ?? (top ? 'slide' : 'fade');
 
   if (isContentMode) {
+    // Backdrop separado dos children: Pressable em volta do conteúdo
+    // quebra long-press/seleção de TextInput no Android.
     return (
       <Modal
         visible={visible}
@@ -107,12 +109,15 @@ export function CustomModal({
         animationType={resolvedAnimationType}
         onRequestClose={onClose}
       >
-        <Pressable
-          style={[styles.overlay, top && styles.overlayTop, overlayStyle]}
-          onPress={handleBackdropPress}
-        >
+        <View style={[styles.overlay, top && styles.overlayTop, overlayStyle]}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={handleBackdropPress}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar"
+          />
           {children}
-        </Pressable>
+        </View>
       </Modal>
     );
   }

@@ -5,6 +5,8 @@ declare module '@react-native-masked-view/masked-view' {
   export interface MaskedViewProps extends ViewProps {
     maskElement: ReactElement;
     children?: ReactNode;
+    /** Android: software evita máscara vazia em alguns GPUs. */
+    androidRenderingMode?: 'software' | 'hardware';
   }
 
   const MaskedView: import('react').ComponentType<MaskedViewProps>;

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useId } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   Text,
   View,
@@ -8,7 +8,16 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText } from 'react-native-svg';
+import MaskedView from '@react-native-masked-view/masked-view';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+  interpolate,
+} from 'react-native-reanimated';
 import type { UsernameDisplayEffectConfig } from '../types/username-display-effect';
 import { normalizeUsernameDisplayEffect } from '../types/username-display-effect';
 
@@ -27,7 +36,7 @@ type Props = {
 const DEFAULT_FONT = 15;
 const DEFAULT_WEIGHT: TextStyle['fontWeight'] = '700';
 
-/** Chaves de layout aplicadas ao wrapper externo, não ao texto SVG. */
+/** Layout no wrapper externo — no Android, flex no MaskedView pode medir 0px na máscara. */
 const LAYOUT_KEYS_FOR_MASK_WRAPPER = new Set([
   'flex',
   'flexGrow',
@@ -77,6 +86,7 @@ function splitLayoutAndTextStyles(
   };
 }
 
+/** `color` do tema cobria o gradiente; glow usa glyphs transparentes. */
 function stripColorAndBackground(input?: TextStyle | null): TextStyle | undefined {
   if (!input) return undefined;
   const { color: _c, backgroundColor: _b, ...rest } = input as TextStyle & {
@@ -85,127 +95,10 @@ function stripColorAndBackground(input?: TextStyle | null): TextStyle | undefine
   return Object.keys(rest).length ? (rest as TextStyle) : undefined;
 }
 
-function fontWeightToSvg(fontWeight: TextStyle['fontWeight'] | undefined): string | number {
-  if (fontWeight == null) return '600';
-  if (typeof fontWeight === 'number') return fontWeight;
-  const s = String(fontWeight).toLowerCase();
-  if (s === 'bold') return '700';
-  if (s === 'normal') return '400';
-  const n = Number(fontWeight);
-  return Number.isFinite(n) ? n : '600';
-}
-
 /**
  * Texto com gradiente no preenchimento dos glifos — equivalente ao web (`background-clip: text`).
- * Usa `react-native-svg` em vez de MaskedView + LinearGradient (layout Android instável).
+ * MaskedView + LinearGradient (mais estável que SVG Text fill url(#) no Android).
  */
-function GradientUsernameSvg({
-  label,
-  fontSize,
-  fontWeight,
-  colors,
-  textForMask,
-  numberOfLines,
-}: {
-  label: string;
-  fontSize: number;
-  fontWeight: TextStyle['fontWeight'];
-  colors: readonly string[];
-  textForMask?: TextStyle;
-  numberOfLines: number;
-}) {
-  const reactId = useId().replace(/[^a-zA-Z0-9_]/g, '_');
-  const gradId = `ug_${reactId}`;
-
-  const [box, setBox] = useState(() => ({
-    w: Math.max(24, Math.ceil(label.length * fontSize * 0.56)),
-    h: Math.ceil(fontSize * 1.45),
-  }));
-
-  const onTextLayout = (e: { nativeEvent: { lines: { width: number; height: number }[] } }) => {
-    const lines = e.nativeEvent.lines;
-    if (!lines?.length) return;
-    let w = 0;
-    let h = 0;
-    for (const line of lines) {
-      w = Math.max(w, line.width);
-      h += line.height;
-    }
-    const nw = Math.ceil(w + 2);
-    const nh = Math.ceil(h + 4);
-    if (nw <= 0 || nh <= 0) return;
-    setBox((prev) => (nw !== prev.w || nh !== prev.h ? { w: nw, h: nh } : prev));
-  };
-
-  const fw = fontWeightToSvg(fontWeight);
-  const textY = Math.ceil(fontSize * 0.92);
-
-  const stops =
-    colors.length >= 4
-      ? [
-          <Stop key="0" offset="0%" stopColor={colors[0]} />,
-          <Stop key="1" offset="33%" stopColor={colors[1]} />,
-          <Stop key="2" offset="66%" stopColor={colors[2]} />,
-          <Stop key="3" offset="100%" stopColor={colors[3]} />,
-        ]
-      : [
-          <Stop key="0" offset="0%" stopColor={colors[0]} />,
-          <Stop key="1" offset="100%" stopColor={colors[1] ?? colors[0]} />,
-        ];
-
-  const letterSpacing =
-    typeof textForMask?.letterSpacing === 'number' ? textForMask.letterSpacing : undefined;
-
-  return (
-    <View
-      style={styles.svgOuter}
-      accessible
-      accessibilityRole="text"
-      accessibilityLabel={label}
-    >
-      <Text
-        style={[
-          styles.measureGhost,
-          { fontSize, fontWeight: fw as TextStyle['fontWeight'], letterSpacing },
-          textForMask,
-          Platform.OS === 'android' ? { includeFontPadding: false } : null,
-        ]}
-        numberOfLines={numberOfLines}
-        onTextLayout={onTextLayout}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        pointerEvents="none"
-      >
-        {label}
-      </Text>
-      <Svg
-        width={box.w}
-        height={box.h}
-        style={styles.svgLayer}
-        viewBox={`0 0 ${box.w} ${box.h}`}
-        pointerEvents="none"
-      >
-        <Defs>
-          <SvgLinearGradient id={gradId} x1="0" y1="0" x2={box.w} y2="0" gradientUnits="userSpaceOnUse">
-            {stops}
-          </SvgLinearGradient>
-        </Defs>
-        <SvgText
-          fill={`url(#${gradId})`}
-          x={0}
-          y={textY}
-          fontSize={fontSize}
-          fontWeight={fw}
-          letterSpacing={letterSpacing}
-          fontFamily={typeof textForMask?.fontFamily === 'string' ? textForMask.fontFamily : undefined}
-        >
-          {label}
-        </SvgText>
-      </Svg>
-    </View>
-  );
-}
-
 export function UsernameGradientText({
   username,
   prefix = '',
@@ -226,6 +119,29 @@ export function UsernameGradientText({
     () => splitLayoutAndTextStyles(style),
     [style]
   );
+
+  const motionMode = normalized?.enabled ? normalized.motionMode : 'static';
+  const slide = useSharedValue(0);
+
+  useEffect(() => {
+    if (!normalized?.enabled || motionMode !== 'animated') {
+      slide.value = 0;
+      return;
+    }
+    slide.value = withRepeat(
+      withTiming(1, { duration: 5000, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true
+    );
+  }, [normalized?.enabled, motionMode, slide]);
+
+  const animatedGradientStyle = useAnimatedStyle(() => {
+    if (!normalized?.enabled || motionMode !== 'animated') {
+      return { transform: [{ translateX: 0 }] };
+    }
+    const shift = interpolate(slide.value, [0, 1], [-28, 28]);
+    return { transform: [{ translateX: shift }] };
+  });
 
   if (!normalized?.enabled) {
     const plain = (
@@ -251,7 +167,10 @@ export function UsernameGradientText({
     return plainWrapped;
   }
 
-  const { motionMode, gradientFrom, gradientTo } = normalized;
+  const { gradientFrom, gradientTo, glowIntensity } = normalized;
+  const tGlow = Math.min(100, Math.max(0, glowIntensity)) / 100;
+  const shadowRadius = 2 + tGlow * 10;
+  const shadowOpacity = 0.25 + tGlow * 0.45;
 
   const colors =
     motionMode === 'animated'
@@ -260,15 +179,79 @@ export function UsernameGradientText({
 
   const textForMask = stripColorAndBackground(textFromStyle ?? (StyleSheet.flatten(style) as TextStyle));
 
-  const gradientBlock = (
-    <GradientUsernameSvg
-      label={label}
-      fontSize={fontSize}
-      fontWeight={resolvedFontWeight}
-      colors={colors}
-      textForMask={textForMask}
+  /** Texto invisível dentro do gradiente define a largura/altura do MaskedView. */
+  const sizeText = (
+    <Text
+      style={[textStyle, textForMask, styles.sizeText]}
       numberOfLines={numberOfLines}
-    />
+      ellipsizeMode="tail"
+    >
+      {label}
+    </Text>
+  );
+
+  const mask = (
+    <Text
+      style={[textStyle, textForMask, styles.maskText]}
+      numberOfLines={numberOfLines}
+      ellipsizeMode="tail"
+    >
+      {label}
+    </Text>
+  );
+
+  const gradientContent =
+    motionMode === 'animated' ? (
+      <View style={styles.gradientSized}>
+        {sizeText}
+        <Animated.View style={[styles.gradientTrackWide, animatedGradientStyle]}>
+          <LinearGradient
+            colors={colors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      </View>
+    ) : (
+      <LinearGradient
+        colors={colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.gradientFill}
+      >
+        {sizeText}
+      </LinearGradient>
+    );
+
+  const gradientInner = (
+    <View style={styles.wrap} {...(Platform.OS === 'android' ? { collapsable: false as const } : {})}>
+      <MaskedView
+        style={styles.masked}
+        maskElement={mask}
+        {...(Platform.OS === 'android' ? { androidRenderingMode: 'software' as const } : {})}
+      >
+        {gradientContent}
+      </MaskedView>
+      <Text
+        pointerEvents="none"
+        style={[
+          textStyle,
+          textForMask,
+          {
+            textShadowColor: gradientFrom,
+            textShadowOffset: { width: 0, height: 0 },
+            textShadowRadius: shadowRadius,
+            opacity: shadowOpacity,
+          },
+          styles.glowLayer,
+        ]}
+        numberOfLines={numberOfLines}
+        ellipsizeMode="tail"
+      >
+        {label}
+      </Text>
+    </View>
   );
 
   const layoutWrap = (
@@ -277,38 +260,51 @@ export function UsernameGradientText({
         layoutFromStyle,
         { minWidth: 0, alignSelf: layoutFromStyle?.alignSelf ?? 'flex-start' },
       ]}
+      {...(Platform.OS === 'android' ? { collapsable: false as const } : {})}
     >
-      {gradientBlock}
+      {gradientInner}
     </View>
   );
 
   if (containerStyle) {
-    return <View style={containerStyle}>{layoutFromStyle ? layoutWrap : gradientBlock}</View>;
+    return <View style={containerStyle}>{layoutFromStyle ? layoutWrap : gradientInner}</View>;
   }
 
-  return layoutFromStyle ? layoutWrap : gradientBlock;
+  return layoutFromStyle ? layoutWrap : gradientInner;
 }
 
 const styles = StyleSheet.create({
-  svgOuter: {
+  wrap: {
     position: 'relative',
     alignSelf: 'flex-start',
-    flexGrow: 0,
-    flexShrink: 0,
+    alignItems: 'flex-start',
     maxWidth: '100%',
   },
-  measureGhost: {
-    position: 'absolute',
-    opacity: 0,
-    left: 0,
-    top: 0,
-    color: '#000',
-    padding: 0,
-    margin: 0,
-    maxWidth: '100%',
-    pointerEvents: 'none',
-  },
-  svgLayer: {
+  masked: {
     alignSelf: 'flex-start',
+    maxWidth: '100%',
+  },
+  maskText: {
+    color: '#000',
+    backgroundColor: 'transparent',
+  },
+  sizeText: {
+    opacity: 0,
+  },
+  gradientSized: {
+    position: 'relative',
+    alignSelf: 'flex-start',
+  },
+  gradientTrackWide: {
+    ...StyleSheet.absoluteFillObject,
+    width: '220%',
+    left: '-60%',
+  },
+  gradientFill: {
+    alignSelf: 'flex-start',
+  },
+  glowLayer: {
+    ...StyleSheet.absoluteFillObject,
+    color: 'transparent',
   },
 });

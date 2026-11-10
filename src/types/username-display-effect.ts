@@ -53,7 +53,11 @@ const HEX_COLOR_RE = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i
 function pickGradientColor(value: unknown, fallback: string): string {
   if (typeof value !== 'string') return fallback
   const t = value.trim()
-  return HEX_COLOR_RE.test(t) ? t : fallback
+  if (!t) return fallback
+  // Aceita hex; se vier outro formato válido do web, usa como está.
+  if (HEX_COLOR_RE.test(t)) return t
+  if (t.startsWith('rgb') || t.startsWith('hsl') || t.startsWith('#')) return t
+  return fallback
 }
 
 export function normalizeUsernameDisplayEffect(raw: unknown): UsernameDisplayEffectConfig | null {

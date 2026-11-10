@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Image,
   Pressable,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -24,8 +25,13 @@ import { showToast } from './CustomToast';
 import { PlanLocker } from './PlanLocker';
 import { hasFeatureAccess, resolveUserPlanType } from '../config/plan-features';
 import { CustomModal } from './CustomModal';
+import { ModalBottom } from './ModalBottom';
 import { Button } from './Button';
 import { Avatar } from './Avatar';
+import {
+  CustomRichTextEditor,
+  type CustomRichTextEditorHandle,
+} from './CustomRichTextEditor';
 import { LinkPreviewCard, postLinkToPreview, type LinkPreviewData } from './LinkPreviewCard';
 import { useLinkPreview } from '../hooks/useLinkPreview';
 import { FIXED_CATEGORIES, getFixedCategory } from '../constants/categories';
@@ -38,12 +44,7 @@ import {
   RICH_TEXT_BG_COLORS,
   RICH_TEXT_COLORS,
   contentUsesRichTextCustomization,
-  insertBulletAtCursor,
   stripRichTextMarkup,
-  wrapSelectionBgColor,
-  wrapSelectionBold,
-  wrapSelectionFgColor,
-  wrapSelectionItalic,
 } from '../lib/rich-text';
 import {
   ADULT_POST_CATEGORY_ID,
@@ -140,9 +141,10 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const richEditorRef = useRef<CustomRichTextEditorHandle>(null);
 
   const [content, setContent] = useState('');
-  const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [category, setCategory] = useState('outros');
   const [visibility, setVisibility] = useState<PostVisibility>('PUBLIC');
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -154,11 +156,15 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [showValidationSummary, setShowValidationSummary] = useState(false);
   const [hideAutoPreview, setHideAutoPreview] = useState(false);
-  const [warningExpanded, setWarningExpanded] = useState(false);
+  const [attentionOpen, setAttentionOpen] = useState(false);
   const [picker, setPicker] = useState<PickerKind>(null);
   const [palette, setPalette] = useState<ColorPalette>(null);
   const [proImageDialogOpen, setProImageDialogOpen] = useState(false);
   const [liteFormatDialogOpen, setLiteFormatDialogOpen] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [editorFocused, setEditorFocused] = useState(false);
+
+  const modalMaxHeight = Math.round(windowHeight * (keyboardOpen ? 0.72 : 0.88));
 
   const userPlan = resolveUserPlanType(user?.plan?.type);
   const canUploadImage = hasFeatureAccess(userPlan, 'canUploadPostImages');
@@ -190,12 +196,11 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
     setFieldErrors({});
     setShowValidationSummary(false);
     setHideAutoPreview(false);
-    setWarningExpanded(false);
+    setAttentionOpen(false);
     setPicker(null);
     setPalette(null);
     setSelectedImage(null);
     setSelectedLinkId('');
-    setSelection({ start: 0, end: 0 });
     if (editingPost) {
       setContent(editingPost.content);
       setCategory(editingPost.category || 'outros');
@@ -209,6 +214,21 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
       void fetchMyLinks();
     }
   }, [visible, editingPost]);
+
+  useEffect(() => {
+    if (!visible) {
+      setKeyboardOpen(false);
+      return;
+    }
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [visible]);
 
   useEffect(() => {
     if (!visible || !hasExplicitContent || category === ADULT_POST_CATEGORY_ID) return;
@@ -257,27 +277,20 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
     setShowValidationSummary(false);
   };
 
-  const applyFormatting = (result: { value: string; selectionStart: number; selectionEnd: number }) => {
-    applyContent(result.value);
-    setSelection({ start: result.selectionStart, end: result.selectionEnd });
-  };
-
   const runFormat = (action: 'bold' | 'italic' | 'bullet' | 'fg' | 'bg') => {
     if (!canCustomizePostRichText) {
       setLiteFormatDialogOpen(true);
       return;
     }
-    const { start, end } = selection;
-    if (action === 'bold') applyFormatting(wrapSelectionBold(content, start, end));
-    else if (action === 'italic') applyFormatting(wrapSelectionItalic(content, start, end));
-    else if (action === 'bullet') applyFormatting(insertBulletAtCursor(content, start));
+    if (action === 'bold') richEditorRef.current?.applyBold();
+    else if (action === 'italic') richEditorRef.current?.applyItalic();
+    else if (action === 'bullet') richEditorRef.current?.applyBullet();
     else setPalette((prev) => (prev === action ? null : action));
   };
 
   const applyColor = (hex: string) => {
-    const { start, end } = selection;
-    if (palette === 'fg') applyFormatting(wrapSelectionFgColor(content, start, end, hex));
-    if (palette === 'bg') applyFormatting(wrapSelectionBgColor(content, start, end, hex));
+    if (palette === 'fg') richEditorRef.current?.applyFgColor(hex);
+    if (palette === 'bg') richEditorRef.current?.applyBgColor(hex);
     setPalette(null);
   };
 
@@ -441,6 +454,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
     <TouchableOpacity
       key={label}
       style={[styles.toolButton, options.active && styles.toolButtonActive]}
+      onPressIn={() => richEditorRef.current?.preserveSelection()}
       onPress={onPress}
       accessibilityLabel={label}
       disabled={loading}
@@ -464,28 +478,39 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
 
   return (
     <CustomModal visible={visible} onClose={onClose} animationType="fade" overlayStyle={styles.overlay}>
-      {/* Android já usa softwareKeyboardLayoutMode=resize — behavior "height" encolhia o modal 2x */}
+      {/* Android: softwareKeyboardLayoutMode=resize — sem behavior height (encolhia 2x). */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoid}
       >
-        <Pressable
-          style={[styles.container, { paddingBottom: Math.max(insets.bottom, 0) }]}
-          onPress={(e) => e.stopPropagation()}
-        >
+        <View style={[styles.container, { maxHeight: modalMaxHeight }]}>
           {/* Header — avatar, título, @username, visibilidade e categoria */}
           <View style={styles.header}>
             <Avatar user={{ username: user?.username, avatar: user?.avatar }} size={40} disableNavigation />
             <View style={styles.headerInfo}>
-              <Text style={styles.headerTitle}>{isEditing ? TEXT.editTitle : TEXT.title}</Text>
-              <View style={styles.headerMeta}>
-                <Text style={styles.headerUsername} numberOfLines={1}>
-                  {user?.username}
-                </Text>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerTitle}>{isEditing ? TEXT.editTitle : TEXT.title}</Text>
+                {visibility === 'PUBLIC' ? (
+                  <TouchableOpacity
+                    onPress={() => setAttentionOpen(true)}
+                    hitSlop={10}
+                    accessibilityLabel={TEXT.warningTitle}
+                    style={styles.attentionIconButton}
+                  >
+                    <Ionicons name="warning" size={18} color={WARNING_COLOR} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              <Text style={styles.headerUsername} numberOfLines={1}>
+                {user?.username}
+              </Text>
+              <View style={styles.headerChips}>
                 <TouchableOpacity style={styles.chip} onPress={() => setPicker('visibility')} disabled={loading}>
-                  <Ionicons name={visibilityOption.icon} size={13} color={colors.text.secondary} />
-                  <Text style={styles.chipText}>{visibilityOption.label}</Text>
-                  <Ionicons name="chevron-down" size={12} color={colors.text.tertiary} />
+                  <Ionicons name={visibilityOption.icon} size={11} color={colors.text.secondary} />
+                  <Text style={styles.chipText} numberOfLines={1}>
+                    {visibilityOption.label}
+                  </Text>
+                  <Ionicons name="chevron-down" size={10} color={colors.text.tertiary} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.chip, fieldErrors.category && styles.chipError]}
@@ -494,13 +519,16 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
                 >
                   <Ionicons
                     name={(selectedCategory?.icon ?? 'apps-outline') as React.ComponentProps<typeof Ionicons>['name']}
-                    size={13}
+                    size={11}
                     color={category === ADULT_POST_CATEGORY_ID ? ADULT_COLOR : colors.text.secondary}
                   />
-                  <Text style={[styles.chipText, fieldErrors.category && { color: PINK_BORDER }]}>
+                  <Text
+                    style={[styles.chipText, fieldErrors.category && { color: PINK_BORDER }]}
+                    numberOfLines={1}
+                  >
                     {selectedCategory?.name ?? 'Categoria'}
                   </Text>
-                  <Ionicons name="chevron-down" size={12} color={colors.text.tertiary} />
+                  <Ionicons name="chevron-down" size={10} color={colors.text.tertiary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -512,9 +540,11 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           <ScrollView
             style={styles.body}
             contentContainerStyle={styles.bodyContent}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="always"
+            keyboardDismissMode="none"
             nestedScrollEnabled
+            // Evita o ScrollView “roubar” o gesto de seleção do TextInput.
+            scrollEnabled={!editorFocused}
           >
             {error ? (
               <View style={styles.errorBox}>
@@ -527,7 +557,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
               <Text style={styles.validationSummary}>{TEXT.validationSummary}</Text>
             ) : null}
 
-            {/* Barra de formatação (LITE+) */}
+            {/* Barra de formatação acima do texto (igual web) */}
             <View style={styles.toolbar}>
               {toolbarButton(null, 'Negrito', () => runFormat('bold'), { text: 'B', locked: formatLocked })}
               {toolbarButton(null, 'Itálico', () => runFormat('italic'), { text: 'I', locked: formatLocked })}
@@ -549,6 +579,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
                     <TouchableOpacity
                       key={color.id}
                       style={[styles.swatch, { backgroundColor: color.value }]}
+                      onPressIn={() => richEditorRef.current?.preserveSelection()}
                       onPress={() => applyColor(color.value)}
                       accessibilityLabel={color.label}
                     />
@@ -556,19 +587,17 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
               </View>
             ) : null}
 
-            {/* Editor */}
             <View style={[styles.editor, fieldErrors.content && styles.editorError]}>
-              <TextInput
-                style={styles.textarea}
-                placeholder={canUploadImage ? TEXT.placeholder : TEXT.placeholderFree}
-                placeholderTextColor={colors.text.tertiary}
-                multiline
+              <CustomRichTextEditor
+                ref={richEditorRef}
                 value={content}
-                onChangeText={applyContent}
-                onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
-                autoFocus={!isEditing}
+                onChange={applyContent}
+                placeholder={canUploadImage ? TEXT.placeholder : TEXT.placeholderFree}
+                maxChars={MAX_CHARS}
                 editable={!loading}
-                textAlignVertical="top"
+                minHeight={180}
+                textStyle={{ color: colors.text.primary }}
+                onFocusChange={setEditorFocused}
               />
 
               {hasExplicitContent && content.trim() ? (
@@ -664,33 +693,28 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
               </View>
             ) : null}
 
-            <Text style={styles.categoryHelp}>{TEXT.categoryHelp}</Text>
-
-            {visibility === 'PUBLIC' ? (
-              <View>
-                <TouchableOpacity
-                  style={[styles.warningHeader, warningExpanded && styles.warningHeaderOpen]}
-                  onPress={() => setWarningExpanded((prev) => !prev)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="warning" size={18} color={WARNING_COLOR} />
-                  <Text style={styles.warningTitle}>{TEXT.warningTitle}</Text>
-                  <Ionicons name={warningExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={WARNING_COLOR} />
-                </TouchableOpacity>
-                {warningExpanded ? (
-                  <View style={styles.warningBody}>
-                    <Text style={styles.warningText}>{renderBoldMarkdown(TEXT.warningContent, styles.bold)}</Text>
-                  </View>
-                ) : null}
-              </View>
-            ) : null}
+            {!keyboardOpen ? <Text style={styles.categoryHelp}>{TEXT.categoryHelp}</Text> : null}
           </ScrollView>
 
-          <View style={styles.footer}>
-            <Button variant="ghost" size="sm" responsive={false} onPress={onClose} disabled={loading}>
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+            <Button
+              variant="ghost"
+              size="sm"
+              responsive={false}
+              onPress={onClose}
+              disabled={loading}
+              style={styles.footerBtn}
+            >
               Cancelar
             </Button>
-            <Button size="sm" responsive={false} onPress={handleSubmit} loading={loading} disabled={loading}>
+            <Button
+              size="sm"
+              responsive={false}
+              onPress={handleSubmit}
+              loading={loading}
+              disabled={loading}
+              style={styles.footerBtn}
+            >
               {isEditing ? 'Salvar' : 'Publicar'}
             </Button>
           </View>
@@ -792,7 +816,7 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
               </Pressable>
             </Pressable>
           ) : null}
-        </Pressable>
+        </View>
       </KeyboardAvoidingView>
 
       <CustomModal
@@ -815,6 +839,27 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
           { text: 'Ver planos', onPress: handleOpenPlans },
         ]}
       />
+
+      <ModalBottom visible={attentionOpen} onClose={() => setAttentionOpen(false)} maxHeight="50%">
+        <View style={styles.attentionSheet}>
+          <View style={styles.attentionSheetHeader}>
+            <Ionicons name="warning" size={22} color={WARNING_COLOR} />
+            <Text style={styles.attentionSheetTitle}>{TEXT.warningTitle}</Text>
+          </View>
+          <Text style={styles.attentionSheetText}>
+            {renderBoldMarkdown(TEXT.warningContent, styles.bold)}
+          </Text>
+          <Button
+            variant="ghost"
+            size="sm"
+            responsive={false}
+            onPress={() => setAttentionOpen(false)}
+            style={styles.attentionSheetClose}
+          >
+            Entendi
+          </Button>
+        </View>
+      </ModalBottom>
     </CustomModal>
   );
 }
@@ -831,16 +876,14 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   container: {
-    width: '94%',
-    maxWidth: 720,
-    // Altura estável relativa ao overlay; no Android o resize do teclado
-    // já reduz o espaço — sem KeyboardAvoidingView "height" por cima.
-    height: '90%',
-    maxHeight: '90%',
+    width: '100%',
+    maxWidth: 560,
+    // Altura pelo conteúdo; maxHeight dinâmico no JSX (responsivo ao teclado).
+    flexDirection: 'column',
     backgroundColor: c.background.paper,
     borderRadius: 16,
     borderWidth: 1,
@@ -861,52 +904,66 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     minWidth: 0,
     gap: 4,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 0,
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: c.text.primary,
+    flexShrink: 1,
   },
-  headerMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
+  attentionIconButton: {
+    padding: 2,
   },
   headerUsername: {
     fontSize: 12,
     color: c.text.secondary,
-    maxWidth: 120,
+    maxWidth: '100%',
+  },
+  headerChips: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'nowrap',
+    gap: 6,
+    marginTop: 2,
+    maxWidth: '100%',
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    height: 24,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+    gap: 3,
+    height: 22,
+    maxWidth: '48%',
+    paddingHorizontal: 6,
+    borderRadius: 11,
     backgroundColor: c.background.tertiary,
     borderWidth: 1,
     borderColor: c.border.light,
+    flexShrink: 1,
   },
   chipError: {
     borderColor: PINK_BORDER,
   },
   chipText: {
-    fontSize: 12,
+    fontSize: 11,
     color: c.text.primary,
+    flexShrink: 1,
   },
   closeButton: {
     padding: 4,
     alignSelf: 'flex-start',
   },
   body: {
-    flex: 1,
-    minHeight: 0,
+    flexGrow: 0,
+    flexShrink: 1,
   },
   bodyContent: {
     padding: 14,
     gap: 12,
-    flexGrow: 1,
   },
   errorBox: {
     flexDirection: 'row',
@@ -931,6 +988,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   toolbar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    flexWrap: 'wrap',
     gap: 6,
   },
   toolButton: {
@@ -983,15 +1041,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   editorError: {
     borderColor: PINK_BORDER,
-  },
-  textarea: {
-    minHeight: 120,
-    maxHeight: 220,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    lineHeight: 21,
-    color: c.text.primary,
   },
   explicitBox: {
     paddingHorizontal: 12,
@@ -1117,7 +1166,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   imagePreviewImage: {
     width: '100%',
-    height: 180,
+    height: 140,
   },
   removeImageButton: {
     position: 'absolute',
@@ -1134,49 +1183,41 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     fontSize: 12,
     color: c.text.secondary,
   },
-  warningHeader: {
+  attentionSheet: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  attentionSheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    padding: 12,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 152, 0, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 152, 0, 0.3)',
   },
-  warningHeaderOpen: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+  attentionSheetTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: c.text.primary,
   },
-  warningTitle: {
-    flex: 1,
+  attentionSheetText: {
     fontSize: 14,
-    fontWeight: '600',
+    lineHeight: 21,
     color: c.text.primary,
   },
-  warningBody: {
-    padding: 12,
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: 'rgba(255, 152, 0, 0.3)',
-    borderBottomLeftRadius: 6,
-    borderBottomRightRadius: 6,
-    backgroundColor: 'rgba(255, 152, 0, 0.05)',
-  },
-  warningText: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: c.text.primary,
+  attentionSheetClose: {
+    alignSelf: 'stretch',
   },
   footer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: c.border.light,
+  },
+  footerBtn: {
+    flex: 1,
+    minWidth: 0,
   },
   pickerModal: {
     ...StyleSheet.absoluteFill,
