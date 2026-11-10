@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppVideo, type AppVideoHandle } from '../components/AppVideo';
 import { CustomModal } from '../components/CustomModal';
+import { useEnterVideoFullscreenOnLandscape } from '../hooks/useEnterVideoFullscreenOnLandscape';
 import type { ProductFileProgress, ProductModule } from '../services/products';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -98,9 +99,12 @@ export function ProductScreen() {
   const videoRetriedRef = useRef(false);
   const videoRef = useRef<AppVideoHandle>(null);
   const signedAtRef = useRef(0);
+  const lastPersistedAtRef = useRef(0);
   const insets = useSafeAreaInsets();
   const [progressByFile, setProgressByFile] = useState<Record<string, ProductFileProgress>>({});
   const [modules, setModules] = useState<ProductModule[]>([]);
+
+  useEnterVideoFullscreenOnLandscape(videoViewer !== null, videoRef);
 
   const ownerId = product
     ? typeof product.userId === 'object' ? product.userId?._id : product.userId
@@ -871,17 +875,27 @@ export function ProductScreen() {
           </View>
           {videoViewer ? (
             <AppVideo
-              key={videoViewer.uri}
+              key={`${videoViewer.index}:${videoViewer.uri}`}
               ref={videoRef}
               uri={videoViewer.uri}
               style={styles.videoViewerPlayer}
               autoPlay
               nativeControls
-              onLoad={() => {
+              // Retoma 1× no 1º ready — não reaplicar em buffer/seek (isso puxava de volta ao fim).
+              startTime={(() => {
                 const saved = progressByFile[String(videoViewer.index)];
                 if (saved && !saved.isCompleted && saved.currentTime > 5) {
-                  videoRef.current?.seekTo(saved.currentTime);
+                  return saved.currentTime;
                 }
+                return 0;
+              })()}
+              timeUpdateInterval={3}
+              onTimeUpdate={(currentTime, duration) => {
+                if (!(duration > 0) || currentTime < 2) return;
+                const now = Date.now();
+                if (now - lastPersistedAtRef.current < 4000) return;
+                lastPersistedAtRef.current = now;
+                persistProgress(videoViewer.index, currentTime, duration, false);
               }}
               onEnd={() => {
                 const duration = videoRef.current?.getDuration() ?? 0;

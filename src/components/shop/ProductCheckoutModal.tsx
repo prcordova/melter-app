@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -19,7 +19,8 @@ import { resolveProductCoverImageSource } from '../../utils/product-cover-displa
 import { ordersApi } from '../../services/api';
 import { showToast } from '../CustomToast';
 import { getProductAiCheckoutDisclosureMessage } from '../../utils/product-ai-checkout-disclosure';
-import { AppVideo } from '../AppVideo';
+import { AppVideo, type AppVideoHandle } from '../AppVideo';
+import { useEnterVideoFullscreenOnLandscape } from '../../hooks/useEnterVideoFullscreenOnLandscape';
 
 export interface CheckoutProduct {
   _id: string;
@@ -104,6 +105,12 @@ export function ProductCheckoutModal({
     }
   };
 
+  const presentationVideoRef = useRef<AppVideoHandle>(null);
+  useEnterVideoFullscreenOnLandscape(
+    Boolean(visible && product?.presentationVideoUrl),
+    presentationVideoRef
+  );
+
   const imageSource = product
     ? resolveProductCoverImageSource({
         coverImage: product.coverImage,
@@ -138,6 +145,7 @@ export function ProductCheckoutModal({
 
             {product.presentationVideoUrl ? (
               <AppVideo
+                ref={presentationVideoRef}
                 uri={product.presentationVideoUrl}
                 style={styles.presentationVideo}
                 nativeControls

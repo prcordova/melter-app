@@ -301,7 +301,7 @@ export function DetailsStep({
             placeholderTextColor={colors.text.tertiary}
             maxLength={100}
           />
-          <Text style={styles.helperText}>Mínimo de 3 caracteres</Text>
+          <Text style={styles.helperText}>Mínimo de 2 caracteres</Text>
         </View>
 
         <View
@@ -356,7 +356,7 @@ export function DetailsStep({
                 console.error('[DetailsStep] Erro ao atualizar descrição:', error);
               }
             }}
-            placeholder="O que o comprador recebe (mín. 20 caracteres)"
+            placeholder="O que o comprador recebe (mín. 10 caracteres)"
             placeholderTextColor={colors.text.tertiary}
             multiline
             numberOfLines={3}
@@ -364,7 +364,7 @@ export function DetailsStep({
             maxLength={1000}
           />
           <Text style={styles.helperText}>
-            {(safeFormData.description || '').trim().length}/20 · mínimo de 20 caracteres
+            {(safeFormData.description || '').trim().length}/10 · mínimo de 10 caracteres
           </Text>
         </View>
 
