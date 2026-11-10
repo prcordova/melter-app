@@ -1,6 +1,6 @@
 import { productsApi } from '../../services/products';
 import type { RegisteredProductFile } from '../../services/products';
-import { putBlobToPresignedUrl, readFileBlob } from '../presigned-upload';
+import { getLocalFileSize, putLocalFileToPresignedUrl } from '../presigned-upload';
 
 export type PickedProductFile = {
   uri: string;
@@ -30,17 +30,19 @@ export async function uploadProductFileDirect(options: {
   onProgress?: (percent: number) => void;
 }): Promise<RegisteredProductFile> {
   const { productId, file, order, customFileName, description, onProgress } = options;
-  const blob = await readFileBlob(file.uri);
-  if (!blob.size) {
+  const requestedType = file.mimeType || 'application/octet-stream';
+  let fileSize = file.size && file.size > 0 ? file.size : 0;
+  try {
+    fileSize = fileSize || (await getLocalFileSize(file.uri));
+  } catch {
     throw new ProductUploadError('Arquivo vazio ou inválido');
   }
 
-  const requestedType = file.mimeType || 'application/octet-stream';
   const presigned = await productsApi.getPresignedUploadUrl(
     productId,
     file.name,
     requestedType,
-    blob.size,
+    fileSize,
     order
   );
   if (!presigned.success || !presigned.presignedUrl || !presigned.fileKey) {
@@ -51,13 +53,13 @@ export async function uploadProductFileDirect(options: {
   }
 
   const signedType = presigned.metadata?.fileType?.trim() || requestedType;
-  await putBlobToPresignedUrl(presigned.presignedUrl, blob, signedType, onProgress);
+  await putLocalFileToPresignedUrl(presigned.presignedUrl, file.uri, signedType, onProgress);
 
   const registered = await productsApi.registerUploadedFile({
     productId,
     fileUrl: presigned.storageRef || presigned.fileKey,
     fileName: file.name,
-    fileSize: blob.size,
+    fileSize,
     mimeType: signedType,
     order,
     customFileName: customFileName ?? null,

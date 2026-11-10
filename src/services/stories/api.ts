@@ -1,6 +1,10 @@
 import { api } from '../http-client';
 import { getAuthToken } from '../../lib/auth-token';
 import { API_CONFIG } from '../../config/api.config';
+import {
+  getLocalFileSize,
+  putLocalFileToPresignedUrl,
+} from '../../utils/presigned-upload';
 import type { ApiResponse, SendFriendRequestApiResponse, LoginResult, AuthResponse } from '../shared/types';
 
 export const storiesApi = {
@@ -39,33 +43,10 @@ export const storiesApi = {
     }
     
     try {
-      // 1. Obter tamanho do arquivo se não fornecido
-      let actualFileSize = fileSize;
-      if (!actualFileSize || actualFileSize === 0) {
-        try {
-          const response = await fetch(fileUri);
-          const blob = await response.blob();
-          actualFileSize = blob.size;
-        } catch (error) {
-          console.error('[uploadStoryMedia] Erro ao obter tamanho do arquivo:', error);
-          throw new Error('Não foi possível determinar o tamanho do arquivo');
-        }
-      }
+      const normalizedFileType = fileType.toLowerCase().trim();
+      // Nunca confiar em fetch(fileUri).blob() no Android — pode gravar "File not found" no S3.
+      const actualFileSize = fileSize && fileSize > 0 ? fileSize : await getLocalFileSize(fileUri);
 
-      // Validar tamanho mínimo
-      if (!actualFileSize || actualFileSize === 0) {
-        throw new Error('Tamanho do arquivo inválido');
-      }
-
-      // Normalizar tipo de arquivo (garantir lowercase)
-      // O backend aceita tanto image/jpg quanto image/jpeg, então manter como está
-      let normalizedFileType = fileType.toLowerCase().trim();
-
-      // 2. Obter presigned URL
-      // Usar query string manual para garantir que os parâmetros sejam enviados corretamente no React Native
-      // IMPORTANTE: NÃO usar encodeURIComponent aqui.
-      // URLSearchParams já faz encoding; encodar manualmente vira double-encoding (ex: image%252Fjpeg)
-      // e o backend recebe fileType inválido (ex: image%2Fjpeg) e rejeita.
       const queryParams = new URLSearchParams();
       queryParams.append('fileName', fileName);
       queryParams.append('fileType', normalizedFileType);
@@ -74,12 +55,9 @@ export const storiesApi = {
       const url = `/api/stories/upload-presigned?${queryParams.toString()}`;
       const fullUrl = `${API_CONFIG.BASE_URL}${url}`;
       
-      // O interceptor já adiciona o token automaticamente, não precisa adicionar manualmente
       try {
         const presignedResponse = await api.get<any>(url);
 
-        // A API retorna { success: true, presignedUrl, fileKey, fileUrl, metadata }
-        // O axios coloca a resposta em response.data
         if (!presignedResponse || !presignedResponse.data) {
           throw new Error('Resposta inválida do servidor');
         }
@@ -93,96 +71,12 @@ export const storiesApi = {
           throw new Error('URL de upload não foi retornada pelo servidor');
         }
 
-        // 3. Fazer upload direto ao S3
-        // No React Native, precisamos usar XMLHttpRequest para uploads de arquivos locais
-        // porque fetch() pode não funcionar corretamente com URIs locais (file://, content://)
-        let fileBlob: Blob;
-        try {
-          // Tentar usar fetch primeiro
-          const response = await fetch(fileUri);
-          fileBlob = await response.blob();
-          
-          // Verificar se o blob tem tamanho válido
-          if (!fileBlob || fileBlob.size === 0) {
-            throw new Error('Blob vazio ou inválido');
-          }
-        } catch (fetchError) {
-          console.error('[uploadStoryMedia] Erro ao criar blob com fetch, tentando XMLHttpRequest:', fetchError);
-          // Fallback: usar XMLHttpRequest para ler o arquivo
-          fileBlob = await new Promise<Blob>((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', fileUri, true);
-            xhr.responseType = 'blob';
-            xhr.onload = () => {
-              if (xhr.status === 200 || xhr.status === 0) {
-                resolve(xhr.response);
-              } else {
-                reject(new Error(`Erro ao ler arquivo: ${xhr.status}`));
-              }
-            };
-            xhr.onerror = () => reject(new Error('Erro de rede ao ler arquivo'));
-            xhr.send();
-          });
-        }
-        
-        // Verificar se o tamanho do blob corresponde ao tamanho esperado
-        if (fileBlob.size === 0) {
-          throw new Error('Arquivo está vazio ou não foi lido corretamente');
-        }
-        
-        if (fileBlob.size !== actualFileSize && fileBlob.size < actualFileSize * 0.9) {
-          console.error('[uploadStoryMedia] AVISO: Tamanho do blob difere do esperado:', {
-            blobSize: fileBlob.size,
-            expectedSize: actualFileSize,
-            difference: actualFileSize - fileBlob.size,
-          });
-        }
-        
-        // CRÍTICO: No React Native, axios pode não enviar blobs corretamente para S3
-        // Usar XMLHttpRequest diretamente para garantir que o arquivo seja enviado corretamente
-        const s3UploadResponse = await new Promise<{ status: number; headers: any }>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          xhr.open('PUT', presignedResponse.data.presignedUrl, true);
-          xhr.setRequestHeader('Content-Type', normalizedFileType);
-          
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve({
-                status: xhr.status,
-                headers: {
-                  'content-length': xhr.getResponseHeader('content-length'),
-                  'etag': xhr.getResponseHeader('etag'),
-                },
-              });
-            } else {
-              reject(new Error(`Erro ao fazer upload para S3: ${xhr.status} ${xhr.statusText}`));
-            }
-          };
-          
-          xhr.onerror = () => {
-            console.error('[uploadStoryMedia] Erro no XMLHttpRequest:', {
-              status: xhr.status,
-              statusText: xhr.statusText,
-            });
-            reject(new Error(`Erro ao fazer upload para S3: ${xhr.statusText || 'Erro desconhecido'}`));
-          };
-          
-          xhr.ontimeout = () => {
-            reject(new Error('Timeout ao fazer upload para S3'));
-          };
-          
-          xhr.timeout = 600000; // 10 minutos
-          
-          // Enviar o blob diretamente
-          xhr.send(fileBlob);
-        });
-        
-        if (s3UploadResponse.status !== 200) {
-          throw new Error(`Erro ao fazer upload para S3: status ${s3UploadResponse.status}`);
-        }
+        await putLocalFileToPresignedUrl(
+          presignedResponse.data.presignedUrl,
+          fileUri,
+          normalizedFileType
+        );
 
-        // 4. Registrar upload no backend (mesma chave privada `stories/<userId>/...` que o web grava no story)
         const storageKey: string | undefined =
           presignedResponse.data.fileKey || presignedResponse.data.storageKey;
         if (!storageKey) {
@@ -192,13 +86,11 @@ export const storiesApi = {
         formData.append('fileUrl', storageKey);
         formData.append('fileName', fileName);
         
-        // Se for vídeo, adicionar parâmetros de corte
         if (fileType.startsWith('video/') && startTime !== undefined && duration !== undefined) {
           formData.append('startTime', startTime.toString());
           formData.append('duration', duration.toString());
         }
 
-        // Usar a instância api para garantir que o interceptor adicione o token
         const response = await api.post('/api/stories/upload', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -207,7 +99,6 @@ export const storiesApi = {
         
         return response.data;
       } catch (axiosError: any) {
-        // Tratamento específico para erros de rede
         if (axiosError.message === 'Network Error' || axiosError.code === 'ERR_NETWORK' || axiosError.code === 'ECONNABORTED') {
           console.error('[uploadStoryMedia] Erro de rede:', {
             url: fullUrl,
@@ -220,22 +111,18 @@ export const storiesApi = {
           throw new Error('Erro de conexão. Verifique sua internet e tente novamente.');
         }
         
-        // Se for erro de resposta do servidor, extrair mensagem
         if (axiosError.response) {
           const errorMessage = axiosError.response.data?.message || axiosError.response.data?.error || 'Erro ao obter URL de upload';
           throw new Error(errorMessage);
         }
         
-        // Re-lançar outros erros
         throw axiosError;
       }
     } catch (error: any) {
       console.error('[uploadStoryMedia] Erro:', error);
-      // Se já for um Error com mensagem, re-lançar
       if (error instanceof Error) {
         throw error;
       }
-      // Caso contrário, criar um novo Error
       throw new Error(error?.message || 'Erro desconhecido ao fazer upload');
     }
   },

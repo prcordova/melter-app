@@ -1,5 +1,5 @@
 import { sellerVerificationApi } from '../../services/api';
-import { putBlobToPresignedUrl, readFileBlob } from '../presigned-upload';
+import { getLocalFileSize, putLocalFileToPresignedUrl } from '../presigned-upload';
 
 export type SellerVerificationDocumentType = 'front' | 'back' | 'selfie' | 'videoProof';
 
@@ -14,10 +14,6 @@ export async function uploadSellerVerificationFileDirect(options: {
   documentType: SellerVerificationDocumentType;
 }): Promise<string> {
   const { file, documentType } = options;
-  const blob = await readFileBlob(file.uri);
-  if (!blob.size) {
-    throw new Error('Arquivo vazio ou inválido');
-  }
 
   const contentType =
     file.mimeType ||
@@ -25,11 +21,12 @@ export async function uploadSellerVerificationFileDirect(options: {
   const fileName =
     file.fileName ||
     (documentType === 'videoProof' ? 'video-proof.mp4' : 'document.jpg');
+  const fileSize = await getLocalFileSize(file.uri);
 
   const presignedResponse = await sellerVerificationApi.getPresignedUploadUrl(
     fileName,
     contentType,
-    blob.size,
+    fileSize,
     documentType
   );
 
@@ -52,7 +49,7 @@ export async function uploadSellerVerificationFileDirect(options: {
       ? metadataFileType
       : contentType;
 
-  await putBlobToPresignedUrl(presignedUrl, blob, signedContentType);
+  await putLocalFileToPresignedUrl(presignedUrl, file.uri, signedContentType);
 
   return fileKey;
 }

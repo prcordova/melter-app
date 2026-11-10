@@ -21,6 +21,10 @@ import { storiesApi } from '../services/api';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
 import { showToast } from './CustomToast';
+import {
+  getLocalFileSize,
+  persistLocalMediaForUpload,
+} from '../utils/presigned-upload';
 
 const { width, height } = Dimensions.get('window');
 
@@ -403,7 +407,7 @@ export function StoryCreateModal({
     if (!selectedMedia) return;
 
     // Salvar dados antes de fechar o modal
-    const mediaToUpload = selectedMedia;
+    const mediaSourceUri = selectedMedia;
     const mediaSizeToUpload = selectedMediaSize;
     const mediaTypeToUpload = selectedMediaType;
     const isVideoToUpload = isVideo;
@@ -411,6 +415,67 @@ export function StoryCreateModal({
     const videoEndTimeToUpload = videoEndTime;
     const textToUpload = storyText.trim();
     const visibilityToUpload = visibility;
+
+    const rawFilename = mediaSourceUri.split('/').pop() || '';
+    const decodedFilename = decodeURIComponent(rawFilename.split('?')[0] || rawFilename);
+
+    let fileType = mediaTypeToUpload;
+    if (!fileType || (!fileType.startsWith('image/') && !fileType.startsWith('video/'))) {
+      const match = /\.(\w+)$/.exec(decodedFilename.toLowerCase());
+      const extToMime: { [key: string]: string } = {
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        gif: 'image/gif',
+        webp: 'image/webp',
+        mp4: 'video/mp4',
+        mov: 'video/quicktime',
+        webm: 'video/webm',
+        avi: 'video/x-msvideo',
+      };
+      fileType = (match && extToMime[match[1].toLowerCase()]) || (isVideoToUpload ? 'video/mp4' : 'image/jpeg');
+    }
+    fileType = fileType.toLowerCase().trim();
+    const validTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+      'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
+    ];
+    if (!validTypes.includes(fileType)) {
+      fileType = isVideoToUpload ? 'video/mp4' : 'image/jpeg';
+    }
+
+    const mimeToExt: { [key: string]: string } = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'video/mp4': 'mp4',
+      'video/webm': 'webm',
+      'video/quicktime': 'mov',
+      'video/x-msvideo': 'avi',
+    };
+    const knownExts = new Set(Object.values(mimeToExt));
+    const rawExt = decodedFilename.split('.').pop()?.toLowerCase() || '';
+    const safeExt = knownExts.has(rawExt)
+      ? (rawExt === 'jpeg' ? 'jpg' : rawExt)
+      : (mimeToExt[fileType] || (isVideoToUpload ? 'mp4' : 'jpg'));
+    const filename = `story_${Date.now()}.${safeExt}`;
+
+    let mediaToUpload: string;
+    let fileSize: number;
+    try {
+      // Persistir ANTES de fechar — URI temp do Android some e o fetch virava "File not found" no S3
+      mediaToUpload = await persistLocalMediaForUpload(mediaSourceUri, safeExt, fileType);
+      fileSize =
+        mediaSizeToUpload && mediaSizeToUpload > 0
+          ? mediaSizeToUpload
+          : await getLocalFileSize(mediaToUpload);
+    } catch (error: any) {
+      console.error('[StoryCreate] Erro ao preparar mídia:', error);
+      showToast.error('Erro', error?.message || 'Não foi possível ler a mídia selecionada');
+      return;
+    }
 
     // Fechar modal imediatamente e limpar estado
     setSelectedMedia(null);
@@ -430,94 +495,6 @@ export function StoryCreateModal({
     // Fazer upload em background
     (async () => {
       try {
-
-        // 1. Obter informações do arquivo
-        // Android ImagePicker às vezes devolve URI sem extensão (cache/UUID) —
-        // o backend precisa de MIME + extensão conhecida para a key S3.
-        const rawFilename = mediaToUpload.split('/').pop() || '';
-        const decodedFilename = decodeURIComponent(rawFilename.split('?')[0] || rawFilename);
-        
-        // Determinar o tipo de arquivo - priorizar o tipo armazenado
-        let fileType = mediaTypeToUpload;
-        
-        // Se não tiver tipo armazenado ou for inválido, inferir do nome do arquivo
-        if (!fileType || (!fileType.startsWith('image/') && !fileType.startsWith('video/'))) {
-          const match = /\.(\w+)$/.exec(decodedFilename.toLowerCase());
-          if (match) {
-            const ext = match[1].toLowerCase();
-            // Mapear extensões para tipos MIME válidos (usar exatamente como o backend espera)
-            const extToMime: { [key: string]: string } = {
-              'jpg': 'image/jpeg',
-              'jpeg': 'image/jpeg',
-              'png': 'image/png',
-              'gif': 'image/gif',
-              'webp': 'image/webp',
-              'mp4': 'video/mp4',
-              'mov': 'video/quicktime',
-              'webm': 'video/webm',
-              'avi': 'video/x-msvideo',
-            };
-            fileType = extToMime[ext];
-            
-            // Se ainda não encontrou, usar padrão baseado no isVideo
-            if (!fileType) {
-              fileType = isVideoToUpload ? 'video/mp4' : 'image/jpeg';
-            }
-          } else {
-            // Sem extensão, usar padrão baseado no isVideo
-            fileType = isVideoToUpload ? 'video/mp4' : 'image/jpeg';
-          }
-        }
-        
-        // Normalizar tipo de arquivo (garantir lowercase)
-        fileType = fileType.toLowerCase().trim();
-        
-        // Garantir que seja um tipo válido aceito pelo backend
-        const validTypes = [
-          'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-          'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'
-        ];
-        
-        if (!validTypes.includes(fileType)) {
-          fileType = isVideoToUpload ? 'video/mp4' : 'image/jpeg';
-        }
-
-        const mimeToExt: { [key: string]: string } = {
-          'image/jpeg': 'jpg',
-          'image/jpg': 'jpg',
-          'image/png': 'png',
-          'image/gif': 'gif',
-          'image/webp': 'webp',
-          'video/mp4': 'mp4',
-          'video/webm': 'webm',
-          'video/quicktime': 'mov',
-          'video/x-msvideo': 'avi',
-        };
-        const knownExts = new Set(Object.values(mimeToExt));
-        const rawExt = decodedFilename.split('.').pop()?.toLowerCase() || '';
-        const safeExt = knownExts.has(rawExt)
-          ? (rawExt === 'jpeg' ? 'jpg' : rawExt)
-          : (mimeToExt[fileType] || (isVideoToUpload ? 'mp4' : 'jpg'));
-        const filename = `story_${Date.now()}.${safeExt}`;
-        
-        // Obter tamanho do arquivo (usar do ImagePicker se disponível, senão buscar via fetch)
-        let fileSize = mediaSizeToUpload;
-        if (!fileSize || fileSize === 0) {
-          try {
-            const response = await fetch(mediaToUpload);
-            const blob = await response.blob();
-            fileSize = blob.size;
-          } catch (error) {
-            console.error('[StoryCreate] Erro ao obter tamanho do arquivo:', error);
-            fileSize = isVideoToUpload ? 10 * 1024 * 1024 : 1024 * 1024; // 10MB para vídeo, 1MB para imagem
-          }
-        }
-        
-        // Validar tamanho mínimo
-        if (!fileSize || fileSize === 0) {
-          throw new Error('Não foi possível determinar o tamanho do arquivo');
-        }
-
         // 2. Fazer upload do arquivo usando presigned URL (upload direto ao S3)
       const uploadResponse = await storiesApi.uploadStoryMedia(
           mediaToUpload,
