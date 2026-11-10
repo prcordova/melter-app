@@ -11,6 +11,7 @@ import { getImageUrl } from '../utils/image';
 import { resolveProductCoverImageSource } from '../utils/product-cover-display';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
+import { resolveProductContentStats } from '../lib/products/product-content-stats';
 
 interface Product {
   _id: string;
@@ -46,6 +47,14 @@ interface Product {
     intervalDays: number;
     isActive: boolean;
   };
+  digital?: {
+    contentStats?: {
+      videoCount?: number;
+      imageCount?: number;
+      documentCount?: number;
+    } | null;
+    files?: Array<{ fileType?: string; duration?: number | null }>;
+  } | null;
 }
 
 interface ShopCardProps {
@@ -124,6 +133,13 @@ export function ShopCard({
     product.paymentMode === 'ASSINATURA' && product.subscriptionPlan?.price != null
       ? product.subscriptionPlan.price
       : product.price;
+
+  const contentStats = resolveProductContentStats(product);
+  const mediaStatItems = [
+    { key: 'images', icon: 'image-outline' as const, count: contentStats.imageCount },
+    { key: 'videos', icon: 'videocam-outline' as const, count: contentStats.videoCount },
+    { key: 'links', icon: 'link-outline' as const, count: contentStats.documentCount },
+  ];
 
   return (
     <View style={[styles.card, isPending && styles.cardPending]}>
@@ -204,35 +220,35 @@ export function ShopCard({
         </View>
       </View>
 
-      {/* Informações do Produto */}
+      {/* Informações — username sob a capa, título, descrição, preço + mídias */}
       <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={2}>
-          {product.title}
-        </Text>
+        {product.userId?.username ? (
+          <Text style={styles.sellerText} numberOfLines={1}>
+            @{product.userId.username}
+          </Text>
+        ) : null}
 
-        {product.description && (
+        <View style={styles.titleRow}>
+          <Text style={styles.title} numberOfLines={1}>
+            {product.title}
+          </Text>
+          {category ? (
+            <View style={styles.categoryChip}>
+              {category.emoji ? (
+                <Text style={styles.categoryEmoji}>{category.emoji}</Text>
+              ) : null}
+              <Text style={styles.categoryText} numberOfLines={1}>
+                {category.name}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {product.description ? (
           <Text style={styles.description} numberOfLines={2}>
             {product.description}
           </Text>
-        )}
-
-        {/* Categoria */}
-        {category && (
-          <View style={styles.category}>
-            {category.emoji && (
-              <Text style={styles.categoryEmoji}>{category.emoji}</Text>
-            )}
-            <Text style={styles.categoryText}>{category.name}</Text>
-          </View>
-        )}
-
-        {/* Vendedor */}
-        {product.userId && product.userId.username && (
-          <View style={styles.seller}>
-            <Ionicons name="person-outline" size={14} color={colors.text.secondary} />
-            <Text style={styles.sellerText}>@{product.userId.username}</Text>
-          </View>
-        )}
+        ) : null}
 
         {statusChip && (
           <View style={styles.statusChip}>
@@ -255,16 +271,16 @@ export function ShopCard({
           </Text>
         )}
 
-        {/* Footer */}
         <View style={styles.footer}>
+          <View style={styles.mediaStats}>
+            {mediaStatItems.map((item) => (
+              <View key={item.key} style={styles.mediaStatItem}>
+                <Ionicons name={item.icon} size={15} color={colors.secondary.main} />
+                <Text style={styles.mediaStatCount}>{item.count}</Text>
+              </View>
+            ))}
+          </View>
           <Text style={styles.price}>{formatPrice(displayPrice)}</Text>
-
-          {product.salesCount !== undefined && product.salesCount > 0 && (
-            <View style={styles.sales}>
-              <Ionicons name="cart-outline" size={14} color={colors.text.tertiary} />
-              <Text style={styles.salesText}>{product.salesCount} vendas</Text>
-            </View>
-          )}
         </View>
       </View>
 
@@ -404,10 +420,18 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     padding: 12,
   },
   title: {
+    flex: 1,
+    minWidth: 0,
     fontSize: 16,
     fontWeight: 'bold',
     color: c.text.primary,
-    marginBottom: 4,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+    minWidth: 0,
   },
   description: {
     fontSize: 13,
@@ -415,40 +439,61 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     marginBottom: 8,
     lineHeight: 18,
   },
-  category: {
+  categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: 6,
+    flexShrink: 0,
+    maxWidth: '42%',
+    backgroundColor: c.background.tertiary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
   categoryEmoji: {
     fontSize: 12,
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: 11,
     color: c.text.tertiary,
-  },
-  seller: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
+    fontWeight: '600',
+    maxWidth: 90,
   },
   sellerText: {
     fontSize: 12,
     color: c.text.secondary,
-    fontWeight: '500',
+    fontWeight: '600',
+    marginBottom: 4,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 4,
+    gap: 8,
+  },
+  mediaStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  mediaStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  mediaStatCount: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: c.text.secondary,
   },
   price: {
     fontSize: 18,
     fontWeight: 'bold',
     color: c.secondary.main,
+    flexShrink: 0,
   },
   sales: {
     flexDirection: 'row',

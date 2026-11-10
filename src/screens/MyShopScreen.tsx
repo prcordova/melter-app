@@ -49,6 +49,7 @@ import {
 import { ProductUploadError } from '../utils/products/upload';
 import { CustomModal, useCustomModal } from '../components/CustomModal';
 import { ShopCard } from '../components/ShopCard';
+import { ShopRelatedProductsSection } from '../components/shop/ShopRelatedProductsSection';
 import { SubscriptionPlansContent } from '../components/shop/SubscriptionPlansContent';
 import { ShopSettingsModal } from '../components/shop/ShopSettingsModal';
 import { UsernameGradientText } from '../components/UsernameGradientText';
@@ -1565,6 +1566,7 @@ export function MyShopScreen() {
                         })}
                       </View>
                     )}
+                    <ShopRelatedProductsSection username={username} showAdultContent />
                   </>
                 )}
               </View>
@@ -1762,6 +1764,7 @@ export function MyShopScreen() {
                     })}
                   </View>
                 )}
+                <ShopRelatedProductsSection username={username} showAdultContent />
               </>
             )}
           </View>

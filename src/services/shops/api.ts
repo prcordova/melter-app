@@ -56,6 +56,20 @@ export const shopsApi = {
     const response = await api.get<MarketplaceProductsListResponse>(`${SHOP_API.marketplace.products}?${queryParams.toString()}`);
     return response.data;
   },
+
+  getRelatedProducts: async (
+    username: string,
+    params?: { limit?: number; showAdultContent?: boolean }
+  ) => {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', String(params.limit));
+    if (params?.showAdultContent) queryParams.append('showAdultContent', 'true');
+    const qs = queryParams.toString();
+    const response = await api.get<
+      ApiResponse<any[]> & { meta?: { categories?: string[]; sourceUsername?: string } }
+    >(`${SHOP_API.relatedProducts(username)}${qs ? `?${qs}` : ''}`);
+    return response.data;
+  },
 };
 
 // Pedidos / checkout de produto único (saldo na carteira)

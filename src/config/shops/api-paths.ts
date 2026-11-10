@@ -12,6 +12,9 @@ export const SHOP_API = {
     products: '/api/shops/products',
     ...MARKETPLACE_SLIDER_API,
   },
+  /** Pacotes de outras lojas na mesma categoria — seção Relacionados na vitrine */
+  relatedProducts: (username: string) =>
+    `/api/shops/${encodeURIComponent(username)}/related-products`,
   me: {
     settings: '/api/shops/me/settings',
     background: '/api/shops/me/background',
