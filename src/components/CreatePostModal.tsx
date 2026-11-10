@@ -464,7 +464,11 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
 
   return (
     <CustomModal visible={visible} onClose={onClose} animationType="fade" overlayStyle={styles.overlay}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoid}>
+      {/* Android já usa softwareKeyboardLayoutMode=resize — behavior "height" encolhia o modal 2x */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardAvoid}
+      >
         <Pressable
           style={[styles.container, { paddingBottom: Math.max(insets.bottom, 0) }]}
           onPress={(e) => e.stopPropagation()}
@@ -509,6 +513,8 @@ export function CreatePostModal({ visible, onClose, onPostCreated, editingPost }
             style={styles.body}
             contentContainerStyle={styles.bodyContent}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            nestedScrollEnabled
           >
             {error ? (
               <View style={styles.errorBox}>
@@ -821,8 +827,8 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     alignItems: 'center',
   },
   keyboardAvoid: {
+    flex: 1,
     width: '100%',
-    maxHeight: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
@@ -831,6 +837,8 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   container: {
     width: '94%',
     maxWidth: 720,
+    // Altura estável relativa ao overlay; no Android o resize do teclado
+    // já reduz o espaço — sem KeyboardAvoidingView "height" por cima.
     height: '90%',
     maxHeight: '90%',
     backgroundColor: c.background.paper,
@@ -892,12 +900,13 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     alignSelf: 'flex-start',
   },
   body: {
-    flexGrow: 0,
-    flexShrink: 1,
+    flex: 1,
+    minHeight: 0,
   },
   bodyContent: {
     padding: 14,
     gap: 12,
+    flexGrow: 1,
   },
   errorBox: {
     flexDirection: 'row',
