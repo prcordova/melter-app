@@ -16,6 +16,7 @@ import { resolveUserPlanType } from '../config/plan-features';
 import { useFeedPlanGates } from '../hooks/useFeedPlanGates';
 import { useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
+import { AppVideo } from './AppVideo';
 
 interface StoriesCarouselProps {
   storiesGroups: StoriesGroup[];
@@ -63,10 +64,25 @@ export function StoriesCarousel({
     // Igual web: preview = story mais recente; clique abre do mais antigo
     const latestStory = group.stories[group.stories.length - 1];
     const content = latestStory?.content;
-    const previewUrl =
-      content?.thumbnailUrl ||
-      (content?.type === 'image' || content?.type === 'gif' ? content?.mediaUrl : undefined) ||
-      undefined;
+    const thumbUrl =
+      content?.thumbnailUrl &&
+      (content.thumbnailUrl.startsWith('http') || content.thumbnailUrl.startsWith('data:'))
+        ? content.thumbnailUrl
+        : undefined;
+    const imagePreviewUrl =
+      content?.type === 'image' || content?.type === 'gif'
+        ? content?.mediaUrl &&
+          (content.mediaUrl.startsWith('http') || content.mediaUrl.startsWith('data:'))
+          ? content.mediaUrl
+          : undefined
+        : undefined;
+    const videoPreviewUrl =
+      content?.type === 'video' &&
+      content?.mediaUrl &&
+      content.mediaUrl.startsWith('http')
+        ? content.mediaUrl
+        : undefined;
+    const previewUrl = thumbUrl || imagePreviewUrl;
     const isVideoPreview = content?.type === 'video';
 
     return (
@@ -76,12 +92,22 @@ export function StoriesCarousel({
         onPress={() => onStoryClick(group)}
       >
         <View style={styles.storyCard}>
-          {/* Preview do story (thumbnail JPEG; nunca URL de vídeo no Image) */}
+          {/* Preview: JPEG se existir; senão frame do vídeo (igual web BaseCard videoSrc) */}
           {previewUrl ? (
             <Image
               source={{ uri: previewUrl }}
               style={styles.storyPreview}
               resizeMode="cover"
+            />
+          ) : videoPreviewUrl ? (
+            <AppVideo
+              uri={videoPreviewUrl}
+              style={styles.storyPreview}
+              contentFit="cover"
+              muted
+              paused
+              nativeControls={false}
+              startTime={0.15}
             />
           ) : (
             <View style={[styles.storyPreview, styles.storyPreviewPlaceholder]}>

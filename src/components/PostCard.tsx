@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,12 @@ import {
   Alert,
   Modal,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import ImageViewing from 'react-native-image-viewing';
-import { Post, ReactionType, REACTIONS, REACTION_LABELS } from '../types/feed';
+import { Comment, Post, ReactionType, REACTIONS, REACTION_LABELS } from '../types/feed';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getAvatarUrl, getUserInitials } from '../utils/image';
@@ -30,6 +31,8 @@ import {
   getPostAuthorUsernameForNav,
   VERIFIED_BADGE_ICON_COLOR,
 } from '../utils/post-author';
+import { getCommentAuthor } from '../utils/comment-author';
+import { postsApi } from '../services/api';
 
 import { Avatar } from './Avatar';
 import { UsernameGradientText } from './UsernameGradientText';
@@ -97,6 +100,8 @@ export function PostCard({
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [showOriginalPostModal, setShowOriginalPostModal] = useState(false);
   const [originalPostId, setOriginalPostId] = useState<string | null>(null);
+  const [latestComment, setLatestComment] = useState<Comment | null>(null);
+  const [loadingLatestComment, setLoadingLatestComment] = useState(false);
   const { requiredPlan } = useFeedPlanGates();
   const { preview: autoLinkPreview, loading: autoLinkPreviewLoading } = useLinkPreview(post?.content, {
     enabled: Boolean(post && !post.linkId && !post.originalPostId && !post.hideAutoPreview),
@@ -105,6 +110,37 @@ export function PostCard({
   const authorId = getPostAuthorObjectId(post?.userId);
   const isValidPost =
     Boolean(post && post.userId && typeof post.userId === 'object' && authorId);
+  const commentsCount = post?.commentsCount ?? 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!post?._id || commentsCount <= 0) {
+      setLatestComment(null);
+      return;
+    }
+
+    const loadLatestComment = async () => {
+      try {
+        setLoadingLatestComment(true);
+        const response = await postsApi.getComments(post._id);
+        if (cancelled) return;
+        if (response.success) {
+          const allComments: Comment[] = response.data?.comments || response.data || [];
+          const last = allComments.length > 0 ? allComments[allComments.length - 1] : null;
+          setLatestComment(last);
+        }
+      } catch (error) {
+        console.error('[PostCard] Erro ao carregar último comentário:', error);
+      } finally {
+        if (!cancelled) setLoadingLatestComment(false);
+      }
+    };
+
+    void loadLatestComment();
+    return () => {
+      cancelled = true;
+    };
+  }, [post?._id, commentsCount]);
 
   if (!isValidPost || !post || !authorId) {
     return null;
@@ -119,6 +155,7 @@ export function PostCard({
     typeof post.userId.username === 'string' && post.userId.username.trim()
       ? post.userId.username.trim()
       : authorLabel;
+  const latestAuthor = latestComment ? getCommentAuthor(latestComment) : null;
 
   const isOwnPost = user?.id === authorId;
 
@@ -238,7 +275,6 @@ export function PostCard({
   const totalReactions =
     post.reactionsCount && typeof post.reactionsCount.total === 'number' ? post.reactionsCount.total : 0;
   const reactionEmojis = totalReactions > 0 ? topReactionEmojis(post.reactionsCount) : [];
-  const commentsCount = post.commentsCount || 0;
   const viewsCount = post.viewsCount || 0;
   const sharesCount = post.sharesCount || 0;
   const hasEngagementStats = totalReactions > 0 || commentsCount > 0 || viewsCount > 0 || sharesCount > 0;
@@ -569,6 +605,45 @@ export function PostCard({
             </PlanLocker>
           </View>
         </View>
+
+        {/* Seção de comentários expandida: último comentário disponível */}
+        {commentsCount > 0 ? (
+          <View style={styles.commentsPreview}>
+            {commentsCount > 1 ? (
+              <TouchableOpacity onPress={handleCommentPress} activeOpacity={0.7}>
+                <Text style={styles.viewAllComments}>
+                  Ver todos os {commentsCount} comentários
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+            {loadingLatestComment && !latestComment ? (
+              <ActivityIndicator size="small" color={colors.text.tertiary} style={{ marginTop: 8 }} />
+            ) : null}
+            {latestComment && latestAuthor ? (
+              <TouchableOpacity
+                style={styles.latestCommentRow}
+                onPress={handleCommentPress}
+                activeOpacity={0.7}
+              >
+                <Avatar
+                  user={{
+                    username: latestAuthor.username,
+                    avatar: latestAuthor.avatar,
+                  }}
+                  size={28}
+                />
+                <View style={styles.latestCommentBubble}>
+                  <Text style={styles.latestCommentUsername} numberOfLines={1}>
+                    {latestAuthor.username}
+                  </Text>
+                  <Text style={styles.latestCommentText} numberOfLines={3}>
+                    {latestComment.content}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       {/* Modais */}
@@ -578,6 +653,10 @@ export function PostCard({
             visible={showCommentsModal}
             onClose={() => setShowCommentsModal(false)}
             postId={post._id}
+            onCommentsChanged={(comments) => {
+              const last = comments.length > 0 ? comments[comments.length - 1] : null;
+              setLatestComment(last);
+            }}
           />
 
           <ShareModal
@@ -890,6 +969,42 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   reactionEmoji: {
     fontSize: 24,
+  },
+  commentsPreview: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: c.divider,
+    gap: 8,
+  },
+  viewAllComments: {
+    fontSize: 13,
+    color: c.text.secondary,
+    fontWeight: '500',
+  },
+  latestCommentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  latestCommentBubble: {
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: c.background.tertiary,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  latestCommentUsername: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: c.text.primary,
+    marginBottom: 2,
+  },
+  latestCommentText: {
+    fontSize: 13,
+    color: c.text.primary,
+    lineHeight: 18,
   },
   // Menu Styles
   menuOverlay: {

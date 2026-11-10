@@ -35,9 +35,11 @@ interface CommentsModalProps {
   visible: boolean;
   onClose: () => void;
   postId: string;
+  /** Notifica o card do feed quando a lista muda (ex.: preview do último comentário). */
+  onCommentsChanged?: (comments: Comment[]) => void;
 }
 
-export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) {
+export function CommentsModal({ visible, onClose, postId, onCommentsChanged }: CommentsModalProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
@@ -70,13 +72,14 @@ export function CommentsModal({ visible, onClose, postId }: CommentsModalProps) 
         // Vamos assumir que recebemos uma lista e organizamos por parentId se necessário
         const allComments = response.data.comments || response.data || [];
         setComments(allComments);
+        onCommentsChanged?.(allComments);
       }
     } catch (error) {
       console.error('[CommentsModal] Erro ao carregar comentários:', error);
     } finally {
       setLoading(false);
     }
-  }, [postId]);
+  }, [postId, onCommentsChanged]);
 
   useEffect(() => {
     if (visible && postId) {
