@@ -37,9 +37,7 @@ import {
   isSellerVerificationRecord,
   pickVerificationFormSeed,
 } from '../utils/seller/verification-fields';
-import { SellerGrowthPromoCard } from '../components/shop/SellerGrowthPromoCard';
 import { CustomCheckpoints } from '../components/seller-journey/CustomCheckpoints';
-import type { SellerGrowthPromoNavigateAction } from '../components/shop/SellerGrowthPromoCard';
 import { ProductCreationWizard } from '../components/shop/ProductCreationWizard';
 import { ProductDraftResumeModal } from '../components/shop/wizard/ProductDraftResumeModal';
 import {
@@ -189,6 +187,8 @@ export function MyShopScreen() {
   });
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [pendingProductsCount, setPendingProductsCount] = useState(0);
+  /** REJECTED / REQUIRES_CHANGES — ação do vendedor (acima de divulgação). */
+  const [actionRequiredProductsCount, setActionRequiredProductsCount] = useState(0);
   const [shopListMeta, setShopListMeta] = useState<ShopProductsListMeta>(
     DEFAULT_SHOP_PRODUCTS_LIST_META
   );
@@ -375,22 +375,30 @@ export function MyShopScreen() {
 
         setProducts(productsData);
 
-        // Contar produtos pendentes (apenas para dono)
+        // Contar produtos pendentes / que pedem ajuste (apenas para dono)
         if (isOwner) {
           const pendingCount = productsData.filter((p: any) => p.status === 'PENDING').length;
+          const actionRequiredCount = productsData.filter(
+            (p: any) => p.status === 'REQUIRES_CHANGES' || p.status === 'REJECTED'
+          ).length;
           setPendingProductsCount(pendingCount);
+          setActionRequiredProductsCount(actionRequiredCount);
         } else {
           setPendingProductsCount(0);
+          setActionRequiredProductsCount(0);
         }
         return productsData;
       } else {
         setProducts([]);
         setPendingProductsCount(0);
+        setActionRequiredProductsCount(0);
         return [];
       }
     } catch (error) {
       console.error('[MyShopScreen] Erro ao buscar produtos:', error);
       setProducts([]);
+      setPendingProductsCount(0);
+      setActionRequiredProductsCount(0);
       return [];
     } finally {
       setLoadingProducts(false);
@@ -751,43 +759,6 @@ export function MyShopScreen() {
       setWizardProgress(0);
     }
   };
-
-  const handleGrowthPromoAction = (action: SellerGrowthPromoNavigateAction) => {
-    if (action === 'openVerificationForm') {
-      void openVerificationForm();
-      return;
-    }
-    if (action === 'share_shop') {
-      void handleCopyShopShareLink();
-      return;
-    }
-    if (action === 'links') {
-      navigation.navigate('ProfileStack' as never, { screen: 'LinksSettings' } as never);
-      return;
-    }
-    if (action === 'appearance') {
-      setShowSettingsModal(true);
-      return;
-    }
-    if (action === 'feed') {
-      navigation.navigate('FeedTab' as never);
-      return;
-    }
-    if (action === 'explorer') {
-      navigation.navigate('ShopsSearch' as never);
-    }
-  };
-
-  const shopGrowthPromo =
-    isOwner && ownerApproved && shopIsPublicAndActive ? (
-      <SellerGrowthPromoCard
-        variant="small"
-        placement="shop"
-        sellerStatus="approved"
-        username={username}
-        onAction={handleGrowthPromoAction}
-      />
-    ) : null;
 
   const handleVerificationSuccess = async (updated: SellerVerificationFormData) => {
     setShopSettings((prev) => {
@@ -1312,10 +1283,29 @@ export function MyShopScreen() {
                       shopPlanGate={shopPlanGate}
                       compact
                     />
-                    {/* Promo "Prepare o perfil" desativado temporariamente (getShopPlacementContent → null) */}
                   </>
                 )}
-                {!loadingProducts && products.length > 0 && shopGrowthPromo}
+
+                {/* Pendências de produto primeiro — acima de qualquer divulgação */}
+                {isOwner && actionRequiredProductsCount > 0 && (
+                  <View style={styles.actionRequiredAlert}>
+                    <View style={styles.pendingAlertContent}>
+                      <Ionicons name="construct-outline" size={20} color={colors.states.warning} />
+                      <View style={styles.pendingAlertText}>
+                        <Text style={styles.actionRequiredTitle}>
+                          {actionRequiredProductsCount === 1
+                            ? '1 produto precisa de ajustes'
+                            : `${actionRequiredProductsCount} produtos precisam de ajustes`}
+                        </Text>
+                        <Text style={styles.pendingAlertDescription}>
+                          Há pacote recusado ou com alterações pedidas pela moderação. Edite o produto
+                          e reenvie para análise.
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
                 {isOwner &&
                   (canPrepareShopCatalogWhilePending || canPrepareCatalogWithoutActiveShop) &&
                   !ownerApproved &&
@@ -1418,7 +1408,6 @@ export function MyShopScreen() {
                         </TouchableOpacity>
                       )
                     )}
-                    {shopGrowthPromo ? <View style={styles.emptyProductsPromo}>{shopGrowthPromo}</View> : null}
                   </View>
                 ) : (
                   <>
@@ -1428,6 +1417,8 @@ export function MyShopScreen() {
                           {products.length} {products.length === 1 ? 'produto' : 'produtos'}
                           {pendingProductsCount > 0 &&
                             ` (${pendingProductsCount} pendente${pendingProductsCount > 1 ? 's' : ''})`}
+                          {actionRequiredProductsCount > 0 &&
+                            ` (${actionRequiredProductsCount} com ajuste${actionRequiredProductsCount > 1 ? 's' : ''})`}
                         </Text>
                         {!canCreateProduct() ? (
                           <PlanLocker
@@ -2156,10 +2147,6 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 24,
   },
-  emptyProductsPromo: {
-    alignSelf: 'stretch',
-    marginTop: 24,
-  },
   emptyProductsIcon: {
     width: 80,
     height: 80,
@@ -2347,6 +2334,14 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     padding: 16,
     marginBottom: 16,
   },
+  actionRequiredAlert: {
+    backgroundColor: c.states.warning + '18',
+    borderWidth: 1,
+    borderColor: c.states.warning + '55',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
   pendingAlertContent: {
     flexDirection: 'row',
     gap: 12,
@@ -2355,11 +2350,17 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   pendingAlertText: {
     flex: 1,
     gap: 4,
+    minWidth: 0,
   },
   pendingAlertTitle: {
     fontSize: 14,
     fontWeight: 'bold',
     color: c.primary.main,
+  },
+  actionRequiredTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: c.states.warning,
   },
   pendingAlertDescription: {
     fontSize: 12,
