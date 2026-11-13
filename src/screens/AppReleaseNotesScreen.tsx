@@ -87,7 +87,13 @@ export function AppReleaseNotesScreen() {
                 <Text style={styles.noteTitle}>{note.title}</Text>
                 {note.version ? <Text style={styles.versionChip}>v{note.version}</Text> : null}
               </View>
-              <Text style={styles.noteDate}>{format(new Date(note.publishedAt), 'dd/MM/yyyy')}</Text>
+              {(() => {
+                const d = note.publishedAt ? new Date(note.publishedAt) : null
+                const ok = d && !Number.isNaN(d.getTime())
+                return ok ? (
+                  <Text style={styles.noteDate}>{format(d, 'dd/MM/yyyy')}</Text>
+                ) : null
+              })()}
               <RichPostText text={note.description} style={styles.noteDescription} color={colors.text.secondary} />
             </View>
           ))

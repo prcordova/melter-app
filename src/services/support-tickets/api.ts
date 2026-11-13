@@ -59,6 +59,14 @@ export const supportTicketsApi = {
     });
     return response.data;
   },
+
+  /** POST /api/bugs/:id/ack — limpa pendência após ver atualização do admin. */
+  ackUpdate: async (bugId: string) => {
+    const response = await api.post<ApiResponse<{ cleared: boolean }>>(
+      `/api/bugs/${bugId}/ack`
+    );
+    return response.data;
+  },
 };
 
 // API de Referrals (Indique e Ganhe)

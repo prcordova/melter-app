@@ -27,6 +27,8 @@ import { API_CONFIG } from '../config/api.config';
 import { showToast } from './CustomToast';
 import { getTabNavigator } from '../navigation/get-tab-navigator';
 import { useAppUpdate } from '../contexts/AppUpdateContext';
+import { usePusher } from '../hooks/usePusher';
+import { CustomIconAlert } from './CustomIconAlert';
 
 interface HeaderProps {
   onLogoPress?: () => void;
@@ -44,6 +46,10 @@ export function Header({
   const { user, logout } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
   const [statusVisibility, setStatusVisibility] = useState<UserVisibility>('online');
+  const [headerPending, setHeaderPending] = useState<{
+    hasAny: boolean
+    byShortcut: Record<string, { areaKey: string }>
+  }>({ hasAny: false, byShortcut: {} });
   const {
     status: updateStatus,
     latestVersion,
@@ -53,6 +59,7 @@ export function Header({
     checkNow,
     openUpdate,
   } = useAppUpdate();
+  const { channel: userChannel } = usePusher();
   const hasUpdate = updateStatus === 'available' || updateStatus === 'required';
 
   const closeMenu = useCallback(() => setMenuVisible(false), []);
@@ -68,11 +75,49 @@ export function Header({
     }
   }, []);
 
+  const loadHeaderPending = useCallback(async () => {
+    if (!user) {
+      setHeaderPending({ hasAny: false, byShortcut: {} });
+      return;
+    }
+    try {
+      const response = await userApi.getCompletionStatus();
+      const raw = response.data?.headerPending;
+      if (response.success && raw?.items?.length) {
+        const byShortcut: Record<string, { areaKey: string }> = {};
+        for (const item of raw.items) {
+          if (!byShortcut[item.shortcutId]) {
+            byShortcut[item.shortcutId] = { areaKey: item.areaKey };
+          }
+        }
+        setHeaderPending({ hasAny: Boolean(raw.hasAny), byShortcut });
+        return;
+      }
+      setHeaderPending({ hasAny: false, byShortcut: {} });
+    } catch {
+      setHeaderPending({ hasAny: false, byShortcut: {} });
+    }
+  }, [user]);
+
+  useEffect(() => {
+    void loadHeaderPending();
+  }, [loadHeaderPending]);
+
   useEffect(() => {
     if (menuVisible && user) {
       loadStatus();
+      void loadHeaderPending();
     }
-  }, [menuVisible, user, loadStatus]);
+  }, [menuVisible, user, loadStatus, loadHeaderPending]);
+
+  useEffect(() => {
+    if (!userChannel) return;
+    const refresh = () => void loadHeaderPending();
+    userChannel.bind('support-ticket-updated', refresh);
+    return () => {
+      userChannel.unbind('support-ticket-updated', refresh);
+    };
+  }, [userChannel, loadHeaderPending]);
 
   const tabNavigator = getTabNavigator(navigation);
 
@@ -260,6 +305,11 @@ export function Header({
           onPress={() => setMenuVisible(true)}
           activeOpacity={0.7}
           style={styles.avatarButton}
+          accessibilityLabel={
+            headerPending.hasAny
+              ? 'Há pendências para você resolver na sua conta'
+              : undefined
+          }
         >
           {avatarSource ? (
             <Image source={{ uri: avatarSource }} style={styles.avatar} />
@@ -270,6 +320,11 @@ export function Header({
               </Text>
             </View>
           )}
+          {headerPending.hasAny ? (
+            <View style={styles.sellerPendingIconWrap}>
+              <CustomIconAlert size="sm" />
+            </View>
+          ) : null}
         </TouchableOpacity>
       </View>
 
@@ -352,6 +407,7 @@ export function Header({
                   >
                     <Ionicons name="storefront-outline" size={20} color={colors.text.secondary} />
                     <Text style={styles.menuRowLabel}>Minha loja</Text>
+                    {headerPending.byShortcut.myShop ? <CustomIconAlert size="md" /> : null}
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -423,6 +479,16 @@ export function Header({
 
                   <TouchableOpacity
                     style={styles.menuRow}
+                    onPress={() => goProfileStack('SupportTickets')}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="help-circle-outline" size={20} color={colors.text.secondary} />
+                    <Text style={styles.menuRowLabel}>Tickets / Suporte</Text>
+                    {headerPending.byShortcut.support ? <CustomIconAlert size="md" /> : null}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.menuRow}
                     onPress={() => goProfileStack('Terms')}
                     activeOpacity={0.7}
                   >
@@ -479,6 +545,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   },
   avatarButton: {
     marginLeft: 4,
+    position: 'relative',
   },
   updateButton: {
     width: 28,
@@ -496,6 +563,14 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     backgroundColor: c.states.error,
     borderWidth: 1.5,
     borderColor: c.background.appbar,
+  },
+  sellerPendingIconWrap: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: c.background.appbar,
+    borderRadius: 8,
+    zIndex: 1,
   },
   avatar: {
     width: 32,

@@ -3,12 +3,15 @@ import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme, useThemedStyles } from '../contexts/ThemeContext';
 import type { AppPalette } from '../theme/palettes';
+import { CustomIconAlert } from './CustomIconAlert';
 
 interface MenuCardProps {
   title: string;
   icon: string;
   onPress: () => void;
   badgeCount?: number;
+  /** Pendência (mesma do header web/app) — exclamação à direita do título. */
+  showPendingAlert?: boolean;
   variant?: 'default' | 'danger';
   fullWidth?: boolean;
 }
@@ -18,6 +21,7 @@ export function MenuCard({
   icon, 
   onPress, 
   badgeCount, 
+  showPendingAlert = false,
   variant = 'default',
   fullWidth = false,
 }: MenuCardProps) {
@@ -44,15 +48,18 @@ export function MenuCard({
           </View>
         )}
       </View>
-      <Text 
-        style={[
-          styles.title,
-          variant === 'danger' && styles.titleDanger
-        ]} 
-        numberOfLines={2}
-      >
-        {title}
-      </Text>
+      <View style={styles.titleRow}>
+        <Text 
+          style={[
+            styles.title,
+            variant === 'danger' && styles.titleDanger
+          ]} 
+          numberOfLines={2}
+        >
+          {title}
+        </Text>
+        {showPendingAlert ? <CustomIconAlert size="md" style={styles.titleAlert} /> : null}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -104,11 +111,21 @@ const createStyles = (c: AppPalette) =>
       fontSize: 10,
       fontWeight: 'bold',
     },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      width: '100%',
+      gap: 10,
+    },
     title: {
+      flex: 1,
       fontSize: 15,
       fontWeight: '600',
       color: c.text.primary,
       textAlign: 'left',
+    },
+    titleAlert: {
+      marginLeft: 4,
     },
     titleDanger: {
       color: c.states.error,

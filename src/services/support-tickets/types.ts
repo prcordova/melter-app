@@ -1,3 +1,10 @@
+export interface SupportTicketReply {
+  authorType: 'admin' | 'user';
+  authorUsername: string;
+  message: string;
+  createdAt?: string;
+}
+
 export interface SupportTicket {
   _id: string;
   title: string;
@@ -9,5 +16,6 @@ export interface SupportTicket {
   priority?: string;
   createdAt: string;
   createdBy?: { userId?: string; username: string };
+  replies?: SupportTicketReply[];
+  userUnreadAdminUpdate?: boolean;
 }
-

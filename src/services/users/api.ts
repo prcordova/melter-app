@@ -285,10 +285,16 @@ export const userApi = {
     >('/api/users/preferences/transactional-emails', partial);
     return response.data;
   },
-  /** Mesmo endpoint dos gates de onboarding do web; o app usa `onboardingTour`. */
+  /** Mesmo endpoint dos gates de onboarding do web; o app usa `onboardingTour` + `headerPending`. */
   getCompletionStatus: async () => {
     const response = await api.get<
-      ApiResponse<{ onboardingTour?: { shouldShow: boolean } }>
+      ApiResponse<{
+        onboardingTour?: { shouldShow: boolean }
+        headerPending?: {
+          hasAny: boolean
+          items: Array<{ id: string; shortcutId: string; areaKey: string }>
+        }
+      }>
     >(USERS_API.me.completionStatus);
     return response.data;
   },

@@ -39,8 +39,17 @@ import {
   TicketPriority,
 } from '../config/support-tickets.config';
 import { isSupportTicketListHiddenForUser } from '../utils/support-tickets-flags';
+import { usePusher } from '../hooks/usePusher';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+type SupportTicketUpdatedPayload = {
+  bugId: string;
+  status: 'em_analise' | 'resolvido';
+  priority?: string;
+  userUnreadAdminUpdate?: boolean;
+  replies?: SupportTicket['replies'];
+};
 
 const PRIORITY_LABELS: Record<TicketPriority, string> = {
   baixo: 'Baixo',
@@ -54,6 +63,7 @@ export function SupportTicketsScreen() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { channel: userChannel } = usePusher();
   const isAdmin = user?.accountType === 'admin';
   const hideList = isSupportTicketListHiddenForUser(isAdmin);
 
@@ -78,6 +88,21 @@ export function SupportTicketsScreen() {
   const listFiltersRef = useRef({ search, statusFilter });
   listFiltersRef.current = { search, statusFilter };
 
+  const ackUnread = useCallback(async (bugId: string) => {
+    try {
+      const res = await supportTicketsApi.ackUpdate(bugId);
+      if (res.success && res.data?.cleared) {
+        setTickets((prev) =>
+          prev.map((ticket) =>
+            ticket._id === bugId ? { ...ticket, userUnreadAdminUpdate: false } : ticket
+          )
+        );
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const fetchTickets = useCallback(async () => {
     if (!user?.id) return;
     if (hideList) {
@@ -95,6 +120,13 @@ export function SupportTicketsScreen() {
         : await supportTicketsApi.listMine(params);
       if (res.success && Array.isArray(res.data)) {
         setTickets(res.data);
+        if (!isAdmin) {
+          for (const ticket of res.data) {
+            if (ticket.userUnreadAdminUpdate) {
+              void ackUnread(ticket._id);
+            }
+          }
+        }
       } else {
         showToast.error('Erro', res.message || 'Não foi possível carregar os tickets');
       }
@@ -105,13 +137,43 @@ export function SupportTicketsScreen() {
       setLoadingList(false);
       setRefreshing(false);
     }
-  }, [user?.id, isAdmin, hideList]);
+  }, [user?.id, isAdmin, hideList, ackUnread]);
 
   useFocusEffect(
     useCallback(() => {
       fetchTickets();
     }, [fetchTickets])
   );
+
+  React.useEffect(() => {
+    if (!userChannel || isAdmin) return;
+    const onUpdated = (payload: SupportTicketUpdatedPayload) => {
+      if (!payload?.bugId) return;
+      setTickets((prev) => {
+        const exists = prev.some((ticket) => ticket._id === payload.bugId);
+        if (!exists) {
+          void fetchTickets();
+          return prev;
+        }
+        return prev.map((ticket) =>
+          ticket._id === payload.bugId
+            ? {
+                ...ticket,
+                status: payload.status,
+                priority: payload.priority || ticket.priority,
+                userUnreadAdminUpdate: payload.userUnreadAdminUpdate,
+                replies: payload.replies ?? ticket.replies,
+              }
+            : ticket
+        );
+      });
+      void ackUnread(payload.bugId);
+    };
+    userChannel.bind('support-ticket-updated', onUpdated);
+    return () => {
+      userChannel.unbind('support-ticket-updated', onUpdated);
+    };
+  }, [userChannel, isAdmin, fetchTickets, ackUnread]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -371,10 +433,19 @@ export function SupportTicketsScreen() {
               <Text style={styles.empty}>Nenhum ticket encontrado.</Text>
             ) : (
               tickets.map((ticket) => (
-                <View key={ticket._id} style={styles.card}>
+                <View
+                  key={ticket._id}
+                  style={[
+                    styles.card,
+                    ticket.userUnreadAdminUpdate ? styles.cardUnread : null,
+                  ]}
+                >
                   <Text style={styles.cardTitle} numberOfLines={2}>
                     {ticket.title}
                   </Text>
+                  {ticket.userUnreadAdminUpdate && !isAdmin ? (
+                    <Text style={styles.newReplyBadge}>Nova resposta</Text>
+                  ) : null}
                   {isAdmin && ticket.createdBy?.username ? (
                     <Text style={styles.cardMeta}>@{ticket.createdBy.username}</Text>
                   ) : null}
@@ -390,6 +461,22 @@ export function SupportTicketsScreen() {
                       : ticket.page}
                   </Text>
                   <Text style={styles.cardDesc}>{ticket.description}</Text>
+                  {(ticket.replies?.length ?? 0) > 0 ? (
+                    <View style={styles.repliesBox}>
+                      <Text style={styles.repliesTitle}>Respostas do suporte</Text>
+                      {ticket.replies!.map((reply, idx) => (
+                        <View key={`${ticket._id}-r-${idx}`} style={styles.replyCard}>
+                          <Text style={styles.replyMeta}>
+                            {reply.authorType === 'admin' ? 'Suporte Melter' : 'Você'}
+                            {reply.createdAt
+                              ? ` · ${format(new Date(reply.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`
+                              : ''}
+                          </Text>
+                          <Text style={styles.replyBody}>{reply.message}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                   {ticket.imageUrl ? (
                     <TouchableOpacity activeOpacity={0.85} onPress={() => openEvidence(ticket.imageUrl)}>
                       <Image
@@ -569,6 +656,41 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     padding: 14,
     marginBottom: 12,
     backgroundColor: c.background.paper,
+  },
+  cardUnread: {
+    borderColor: c.states.warning,
+  },
+  newReplyBadge: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: '700',
+    color: c.states.warning,
+  },
+  repliesBox: {
+    marginTop: 12,
+    gap: 8,
+  },
+  repliesTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: c.text.secondary,
+  },
+  replyCard: {
+    borderWidth: 1,
+    borderColor: c.border.light,
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: c.background.default,
+  },
+  replyMeta: {
+    fontSize: 11,
+    color: c.text.tertiary,
+    marginBottom: 4,
+  },
+  replyBody: {
+    fontSize: 14,
+    color: c.text.primary,
+    lineHeight: 20,
   },
   cardTitle: {
     fontSize: 16,

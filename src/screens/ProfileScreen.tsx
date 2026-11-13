@@ -70,6 +70,9 @@ export function ProfileScreen() {
   });
   const [accountVerification, setAccountVerification] = useState<any | null>(null);
   const [accountVerificationLoading, setAccountVerificationLoading] = useState(true);
+  const [headerPendingByShortcut, setHeaderPendingByShortcut] = useState<
+    Record<string, { areaKey: string }>
+  >({});
   const currentPlanType = user?.plan?.type || 'FREE';
   const canRequestAccountVerification =
     currentPlanType === 'PRO' || currentPlanType === 'PRO_PLUS';
@@ -220,14 +223,39 @@ export function ProfileScreen() {
     }
   }, [user?.id, loadUserLinks, loadAccountVerification]);
 
+  const loadHeaderPending = useCallback(async () => {
+    if (!user?.id) {
+      setHeaderPendingByShortcut({});
+      return;
+    }
+    try {
+      const response = await userApi.getCompletionStatus();
+      const raw = response.data?.headerPending;
+      if (response.success && raw?.items?.length) {
+        const byShortcut: Record<string, { areaKey: string }> = {};
+        for (const item of raw.items) {
+          if (!byShortcut[item.shortcutId]) {
+            byShortcut[item.shortcutId] = { areaKey: item.areaKey };
+          }
+        }
+        setHeaderPendingByShortcut(byShortcut);
+        return;
+      }
+      setHeaderPendingByShortcut({});
+    } catch {
+      setHeaderPendingByShortcut({});
+    }
+  }, [user?.id]);
+
   // Recarregar ao focar no perfil
   useFocusEffect(
     useCallback(() => {
       if (user?.id) {
         loadUserLinks();
         loadAccountVerification();
+        void loadHeaderPending();
       }
-    }, [user?.id, loadUserLinks, loadAccountVerification])
+    }, [user?.id, loadUserLinks, loadAccountVerification, loadHeaderPending])
   );
 
   const openAddLinkModal = () => {
@@ -410,7 +438,13 @@ export function ProfileScreen() {
   // Opções do menu (baseado no dropdown do Melter web)
   const menuOptions = [
     { id: 'profile', title: 'Ver Perfil', icon: 'person-outline', onPress: () => handleMenuPress('profile') },
-    { id: 'shop', title: 'Minha Loja', icon: 'storefront-outline', onPress: () => handleMenuPress('shop') },
+    {
+      id: 'shop',
+      title: 'Minha Loja',
+      icon: 'storefront-outline',
+      onPress: () => handleMenuPress('shop'),
+      showPendingAlert: Boolean(headerPendingByShortcut.myShop),
+    },
     { id: 'purchases', title: 'Compras', icon: 'bag-handle-outline', onPress: () => handleMenuPress('purchases') },
     { id: 'affiliates', title: 'Afiliados', icon: 'people-outline', onPress: () => handleMenuPress('affiliates') },
     { id: 'wallet', title: 'Carteira', icon: 'wallet-outline', onPress: () => handleMenuPress('wallet'), badgeCount: 0 },
@@ -421,6 +455,7 @@ export function ProfileScreen() {
       title: 'Tickets / Suporte',
       icon: 'help-circle-outline',
       onPress: () => handleMenuPress('supportTickets'),
+      showPendingAlert: Boolean(headerPendingByShortcut.support),
     },
     { id: 'settings', title: 'Configurações', icon: 'settings-outline', onPress: () => handleMenuPress('settings') },
     { id: 'plans', title: user?.plan?.type === 'FREE' ? 'Upgrade' : 'Planos', icon: 'ribbon-outline', onPress: () => handleMenuPress('plans') },
@@ -1050,6 +1085,7 @@ export function ProfileScreen() {
                 icon={option.icon}
                 onPress={option.onPress}
                 badgeCount={option.badgeCount}
+                showPendingAlert={option.showPendingAlert}
                 fullWidth
               />
             </View>
