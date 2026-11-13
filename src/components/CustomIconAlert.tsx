@@ -18,8 +18,8 @@ type CustomIconAlertProps = {
 };
 
 /**
- * Ícone padrão de pendência/alerta (exclamação) — espelha o web `CustomIconAlert`.
- * Usar à direita dos atalhos e no badge do avatar do header.
+ * Ícone padrão de atenção (exclamação) — espelha o web `CustomIconAlert`.
+ * Pendências (loja/suporte), avatar e badge de nova versão do app.
  */
 export function CustomIconAlert({ size = 'md', style }: CustomIconAlertProps) {
   const { colors } = useAppTheme();

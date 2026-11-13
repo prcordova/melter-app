@@ -296,7 +296,11 @@ export function Header({
                 color={hasUpdate ? colors.states.error : colors.icon.primary}
               />
             )}
-            {hasUpdate && !checking && <View style={styles.updateDot} />}
+            {hasUpdate && !checking ? (
+              <View style={styles.updateAlertWrap}>
+                <CustomIconAlert size="sm" />
+              </View>
+            ) : null}
           </TouchableOpacity>
         )}
         <NotificationButton />
@@ -456,6 +460,7 @@ export function Header({
                       <Text style={[styles.menuRowLabel, styles.menuRowDanger]}>
                         Atualizar app{latestVersion ? ` (${latestVersion})` : ''}
                       </Text>
+                      <CustomIconAlert size="md" />
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
@@ -553,16 +558,13 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  updateDot: {
+  updateAlertWrap: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: c.states.error,
-    borderWidth: 1.5,
-    borderColor: c.background.appbar,
+    top: -4,
+    right: -6,
+    backgroundColor: c.background.appbar,
+    borderRadius: 8,
+    zIndex: 1,
   },
   sellerPendingIconWrap: {
     position: 'absolute',
