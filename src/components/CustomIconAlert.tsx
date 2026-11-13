@@ -1,14 +1,16 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useAppTheme } from '../contexts/ThemeContext';
 
 export type CustomIconAlertSize = 'sm' | 'md' | 'lg';
 
+/** Amarelo do alerta triangular — sync com web `CUSTOM_ICON_ALERT_COLOR`. */
+export const CUSTOM_ICON_ALERT_COLOR = '#F5C518';
+
 const SIZE_PX: Record<CustomIconAlertSize, number> = {
-  sm: 14,
-  md: 16,
-  lg: 18,
+  sm: 17,
+  md: 20,
+  lg: 22,
 };
 
 type CustomIconAlertProps = {
@@ -18,18 +20,12 @@ type CustomIconAlertProps = {
 };
 
 /**
- * Ícone padrão de atenção (exclamação) — espelha o web `CustomIconAlert`.
- * Pendências (loja/suporte), avatar e badge de nova versão do app.
+ * Ícone padrão de atenção: triângulo amarelo com exclamação (espelha o web).
  */
 export function CustomIconAlert({ size = 'md', style }: CustomIconAlertProps) {
-  const { colors } = useAppTheme();
   return (
     <View style={[styles.wrap, style]} pointerEvents="none">
-      <Ionicons
-        name="alert-circle-outline"
-        size={SIZE_PX[size]}
-        color={colors.states.warning}
-      />
+      <Ionicons name="warning" size={SIZE_PX[size]} color={CUSTOM_ICON_ALERT_COLOR} />
     </View>
   );
 }
